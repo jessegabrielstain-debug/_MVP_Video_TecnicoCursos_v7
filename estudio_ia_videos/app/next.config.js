@@ -15,7 +15,7 @@ const nextConfig = {
   },
   images: { unoptimized: true },
   
-  // Headers de segurança e CSP
+  // Headers de segurança e CSP (otimizado para dev + produção)
   async headers() {
     return [
       {
@@ -29,7 +29,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' ws: wss: https: http://localhost:* http://127.0.0.1:* https://*.supabase.co",
+              "connect-src 'self' ws: wss: https: http://localhost:* http://127.0.0.1:* https://*.supabase.co https://*.chrome.com chrome-extension:",
               "media-src 'self' blob: data:",
               "worker-src 'self' blob:",
               "frame-src 'self'",
