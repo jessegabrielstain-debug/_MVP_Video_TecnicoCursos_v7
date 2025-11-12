@@ -1,0 +1,91 @@
+# 🎯 MVP Video TécnicoCursos v7 - Docker Ignore
+
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next
+out
+build
+dist
+
+# Testing
+coverage
+.nyc_output
+tests/playwright-report
+tests/test-results
+
+# Environment
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# Temporary
+tmp
+temp
+.tmp
+*.tmp
+*.temp
+
+# Prisma
+app/prisma/migrations/*.sql
+!app/prisma/schema.prisma
+
+# Scripts
+scripts/
+setup.sh
+setup.ps1
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Other
+.husky
+.cursor
+.editorconfig
+.prettierignore
+.eslintignore

@@ -1,0 +1,32 @@
+{
+  "startTime": 1156.7364,
+  "endTime": 81203.2594,
+  "duration": 80046.523,
+  "environment": "development",
+  "results": [
+    {
+      "type": "unit",
+      "status": "passed",
+      "duration": 80029.7271,
+      "tests": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0
+      },
+      "errors": [],
+      "warnings": []
+    }
+  ],
+  "overall": {
+    "status": "passed",
+    "totalTests": 2,
+    "passedTests": 2,
+    "failedTests": 0,
+    "skippedTests": 0
+  },
+  "coverage": {
+    "overall": 0,
+    "byType": {}
+  }
+}

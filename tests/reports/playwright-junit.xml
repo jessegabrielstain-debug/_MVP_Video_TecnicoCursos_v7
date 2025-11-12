@@ -1,0 +1,81 @@
+<testsuites id="" name="" tests="1" failures="1" skipped="0" errors="0" time="16.616721000000002">
+<testsuite name="user-flows\complete-video-workflow.test.ts" timestamp="2025-10-31T10:01:26.267Z" hostname="chromium" tests="1" failures="1" skipped="0" time="0.845" errors="0">
+<testcase name="[chromium] Complete Video Workflow E2E Tests › deve completar fluxo de criação de vídeo com sucesso" classname="user-flows\complete-video-workflow.test.ts" time="0.845">
+<failure message="complete-video-workflow.test.ts:53:3 deve completar fluxo de criação de vídeo com sucesso" type="FAILURE">
+<![CDATA[  [chromium] › user-flows\complete-video-workflow.test.ts:53:3 › Complete Video Workflow E2E Tests › deve completar fluxo de criação de vídeo com sucesso 
+
+    TypeError: dbHelper.clearTestData is not a function
+
+      45 |   test.beforeEach(async () => {
+      46 |     // Limpar dados de teste anteriores
+    > 47 |     await dbHelper.clearTestData();
+         |                    ^
+      48 |     
+      49 |     // Navegar para página inicial
+      50 |     await page.goto('/');
+        at C:\xampp\htdocs\_MVP_Video_TecnicoCursos_v7\tests\e2e\user-flows\complete-video-workflow.test.ts:47:20
+
+    TypeError: dbHelper.cleanup is not a function
+
+      39 |
+      40 |   test.afterAll(async () => {
+    > 41 |     await dbHelper.cleanup();
+         |                    ^
+      42 |     await page.close();
+      43 |   });
+      44 |
+        at C:\xampp\htdocs\_MVP_Video_TecnicoCursos_v7\tests\e2e\user-flows\complete-video-workflow.test.ts:41:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\reports\playwright-results\user-flows-complete-video--a73a5-riação-de-vídeo-com-sucesso-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    TypeError: dbHelper.clearTestData is not a function
+
+      45 |   test.beforeEach(async () => {
+      46 |     // Limpar dados de teste anteriores
+    > 47 |     await dbHelper.clearTestData();
+         |                    ^
+      48 |     
+      49 |     // Navegar para página inicial
+      50 |     await page.goto('/');
+        at C:\xampp\htdocs\_MVP_Video_TecnicoCursos_v7\tests\e2e\user-flows\complete-video-workflow.test.ts:47:20
+
+    TypeError: dbHelper.cleanup is not a function
+
+      39 |
+      40 |   test.afterAll(async () => {
+    > 41 |     await dbHelper.cleanup();
+         |                    ^
+      42 |     await page.close();
+      43 |   });
+      44 |
+        at C:\xampp\htdocs\_MVP_Video_TecnicoCursos_v7\tests\e2e\user-flows\complete-video-workflow.test.ts:41:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\reports\playwright-results\user-flows-complete-video--a73a5-riação-de-vídeo-com-sucesso-chromium-retry1\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\reports\playwright-results\user-flows-complete-video--a73a5-riação-de-vídeo-com-sucesso-chromium-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\reports\playwright-results\user-flows-complete-video--a73a5-riação-de-vídeo-com-sucesso-chromium-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|playwright-results\user-flows-complete-video--a73a5-riação-de-vídeo-com-sucesso-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|playwright-results\user-flows-complete-video--a73a5-riação-de-vídeo-com-sucesso-chromium-retry1\test-failed-1.png]]
+
+[[ATTACHMENT|playwright-results\user-flows-complete-video--a73a5-riação-de-vídeo-com-sucesso-chromium-retry1\trace.zip]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

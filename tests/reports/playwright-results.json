@@ -1,0 +1,791 @@
+{
+  "config": {
+    "configFile": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\playwright.config.ts",
+    "rootDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\setup\\playwright.teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "test-type": "e2e",
+      "project": "MVP Video Técnico Cursos v7",
+      "environment": "test",
+      "base-url": "http://localhost:3000",
+      "api-url": "http://localhost:3001",
+      "playwright-version": "1.49.1",
+      "node-version": "v20.18.0",
+      "platform": "win32",
+      "ci": "false",
+      "timestamp": "2025-10-31T10:01:26.047Z",
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list",
+        {
+          "printSteps": true
+        }
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "./reports/playwright-report",
+          "open": "never",
+          "host": "localhost",
+          "port": 9323
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "./reports/playwright-results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "./reports/playwright-junit.xml",
+          "includeProjectInTestName": true
+        }
+      ],
+      [
+        "blob",
+        {
+          "outputDir": "./reports/playwright-blob"
+        }
+      ],
+      [
+        "line",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 15000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "/.*\\.setup\\.ts/"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "cleanup",
+        "name": "cleanup",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "/.*\\.cleanup\\.ts/"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*.e2e.{js,ts}",
+          "**/*.spec.{js,ts}",
+          "**/e2e/**/*.{js,ts}"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*.e2e.{js,ts}",
+          "**/*.spec.{js,ts}",
+          "**/e2e/**/*.{js,ts}"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*.e2e.{js,ts}",
+          "**/*.spec.{js,ts}",
+          "**/e2e/**/*.{js,ts}"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "edge",
+        "name": "edge",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*.e2e.{js,ts}",
+          "**/*.spec.{js,ts}",
+          "**/e2e/**/*.{js,ts}"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "mobile-chrome",
+        "name": "mobile-chrome",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*.e2e.{js,ts}",
+          "**/*.spec.{js,ts}",
+          "**/e2e/**/*.{js,ts}"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "mobile-safari",
+        "name": "mobile-safari",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*.e2e.{js,ts}",
+          "**/*.spec.{js,ts}",
+          "**/e2e/**/*.{js,ts}"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "tablet",
+        "name": "tablet",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*.e2e.{js,ts}",
+          "**/*.spec.{js,ts}",
+          "**/e2e/**/*.{js,ts}"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "authenticated-user",
+        "name": "authenticated-user",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*auth*.e2e.{js,ts}"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "authenticated-admin",
+        "name": "authenticated-admin",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*admin*.e2e.{js,ts}"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "api-tests",
+        "name": "api-tests",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*api*.e2e.{js,ts}"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "performance",
+        "name": "performance",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*performance*.e2e.{js,ts}"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "accessibility",
+        "name": "accessibility",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*a11y*.e2e.{js,ts}"
+        ],
+        "timeout": 10000
+      },
+      {
+        "outputDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/reports/playwright-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-type": "e2e",
+          "project": "MVP Video Técnico Cursos v7",
+          "environment": "test",
+          "base-url": "http://localhost:3000",
+          "api-url": "http://localhost:3001",
+          "playwright-version": "1.49.1",
+          "node-version": "v20.18.0",
+          "platform": "win32",
+          "ci": "false",
+          "timestamp": "2025-10-31T10:01:26.047Z",
+          "actualWorkers": 1
+        },
+        "id": "visual-regression",
+        "name": "visual-regression",
+        "testDir": "C:/xampp/htdocs/_MVP_Video_TecnicoCursos_v7/tests/e2e",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**",
+          "**/*.d.ts",
+          "**/helpers/**",
+          "**/setup/**",
+          "**/mocks/**",
+          "**/fixtures/**",
+          "**/utils/**"
+        ],
+        "testMatch": [
+          "**/*visual*.e2e.{js,ts}"
+        ],
+        "timeout": 10000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 10,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "user-flows\\complete-video-workflow.test.ts",
+      "file": "user-flows/complete-video-workflow.test.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Complete Video Workflow E2E Tests",
+          "file": "user-flows/complete-video-workflow.test.ts",
+          "line": 24,
+          "column": 6,
+          "specs": [
+            {
+              "title": "deve completar fluxo de criação de vídeo com sucesso",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 10000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 440,
+                      "error": {
+                        "message": "TypeError: dbHelper.clearTestData is not a function",
+                        "stack": "TypeError: dbHelper.clearTestData is not a function\n    at C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts:47:20",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts",
+                          "column": 20,
+                          "line": 47
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 45 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 46 |\u001b[39m     \u001b[90m// Limpar dados de teste anteriores\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 47 |\u001b[39m     \u001b[36mawait\u001b[39m dbHelper\u001b[33m.\u001b[39mclearTestData()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 48 |\u001b[39m     \n \u001b[90m 49 |\u001b[39m     \u001b[90m// Navegar para página inicial\u001b[39m\n \u001b[90m 50 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts",
+                            "column": 20,
+                            "line": 47
+                          },
+                          "message": "TypeError: dbHelper.clearTestData is not a function\n\n\u001b[0m \u001b[90m 45 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 46 |\u001b[39m     \u001b[90m// Limpar dados de teste anteriores\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 47 |\u001b[39m     \u001b[36mawait\u001b[39m dbHelper\u001b[33m.\u001b[39mclearTestData()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 48 |\u001b[39m     \n \u001b[90m 49 |\u001b[39m     \u001b[90m// Navegar para página inicial\u001b[39m\n \u001b[90m 50 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts:47:20\u001b[22m"
+                        },
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts",
+                            "column": 20,
+                            "line": 41
+                          },
+                          "message": "TypeError: dbHelper.cleanup is not a function\n\n\u001b[0m \u001b[90m 39 |\u001b[39m\n \u001b[90m 40 |\u001b[39m   test\u001b[33m.\u001b[39mafterAll(\u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 41 |\u001b[39m     \u001b[36mawait\u001b[39m dbHelper\u001b[33m.\u001b[39mcleanup()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 42 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mclose()\u001b[33m;\u001b[39m\n \u001b[90m 43 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 44 |\u001b[39m\u001b[0m\n\u001b[2m    at C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts:41:20\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-31T10:01:30.049Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\reports\\playwright-results\\user-flows-complete-video--a73a5-riação-de-vídeo-com-sucesso-chromium\\test-failed-1.png"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts",
+                        "column": 20,
+                        "line": 47
+                      }
+                    },
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 405,
+                      "error": {
+                        "message": "TypeError: dbHelper.clearTestData is not a function",
+                        "stack": "TypeError: dbHelper.clearTestData is not a function\n    at C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts:47:20",
+                        "location": {
+                          "file": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts",
+                          "column": 20,
+                          "line": 47
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 45 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 46 |\u001b[39m     \u001b[90m// Limpar dados de teste anteriores\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 47 |\u001b[39m     \u001b[36mawait\u001b[39m dbHelper\u001b[33m.\u001b[39mclearTestData()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 48 |\u001b[39m     \n \u001b[90m 49 |\u001b[39m     \u001b[90m// Navegar para página inicial\u001b[39m\n \u001b[90m 50 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts",
+                            "column": 20,
+                            "line": 47
+                          },
+                          "message": "TypeError: dbHelper.clearTestData is not a function\n\n\u001b[0m \u001b[90m 45 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n \u001b[90m 46 |\u001b[39m     \u001b[90m// Limpar dados de teste anteriores\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 47 |\u001b[39m     \u001b[36mawait\u001b[39m dbHelper\u001b[33m.\u001b[39mclearTestData()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 48 |\u001b[39m     \n \u001b[90m 49 |\u001b[39m     \u001b[90m// Navegar para página inicial\u001b[39m\n \u001b[90m 50 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts:47:20\u001b[22m"
+                        },
+                        {
+                          "location": {
+                            "file": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts",
+                            "column": 20,
+                            "line": 41
+                          },
+                          "message": "TypeError: dbHelper.cleanup is not a function\n\n\u001b[0m \u001b[90m 39 |\u001b[39m\n \u001b[90m 40 |\u001b[39m   test\u001b[33m.\u001b[39mafterAll(\u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 41 |\u001b[39m     \u001b[36mawait\u001b[39m dbHelper\u001b[33m.\u001b[39mcleanup()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 42 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mclose()\u001b[33m;\u001b[39m\n \u001b[90m 43 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 44 |\u001b[39m\u001b[0m\n\u001b[2m    at C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts:41:20\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-10-31T10:01:38.570Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\reports\\playwright-results\\user-flows-complete-video--a73a5-riação-de-vídeo-com-sucesso-chromium-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\reports\\playwright-results\\user-flows-complete-video--a73a5-riação-de-vídeo-com-sucesso-chromium-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\tests\\e2e\\user-flows\\complete-video-workflow.test.ts",
+                        "column": 20,
+                        "line": 47
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "97ca66fa4abb9a0626b5-bdae69389929fec56556",
+              "file": "user-flows/complete-video-workflow.test.ts",
+              "line": 53,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-10-31T10:01:26.087Z",
+    "duration": 16616.721,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}
