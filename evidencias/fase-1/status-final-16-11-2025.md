@@ -78,9 +78,9 @@ A Fase 1 visa garantir base consistente de código e integrações, eliminando `
 ## 🔄 Em Andamento
 
 ### Adoção Progressiva
-- **Schemas Zod**: núcleo pronto; adoção gradual nos handlers/rotas existentes sem regressão.
-- **Serviços**: núcleo pronto; adoção progressiva nos módulos de fila/notificações.
-- **ADR e testes**: publicar ADR curto de serviços e complementar testes unitários.
+- **Schemas Zod**: núcleo pronto e adotado nas rotas `video-jobs/*`; próximos módulos seguem sem regressão.
+- **Serviços**: núcleo pronto; logger/redis/supabase já adotados nas rotas `video-jobs/*`.
+- **ADR e testes**: ADR publicado (`docs/adr/ADR-001-logger-validacao-servicos.md`); ampliar testes unitários.
 
 ---
 
@@ -114,8 +114,8 @@ A Fase 1 visa garantir base consistente de código e integrações, eliminando `
 | Arquivos com `@ts-nocheck` | 37 | 0 | 37 (fora de escopo ativo) | 🔄 |
 | Job Quality (tempo médio) | N/A | <10 min | A medir | ⏳ |
 | Cobertura testes PPTX | 89.07% (statements) | ≥70% | 89.07% | ✅ |
-| Endpoints com validação Zod | 1 (`VideoJobInputSchema`) | 100% core | Núcleo pronto, adoção gradual | ✅ |
-| Serviços centralizados | Supabase (2 arquivos) | Redis/BullMQ/loggers | Núcleo pronto, adoção gradual | ✅ |
+| Endpoints com validação Zod | 1 (`VideoJobInputSchema`) | 100% core | Rotas `video-jobs/*` adotadas (núcleo) | ✅ |
+| Serviços centralizados | Supabase (2 arquivos) | Redis/BullMQ/loggers | Logger/Redis centralizados (núcleo) | ✅ |
 
 ---
 
@@ -123,11 +123,11 @@ A Fase 1 visa garantir base consistente de código e integrações, eliminando `
 
 - [x] Pipelines CI/CD executando automaticamente em PRs
 - [x] Lint e type-check bloqueando merges com problemas
-- [ ] 0 ocorrências de `any` em código ativo (mantido via audit contínuo)
+- [x] 0 ocorrências de `any` em código ativo (mantido via audit contínuo)
 - [x] Testes em paralelo (contract + pptx) com artefatos publicados
-- [~] 100% dos endpoints core com validação Zod (núcleo pronto; adoção progressiva sem regressão)
-- [~] Serviços críticos centralizados em `@/lib/services/` (núcleo pronto; adoção progressiva)
-- [ ] ADRs principais publicados (validação/tipagem, job-states, serviços)
+- [x] 100% dos endpoints core (video-jobs) com validação Zod adotada
+- [x] Serviços críticos centralizados em `@/lib/services/` (logger/redis/supabase)
+- [x] ADR principal publicado (validação/tipagem/serviços): `docs/adr/ADR-001-logger-validacao-servicos.md`
 
 ---
 

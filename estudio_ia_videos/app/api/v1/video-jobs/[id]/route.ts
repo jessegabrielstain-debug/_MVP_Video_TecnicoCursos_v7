@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '~lib/services/supabase-server'
 import { parseUuidParam } from '~lib/handlers/route-params'
+import { logger } from '~lib/services/logger'
 
 export async function GET(req: Request, ctx: { params: { id: string } }) {
   try {
@@ -32,6 +33,7 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
   const { user_id, render_settings, ...rest } = row
     return NextResponse.json({ job: { ...rest, status: row.status, project_id: row.project_id, created_at: row.created_at, progress: row.progress, attempts: row.attempts, duration_ms: row.duration_ms ?? null, settings: render_settings } })
   } catch (err) {
+    logger.error('video-jobs-id', 'unexpected-error', err as Error)
     return NextResponse.json({ code: 'UNEXPECTED', message: 'Erro inesperado', details: (err as Error).message }, { status: 500 })
   }
 }
