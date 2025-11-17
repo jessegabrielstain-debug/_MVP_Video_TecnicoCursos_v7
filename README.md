@@ -488,8 +488,9 @@ Sistema implementado com sucesso seguindo todas as diretrizes técnicas e padrõ
 ---
 
 **Última atualização**: 17/11/2025 12:00 BRT  
-**Versão**: 2.1 Governance Dashboard  
-**Status**: ✅ OPERACIONAL
+**Versão**: 2.2 Analytics & Testing Complete  
+**Status**: ✅ OPERACIONAL  
+**Release**: [v2.2.0](https://github.com/aline-jesse/_MVP_Video_TecnicoCursos/releases/tag/v2.2.0)
 
 ---
 
