@@ -77,19 +77,33 @@ async function checkRedis(): Promise<Check> {
 }
 
 async function checkQueue(): Promise<Check> {
+  // Integração BullMQ (opcional, com fallback)
+  const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL || ''
+  if (!redisUrl) {
+    return { status: 'warning', waiting: 0, active: 0, message: 'Redis URL not configured' }
+  }
+
   try {
-    // TODO: Integrar com BullMQ quando disponível
-    // const queue = getQueue('render')
-    // const waiting = await queue.getWaitingCount()
-    // const active = await queue.getActiveCount()
-    // if (waiting > 100) {
-    //   return { status: 'warning', waiting, active, message: 'Queue backed up' }
-    // }
-    // return { status: 'ok', waiting, active }
-    
-    return { status: 'ok', waiting: 0, active: 0 }
+    // Carrega BullMQ dinamicamente para evitar hard-dep quando não necessário
+    const { Queue } = await import('bullmq')
+    const queue = new Queue('render', {
+      connection: { url: redisUrl },
+    })
+
+    const [waiting, active] = await Promise.all([
+      queue.getWaitingCount(),
+      queue.getActiveCount(),
+    ])
+
+    await queue.close()
+
+    if (waiting > 100) {
+      return { status: 'warning', waiting, active, message: 'Queue backed up' }
+    }
+
+    return { status: 'ok', waiting, active }
   } catch (err) {
-    return { status: 'error', message: (err as Error).message }
+    return { status: 'warning', waiting: 0, active: 0, message: `BullMQ unavailable: ${(err as Error).message}` }
   }
 }
 
