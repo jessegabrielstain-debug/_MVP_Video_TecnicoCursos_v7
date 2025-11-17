@@ -410,7 +410,10 @@ assets              -- Assets diversos
 
 ### Documentação
 - **Índice Mestre**: [INDICE_MESTRE_DOCUMENTACAO.md](./INDICE_MESTRE_DOCUMENTACAO.md)
-- **Fases**: [_Fases_REAL/](./_Fases_REAL/)
+Consulte `DOCUMENTATION.md` e a pasta `docs/` para guias detalhados.
+
+### Notas de Compatibilidade de API
+- video-jobs: compat `{ jobId }` → `{ id }` em cancel/requeue. Guia: `docs/migrations/2025-11-16-video-jobs-payload-compat.md`.
 - **Docs Técnicos**: [docs/](./docs/)
 
 ---

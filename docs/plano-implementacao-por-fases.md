@@ -337,7 +337,7 @@
 | Entregável | Responsável | Status | Evidência planejada | Observações |
 | --- | --- | --- | --- | --- |
 | UX loading/erro padronizada | Felipe T. | Não iniciado | Biblioteca `app/components/ui/feedback` + prints em `evidencias/fase-3/ux.md` | Criar componentes genéricos e aplicar nas rotas `app/api/v1/video-jobs/*` (feedback PT-BR). |
-| Validações Zod núcleo adotadas | Bruno L. | Concluído | `lib/validation/schemas.ts` + handlers `video-jobs/*` | Compatibilidade `{id}`/`{jobId}` e query `stats` com `period` (fallback 60min). |
+| Validações Zod núcleo adotadas | Bruno L. | Concluído | `lib/validation/schemas.ts` + handlers `video-jobs/*` | Compatibilidade `{id}`/`{jobId}` e query `stats` com `period` (fallback 60min). Guia: `docs/migrations/2025-11-16-video-jobs-payload-compat.md`. |
 | Performance (next/image, cache) | Felipe T. | Não iniciado | Relatório Lighthouse (`docs/operacao/performance.md`) | Medir rotas `dashboard`, `jobs/[id]`; usar `next/image` e caching. |
 | Playbooks de deploy/rollback | Diego R. | Parcial | `docs/DEPLOY_VALIDACAO_COMPLETA.md` + scripts automatizados | Existe documentação textual; falta scriptar rollback e validar em staging. |
 | Rate limiting & políticas de segurança | Bruno L. | Parcial | `lib/utils/rate-limit.ts` + testes `scripts/test-contract-video-jobs-rate-limit.js` | Implementação utilitária criada, mas endpoints ainda sem cobertura completa; revisar secrets/RLS. |
