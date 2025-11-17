@@ -109,7 +109,12 @@ export function startWebSocketServer() {
       return
     }
 
-    const result = (payload?.returnvalue ?? null) as RenderTaskResult | null
+    // Validar tipo antes de conversão para evitar erro TS2352
+    const returnValue = payload?.returnvalue
+    const result: RenderTaskResult | null = 
+      returnValue && typeof returnValue === 'object' && 'outputPath' in returnValue
+        ? (returnValue as RenderTaskResult)
+        : null
 
     broadcastToJob(jobId, {
       type: 'completed',

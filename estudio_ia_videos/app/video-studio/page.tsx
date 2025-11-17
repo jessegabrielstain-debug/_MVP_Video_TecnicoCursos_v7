@@ -19,7 +19,7 @@ import {
   Settings, 
   Layers,
   Video,
-  AudioLines,
+  Mic,
   Type,
   Image as ImageIcon,
   FileText,
@@ -43,7 +43,7 @@ export default function VideoStudioPage() {
   const tools = [
     { id: 'select', name: 'Select', icon: Upload },
     { id: 'video', name: 'Video', icon: Video },
-    { id: 'audio', name: 'Audio', icon: AudioLines },
+    { id: 'audio', name: 'Audio', icon: Mic },
     { id: 'text', name: 'Text', icon: Type },
     { id: 'image', name: 'Image', icon: ImageIcon },
     { id: 'pptx', name: 'PPTX', icon: FileText },
@@ -346,3 +346,4 @@ export default function VideoStudioPage() {
     </div>
   );
 }
+

@@ -21,6 +21,11 @@ export interface RenderJobSettings {
 export interface RenderSlide {
   id: string;
   orderIndex: number;
+    slideNumber: number;
+    title: string;
+    content: string;
+    duration: number;
+    transition: { type: string; duration: number };
   durationMs?: number;
   assets?: Record<string, unknown>;
   notes?: string;

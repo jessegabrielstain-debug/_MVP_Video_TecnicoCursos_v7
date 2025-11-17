@@ -15,7 +15,7 @@ import {
   Upload,
   Download,
   Volume2,
-  Waveform,
+  Mic,
   Settings,
   Eye,
   RotateCcw
@@ -468,12 +468,12 @@ export default function LipSyncSystem({ avatar, onLipSyncGenerated }: LipSyncSys
                 >
                   {isProcessing ? (
                     <>
-                      <Waveform className="h-4 w-4 mr-2 animate-pulse" />
+                      <Mic className="h-4 w-4 mr-2 animate-pulse" />
                       Processando...
                     </>
                   ) : (
                     <>
-                      <Waveform className="h-4 w-4 mr-2" />
+                      <Mic className="h-4 w-4 mr-2" />
                       Processar Lip-Sync
                     </>
                   )}

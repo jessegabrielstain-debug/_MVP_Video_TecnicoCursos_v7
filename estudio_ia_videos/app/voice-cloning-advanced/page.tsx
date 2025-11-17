@@ -25,7 +25,7 @@ import {
   Headphones,
   Music,
   Radio,
-  AudioLines
+  Mic
 } from 'lucide-react'
 import VoiceCloningStudioAdvanced from './components/VoiceCloningStudioAdvanced'
 
@@ -52,7 +52,7 @@ export default function VoiceCloningAdvancedPage() {
       color: "bg-green-500"
     },
     {
-      icon: <AudioLines className="w-8 h-8" />,
+      icon: <Mic className="w-8 h-8" />,
       title: "Controle de Emoção",
       description: "Ajuste tom, velocidade e emoção da voz clonada",
       color: "bg-orange-500"
@@ -285,3 +285,4 @@ export default function VoiceCloningAdvancedPage() {
     </div>
   )
 }
+

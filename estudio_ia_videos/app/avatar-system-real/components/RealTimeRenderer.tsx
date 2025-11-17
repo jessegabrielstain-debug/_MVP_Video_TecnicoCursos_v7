@@ -35,7 +35,7 @@ import {
   RotateCw,
   ZoomIn,
   ZoomOut,
-  Move3D,
+  Move3d,
   Layers,
   Palette,
   Sun,
@@ -274,7 +274,7 @@ export default function RealTimeRenderer() {
                     <ZoomOut className="w-4 h-4" />
                   </Button>
                   <Button size="sm" variant="outline">
-                    <Move3D className="w-4 h-4" />
+                    <Move3d className="w-4 h-4" />
                   </Button>
                   <Button size="sm" variant="outline">
                     <ZoomIn className="w-4 h-4" />

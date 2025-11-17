@@ -31,7 +31,7 @@ import {
   AlertCircle,
   Music,
   Radio,
-  AudioLines,
+  Mic,
   Headphones,
   Users,
   Star,
@@ -351,7 +351,7 @@ export default function VoiceCloningStudioAdvanced() {
               <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <AudioLines className="w-5 h-5" />
+                    <Mic className="w-5 h-5" />
                     Síntese de Voz
                   </CardTitle>
                   <CardDescription>
@@ -541,3 +541,4 @@ export default function VoiceCloningStudioAdvanced() {
     </div>
   )
 }
+
