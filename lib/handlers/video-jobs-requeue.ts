@@ -1,7 +1,15 @@
 import { z } from 'zod'
+import { VideoJobRetrySchema } from '../validation/schemas'
 
-export const RequeueJobSchema = z.object({ id: z.string().uuid() })
-export type RequeueJobInput = z.infer<typeof RequeueJobSchema>
+const RequeueJobCompatSchema = z.union([
+  z.object({ id: z.string().uuid() }),
+  VideoJobRetrySchema
+]).transform((input) => {
+  if ('id' in input) return { id: input.id }
+  return { id: (input as { jobId: string }).jobId }
+})
+
+export type RequeueJobInput = { id: string }
 export function parseRequeueJob(json: unknown) {
-  return RequeueJobSchema.safeParse(json)
+  return RequeueJobCompatSchema.safeParse(json)
 }

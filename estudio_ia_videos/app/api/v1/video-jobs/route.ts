@@ -1,6 +1,7 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
+import { logger } from '~lib/services/logger';
 import { getSupabaseForRequest } from '~lib/services/supabase-server';
 import { checkRateLimit, inspectRateLimit } from '@/lib/utils/rate-limit';
 import { recordRateLimitHit, recordError } from '~lib/utils/metrics';
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
     const MAX_REQ = 30;
     const rl = checkRateLimit(`post:${userId}`, MAX_REQ, WINDOW_MS);
     if (process.env.DEBUG_RATE_LIMIT === 'true') {
-      console.info('[video-jobs] rate-limit-check', {
+      logger.info('video-jobs', 'rate-limit-check', {
         key: `post:${userId}`,
         result: rl,
         bucket: inspectRateLimit(`post:${userId}`),
@@ -102,6 +103,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ job, metrics: { validation_ms: durationMs } }, { status: 201 });
   } catch (err) {
     recordError('UNEXPECTED');
+    logger.error('video-jobs', 'unexpected-error', err as Error);
     return NextResponse.json({ code: 'UNEXPECTED', message: 'Erro inesperado', details: (err as Error).message }, { status: 500 });
   }
 }
@@ -202,7 +204,7 @@ export async function GET(req: Request) {
     return new NextResponse(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json', 'X-Cache': 'MISS' } });
   } catch (err) {
     recordError('UNEXPECTED');
-    console.error('[video-jobs:list] unexpected error', err);
+    logger.error('video-jobs', 'list-unexpected-error', err as Error);
     if (fallbackEnabled && buildMockResponse) {
       return buildMockResponse();
     }

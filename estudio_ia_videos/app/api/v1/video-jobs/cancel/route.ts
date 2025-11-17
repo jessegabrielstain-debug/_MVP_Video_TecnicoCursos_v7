@@ -3,6 +3,7 @@ import { getSupabaseForRequest } from '~lib/services/supabase-server'
 import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { recordRateLimitHit, recordError } from '~lib/utils/metrics'
 import { parseCancelJobInput } from '~lib/handlers/video-jobs-cancel'
+import { logger } from '~lib/services/logger'
 
 function badRequest(details: unknown) {
   return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'Payload inválido', details }, { status: 400 })
@@ -69,6 +70,7 @@ export async function POST(req: Request) {
 
     if (updateErr || !updated) {
       recordError('DB_ERROR');
+      logger.error('video-jobs-cancel', 'db-update-failed', updateErr as Error)
       return NextResponse.json({ code: 'DB_ERROR', message: 'Falha ao cancelar job', details: updateErr?.message }, { status: 500 })
     }
   const updatedRow = updated as unknown as RenderJobRow
@@ -76,6 +78,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ job: jobResp })
   } catch (err) {
     recordError('UNEXPECTED');
+    logger.error('video-jobs-cancel', 'unexpected-error', err as Error)
     return NextResponse.json({ code: 'UNEXPECTED', message: 'Erro inesperado', details: (err as Error).message }, { status: 500 })
   }
 }

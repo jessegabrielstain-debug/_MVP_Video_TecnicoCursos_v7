@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '~lib/services/supabase-server'
 import { shouldUseMockRenderJobs, getMockUserId, computeMockStats } from '@/lib/render-jobs/mock-store'
+import { logger } from '~lib/services/logger'
 
 // Cache in-memory simples com TTL por usuário
 const CACHE_TTL_MS = 30_000
@@ -90,7 +91,7 @@ export async function GET(req: Request) {
       .limit(5000)
 
     if (statusErr) {
-      console.warn('[video-jobs-stats] fallback triggered (status query error)', statusErr.message)
+      logger.warn('video-jobs-stats', 'fallback: status query error', { message: statusErr.message })
       if (fallbackEnabled && buildMockResponse) {
         return buildMockResponse()
       }
@@ -132,7 +133,7 @@ export async function GET(req: Request) {
       .limit(5000)
 
     if (durationErr) {
-      console.warn('[video-jobs-stats] fallback triggered (duration query error)', durationErr.message)
+      logger.warn('video-jobs-stats', 'fallback: duration query error', { message: durationErr.message })
       if (fallbackEnabled && buildMockResponse) {
         return buildMockResponse()
       }
@@ -176,7 +177,7 @@ export async function GET(req: Request) {
       headers: { 'content-type': 'application/json', 'X-Cache': 'MISS' }
     })
   } catch (err) {
-    console.error('[video-jobs-stats] unexpected error', err)
+    logger.error('video-jobs-stats', 'unexpected-error', err as Error)
     if (fallbackEnabled && buildMockResponse) {
       return buildMockResponse()
     }

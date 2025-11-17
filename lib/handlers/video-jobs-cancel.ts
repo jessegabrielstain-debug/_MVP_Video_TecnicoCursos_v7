@@ -1,11 +1,16 @@
 import { z } from 'zod'
+import { VideoJobCancelSchema } from '../validation/schemas'
 
-export const CancelJobSchema = z.object({
-  id: z.string().uuid(),
+const CancelJobCompatSchema = z.union([
+  z.object({ id: z.string().uuid() }),
+  VideoJobCancelSchema
+]).transform((input) => {
+  if ('id' in input) return { id: input.id }
+  return { id: (input as { jobId: string }).jobId }
 })
 
-export type CancelJobInput = z.infer<typeof CancelJobSchema>
+export type CancelJobInput = { id: string }
 
 export function parseCancelJobInput(json: unknown) {
-  return CancelJobSchema.safeParse(json)
+  return CancelJobCompatSchema.safeParse(json)
 }
