@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import useSWR from 'swr'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/lib/services'
 import { useWebSocket } from './useWebSocket'
 import { toast } from 'sonner'
 

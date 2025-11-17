@@ -7,7 +7,7 @@
  */
 
 import { Metadata } from 'next';
-import { createClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@/lib/services';
 import { redirect } from 'next/navigation';
 import { UserSettings } from '@/components/user/user-settings';
 
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default async function SettingsPage() {
-  const supabase = createClient();
+  const supabase = createServerSupabaseClient();
 
   const {
     data: { user },

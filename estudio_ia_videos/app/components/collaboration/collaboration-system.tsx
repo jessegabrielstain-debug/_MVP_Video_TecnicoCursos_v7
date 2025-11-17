@@ -63,7 +63,7 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface Collaborator {
@@ -146,7 +146,7 @@ interface ShareSettings {
 }
 
 export default function CollaborationSystem({ projectId }: { projectId: string }) {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [displayName, setDisplayName] = useState('Você')
   const [avatarUrl, setAvatarUrl] = useState('')

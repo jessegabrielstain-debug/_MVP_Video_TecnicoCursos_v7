@@ -73,7 +73,7 @@ import {
   Trash2,
   Copy
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface Project {
@@ -110,7 +110,7 @@ interface DashboardStats {
 
 export default function UnifiedDashboardReal() {
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [projects, setProjects] = useState<Project[]>([])

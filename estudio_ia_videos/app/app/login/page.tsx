@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -109,7 +109,7 @@ export default function LoginPage() {
   }, [searchParams])
 
   useEffect(() => {
-    const supabase = createClient()
+    const supabase = createBrowserSupabaseClient()
 
     let cancelled = false
 
@@ -213,7 +213,7 @@ export default function LoginPage() {
     setLoadingAction('signin')
 
     try {
-      const supabase = createClient()
+      const supabase = createBrowserSupabaseClient()
       const { error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
@@ -278,7 +278,7 @@ export default function LoginPage() {
     setLoadingAction('signup')
 
     try {
-      const supabase = createClient()
+      const supabase = createBrowserSupabaseClient()
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -336,7 +336,7 @@ export default function LoginPage() {
     setLoadingAction('recovery')
 
     try {
-      const supabase = createClient()
+      const supabase = createBrowserSupabaseClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`
       })

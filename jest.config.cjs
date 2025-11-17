@@ -15,6 +15,7 @@ module.exports = {
     '^dnd-core$': 'dnd-core/dist/cjs',
     '^react-dnd$': 'react-dnd/dist/cjs',
     '^react-dnd-html5-backend$': 'react-dnd-html5-backend/dist/cjs',
+    '^@prisma/client$': '<rootDir>/node_modules/@prisma/client',
   },
 
   transform: {

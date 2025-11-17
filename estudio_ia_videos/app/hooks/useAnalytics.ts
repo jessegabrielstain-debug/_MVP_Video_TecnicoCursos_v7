@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createBrowserSupabaseClient } from '@/lib/services';
 
 export interface AnalyticsEvent {
   category: string;
@@ -42,7 +42,7 @@ export interface PageMetrics {
 }
 
 export function useAnalytics() {
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const pathname = usePathname();
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [userId, setUserId] = useState<string | null>(null);

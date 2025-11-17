@@ -11,7 +11,7 @@
  */
 
 import { Metadata } from 'next';
-import { createClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@/lib/services';
 import { redirect } from 'next/navigation';
 import { UserProfile } from '@/components/user/user-profile';
 import { UserActivityLog } from '@/components/user/user-activity-log';
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ProfilePage() {
-  const supabase = createClient();
+  const supabase = createServerSupabaseClient();
 
   const {
     data: { user },

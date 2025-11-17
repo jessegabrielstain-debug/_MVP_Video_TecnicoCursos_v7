@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { RenderNotifications } from '@/src/components/RenderNotifications'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User } from '@supabase/supabase-js'
 import {
   DropdownMenu,
@@ -60,7 +60,7 @@ export default function Header({
 }: HeaderProps) {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
 
   const [user, setUser] = useState<User | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)

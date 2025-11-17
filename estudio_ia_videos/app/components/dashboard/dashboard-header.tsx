@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { toast } from 'react-hot-toast'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { isAdminUser } from '@/lib/auth/admin-middleware'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import { useRouter } from 'next/navigation'
 import { Button } from '../ui/button'
 import {
@@ -21,7 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 
 export default function DashboardHeader() {
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)

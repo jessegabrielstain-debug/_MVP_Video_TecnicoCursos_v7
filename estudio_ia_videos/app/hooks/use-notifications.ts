@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import useSWR from 'swr'
 import { useWebSocket } from './useWebSocket'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User } from '@supabase/supabase-js'
 
 interface NotificationLoadingState {
@@ -114,7 +114,7 @@ const fetcher = async (url: string) => {
 }
 
 export function useNotifications(filters: NotificationFilters = {}) {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [user, setUser] = useState<User | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   useEffect(() => {

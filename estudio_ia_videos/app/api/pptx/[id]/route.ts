@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/services'
 import { z } from 'zod'
 import { unlink } from 'fs/promises'
 import { existsSync } from 'fs'
@@ -24,7 +24,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
+    const supabase = createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {

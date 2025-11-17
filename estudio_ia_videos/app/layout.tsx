@@ -1,5 +1,5 @@
 
-import type { Metadata } from 'next';
+import type { Metadata, ReportHandler } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import './styles/mobile-first.css';
@@ -63,3 +63,24 @@ export default function RootLayout({
     </html>
   );
 }
+
+// Coleta Web Vitals e envia para API interna
+export const reportWebVitals: ReportHandler = (metric) => {
+  try {
+    const body = JSON.stringify({
+      id: metric.id,
+      name: metric.name,
+      value: metric.value,
+      label: metric.label,
+      navigationType: (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type
+    });
+    // Envia assíncrono sem bloquear UI
+    navigator.sendBeacon?.('/api/metrics/web-vitals', body) || fetch('/api/metrics/web-vitals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body
+    }).catch(() => {});
+  } catch {
+    // Silenciar falhas
+  }
+};

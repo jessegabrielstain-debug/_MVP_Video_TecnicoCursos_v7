@@ -38,7 +38,7 @@ import { toast } from 'sonner'
 // Store imports
 import { useUnifiedProjectStore } from '@/lib/stores/unified-project-store'
 import { useWebSocketStore } from '@/lib/stores/websocket-store'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User } from '@supabase/supabase-js'
 
 // Module imports
@@ -61,7 +61,7 @@ interface StepConfig {
 }
 
 export default function UnifiedStudioPage() {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [user, setUser] = useState<User | null>(null)
   
   // Store hooks

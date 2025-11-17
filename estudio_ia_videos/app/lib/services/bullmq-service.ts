@@ -58,6 +58,7 @@ function getConnectionOptions(): ConnectionOptions {
 
 let queueInstance: Queue<VideoRenderJobData> | null = null;
 let eventsInstance: QueueEvents | null = null;
+let metricsInterval: NodeJS.Timer | null = null;
 
 /**
  * Obtém instância singleton da fila de renderização
@@ -223,6 +224,38 @@ export async function getQueueMetrics() {
 }
 
 /**
+ * Inicia polling periódico de métricas da fila.
+ * Loga JSON estruturado (pode ser ingerido por agregadores). Futuro: enviar para Sentry/Grafana.
+ */
+export function startQueueMetricsPolling(intervalMs: number = 30000) {
+  if (metricsInterval) return; // já ativo
+  metricsInterval = setInterval(async () => {
+    try {
+      const m = await getQueueMetrics();
+      // Formato estruturado para futura ingestão
+      console.log(
+        JSON.stringify({
+          ts: new Date().toISOString(),
+          type: 'bullmq.metrics',
+          queue: QUEUE_NAME,
+          ...m,
+        })
+      );
+    } catch (err) {
+      console.error('[BullMQ Metrics Polling] Error:', err);
+    }
+  }, intervalMs);
+}
+
+/** Para encerrar polling manualmente (ex.: em testes) */
+export function stopQueueMetricsPolling() {
+  if (metricsInterval) {
+    clearInterval(metricsInterval);
+    metricsInterval = null;
+  }
+}
+
+/**
  * Limpa jobs antigos
  */
 export async function cleanQueue(options?: {
@@ -252,6 +285,10 @@ export async function closeBullMQ(): Promise<void> {
   if (eventsInstance) {
     promises.push(eventsInstance.close());
     eventsInstance = null;
+  }
+  if (metricsInterval) {
+    clearInterval(metricsInterval);
+    metricsInterval = null;
   }
 
   await Promise.all(promises);

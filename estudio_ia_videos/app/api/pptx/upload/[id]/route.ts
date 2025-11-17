@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/services'
 import { withRateLimit, RATE_LIMITS } from '@/lib/rate-limiter-real'
 import { S3StorageService } from '@/lib/s3-storage'
 import { videoCache } from '@/lib/video-cache'

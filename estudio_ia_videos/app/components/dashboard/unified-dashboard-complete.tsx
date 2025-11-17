@@ -55,7 +55,7 @@ import {
   PlayCircle,
   StopCircle
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 // Interfaces
@@ -175,7 +175,7 @@ function useUnifiedWorkflow() {
 // Componente principal
 export default function UnifiedDashboard() {
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const { workflows, loading, createProject, updateProject, getWorkflow } = useUnifiedWorkflow()
 
   const [projects, setProjects] = useState<Project[]>([])

@@ -45,7 +45,7 @@ import {
   Eye,
   Zap
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 const MOCK_PROJECTS = [
@@ -143,7 +143,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function DashboardSimplified() {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [signingOut, setSigningOut] = useState(false)
   const [activeFilter, setActiveFilter] = useState('all')

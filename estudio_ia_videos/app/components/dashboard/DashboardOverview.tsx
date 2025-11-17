@@ -52,7 +52,7 @@ import {
   Activity,
   Target
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 // Mock data (substituir por dados reais das APIs)
@@ -163,7 +163,7 @@ const mockStats = {
 }
 
 export default function DashboardOverview() {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
   const [user, setUser] = useState<SupabaseUser | null>(null)

@@ -25,7 +25,7 @@ import {
   WifiOff
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface Collaborator {
@@ -58,7 +58,7 @@ interface ProjectActivity {
 }
 
 export default function RealtimeCollaboration({ projectId }: { projectId: string }) {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [isConnected, setIsConnected] = useState(false)
   const [collaborators, setCollaborators] = useState<Collaborator[]>([])
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])

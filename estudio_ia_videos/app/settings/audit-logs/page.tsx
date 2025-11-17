@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Download, Search, Filter, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { createClient } from '@/lib/supabase/client';
+import { createBrowserSupabaseClient } from '@/lib/services';
 import type { User } from '@supabase/supabase-js';
 
 interface AuditLog {
@@ -31,7 +31,7 @@ interface AuditLog {
 }
 
 export default function AuditLogsPage() {
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const [user, setUser] = useState<User | null>(null);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);

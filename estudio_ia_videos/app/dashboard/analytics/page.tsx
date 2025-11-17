@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
+import { createBrowserSupabaseClient } from '@/lib/services';
 import type { User } from '@supabase/supabase-js';
 
 interface AnalyticsData {
@@ -108,7 +108,7 @@ interface AnalyticsData {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export default function AnalyticsDashboard() {
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const [user, setUser] = useState<User | null>(null);
   const [timeRange, setTimeRange] = useState('7d');
   

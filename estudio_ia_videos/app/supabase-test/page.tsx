@@ -1,6 +1,6 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import { useEffect, useState } from 'react'
 
 export default function SupabaseTestPage() {
@@ -23,7 +23,7 @@ export default function SupabaseTestPage() {
         })
 
         // Teste 2: Cliente Supabase
-        const supabase = createClient()
+        const supabase = createBrowserSupabaseClient()
         results.push({
           name: 'Cliente Supabase',
           status: 'OK',

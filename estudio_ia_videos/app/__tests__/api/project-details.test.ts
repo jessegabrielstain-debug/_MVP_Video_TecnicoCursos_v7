@@ -1,12 +1,13 @@
+// @jest-environment node
 import { NextRequest } from 'next/server'
 import { Prisma, PrismaClient } from '@prisma/client'
-import { GET } from '@/app/api/projects/[projectId]/route'
+import { GET } from '@/api/projects/[id]/route'
 
 process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary'
 
 const prisma = new PrismaClient()
 
-describe('/api/projects/[projectId]', () => {
+describe('/api/projects/[id]', () => {
   const uniqueSuffix = Date.now()
   const userEmail = `project-details-${uniqueSuffix}@example.com`
   let userId: string
@@ -75,7 +76,7 @@ describe('/api/projects/[projectId]', () => {
   it('retorna detalhes do projeto com timeline e slides', async () => {
     const request = new NextRequest(`http://localhost/api/projects/${projectId}`)
 
-    const response = await GET(request, { params: { projectId } })
+    const response = await GET(request, { params: { id: projectId } })
     expect(response.status).toBe(200)
 
     const payload = await response.json()
@@ -90,7 +91,7 @@ describe('/api/projects/[projectId]', () => {
     const fakeId = 'non-existing-project-id'
     const request = new NextRequest(`http://localhost/api/projects/${fakeId}`)
 
-    const response = await GET(request, { params: { projectId: fakeId } })
+    const response = await GET(request, { params: { id: fakeId } })
     expect(response.status).toBe(404)
   })
 })

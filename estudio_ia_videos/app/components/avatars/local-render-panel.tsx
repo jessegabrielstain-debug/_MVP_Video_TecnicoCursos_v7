@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Video, Sparkles, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface RenderJob {
@@ -29,7 +29,7 @@ interface RenderJob {
 }
 
 export default function LocalRenderPanel() {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [text, setText] = useState('')
   const [avatarId, setAvatarId] = useState('avatar_executivo')

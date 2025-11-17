@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/services'
 
 // API para configurar o banco de dados
 export async function POST(request: NextRequest) {

@@ -165,7 +165,7 @@ export interface QueueStatsResult {
 }
 
 export function computeQueueStats(jobs: BasicRenderJob[]): QueueStatsResult {
-  const pending = jobs.filter(j => j.status === 'queued')
+  const pending = jobs.filter(j => ['queued', 'pending'].includes(j.status))
   const processing = jobs.filter(j => j.status === 'processing')
   const started = jobs.filter(j => j.started_at)
   const waits = started.map(j => {

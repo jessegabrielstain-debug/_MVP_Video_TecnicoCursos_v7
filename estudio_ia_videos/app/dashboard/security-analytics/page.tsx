@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Shield, AlertTriangle, Users, Activity, TrendingUp, Lock, CheckCircle, XCircle } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { createBrowserSupabaseClient } from '@/lib/services';
 import type { User } from '@supabase/supabase-js';
 
 interface SecurityStats {
@@ -42,7 +42,7 @@ interface SecurityStats {
 }
 
 export default function SecurityAnalyticsPage() {
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<SecurityStats | null>(null);
   const [loading, setLoading] = useState(true);

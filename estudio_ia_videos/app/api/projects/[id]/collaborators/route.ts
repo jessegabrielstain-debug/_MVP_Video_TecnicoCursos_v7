@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/services'
 import { z } from 'zod'
 
 // Schema para adicionar colaborador

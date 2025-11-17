@@ -90,6 +90,71 @@ npm run test:supabase
 npm run validate:env
 ```
 
+## 🔗 Serviços Centralizados
+
+Toda integração com Supabase, Redis, BullMQ, Logging e Monitoramento deve usar o módulo unificado em `estudio_ia_videos/app/lib/services/index.ts`.
+
+### Supabase
+**Antes (não permitido em novo código):**
+```ts
+import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
+```
+
+**Depois (padrão obrigatório):**
+```ts
+import {
+	createBrowserSupabaseClient,
+	createServerSupabaseClient,
+	supabase,
+	supabaseAdmin,
+	getCurrentUser,
+	isAuthenticated,
+	signOut
+} from '@/lib/services'
+```
+
+Use:
+- `createBrowserSupabaseClient()` em componentes client-side / hooks.
+- `createServerSupabaseClient()` em rotas API e Server Components.
+- `supabaseAdmin` apenas em operações privilegiadas (RLS bypass) dentro de rotas seguras.
+
+### Redis / BullMQ
+Exportado via `redis-service` e `bullmq-service` internamente. Não instanciar filas diretamente. Utilize:
+```ts
+import { getVideoRenderQueue, addRenderJob } from '@/lib/services/bullmq-service'
+```
+
+### Logger
+Uso padronizado:
+```ts
+import { logger, createLogger } from '@/lib/services'
+logger.info('Render iniciado', { jobId })
+const jobLogger = createLogger('RenderJob')
+jobLogger.error('Falha no FFmpeg', err)
+```
+
+### Monitoring (Sentry Opcional)
+Não importe `@sentry/node` diretamente. Utilize wrappers:
+```ts
+import { captureError, captureException, addBreadcrumb, recordMetric } from '@/lib/services/monitoring-service'
+```
+Se `SENTRY_DSN` não estiver definido, funções fazem fallback seguro (log local).
+
+### Razões do Padrão
+1. Reduz duplicação de configuração.
+2. Facilita mocking em testes.
+3. Permite instrumentação futura (tracing, métricas, retries) em único ponto.
+4. Conformidade com ADR 0004.
+
+### Checklist para Novo Código
+- [ ] Usou somente imports de `@/lib/services` para clientes.
+- [ ] Evitou instanciar `createClient()` diretamente.
+- [ ] Não utilizou service role no front-end.
+- [ ] Tratou erros com `captureError` onde aplicável.
+- [ ] Logging estruturado com `logger` em operações críticas.
+
+
 ## 📐 Code Style
 
 - **TypeScript**: Tipagem estrita

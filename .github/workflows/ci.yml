@@ -41,6 +41,22 @@ jobs:
         run: npm run validate:env || echo "validate:env warnings"
       - name: RLS audit (non-blocking)
         run: npm run audit:rls || echo "rls-audit warnings"
+      - name: Collect BullMQ metrics snapshot
+        run: npx ts-node scripts/collect-queue-metrics.ts > bullmq-metrics.json || echo "bullmq metrics collection failed"
+      - name: Upload BullMQ metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bullmq-metrics
+          path: bullmq-metrics.json
+          if-no-files-found: warn
+      - name: Export Supabase dashboard snapshot
+        run: npx ts-node scripts/export-supabase-dashboard.ts || echo "supabase export failed"
+      - name: Upload Supabase dashboard artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-dashboard
+          path: evidencias/fase-2/supabase-dashboard.json
+          if-no-files-found: warn
 
   tests:
     name: Tests (matrix)
@@ -49,7 +65,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [contract, pptx]
+        suite: [contract, pptx, bullmq, e2e]
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js
@@ -81,6 +97,18 @@ jobs:
         run: npm run test:suite:pptx
         env:
           CI: true
+      - name: Run BullMQ metrics polling test
+        if: matrix.suite == 'bullmq'
+        run: npx jest __tests__/lib/services/bullmq-metrics.test.ts --no-coverage
+        env:
+          CI: true
+      - name: Upload BullMQ test evidence
+        if: always() && matrix.suite == 'bullmq'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bullmq-metrics-test-log
+          path: jest*.log
+          if-no-files-found: ignore
       - name: Upload PPTX suite evidence
         if: always() && matrix.suite == 'pptx'
         uses: actions/upload-artifact@v4
@@ -97,6 +125,21 @@ jobs:
         with:
           name: jest-coverage-app
           path: estudio_ia_videos/app/coverage
+          if-no-files-found: warn
+      - name: Run Playwright E2E smoke
+        if: matrix.suite == 'e2e'
+        run: |
+          npm ci --prefix ./estudio_ia_videos
+          npx playwright test --config=playwright.config.ts --reporter=list
+        env:
+          CI: true
+          E2E_BASE_URL: 'http://localhost:3000'
+      - name: Upload Playwright report (e2e)
+        if: always() && matrix.suite == 'e2e'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: evidencias/fase-2/playwright-report
           if-no-files-found: warn
 
   security:

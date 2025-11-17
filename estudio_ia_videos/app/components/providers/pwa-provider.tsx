@@ -11,11 +11,11 @@ import { pwaManager } from '@/lib/pwa/pwa-manager';
 import { PublicOnboarding } from '@/components/onboarding/public-onboarding';
 import { ProductTour, editorTourSteps } from '@/components/tour/product-tour';
 import { OfflineIndicator } from '@/components/pwa/offline-indicator';
-import { createClient } from '@/lib/supabase/client';
+import { createBrowserSupabaseClient } from '@/lib/services';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export function PWAProvider({ children }: { children: React.ReactNode }) {
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const [initialized, setInitialized] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
 

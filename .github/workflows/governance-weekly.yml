@@ -1,0 +1,32 @@
+name: Governance Weekly
+
+on:
+  schedule:
+    - cron: '0 12 * * 5' # Sexta 12:00 UTC
+  workflow_dispatch:
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install deps
+        run: npm ci
+      - name: Generate weekly report
+        run: npm run report:weekly
+      - name: Update KPIs
+        run: npm run kpis:update
+      - name: Upload governance artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-weekly
+          path: |
+            docs/reports/*-status.md
+            docs/governanca/kpis.json
+            docs/riscos/matriz-atualizada.md
+          if-no-files-found: warn

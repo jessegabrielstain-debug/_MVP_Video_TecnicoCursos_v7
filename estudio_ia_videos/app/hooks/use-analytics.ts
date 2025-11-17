@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import useSWR from 'swr'
 import { useWebSocket } from './useWebSocket'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User } from '@supabase/supabase-js'
 
 // Types for analytics data
@@ -129,7 +129,7 @@ const fetcher = async (url: string) => {
 }
 
 export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [user, setUser] = useState<User | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [realTimeEvents, setRealTimeEvents] = useState<AnalyticsEvent[]>([])

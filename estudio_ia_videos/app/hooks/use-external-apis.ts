@@ -8,7 +8,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import useSWR from 'swr'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User } from '@supabase/supabase-js'
 
 // Types and Interfaces
@@ -160,7 +160,7 @@ const fetcher = async (url: string) => {
 }
 
 export function useExternalAPIs() {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [user, setUser] = useState<User | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 

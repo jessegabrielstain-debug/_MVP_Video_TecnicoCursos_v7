@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase, getCurrentUser } from '@/lib/supabase/client';
+import { supabase, getCurrentUser } from '@/lib/services';
 
 export default function SupabaseTestPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');

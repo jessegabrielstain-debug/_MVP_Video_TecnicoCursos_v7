@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Download, FileText, Table, Calendar, TrendingUp } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { createBrowserSupabaseClient } from '@/lib/services';
 import type { User } from '@supabase/supabase-js';
 
 type ReportType = 'analytics' | 'security' | 'audit_logs' | 'billing' | 'usage' | 'sso' | 'members';
@@ -70,7 +70,7 @@ const reportOptions: ReportOption[] = [
 ];
 
 export default function ReportsPage() {
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const [user, setUser] = useState<User | null>(null);
   const [selectedReport, setSelectedReport] = useState<ReportType>('analytics');
   const [format, setFormat] = useState<'pdf' | 'csv'>('pdf');

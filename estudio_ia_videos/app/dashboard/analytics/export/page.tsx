@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import DataExportComponent from '@/components/analytics/data-export';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@/lib/services';
 
 export const metadata: Metadata = {
   title: 'Exportação de Dados - Analytics',

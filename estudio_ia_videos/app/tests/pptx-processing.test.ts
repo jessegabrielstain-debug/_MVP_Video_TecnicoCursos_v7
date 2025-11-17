@@ -10,7 +10,7 @@ import { processPPTXFile, validatePPTXFile } from '@/lib/pptx-processor';
 import { extractTextFromSlide } from '@/lib/pptx/parsers/text-parser';
 import { PPTXImageParser } from '@/lib/pptx/parsers/image-parser';
 import { detectSlideLayout } from '@/lib/pptx/parsers/layout-parser';
-import type { ProgressStage, ProgressUpdate } from '@/lib/definitions';
+import { type ProgressStage, type ProgressUpdate } from '@/lib/definitions';
 import { createFileObject, cleanupTestFiles } from './test-helpers';
 import JSZip from 'jszip'
 

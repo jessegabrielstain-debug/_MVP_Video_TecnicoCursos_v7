@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { createServerClientInstance } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/services'
 
 type RouteContext = {
   params: {

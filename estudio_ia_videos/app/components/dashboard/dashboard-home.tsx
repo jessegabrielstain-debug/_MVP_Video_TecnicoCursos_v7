@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
@@ -63,7 +63,7 @@ export default function DashboardHome() {
   useRenderCounter('DashboardHome')
   
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [projects, setProjects] = useState<VideoProject[]>([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<SupabaseUser | null>(null)

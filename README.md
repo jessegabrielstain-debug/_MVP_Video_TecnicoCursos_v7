@@ -37,9 +37,9 @@ Acesse: **http://localhost:3000**
 
 # MVP Video TécnicoCursos v7
 
-**Versão**: 2.0 Production-Ready  
+**Versão**: 2.2 Analytics & Testing Complete  
 **Status**: ✅ **100% COMPLETO E OPERACIONAL**  
-**Data**: 14 de outubro de 2025
+**Data**: 17 de novembro de 2025
 
 ---
 
@@ -445,10 +445,50 @@ Consulte `DOCUMENTATION.md` e a pasta `docs/` para guias detalhados.
 
 Sistema implementado com sucesso seguindo todas as diretrizes técnicas e padrões estabelecidos.
 
+## 📌 GOVERNANÇA, OBSERVABILIDADE & UX
+
+- OKRs Técnicos: `docs/governanca/okrs-2025.md`
+- Onboarding: `docs/treinamento/onboarding.md`
+- Playbook Incidentes: `docs/operacao/playbook-incidentes.md`
+- Métricas BullMQ: polling (`estudio_ia_videos/app/instrumentation.ts`) + scripts (`scripts/collect-queue-metrics.ts`, `scripts/dev/inspect-queue.ts`, `scripts/alerts/bullmq-alerts.ts`)
+- Variáveis recomendadas: `SENTRY_DSN`, `BULLMQ_POLL_INTERVAL_MS`, `SLACK_WEBHOOK_URL`, `BULLMQ_ALERT_WAITING`, `BULLMQ_ALERT_FAILED`
+ - Biblioteca de feedback UX (Fase 3): componentes padronizados em `estudio_ia_videos/app/components/ui/feedback/` (LoadingState, ErrorState, EmptyState, AsyncBoundary) para estados de carregamento/erro.
+ - Performance (Fase 3): planejamento em `docs/operacao/performance.md` (Lighthouse ≥ 90, LCP < 2.5s, CLS < 0.1).
+ - Scripts de deploy e rollback: `scripts/deploy/deploy-staging.sh`, `scripts/deploy/rollback-staging.sh`.
+ - Coleta Web Vitals: `reportWebVitals` em `estudio_ia_videos/app/layout.tsx` + rota `app/api/metrics/web-vitals` (GET para resumo, POST para ingestão).
+ - Feature Flags: `estudio_ia_videos/app/lib/flags.ts` (variáveis `FLAG_ENABLE_*`).
+ - Lighthouse automático: `npm run perf:lighthouse` (gera logs em `evidencias/fase-3/`).
+   - Governança contínua (Fase 4): scripts `npm run report:weekly`, `npm run kpis:update` e workflow `governance-weekly.yml` geram relatórios e atualizam KPIs.
+   - Matriz de riscos: atualização automatizada via `scripts/governanca/update-risk-matrix.ts` → saída em `docs/riscos/matriz-atualizada.md`.
+    - RBAC (Fase 5): tabelas `roles`, `permissions`, `role_permissions`, `user_roles` e lógica em `estudio_ia_videos/app/lib/rbac.ts` + rotas `/api/admin/*`.
+
+### 🔄 Novos Scripts e Módulos (17/11/2025)
+| Categoria | Script/Módulo | Descrição |
+|-----------|---------------|-----------|
+| KPIs | `scripts/update-kpis.ts` | Atualiza `docs/governanca/kpis.json` (coverage + any) com histórico. |
+| Saúde Worker | `scripts/health/worker-health.ts` | Checa métricas BullMQ e alerta condições críticas. |
+| Segurança | `scripts/security/deps-audit.ts` | Auditoria de vulnerabilidades (`npm audit --json`). |
+| Releases | `scripts/release/create-release.ts` | Gera manifesto (commit, coverage, anyCount) em `releases/`. |
+| Rollback | `scripts/deploy/rollback-staging.sh` | Usa manifesto mais recente para rebuild consistente. |
+| Storage | `estudio_ia_videos/app/lib/storage.ts` | Abstração Supabase Storage (list/upload/remove/signedUrl). |
+| TTS | `estudio_ia_videos/app/lib/tts.ts` | Placeholder pipeline TTS (simulação). |
+| RBAC Audit | `assignRoleWithAudit` em `rbac.ts` | Persiste `user_roles` + evento `analytics_events`. |
+| RLS Audit | `scripts/rls-audit.ts` | Verificação de acessos anon vs service. |
+| MTTR | `scripts/metrics/mttr-calc.ts` | Calcula MTTR (incident_opened/resolved) e salva evidência. |
+| Web Vitals | `scripts/metrics/webvitals-aggregate.ts` | Agrega LCP/FID/CLS (média/p90) para evidências. |
+| Governança UI | `app/dashboard/admin/governanca/page.tsx` | Painel consolidado de KPIs e releases. |
+
+### 📈 Governança Técnica
+- Painel `/dashboard/admin/governanca` exibe KPIs (coverage, any, MTTR) e últimos manifests de release (coverage & anyRemaining).
+- MTTR integrado ao `update-kpis.ts` (usa `evidencias/fase-4/mttr.json`).
+- Web Vitals agregados disponíveis em `evidencias/fase-3/webvitals.json` (média + p90) para futura inclusão nos KPIs.
+- Processo de release versionado: gerar manifesto → commit push → rollback usando último manifesto.
+
+
 ---
 
-**Última atualização**: 14/10/2025 19:20 BRT  
-**Versão**: 2.0 Production-Ready  
+**Última atualização**: 17/11/2025 12:00 BRT  
+**Versão**: 2.1 Governance Dashboard  
 **Status**: ✅ OPERACIONAL
 
 ---

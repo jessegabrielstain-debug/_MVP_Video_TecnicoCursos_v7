@@ -4,7 +4,7 @@ import { listProjectsByOwner, type Project } from '@/lib/projects'
 import { listRenderJobs } from '@/lib/render-jobs'
 import type { RenderJob } from '@/lib/render-jobs'
 import { RenderJobActions } from './render-job-actions'
-import { createClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/services'
 import { ProjectList } from '@/components/ProjectList'
 
 type DashboardPageProps = {
@@ -14,7 +14,7 @@ type DashboardPageProps = {
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  const supabase = createClient()
+  const supabase = createServerSupabaseClient()
   const {
     data: { user },
     error: authError

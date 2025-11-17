@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { supabase, supabaseAdmin } from '@/lib/supabase/client'
+import { supabase, supabaseAdmin } from '@/lib/services'
 import { z } from 'zod'
 
 // Validation schemas

@@ -89,7 +89,7 @@ import {
   HelpCircle,
   LogOut
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface NavigatorConnection extends EventTarget {
@@ -363,7 +363,7 @@ function useDeviceOrientation() {
 // ==================== COMPONENTE PRINCIPAL ====================
 
 export default function MobileOptimized() {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const { isOnline, networkType } = useNetworkStatus()
   const { batteryLevel, isCharging } = useBattery()
   const orientation = useDeviceOrientation()

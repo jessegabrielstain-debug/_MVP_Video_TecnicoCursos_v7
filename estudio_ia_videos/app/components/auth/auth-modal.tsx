@@ -10,7 +10,7 @@ import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Checkbox } from '../ui/checkbox'
 import { useToast } from '../../hooks/use-toast'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -20,7 +20,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose, mode, onModeChange }: AuthModalProps) {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',

@@ -15,7 +15,7 @@ O projeto possui múltiplas integrações (Supabase, Redis, BullMQ, logging) dis
 
 ## Decisão
 
-Centralizar todos os serviços de infraestrutura em `@/lib/services/` seguindo o padrão singleton estabelecido em `supabase-client.ts`:
+Centralizar todos os serviços de infraestrutura em `@/lib/services/` seguindo o padrão singleton estabelecido em `lib/supabase/client.ts`:
 
 ### Estrutura Criada
 
@@ -25,7 +25,7 @@ lib/services/
 ├── redis-service.ts            # Cliente Redis singleton
 ├── bullmq-service.ts           # Filas BullMQ + operações
 ├── logger-service.ts           # Sistema de logging estruturado (JSONL)
-└── monitoring-service.ts       # Stubs para Sentry (futura integração)
+└── monitoring-service.ts       # Integração opcional com Sentry (import dinâmico)
 ```
 
 ### Padrões Adotados
@@ -61,7 +61,7 @@ lib/services/
 - Output colorido em desenvolvimento
 
 #### Monitoring Service
-- Stubs para integração futura com Sentry
+- Integração opcional com Sentry via `SENTRY_DSN` e import dinâmico
 - `captureError()`, `captureException()`, `recordMetric()`, `addBreadcrumb()`
 
 ## Consequências
@@ -86,11 +86,11 @@ lib/services/
 1. ✅ Criar serviços em `@/lib/services/`
 2. ⏳ Migrar código existente para usar novos serviços
 3. ⏳ Atualizar `CONTRIBUTING.md` com padrão de uso
-4. ⏳ Integrar Sentry no `monitoring-service.ts` (Fase 2)
+4. ✅ Integrar Sentry opcional no `monitoring-service.ts`
 5. ⏳ Adicionar testes unitários para cada serviço
 
 ## Referências
 
-- [Padrão Singleton Supabase](../lib/supabase/supabase-client.ts)
+- [Padrão Singleton Supabase](../../estudio_ia_videos/app/lib/supabase/client.ts)
 - [Fase 1 - Plano de Implementação](../../docs/plano-implementacao-por-fases.md#fase-1--fundação-técnica)
 - [ADR 0002 - Job States](./0002-job-states.md)

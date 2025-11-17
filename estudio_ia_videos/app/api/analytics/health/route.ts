@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { withAnalytics } from '@/lib/analytics/middleware';
 import { ANALYTICS_CONFIG, validateConfig, getEnvironmentInfo } from '@/lib/analytics/config';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/services';
 
 interface HealthCheck {
   status: 'healthy' | 'degraded' | 'unhealthy';

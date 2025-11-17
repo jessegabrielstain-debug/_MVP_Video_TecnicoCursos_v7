@@ -1,118 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { assertCan, UserContext, assignRoleWithAudit } from '../../../lib/rbac';
+import { supabaseAdmin } from '../../../lib/supabase/server';
 
-const prisma = new PrismaClient()
-const DEFAULT_STORAGE_QUOTA = 5 * 1024 * 1024 * 1024 // 5GB
-
-async function isAdmin(userId: string | undefined) {
-  if (!userId) {
-    return false
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true },
-  })
-
-  return user?.role === 'admin'
+async function buildUserContext(userId: string): Promise<UserContext> {
+  const admin = supabaseAdmin;
+  const { data: rolesData } = await admin.from('user_roles').select('role').eq('user_id', userId);
+  const roles = (rolesData || []).map(r => r.role) as any as UserContext['roles'];
+  return { id: userId, roles: roles.length ? roles : ['viewer'] };
 }
 
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const currentCtx = await buildUserContext(session.user.id);
+  assertCan(currentCtx, 'users.read');
+  const admin = supabaseAdmin;
+  const { data: usersData, error } = await admin.from('users').select('id');
+  if (error) return NextResponse.json({ error: 'Falha ao buscar usuários' }, { status: 500 });
+  // Carregar roles para cada usuário
+  const rolesResp = await admin.from('user_roles').select('user_id, role');
+  const rolesMap = new Map<string, string[]>();
+  (rolesResp.data || []).forEach(r => {
+    const arr = rolesMap.get(r.user_id) || [];
+    arr.push(r.role as string);
+    rolesMap.set(r.user_id, arr);
+  });
+  const users = (usersData || []).map(u => ({ id: u.id, roles: rolesMap.get(u.id) || ['viewer'] }));
+  return NextResponse.json({ users });
+}
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    if (!await isAdmin(session.user.id)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    const { searchParams } = new URL(request.url)
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
-    const search = searchParams.get('search')
-    const roleFilter = searchParams.get('role')
-
-    const where: Parameters<typeof prisma.user.findMany>[0]['where'] = {}
-
-    if (roleFilter && roleFilter !== 'all') {
-      where.role = roleFilter
-    }
-
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ]
-    }
-
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          _count: {
-            select: {
-              projects: true,
-              notifications: true,
-            },
-          },
-        },
-      }),
-      prisma.user.count({ where }),
-    ])
-
-    const userIds = users.map((user) => user.id)
-
-    const storageUsage = userIds.length
-      ? await prisma.fileUpload.groupBy({
-          by: ['userId'],
-          _sum: { fileSize: true },
-          where: { userId: { in: userIds } },
-        })
-      : []
-
-    const storageMap = new Map(storageUsage.map((entry) => [entry.userId, entry._sum.fileSize ?? BigInt(0)]))
-
-    const responseUsers = users.map((user) => {
-      const storage = storageMap.get(user.id) ?? BigInt(0)
-      const storageNumber = storage > BigInt(Number.MAX_SAFE_INTEGER)
-        ? Number.MAX_SAFE_INTEGER
-        : Number(storage)
-
-      return {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-        projects: user._count.projects,
-        notifications: user._count.notifications,
-        storageUsed: storageNumber,
-        storageUsedBytes: storage.toString(),
-        storageQuota: DEFAULT_STORAGE_QUOTA,
-        lastActive: user.updatedAt,
-      }
-    })
-
-    return NextResponse.json({
-      users: responseUsers,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    })
-  } catch (error) {
-    console.error('[Admin Users] Error:', error)
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
-  }
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const currentCtx = await buildUserContext(session.user.id);
+  assertCan(currentCtx, 'users.write');
+  const body = await req.json().catch(() => ({}));
+  const { userId, role } = body || {};
+  if (!userId || !role) return NextResponse.json({ error: 'userId e role obrigatórios' }, { status: 400 });
+  const targetCtx = await buildUserContext(userId);
+  const updated = await assignRoleWithAudit(targetCtx, role, currentCtx.id);
+  return NextResponse.json({ updated });
 }

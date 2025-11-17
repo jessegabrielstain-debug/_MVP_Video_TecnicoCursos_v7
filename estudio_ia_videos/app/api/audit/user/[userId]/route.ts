@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auditLogger } from '@/lib/audit-logging-real';
 import { getServerSession } from 'next-auth';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/services';
 
 export async function GET(
   req: NextRequest,

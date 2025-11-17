@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import { createServerClientInstance } from '@/lib/supabase/server'
+import { createServerSupabaseClient } from '@/lib/services'
 import { getRenderQueue } from '@/lib/queue/render-queue'
 
 const createJobSchema = z.object({

@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Mail, Lock, User, AlertCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserSupabaseClient } from '@/lib/services'
 
 interface LoginDialogProps {
   open: boolean
@@ -18,7 +18,7 @@ interface LoginDialogProps {
 }
 
 export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
   const [loading, setLoading] = useState(false)
   const [loginData, setLoginData] = useState({ email: '', password: '' })
   const [signupData, setSignupData] = useState({ 

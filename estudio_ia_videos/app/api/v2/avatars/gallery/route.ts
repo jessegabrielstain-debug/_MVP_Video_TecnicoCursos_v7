@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { avatar3DPipeline } from '@/lib/avatar-3d-pipeline'
-import { supabaseClient } from '@/lib/supabase/client'
+import { supabase as supabaseClient } from '@/lib/services'
 
 export async function GET(request: NextRequest) {
   try {
