@@ -218,7 +218,7 @@ export function HyperRealQualityPanel({ onQualityChange, onRender }: Props) {
         {/* Configurações de Resolução */}
         <div className="space-y-3">
           <label className="text-sm font-medium">Resolução de Renderização</label>
-          <Select value={settings.resolution} onValueChange={(value: any) => updateSetting('resolution', value)}>
+          <Select value={settings.resolution} onValueChange={(value: string) => updateSetting('resolution', value)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -345,7 +345,7 @@ export function HyperRealQualityPanel({ onQualityChange, onRender }: Props) {
         {/* Anti-Aliasing */}
         <div className="space-y-3">
           <label className="text-sm font-medium">Anti-Aliasing</label>
-          <Select value={settings.antiAliasing} onValueChange={(value: any) => updateSetting('antiAliasing', value)}>
+          <Select value={settings.antiAliasing} onValueChange={(value: string) => updateSetting('antiAliasing', value)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>

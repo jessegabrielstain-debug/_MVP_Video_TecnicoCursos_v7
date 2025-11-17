@@ -303,7 +303,7 @@ export default function EnvironmentStudio() {
           {/* Main Content */}
           <div className="lg:col-span-3">
             {selectedEnvironment ? (
-              <Tabs value={viewMode} onValueChange={setViewMode as any}>
+              <Tabs value={viewMode} onValueChange={(value) => value}>
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="preview">👁️ Preview</TabsTrigger>
                   <TabsTrigger value="edit">✏️ Editar</TabsTrigger>

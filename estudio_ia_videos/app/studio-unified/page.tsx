@@ -5,8 +5,7 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { 
   FileText, 
   Edit3, 
@@ -39,6 +38,8 @@ import { toast } from 'sonner'
 // Store imports
 import { useUnifiedProjectStore } from '@/lib/stores/unified-project-store'
 import { useWebSocketStore } from '@/lib/stores/websocket-store'
+import { createClient } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
 
 // Module imports
 import PPTXImportModule from '@/components/studio/pptx-import-module'
@@ -60,7 +61,8 @@ interface StepConfig {
 }
 
 export default function UnifiedStudioPage() {
-  const { data: session } = useSession()
+  const supabase = useMemo(() => createClient(), [])
+  const [user, setUser] = useState<User | null>(null)
   
   // Store hooks
   const {
@@ -140,7 +142,7 @@ export default function UnifiedStudioPage() {
 
   // Initialize WebSocket connection
   useEffect(() => {
-    if (session?.user && !isConnected) {
+    if (!isConnected) {
       connect()
     }
     
@@ -149,7 +151,45 @@ export default function UnifiedStudioPage() {
         disconnect()
       }
     }
-  }, [session, isConnected, connect, disconnect])
+  }, [isConnected, connect, disconnect])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        setUser(data.user ?? null)
+      } catch (error) {
+        console.error('Erro ao verificar sessão:', error)
+      }
+    }
+
+    void loadUser()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    if (user && !isConnected) {
+      connect()
+    }
+    
+    return () => {
+      if (isConnected) {
+        disconnect()
+      }
+    }
+  }, [user, isConnected, connect, disconnect])
 
   // Auto-save functionality
   useEffect(() => {
@@ -499,7 +539,7 @@ export default function UnifiedStudioPage() {
     )
   }
 
-  if (!session) {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="w-96">

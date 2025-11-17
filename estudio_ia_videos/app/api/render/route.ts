@@ -75,9 +75,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se projeto tem conteúdo para renderizar
-    const tracks = project.timeline_tracks as any[]
-    const hasElements = tracks.some(track => 
-      track.timeline_elements && track.timeline_elements.length > 0
+    const tracksUnknown = project.timeline_tracks as unknown
+    const hasElements = Array.isArray(tracksUnknown) && (tracksUnknown as Array<Record<string, unknown>>).some(track => 
+      Array.isArray(track.timeline_elements) && track.timeline_elements.length > 0
     )
 
     if (!hasElements) {
@@ -238,9 +238,9 @@ export async function GET(request: NextRequest) {
 
     // Filtrar apenas jobs que o usuário tem permissão para ver
     const authorizedJobs = (renderJobs || []).filter(job => {
-      const project = job.projects as any
+      const project = job.projects as Record<string, unknown>
       return project.owner_id === user.id || 
-             project.collaborators?.includes(user.id) ||
+             (Array.isArray(project.collaborators) && (project.collaborators as unknown[]).includes(user.id)) ||
              job.user_id === user.id
     })
 

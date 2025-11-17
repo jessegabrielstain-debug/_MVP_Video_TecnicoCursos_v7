@@ -25,23 +25,10 @@ describe('Advanced Timeline System', () => {
       const testElement: TimelineElement = {
         id: 'test-element-1',
         type: 'video',
-        layerId: 'video-layer',
-        startTime: 1000,
+        layer: 0,
+        start: 1000,
         duration: 5000,
-        name: 'Test Video',
-        properties: {
-          opacity: 1,
-          scale: { x: 1, y: 1 },
-          position: { x: 0, y: 0 },
-          rotation: 0,
-          zIndex: 1,
-          locked: false,
-          visible: true
-        },
-        data: {
-          src: '/test-video.mp4'
-        },
-        keyframes: []
+        source: '/test-video.mp4'
       };
 
       act(() => {
@@ -50,7 +37,7 @@ describe('Advanced Timeline System', () => {
 
       const videoLayer = result.current.project.layers.find(l => l.id === 'video-layer');
       expect(videoLayer?.elements).toHaveLength(1);
-      expect(videoLayer?.elements[0].name).toBe('Test Video');
+      expect(videoLayer?.elements[0].id).toBe('test-element-1');
     });
 
     it('should handle element selection correctly', () => {
@@ -59,25 +46,10 @@ describe('Advanced Timeline System', () => {
       const testElement: TimelineElement = {
         id: 'test-element-1',
         type: 'text',
-        layerId: 'overlay-layer',
-        startTime: 2000,
+        layer: 2,
+        start: 2000,
         duration: 3000,
-        name: 'Test Text',
-        properties: {
-          opacity: 1,
-          scale: { x: 1, y: 1 },
-          position: { x: 100, y: 50 },
-          rotation: 0,
-          zIndex: 2,
-          locked: false,
-          visible: true
-        },
-        data: {
-          text: 'Hello World',
-          fontSize: 24,
-          color: '#ffffff'
-        },
-        keyframes: []
+        source: 'Hello World'
       };
 
       act(() => {
@@ -89,7 +61,7 @@ describe('Advanced Timeline System', () => {
       
       const selectedElements = result.current.getSelectedElements();
       expect(selectedElements).toHaveLength(1);
-      expect(selectedElements[0].name).toBe('Test Text');
+      expect(selectedElements[0].id).toBe('test-element-1');
     });
 
     it('should move elements between layers', () => {
@@ -98,24 +70,10 @@ describe('Advanced Timeline System', () => {
       const testElement: TimelineElement = {
         id: 'movable-element',
         type: 'image',
-        layerId: 'video-layer',
-        startTime: 1500,
+        layer: 0,
+        start: 1500,
         duration: 4000,
-        name: 'Test Image',
-        properties: {
-          opacity: 1,
-          scale: { x: 1, y: 1 },
-          position: { x: 0, y: 0 },
-          rotation: 0,
-          zIndex: 1,
-          locked: false,
-          visible: true
-        },
-        data: {
-          imageUrl: '/test-image.jpg',
-          fit: 'cover'
-        },
-        keyframes: []
+        source: '/test-image.jpg'
       };
 
       act(() => {
@@ -128,7 +86,7 @@ describe('Advanced Timeline System', () => {
       
       expect(videoLayer?.elements).toHaveLength(0);
       expect(overlayLayer?.elements).toHaveLength(1);
-      expect(overlayLayer?.elements[0].startTime).toBe(3000);
+      expect(overlayLayer?.elements[0].start).toBe(3000);
     });
 
     it('should handle playback controls correctly', () => {
@@ -177,24 +135,10 @@ describe('Advanced Timeline System', () => {
       const testElement: TimelineElement = {
         id: 'copy-element',
         type: 'audio',
-        layerId: 'audio-layer',
-        startTime: 2000,
+        layer: 1,
+        start: 2000,
         duration: 6000,
-        name: 'Test Audio',
-        properties: {
-          opacity: 1,
-          scale: { x: 1, y: 1 },
-          position: { x: 0, y: 0 },
-          rotation: 0,
-          zIndex: 1,
-          locked: false,
-          visible: true
-        },
-        data: {
-          src: '/test-audio.mp3',
-          volume: 0.8
-        },
-        keyframes: []
+        source: '/test-audio.mp3'
       };
 
       act(() => {
@@ -211,9 +155,8 @@ describe('Advanced Timeline System', () => {
       const audioLayer = result.current.project.layers.find(l => l.id === 'audio-layer');
       expect(audioLayer?.elements).toHaveLength(2);
       
-      const pastedElement = audioLayer?.elements.find(e => e.startTime === 8000);
+      const pastedElement = audioLayer?.elements.find(e => e.start === 8000);
       expect(pastedElement).toBeDefined();
-      expect(pastedElement?.name).toBe('Test Audio');
       expect(pastedElement?.id).not.toBe('copy-element'); // Should have new ID
     });
 
@@ -223,25 +166,13 @@ describe('Advanced Timeline System', () => {
       const testElement: TimelineElement = {
         id: 'keyframe-element',
         type: 'text',
-        layerId: 'overlay-layer',
-        startTime: 1000,
+        layer: 2,
+        start: 1000,
         duration: 5000,
-        name: 'Animated Text',
+        source: 'Animated Text',
         properties: {
           opacity: 1,
-          scale: { x: 1, y: 1 },
-          position: { x: 0, y: 0 },
-          rotation: 0,
-          zIndex: 1,
-          locked: false,
-          visible: true
-        },
-        data: {
-          text: 'Animated Text',
-          fontSize: 24,
-          color: '#ffffff'
-        },
-        keyframes: []
+        }
       };
 
       act(() => {
@@ -258,9 +189,9 @@ describe('Advanced Timeline System', () => {
       const overlayLayer = result.current.project.layers.find(l => l.id === 'overlay-layer');
       const element = overlayLayer?.elements.find(e => e.id === 'keyframe-element');
       
-      expect(element?.keyframes).toHaveLength(1);
-      expect(element?.keyframes[0].property).toBe('opacity');
-      expect(element?.keyframes[0].value).toBe(0.5);
+      expect(element?.properties?.keyframes).toHaveLength(1);
+      expect(element?.properties?.keyframes[0].property).toBe('opacity');
+      expect(element?.properties?.keyframes[0].value).toBe(0.5);
     });
 
     it('should manage layer operations correctly', () => {
@@ -271,12 +202,9 @@ describe('Advanced Timeline System', () => {
       const newLayer = {
         id: 'custom-layer',
         name: 'Custom Layer',
-        type: 'overlay' as const,
-        visible: true,
-        locked: false,
-        height: 50,
-        color: '#ff6b6b',
-        elements: []
+        elements: [],
+        isVisible: true,
+        isLocked: false,
       };
 
       act(() => {
@@ -309,46 +237,24 @@ describe('Advanced Timeline System', () => {
         {
           id: 'element-1',
           type: 'video',
-          layerId: 'video-layer',
-          startTime: 1000,
+          layer: 0,
+          start: 1000,
           duration: 3000, // ends at 4000
-          name: 'Video 1',
-          properties: {
-            opacity: 1,
-            scale: { x: 1, y: 1 },
-            position: { x: 0, y: 0 },
-            rotation: 0,
-            zIndex: 1,
-            locked: false,
-            visible: true
-          },
-          data: {},
-          keyframes: []
+          source: 'video1.mp4'
         },
         {
           id: 'element-2',
           type: 'audio',
-          layerId: 'audio-layer',
-          startTime: 2000,
+          layer: 1,
+          start: 2000,
           duration: 4000, // ends at 6000
-          name: 'Audio 1',
-          properties: {
-            opacity: 1,
-            scale: { x: 1, y: 1 },
-            position: { x: 0, y: 0 },
-            rotation: 0,
-            zIndex: 1,
-            locked: false,
-            visible: true
-          },
-          data: {},
-          keyframes: []
+          source: 'audio1.mp3'
         }
       ];
 
       act(() => {
         elements.forEach(element => {
-          result.current.addElement(element, element.layerId);
+          result.current.addElement(element, element.layer === 0 ? 'video-layer' : 'audio-layer');
         });
       });
 
@@ -368,13 +274,13 @@ describe('Advanced Timeline System', () => {
 
   describe('Timeline Types and Validation', () => {
     it('should support all element types', () => {
-      const elementTypes = [
-        'video', 'audio', 'text', 'image', 'shape', 
-        'transition', 'effect', 'avatar', 'pptx-slide'
+      const elementTypes: TimelineElement['type'][] = [
+        'video', 'audio', 'text', 'image', 'pptx-slide'
       ];
 
       elementTypes.forEach(type => {
-        expect(['video', 'audio', 'text', 'image', 'shape', 'transition', 'effect', 'avatar', 'pptx-slide']).toContain(type);
+        const el: TimelineElement = { id: type, type, start: 0, duration: 1, source: '', layer: 0 };
+        expect(el.type).toBe(type);
       });
     });
 
@@ -384,19 +290,10 @@ describe('Advanced Timeline System', () => {
       const validElement: TimelineElement = {
         id: 'validation-test',
         type: 'pptx-slide',
-        layerId: 'overlay-layer',
-        startTime: 0,
+        layer: 2,
+        start: 0,
         duration: 5000,
-        name: 'PPTX Slide',
-        properties: {
-          opacity: 1,
-          scale: { x: 1, y: 1 },
-          position: { x: 0, y: 0 },
-          rotation: 0,
-          zIndex: 1,
-          locked: false,
-          visible: true
-        },
+        source: 'slide1',
         data: {
           slideData: {
             slideIndex: 0,
@@ -405,7 +302,6 @@ describe('Advanced Timeline System', () => {
             animations: []
           }
         },
-        keyframes: []
       };
 
       expect(() => {

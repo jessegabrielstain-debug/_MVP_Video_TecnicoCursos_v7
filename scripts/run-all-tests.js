@@ -50,25 +50,25 @@ function logTest(name, status, details = '') {
 const testSuites = [
     {
         name: 'Validação do Banco de Dados',
-        script: 'validate-database-setup.js',
+        script: 'scripts/validate-database-setup.js',
         description: 'Verifica conectividade e estrutura do banco',
         critical: true
     },
     {
         name: 'Testes de Integração Completos',
-        script: 'test-integration-complete.js',
+        script: 'scripts/test-integration-complete.js',
         description: 'Valida todas as funcionalidades do sistema',
         critical: true
     },
     {
         name: 'Testes de TTS',
-        script: 'test-tts-integration.js',
+        script: 'scripts/test-tts-integration.js',
         description: 'Valida Azure Speech Services e ElevenLabs',
         critical: false
     },
     {
         name: 'Teste End-to-End',
-        script: 'test-end-to-end.js',
+        script: 'scripts/test-end-to-end.js',
         description: 'Simula fluxo completo do usuário',
         critical: true
     }

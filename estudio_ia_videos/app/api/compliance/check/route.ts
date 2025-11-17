@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth/auth-config'
 import { prisma } from '@/lib/db'
+import type { Prisma } from '@prisma/client'
 import { checkCompliance } from '@/lib/compliance/nr-engine'
 import { type NRCode } from '@/lib/compliance/templates'
 
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     // Prepara conteúdo para análise
     const projectContent = {
-      slides: project.slides.map((slide: any) => ({
+      slides: project.slides.map((slide) => ({
         number: slide.slideNumber,
         title: slide.title,
         content: slide.content,
@@ -57,8 +58,8 @@ export async function POST(req: NextRequest) {
         audioPath: slide.audioPath || null
       })),
       totalDuration: project.duration || 0,
-      imageUrls: project.slides.flatMap((slide: any) => slide.imageUrls || []),
-      audioFiles: project.slides.map((slide: any) => slide.audioPath).filter(Boolean)
+      imageUrls: project.slides.flatMap((slide) => slide.imageUrls || []),
+      audioFiles: project.slides.map((slide) => slide.audioPath).filter(Boolean)
     }
 
     // Executa análise de conformidade com IA
@@ -77,9 +78,9 @@ export async function POST(req: NextRequest) {
         requirementsTotal: result.requirementsTotal,
         validatedAt: new Date(),
         validatedBy: 'AI',
-        recommendations: result.recommendations as any,
-        criticalPoints: result.criticalPoints as any,
-        aiAnalysis: result.aiAnalysis as any,
+        recommendations: result.recommendations as unknown as Prisma.JsonValue,
+        criticalPoints: result.criticalPoints as unknown as Prisma.JsonValue,
+        aiAnalysis: result.aiAnalysis as unknown as Prisma.JsonValue,
         aiScore: result.aiScore,
         confidence: result.confidence
       }
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest) {
       result
     })
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[COMPLIANCE_CHECK_ERROR]', error)
     return NextResponse.json(
       { error: 'Erro ao verificar conformidade' },
@@ -125,7 +126,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ records })
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[COMPLIANCE_GET_ERROR]', error)
     return NextResponse.json(
       { error: 'Erro ao buscar registros de conformidade' },

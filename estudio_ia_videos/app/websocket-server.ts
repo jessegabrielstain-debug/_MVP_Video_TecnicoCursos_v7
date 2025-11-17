@@ -6,8 +6,36 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { createServer } from 'http'
 import { parse } from 'url'
-import { createRenderWorker, createQueueEvents } from './lib/queue/render-queue'
-import { RenderProgress } from './lib/video/renderer'
+import { createRenderWorker, createRenderQueueEvents } from './lib/queue/render-queue'
+import type { RenderProgress } from './lib/video/renderer'
+import type { Job } from 'bullmq'
+import type { RenderTaskPayload, RenderTaskResult } from './lib/queue/types'
+
+interface ConnectedMessage {
+  type: 'connected'
+  jobId: string
+  message: string
+}
+
+interface ProgressMessage {
+  type: 'progress'
+  jobId: string
+  progress: RenderProgress
+}
+
+interface CompletedMessage {
+  type: 'completed'
+  jobId: string
+  result: RenderTaskResult | null
+}
+
+interface FailedMessage {
+  type: 'failed'
+  jobId: string
+  error: string
+}
+
+type BroadcastMessage = ProgressMessage | CompletedMessage | FailedMessage | ConnectedMessage
 
 const PORT = parseInt(process.env.WS_PORT || '3001')
 
@@ -17,7 +45,7 @@ const connections = new Map<string, Set<WebSocket>>()
 /**
  * Broadcast para todos os clientes de um job
  */
-function broadcastToJob(jobId: string, data: any) {
+function broadcastToJob(jobId: string, data: BroadcastMessage) {
   const clients = connections.get(jobId)
   if (!clients) return
 
@@ -38,36 +66,83 @@ export function startWebSocketServer() {
   const wss = new WebSocketServer({ server })
 
   // Iniciar worker de renderização
-  const worker = createRenderWorker((jobId: string, progress: RenderProgress) => {
-    broadcastToJob(jobId, {
-      type: 'progress',
+  const worker = createRenderWorker(async (job: Job<RenderTaskPayload, RenderTaskResult>) => {
+    const jobId = job.id?.toString()
+
+    if (!jobId) {
+      return {
+        jobId: 'unknown',
+        outputUrl: '',
+        durationMs: 0,
+      }
+    }
+
+    // Simula o progresso do trabalho
+    for (let i = 0; i <= 100; i += 10) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const progress: RenderProgress = {
+        percent: i / 100,
+        message: `Processing step ${i / 10}`,
+        currentFile: 'video.mp4',
+        totalFiles: 1,
+        estimatedTimeLeft: (100 - i) * 0.5,
+      };
+      broadcastToJob(jobId, {
+        type: 'progress',
+        jobId,
+        progress,
+      });
+    }
+    return {
       jobId,
-      progress,
-    })
-  })
+      outputUrl: 'http://example.com/video.mp4',
+      durationMs: 5000,
+    };
+  });
 
   // Eventos da fila
-  const queueEvents = createQueueEvents()
+  const queueEvents = createRenderQueueEvents();
 
-  queueEvents.on('completed', ({ jobId }) => {
+  queueEvents.on('completed', (payload) => {
+    const jobId = payload?.jobId ? String(payload.jobId) : ''
+    if (!jobId) {
+      return
+    }
+
+    const result = (payload?.returnvalue ?? null) as RenderTaskResult | null
+
     broadcastToJob(jobId, {
       type: 'completed',
       jobId,
-    })
-  })
+      result,
+    });
+  });
 
-  queueEvents.on('failed', ({ jobId, failedReason }) => {
+  queueEvents.on('failed', (payload) => {
+    const jobId = payload?.jobId ? String(payload.jobId) : ''
+    if (!jobId) {
+      return
+    }
+
+    const failedReason = payload?.failedReason
+    const errorMessage = typeof failedReason === 'string' ? failedReason : 'Unknown error'
+
     broadcastToJob(jobId, {
       type: 'failed',
       jobId,
-      error: failedReason,
-    })
-  })
+      error: errorMessage,
+    });
+  });
 
   // Conexões WebSocket
   wss.on('connection', (ws: WebSocket, request) => {
-    const { query } = parse(request.url || '', true)
-    const jobId = query.jobId as string
+    const parsedUrl = parse(request.url || '', true)
+    const rawJobId = parsedUrl.query?.jobId
+    const jobId = Array.isArray(rawJobId)
+      ? typeof rawJobId[0] === 'string' ? rawJobId[0] : undefined
+      : typeof rawJobId === 'string'
+        ? rawJobId
+        : undefined
 
     if (!jobId) {
       ws.close(1008, 'Job ID required')
@@ -83,11 +158,13 @@ export function startWebSocketServer() {
     connections.get(jobId)!.add(ws)
 
     // Enviar mensagem de boas-vindas
-    ws.send(JSON.stringify({
+    const connectedMessage: ConnectedMessage = {
       type: 'connected',
       jobId,
       message: 'Connected to render progress tracker',
-    }))
+    }
+
+    ws.send(JSON.stringify(connectedMessage))
 
     // Ping/Pong para manter conexão viva
     const pingInterval = setInterval(() => {

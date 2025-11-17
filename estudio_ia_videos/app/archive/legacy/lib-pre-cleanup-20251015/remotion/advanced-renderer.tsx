@@ -14,7 +14,7 @@ import {
 interface AdvancedElementRendererProps {
   element: RenderedElement;
   animationTemplate?: AnimationTemplateName;
-  customProps?: Record<string, any>;
+  customProps?: Record<string, unknown>;
 }
 
 export const AdvancedElementRenderer: React.FC<AdvancedElementRendererProps> = ({

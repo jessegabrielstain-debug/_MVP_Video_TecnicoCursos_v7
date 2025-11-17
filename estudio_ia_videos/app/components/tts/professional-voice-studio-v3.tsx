@@ -70,7 +70,7 @@ export default function ProfessionalVoiceStudioV3() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
   // Estados de informação do usuário
-  const [userInfo, setUserInfo] = useState<any>(null)
+  const [userInfo, setUserInfo] = useState<unknown>(null)
 
   const elevenLabsService = ElevenLabsService.getInstance()
 

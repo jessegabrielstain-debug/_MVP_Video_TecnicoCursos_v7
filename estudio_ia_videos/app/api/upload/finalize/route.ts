@@ -27,7 +27,7 @@ interface UploadResponse {
   mimeType: string;
   url: string;
   thumbnailUrl?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   uploadedAt: string;
 }
 

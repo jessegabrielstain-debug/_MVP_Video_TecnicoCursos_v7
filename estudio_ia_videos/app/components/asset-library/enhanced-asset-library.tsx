@@ -45,11 +45,18 @@ interface AssetCategory {
   color: string
 }
 
+const SORT_OPTIONS = ['popular', 'recent', 'name', 'rating'] as const
+type SortOption = (typeof SORT_OPTIONS)[number]
+
+const isSortOption = (value: string): value is SortOption => {
+  return SORT_OPTIONS.includes(value as SortOption)
+}
+
 const EnhancedAssetLibrary: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [sortBy, setSortBy] = useState<'popular' | 'recent' | 'name' | 'rating'>('popular')
+  const [sortBy, setSortBy] = useState<SortOption>('popular')
   const [filterTags, setFilterTags] = useState<string[]>([])
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false)
   const [showOnlyPremium, setShowOnlyPremium] = useState(false)
@@ -321,7 +328,14 @@ const EnhancedAssetLibrary: React.FC = () => {
               <Label className="text-sm">Sort:</Label>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => {
+                  const value = e.target.value
+                  if (!isSortOption(value)) {
+                    return
+                  }
+
+                  setSortBy(value)
+                }}
                 className="text-sm border rounded px-2 py-1 bg-white dark:bg-gray-700"
               >
                 <option value="popular">Most Popular</option>

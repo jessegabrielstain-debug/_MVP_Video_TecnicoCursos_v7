@@ -1,6 +1,5 @@
 
 import { useCallback } from 'react';
-import { useSession } from 'next-auth/react';
 
 /**
  * Hook para rastreamento de eventos de analytics
@@ -10,14 +9,12 @@ import { useSession } from 'next-auth/react';
  * analytics.trackUpload(fileSize, fileName);
  */
 export function useAnalyticsTrack() {
-  const { data: session } = useSession() || {};
-
   const track = useCallback(async (
     category: string,
     action: string,
     options?: {
       label?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
       duration?: number;
       fileSize?: number;
       projectId?: string;
@@ -62,7 +59,7 @@ export function useAnalyticsTrack() {
     });
   }, [track]);
 
-  const trackRenderStart = useCallback((projectId: string, settings?: Record<string, any>) => {
+  const trackRenderStart = useCallback((projectId: string, settings?: Record<string, unknown>) => {
     return track('render', 'start', {
       projectId,
       metadata: settings

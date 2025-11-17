@@ -21,7 +21,7 @@ export interface ServiceHealth {
   responseTime: number;
   message: string;
   lastChecked: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SystemHealth {

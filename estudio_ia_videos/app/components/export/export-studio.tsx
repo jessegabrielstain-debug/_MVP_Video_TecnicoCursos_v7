@@ -32,6 +32,12 @@ import {
 } from 'lucide-react'
 import { MultiFormatExportEngine, ExportConfiguration, ExportJob, ExportTemplate } from '../../lib/export/multi-format-engine'
 
+const FPS_VALUES = [24, 30, 60] as const
+type FpsValue = (typeof FPS_VALUES)[number]
+
+const isFpsValue = (value: number): value is FpsValue =>
+  FPS_VALUES.some((fps) => fps === value)
+
 interface ExportStudioProps {
   projectId: string
   projectData: {
@@ -266,7 +272,7 @@ export default function ExportStudio({ projectId, projectData }: ExportStudioPro
                   <label className="text-sm font-medium">Formato de Exportação</label>
                   <Select 
                     value={configuration.export_format}
-                    onValueChange={(value) => setConfiguration(prev => ({...prev, export_format: value as any}))}
+                    onValueChange={(value) => setConfiguration(prev => ({...prev, export_format: value}))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -288,7 +294,7 @@ export default function ExportStudio({ projectId, projectData }: ExportStudioPro
                       value={configuration.quality_settings?.resolution}
                       onValueChange={(value) => setConfiguration(prev => ({
                         ...prev, 
-                        quality_settings: {...prev.quality_settings!, resolution: value as any}
+                        quality_settings: {...prev.quality_settings!, resolution: value}
                       }))}
                     >
                       <SelectTrigger>
@@ -306,10 +312,27 @@ export default function ExportStudio({ projectId, projectData }: ExportStudioPro
                     <label className="text-sm font-medium">FPS</label>
                     <Select 
                       value={configuration.quality_settings?.fps?.toString()}
-                      onValueChange={(value) => setConfiguration(prev => ({
-                        ...prev, 
-                        quality_settings: {...prev.quality_settings!, fps: parseInt(value) as any}
-                      }))}
+                      onValueChange={(value) =>
+                        setConfiguration((prev) => {
+                          if (!prev.quality_settings) {
+                            return prev
+                          }
+
+                          const numericValue = Number(value)
+
+                          if (!Number.isFinite(numericValue) || !isFpsValue(numericValue)) {
+                            return prev
+                          }
+
+                          return {
+                            ...prev,
+                            quality_settings: {
+                              ...prev.quality_settings,
+                              fps: numericValue,
+                            },
+                          }
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -344,7 +367,7 @@ export default function ExportStudio({ projectId, projectData }: ExportStudioPro
                     value={configuration.quality_settings?.audio_quality}
                     onValueChange={(value) => setConfiguration(prev => ({
                       ...prev, 
-                      quality_settings: {...prev.quality_settings!, audio_quality: value as any}
+                      quality_settings: {...prev.quality_settings!, audio_quality: value}
                     }))}
                   >
                     <SelectTrigger>

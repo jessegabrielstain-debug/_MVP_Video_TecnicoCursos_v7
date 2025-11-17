@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
       }
 
       const slidesWithTTS = project.slides.filter((slide: any) => slide.ttsGenerated)
-      const processingLog = project.processingLog as any
+      const processingLog = project.processingLog as Record<string, unknown> | null
 
       return NextResponse.json({
         success: true,

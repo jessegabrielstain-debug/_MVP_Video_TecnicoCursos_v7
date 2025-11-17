@@ -19,8 +19,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface PerformanceMetrics {
   database: DatabaseMetrics;
@@ -79,10 +79,36 @@ interface OverallScore {
   recommendations: string[];
 }
 
+type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
+type GenericTable<Row extends Record<string, Json>> = {
+  Row: Row;
+  Insert: Partial<Row>;
+  Update: Partial<Row>;
+};
+
+type Database = {
+  public: {
+    Tables: {
+      users: GenericTable<{ id: string }>;
+      courses: GenericTable<Record<string, Json>>;
+      modules: GenericTable<Record<string, Json>>;
+      lessons: GenericTable<Record<string, Json>>;
+      progress: GenericTable<Record<string, Json>>;
+      videos: GenericTable<Record<string, Json>>;
+      templates: GenericTable<Record<string, Json>>;
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, unknown>;
+    Enums: Record<string, unknown>;
+    CompositeTypes: Record<string, unknown>;
+  };
+};
+
 class PerformanceAnalyzer {
   private projectRoot: string;
   private appDir: string;
-  private supabase: any;
+  private supabase: SupabaseClient<Database> | null = null;
   private envVars: Map<string, string> = new Map();
 
   constructor() {
@@ -117,7 +143,7 @@ class PerformanceAnalyzer {
     const url = this.envVars.get('NEXT_PUBLIC_SUPABASE_URL');
     const key = this.envVars.get('SUPABASE_SERVICE_ROLE_KEY');
     if (url && key) {
-      this.supabase = createClient(url, key);
+      this.supabase = createClient<Database>(url, key);
     }
   }
 
@@ -128,6 +154,21 @@ class PerformanceAnalyzer {
       warning: '\x1b[33m', reset: '\x1b[0m'
     };
     console.log(`${colors[level]}${icons[level]} ${message}${colors.reset}`);
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+      const maybeMessage = (error as { message?: unknown }).message;
+      if (typeof maybeMessage === 'string') {
+        return maybeMessage;
+      }
+    }
+
+    return 'Unknown error';
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -143,11 +184,24 @@ class PerformanceAnalyzer {
 
     // Simular análise de queries (em produção usaria pg_stat_statements)
     const tables = ['users', 'courses', 'modules', 'lessons', 'progress', 'videos', 'templates'];
+
+    if (!this.supabase) {
+      this.log('   ⚠️ Supabase não configurado. Pulando análise de database.', 'warning');
+      return {
+        avgQueryTime: 0,
+        slowQueries: [],
+        connectionPoolSize: 0,
+        indexUsage: 0,
+        score: 50
+      };
+    }
+
+    const supabase = this.supabase;
     
     for (const table of tables) {
       const start = Date.now();
       try {
-        const { error } = await this.supabase
+        const { error } = await supabase
           .from(table)
           .select('count', { count: 'exact', head: true });
         
@@ -165,8 +219,11 @@ class PerformanceAnalyzer {
               : `Considerar cache para queries de ${table}`
           });
         }
-      } catch (error: any) {
-        // Ignorar erros de cache
+        if (error) {
+          this.log(`   ⚠️ Erro ao consultar ${table}: ${this.getErrorMessage(error)}`, 'warning');
+        }
+      } catch (error: unknown) {
+        this.log(`   ⚠️ Erro inesperado ao consultar ${table}: ${this.getErrorMessage(error)}`, 'warning');
       }
     }
 

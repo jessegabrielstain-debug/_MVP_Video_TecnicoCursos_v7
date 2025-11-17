@@ -4,7 +4,6 @@
  * Dashboard de Video Analytics Avançado
  */
 
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -46,15 +45,91 @@ import {
   Tablet
 } from 'lucide-react';
 
+const timeRangeOptions = ['1h', '24h', '7d', '30d'] as const;
+type TimeRange = typeof timeRangeOptions[number];
+
+const metricTabs = ['overview', 'engagement', 'sentiment', 'audience', 'performance'] as const;
+type MetricTab = typeof metricTabs[number];
+
+interface RetentionPoint {
+  time: number;
+  retention: number;
+}
+
+interface DropOffPoint {
+  time: number;
+  dropRate: number;
+}
+
+interface DeviceMetrics {
+  desktop: number;
+  mobile: number;
+  tablet: number;
+}
+
+interface QualityMetrics {
+  averageQuality: string;
+  qualityChanges: number;
+  bufferingEvents: number;
+}
+
+interface SentimentDistribution {
+  joy: number;
+  surprise: number;
+  neutral: number;
+  sadness: number;
+  anger: number;
+  fear: number;
+}
+
+interface SentimentMetrics {
+  overallSentiment: number;
+  emotionDistribution: SentimentDistribution;
+}
+
+interface GeographicDatum {
+  country: string;
+  views: number;
+  sentiment: number;
+}
+
+interface AnalyticsMetrics {
+  totalViews: number;
+  uniqueViews: number;
+  averageWatchTime: number;
+  completionRate: number;
+  retentionCurve: RetentionPoint[];
+  dropOffPoints: DropOffPoint[];
+  deviceMetrics: DeviceMetrics;
+  qualityMetrics: QualityMetrics;
+  sentimentMetrics: SentimentMetrics;
+  geographicData: GeographicDatum[];
+}
+
+interface RealtimeMetrics {
+  currentViewers: number;
+  peakViewers: number;
+  averageViewTime: number;
+  currentRetention: number;
+  activeInteractions: number;
+  sentimentScore: number;
+}
+
+const isTimeRange = (value: string): value is TimeRange =>
+  timeRangeOptions.some((range) => range === value);
+
+const isMetricTab = (value: string): value is MetricTab =>
+  metricTabs.some((tab) => tab === value);
+
 interface VideoAnalyticsDashboardProps {
   videoId: string;
 }
 
 export default function VideoAnalyticsDashboard({ videoId }: VideoAnalyticsDashboardProps) {
-  const [metrics, setMetrics] = useState<any>(null);
-  const [realtime, setRealtime] = useState<any>(null);
-  const [selectedMetric, setSelectedMetric] = useState<string>('overview');
-  const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
+  const [metrics, setMetrics] = useState<AnalyticsMetrics | null>(null);
+  const [realtime, setRealtime] = useState<RealtimeMetrics | null>(null);
+  const [selectedMetric, setSelectedMetric] = useState<MetricTab>('overview');
+  const [timeRange, setTimeRange] = useState<TimeRange>('24h');
 
   useEffect(() => {
     loadAnalyticsData();
@@ -65,7 +140,7 @@ export default function VideoAnalyticsDashboard({ videoId }: VideoAnalyticsDashb
   const loadAnalyticsData = async () => {
     try {
       const response = await fetch(`/api/video-analytics/${videoId}?range=${timeRange}`);
-      const data = await response.json();
+      const data: AnalyticsMetrics = await response.json();
       setMetrics(data);
     } catch (error) {
       console.error('Erro ao carregar analytics:', error);
@@ -76,7 +151,7 @@ export default function VideoAnalyticsDashboard({ videoId }: VideoAnalyticsDashb
   const loadRealtimeData = async () => {
     try {
       const response = await fetch(`/api/video-analytics/${videoId}/realtime`);
-      const data = await response.json();
+      const data: RealtimeMetrics = await response.json();
       setRealtime(data);
     } catch (error) {
       console.error('Erro ao carregar dados em tempo real:', error);
@@ -84,7 +159,7 @@ export default function VideoAnalyticsDashboard({ videoId }: VideoAnalyticsDashb
     }
   };
 
-  const mockAnalyticsData = {
+  const mockAnalyticsData: AnalyticsMetrics = {
     totalViews: 15420,
     uniqueViews: 12350,
     averageWatchTime: 312,
@@ -132,17 +207,13 @@ export default function VideoAnalyticsDashboard({ videoId }: VideoAnalyticsDashb
     ]
   };
 
-  const mockRealtimeData = {
+  const mockRealtimeData: RealtimeMetrics = {
     currentViewers: 127,
     peakViewers: 340,
     averageViewTime: 285,
     currentRetention: 0.73,
     activeInteractions: 45,
     sentimentScore: 0.68
-  };
-
-  const getMetricChange = (current: number, previous: number) => {
-    return ((current - previous) / previous * 100).toFixed(1);
   };
 
   const getSentimentColor = (sentiment: number) => {
@@ -182,7 +253,12 @@ export default function VideoAnalyticsDashboard({ videoId }: VideoAnalyticsDashb
         <div className="flex items-center space-x-2">
           <select 
             value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as any)}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (isTimeRange(value)) {
+                setTimeRange(value);
+              }
+            }}
             className="px-3 py-2 border rounded-md"
           >
             <option value="1h">Última Hora</option>
@@ -280,7 +356,14 @@ export default function VideoAnalyticsDashboard({ videoId }: VideoAnalyticsDashb
       )}
 
       {/* Main Analytics Tabs */}
-      <Tabs value={selectedMetric} onValueChange={setSelectedMetric}>
+      <Tabs
+        value={selectedMetric}
+        onValueChange={(value) => {
+          if (isMetricTab(value)) {
+            setSelectedMetric(value);
+          }
+        }}
+      >
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">📊 Visão Geral</TabsTrigger>
           <TabsTrigger value="engagement">🎯 Engajamento</TabsTrigger>
@@ -385,7 +468,7 @@ export default function VideoAnalyticsDashboard({ videoId }: VideoAnalyticsDashb
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {metrics.dropOffPoints.map((point: any, index: number) => (
+                {metrics.dropOffPoints.map((point, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <Badge variant="secondary">{Math.floor(point.time / 60)}:{(point.time % 60).toString().padStart(2, '0')}</Badge>
@@ -524,7 +607,7 @@ export default function VideoAnalyticsDashboard({ videoId }: VideoAnalyticsDashb
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {metrics.geographicData.map((geo: any, index: number) => (
+                  {metrics.geographicData.map((geo) => (
                     <div key={geo.country} className="flex items-center justify-between p-2 border rounded">
                       <div className="flex items-center space-x-3">
                         <Badge variant="outline">{geo.country}</Badge>

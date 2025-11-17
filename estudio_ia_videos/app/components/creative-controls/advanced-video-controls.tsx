@@ -279,7 +279,7 @@ export default function AdvancedVideoControls({
               <Label>Tipo de Enquadramento</Label>
               <Select 
                 value={controls.camera_presets.shot_type}
-                onValueChange={(value: any) => updateControls({
+                onValueChange={(value: string) => updateControls({
                   camera_presets: { ...controls.camera_presets, shot_type: value }
                 })}
               >
@@ -299,7 +299,7 @@ export default function AdvancedVideoControls({
               <Label>Ângulo da Câmera</Label>
               <Select 
                 value={controls.camera_presets.angle}
-                onValueChange={(value: any) => updateControls({
+                onValueChange={(value: string) => updateControls({
                   camera_presets: { ...controls.camera_presets, angle: value }
                 })}
               >
@@ -319,7 +319,7 @@ export default function AdvancedVideoControls({
               <Label>Movimento</Label>
               <Select 
                 value={controls.camera_presets.movement}
-                onValueChange={(value: any) => updateControls({
+                onValueChange={(value: string) => updateControls({
                   camera_presets: { ...controls.camera_presets, movement: value }
                 })}
               >
@@ -339,7 +339,7 @@ export default function AdvancedVideoControls({
               <Label>Foco</Label>
               <Select 
                 value={controls.camera_presets.focus}
-                onValueChange={(value: any) => updateControls({
+                onValueChange={(value: string) => updateControls({
                   camera_presets: { ...controls.camera_presets, focus: value }
                 })}
               >
@@ -372,7 +372,7 @@ export default function AdvancedVideoControls({
                 <Label>Mood da Iluminação</Label>
                 <Select 
                   value={controls.lighting_setup.mood}
-                  onValueChange={(value: any) => updateControls({
+                  onValueChange={(value: string) => updateControls({
                     lighting_setup: { ...controls.lighting_setup, mood: value }
                   })}
                 >
@@ -393,7 +393,7 @@ export default function AdvancedVideoControls({
                 <Label>Direção da Luz</Label>
                 <Select 
                   value={controls.lighting_setup.direction}
-                  onValueChange={(value: any) => updateControls({
+                  onValueChange={(value: string) => updateControls({
                     lighting_setup: { ...controls.lighting_setup, direction: value }
                   })}
                 >

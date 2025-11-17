@@ -2,8 +2,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -26,6 +25,8 @@ import {
   WifiOff
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { createClient } from '@/lib/supabase/client'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface Collaborator {
   id: string
@@ -57,13 +58,14 @@ interface ProjectActivity {
 }
 
 export default function RealtimeCollaboration({ projectId }: { projectId: string }) {
-  const { data: session } = useSession() || {}
+  const supabase = useMemo(() => createClient(), [])
   const [isConnected, setIsConnected] = useState(false)
   const [collaborators, setCollaborators] = useState<Collaborator[]>([])
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [activities, setActivities] = useState<ProjectActivity[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
+  const [user, setUser] = useState<SupabaseUser | null>(null)
 
   // Simulated WebSocket connection
   useEffect(() => {
@@ -137,13 +139,39 @@ export default function RealtimeCollaboration({ projectId }: { projectId: string
     return () => clearTimeout(timer)
   }, [projectId])
 
+  useEffect(() => {
+    let isMounted = true
+
+    const loadSession = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        setUser(data.user ?? null)
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error)
+      }
+    }
+
+    void loadSession()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
+
   const handleSendMessage = () => {
     if (!newMessage.trim()) return
 
     const message: ChatMessage = {
       id: `msg-${Date.now()}`,
-      userId: session?.user?.id || 'current',
-      userName: session?.user?.name || session?.user?.email?.split('@')[0] || 'Você',
+      userId: user?.id || 'current',
+      userName: user?.user_metadata?.name || user?.email?.split('@')[0] || 'Você',
       message: newMessage,
       timestamp: new Date().toISOString(),
       type: 'text'

@@ -93,7 +93,9 @@ export function useEditor(projectId?: string) {
   }, [projectId, state]);
 
   // History management
-  const addToHistory = useCallback((action: string, data: any, description: string) => {
+  type HistoryPayload = EditorHistoryEntry['data'];
+
+  const addToHistory = useCallback((action: string, data: HistoryPayload, description: string) => {
     const entry: EditorHistoryEntry = {
       id: `history-${Date.now()}`,
       timestamp: new Date(),
@@ -110,7 +112,9 @@ export function useEditor(projectId?: string) {
   }, []);
 
   // Element management
-  const createElement = useCallback((type: EditorElement['type'], properties: any = {}) => {
+  type ElementOverrides = Partial<Omit<EditorElement, 'id' | 'type' | 'name'>>;
+
+  const createElement = useCallback((type: EditorElement['type'], properties: ElementOverrides = {}) => {
     const element: EditorElement = {
       id: `element-${Date.now()}`,
       type,
@@ -494,7 +498,7 @@ export function useEditor(projectId?: string) {
   };
 }
 
-function getDefaultProperties(type: EditorElement['type']): any {
+function getDefaultProperties(type: EditorElement['type']): ElementOverrides {
   switch (type) {
     case 'text':
       return {

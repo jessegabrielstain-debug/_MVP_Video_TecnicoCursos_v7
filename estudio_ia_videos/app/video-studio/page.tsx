@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import { TimelineEditor } from '../components/timeline/timeline-editor';
 import { ExportModal } from '../components/export/export-modal';
 import { useTimeline } from '../hooks/use-timeline';
-import { TimelineElement } from '@/lib/types/timeline-types';
+import { TimelineElement, TimelineLayer } from '@/lib/types/timeline-types';
 import { 
   Upload, 
   Play, 
@@ -54,28 +54,18 @@ export default function VideoStudioPage() {
     const newElement: TimelineElement = {
       id: crypto.randomUUID(),
       type: type as TimelineElement['type'],
-      layerId: 'video-layer',
-      name: `${type} Element`,
-      startTime: timeline.project.currentTime,
+      layer: 0, // Default layer, should be determined by type
+      start: timeline.project.currentTime,
       duration: 5000,
-      endTime: timeline.project.currentTime + 5000,
-      x: 0,
-      y: 0,
-      width: 100,
-      height: 100,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      opacity: 1,
-      properties: [],
-      locked: false,
-      visible: true,
-      sourceUrl: data.url,
-      sourceType: type,
-      metadata: data
+      source: data.url || '',
+      data: data
     };
 
-    timeline.addElement(newElement, 'video-layer');
+    let targetLayerId = 'video-layer';
+    if (type === 'audio') targetLayerId = 'audio-layer';
+    if (type === 'text' || type === 'image' || type === 'pptx-slide' || type === 'avatar') targetLayerId = 'overlay-layer';
+
+    timeline.addElement(newElement, targetLayerId);
   };
 
   const handleFileImport = (file: File) => {
@@ -340,7 +330,7 @@ export default function VideoStudioPage() {
               <div className="flex justify-between">
                 <span className="text-gray-400">Elements:</span>
                 <span className="text-white">
-                  {timeline.project.layers ? timeline.project.layers.reduce((acc, layer) => acc + layer.elements.length, 0) : 0}
+                  {timeline.project.layers ? timeline.project.layers.reduce((acc: number, layer: TimelineLayer) => acc + layer.elements.length, 0) : 0}
                 </span>
               </div>
             </div>

@@ -44,6 +44,12 @@ export function SSOConfigurationPanel({ organizationId }: Props) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
+  const providerOptions: SSOConfig['provider'][] = ['SAML', 'OAUTH_GOOGLE', 'OAUTH_MICROSOFT', 'OAUTH_OKTA'];
+
+  const isProviderValue = (value: string): value is SSOConfig['provider'] => {
+    return providerOptions.some(option => option === value);
+  };
+
   useEffect(() => {
     loadConfig();
   }, [organizationId]);
@@ -139,7 +145,14 @@ export function SSOConfigurationPanel({ organizationId }: Props) {
             </Badge>
           </div>
 
-          <Tabs value={config.provider} onValueChange={(v) => setConfig({ ...config, provider: v as any })}>
+          <Tabs
+            value={config.provider}
+            onValueChange={(value) => {
+              if (isProviderValue(value)) {
+                setConfig({ ...config, provider: value });
+              }
+            }}
+          >
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="SAML">SAML 2.0</TabsTrigger>
               <TabsTrigger value="OAUTH_OKTA">Okta</TabsTrigger>

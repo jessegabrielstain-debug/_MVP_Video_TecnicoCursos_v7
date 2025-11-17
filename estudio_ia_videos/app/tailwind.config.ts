@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
 const config: Config = {
   darkMode: ['class'],
@@ -249,7 +250,7 @@ const config: Config = {
   plugins: [
     require('tailwindcss-animate'),
     // Plugin customizado para utilitários
-    function({ addUtilities, addComponents }: any) {
+    plugin(({ addUtilities, addComponents }) => {
       addUtilities({
         '.container-fluid': {
           width: '100%',
@@ -278,7 +279,7 @@ const config: Config = {
           border: '1px solid rgba(55, 65, 81, 0.3)',
         },
       });
-    }
+    }),
   ],
 };
 

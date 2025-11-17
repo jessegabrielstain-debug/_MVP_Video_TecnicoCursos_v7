@@ -186,7 +186,7 @@ function ProfessionalCanvasEditorCore({
     
     switch (actionId) {
       case 'add-text':
-        const text = new (window as any).fabric.Textbox('Click to edit', {
+        const text = new ((window as Window & { fabric?: unknown }).fabric as { Textbox: new (...args: unknown[]) => unknown; Rect: new (...args: unknown[]) => unknown; Circle: new (...args: unknown[]) => unknown }).Textbox('Click to edit', {
           left: 100,
           top: 100,
           fontFamily: 'Arial',
@@ -199,7 +199,7 @@ function ProfessionalCanvasEditorCore({
         break
         
       case 'add-rectangle':
-        const rect = new (window as any).fabric.Rect({
+        const rect = new ((window as Window & { fabric?: unknown }).fabric as { Textbox: new (...args: unknown[]) => unknown; Rect: new (...args: unknown[]) => unknown; Circle: new (...args: unknown[]) => unknown }).Rect({
           left: 100,
           top: 100,
           width: 200,
@@ -214,7 +214,7 @@ function ProfessionalCanvasEditorCore({
         break
         
       case 'add-circle':
-        const circle = new (window as any).fabric.Circle({
+        const circle = new ((window as Window & { fabric?: unknown }).fabric as { Textbox: new (...args: unknown[]) => unknown; Rect: new (...args: unknown[]) => unknown; Circle: new (...args: unknown[]) => unknown }).Circle({
           left: 100,
           top: 100,
           radius: 50,

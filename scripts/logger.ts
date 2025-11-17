@@ -27,7 +27,7 @@ interface LogEntry {
   level: LogLevel;
   component: string;
   message: string;
-  data?: any;
+  data?: unknown;
   stack?: string;
 }
 
@@ -170,7 +170,7 @@ class Logger {
     }
   }
 
-  private log(level: LogLevel, component: string, message: string, data?: any, error?: Error) {
+  private log(level: LogLevel, component: string, message: string, data?: unknown, error?: Error) {
     const entry: LogEntry = {
       timestamp: this.getTimestamp(),
       level,
@@ -194,23 +194,23 @@ class Logger {
   // MÉTODOS PÚBLICOS
   // ═══════════════════════════════════════════════════════════════════════
 
-  debug(component: string, message: string, data?: any) {
+  debug(component: string, message: string, data?: unknown) {
     this.log('DEBUG', component, message, data);
   }
 
-  info(component: string, message: string, data?: any) {
+  info(component: string, message: string, data?: unknown) {
     this.log('INFO', component, message, data);
   }
 
-  warn(component: string, message: string, data?: any) {
+  warn(component: string, message: string, data?: unknown) {
     this.log('WARN', component, message, data);
   }
 
-  error(component: string, message: string, error?: Error, data?: any) {
+  error(component: string, message: string, error?: Error, data?: unknown) {
     this.log('ERROR', component, message, data, error);
   }
 
-  fatal(component: string, message: string, error?: Error, data?: any) {
+  fatal(component: string, message: string, error?: Error, data?: unknown) {
     this.log('FATAL', component, message, data, error);
   }
 

@@ -43,7 +43,7 @@ export interface QueueJob<T = any> {
   maxAttempts: number;
   error?: string;
   result?: any;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface QueueConfig {
@@ -126,7 +126,7 @@ export class VideoProcessingQueue extends EventEmitter {
     options?: {
       priority?: QueuePriority;
       maxAttempts?: number;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
   ): Promise<string> {
     const job: QueueJob<T> = {

@@ -51,7 +51,7 @@ export default function AdvancedVoiceSelector({
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('all')
   const [showPremiumOnly, setShowPremiumOnly] = useState(false)
 
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState<unknown>(null)
 
   useEffect(() => {
     loadVoices()

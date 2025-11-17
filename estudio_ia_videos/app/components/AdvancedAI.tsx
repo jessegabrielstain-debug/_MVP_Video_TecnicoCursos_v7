@@ -15,6 +15,22 @@ import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+
+interface AIModel {
+  id: string;
+  name: string;
+  provider?: string;
+  [key: string]: unknown;
+}
+
+interface GenerationHistoryItem {
+  id: string;
+  type: string;
+  timestamp: number;
+  content?: unknown;
+  [key: string]: unknown;
+}
+
 import { 
   Brain, 
   Sparkles, 
@@ -54,6 +70,13 @@ import {
   Activity
 } from 'lucide-react';
 import { useAdvancedAI, ContentGenerationRequest, AIInsight, SentimentAnalysisResult, ContentOptimization } from '@/hooks/useAdvancedAI';
+
+const CONTENT_TYPE_OPTIONS = ['text', 'image', 'audio', 'video_script', 'slide_content', 'quiz_questions'] as const;
+type ContentTypeOption = (typeof CONTENT_TYPE_OPTIONS)[number];
+
+const isContentTypeOption = (value: string): value is ContentTypeOption => {
+  return CONTENT_TYPE_OPTIONS.some((option) => option === value);
+};
 
 export const AdvancedAI: React.FC = () => {
   const {
@@ -345,14 +368,14 @@ export const AdvancedAI: React.FC = () => {
 
 // Content Generation Panel
 const ContentGenerationPanel: React.FC<{
-  models: any[];
+  models: AIModel[];
   selectedModel: string;
   onModelChange: (model: string) => void;
   request: Partial<ContentGenerationRequest>;
   onRequestChange: (request: Partial<ContentGenerationRequest>) => void;
   onGenerate: () => void;
   isLoading: boolean;
-  history: any[];
+  history: GenerationHistoryItem[];
 }> = ({ models, selectedModel, onModelChange, request, onRequestChange, onGenerate, isLoading, history }) => {
   const getContentTypeIcon = (type: string) => {
     switch (type) {
@@ -383,7 +406,13 @@ const ContentGenerationPanel: React.FC<{
             <Label>Tipo de Conteúdo</Label>
             <Select 
               value={request.type} 
-              onValueChange={(value) => onRequestChange({ ...request, type: value as any })}
+              onValueChange={(value) => {
+                if (!isContentTypeOption(value)) {
+                  return;
+                }
+
+                onRequestChange({ ...request, type: value });
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo" />
@@ -1252,7 +1281,7 @@ const AIInsightsPanel: React.FC<{
 
 // Generation History Panel
 const GenerationHistoryPanel: React.FC<{
-  history: any[];
+  history: GenerationHistoryItem[];
 }> = ({ history }) => {
   const getContentTypeIcon = (type: string) => {
     switch (type) {

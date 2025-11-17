@@ -351,7 +351,8 @@ describe('📚 Template Library System - Complete Tests', () => {
       const templates = library.getAllTemplates();
       const templateId = templates[0].id;
       
-      library.once('favorite:added', (data: any) => {
+      interface FavoriteEventData { templateId: string; }
+      library.once('favorite:added', (data: FavoriteEventData) => {
         expect(data.templateId).toBe(templateId);
         done();
       });
@@ -365,7 +366,8 @@ describe('📚 Template Library System - Complete Tests', () => {
       
       library.addToFavorites(templateId);
       
-      library.once('favorite:removed', (data: any) => {
+      interface FavoriteEventData { templateId: string; }
+      library.once('favorite:removed', (data: FavoriteEventData) => {
         expect(data.templateId).toBe(templateId);
         done();
       });

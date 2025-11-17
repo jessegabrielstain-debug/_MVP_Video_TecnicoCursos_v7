@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
+import { getOrgId } from '@/lib/auth/session-helpers';
 import { prisma } from '@/lib/db';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
-
 /**
  * GET /api/analytics/performance
  * Retorna métricas detalhadas de performance do sistema
@@ -28,7 +28,7 @@ async function getHandler(req: NextRequest) {
     const period = searchParams.get('period') || '24h';
     const metric = searchParams.get('metric') || 'all';
     const endpoint = searchParams.get('endpoint');
-    const organizationId = (session.user as any)?.currentOrgId;
+    const organizationId = getOrgId(session.user);
 
     // Calcular data de início baseada no período
     const startDate = new Date();
@@ -62,7 +62,7 @@ async function getHandler(req: NextRequest) {
       })
     };
 
-    let performanceData: any = {};
+    const performanceData: Record<string, unknown> = {};
 
     // Métricas de tempo de resposta
     if (metric === 'response_time' || metric === 'all') {
@@ -120,7 +120,7 @@ async function getHandler(req: NextRequest) {
           count: responseTimeStats._count.duration || 0
         },
         distribution: responseTimeDistribution,
-        byEndpoint: endpointPerformance.map((item: any) => ({
+        byEndpoint: endpointPerformance.map((item) => ({
           endpoint: `${item.category}/${item.action}`,
           avgTime: Math.round(item._avg.duration || 0),
           requests: item._count.duration
@@ -190,11 +190,11 @@ async function getHandler(req: NextRequest) {
       performanceData.errors = {
         errorRate: totalRequests > 0 ? ((totalErrors / totalRequests) * 100).toFixed(2) : '0',
         totalErrors,
-        byStatus: errorStats.map((item: any) => ({
+        byStatus: errorStats.map((item) => ({
           status: item.status,
           count: item._count.id
         })),
-        byCategory: errorsByCategory.map((item: any) => ({
+        byCategory: errorsByCategory.map((item) => ({
           category: item.category,
           errorCode: item.errorCode,
           count: item._count.id
@@ -252,8 +252,11 @@ async function getHandler(req: NextRequest) {
       const missRate = total > 0 ? ((totalMisses / total) * 100).toFixed(1) : '0';
 
       // Get cache size from latest cache event metadata
-      const latestCacheEvent = cacheEvents.find(e => (e.metadata as any)?.cacheSize);
-      const cacheSize = latestCacheEvent ? (latestCacheEvent.metadata as any).cacheSize : 0;
+      const latestCacheEvent = cacheEvents.find(e => {
+        const meta = e.metadata as unknown as Record<string, unknown> | null;
+        return !!(meta && 'cacheSize' in meta);
+      });
+      const cacheSize = latestCacheEvent ? Number((latestCacheEvent.metadata as unknown as Record<string, unknown>).cacheSize ?? 0) : 0;
 
       performanceData.cache = {
         hitRate,
@@ -273,13 +276,13 @@ async function getHandler(req: NextRequest) {
       ...performanceData
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics Performance] Error:', error);
-    
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
         error: 'Failed to fetch performance metrics',
-        message: error.message
+        message
       },
       { status: 500 }
     );
@@ -323,7 +326,7 @@ async function postHandler(req: NextRequest) {
     }
 
     const userId = session.user.id;
-    const organizationId = (session.user as any)?.currentOrgId;
+    const organizationId = getOrgId(session.user);
 
     // Registrar métrica de performance
     await prisma.analyticsEvent.create({
@@ -355,13 +358,13 @@ async function postHandler(req: NextRequest) {
       message: 'Performance metric recorded'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics Performance POST] Error:', error);
-    
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
         error: 'Failed to record performance metric',
-        message: error.message
+        message
       },
       { status: 500 }
     );

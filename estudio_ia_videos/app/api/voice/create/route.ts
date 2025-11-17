@@ -10,6 +10,8 @@ import { authConfig } from '@/lib/auth/auth-config'
 import { prisma } from '@/lib/db'
 import { trainVoice } from '@/lib/voice/voice-cloning'
 
+
+const getUserId = (user: unknown): string => ((user as { id?: string }).id || '');
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authConfig)
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     // Inicia treinamento
     const result = await trainVoice({
-      userId: (session.user as any).id,
+      userId: getUserId(session.user),
       name,
       description,
       samples: sampleBuffers
@@ -45,7 +47,7 @@ export async function POST(req: NextRequest) {
     // Salva no banco
     const voiceClone = await prisma.voiceClone.create({
       data: {
-        userId: (session.user as any).id,
+        userId: getUserId(session.user),
         name,
         description,
         provider: 'elevenlabs',

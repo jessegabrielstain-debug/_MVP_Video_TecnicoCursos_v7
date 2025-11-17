@@ -25,7 +25,7 @@ export interface Metric {
   value: number;
   unit: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   tags?: Record<string, string>;
 }
 

@@ -1,1 +1,0 @@
-self.__BUILD_MANIFEST={__rewrites:{afterFiles:[],beforeFiles:[{has:void 0,source:"/robots.txt",destination:"/api/robots"}],fallback:[]},"/_error":["static/chunks/pages/_error-7b68c5fe33153481.js"],sortedPages:["/_app","/_error"]},self.__BUILD_MANIFEST_CB&&self.__BUILD_MANIFEST_CB();

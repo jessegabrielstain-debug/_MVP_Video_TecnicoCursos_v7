@@ -40,7 +40,7 @@ export interface QCCheck {
   score: number; // 0-100
   severity: 'critical' | 'warning' | 'info';
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export type QCCategory = 

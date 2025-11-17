@@ -5,11 +5,10 @@
   },
   "include": [
     "next-env.d.ts",
-    "app/app/pptx-studio/**/*",
-    "app/app/avatar-studio/**/*",
-    "components/ui/**/*",
-    "lib/config/**/*",
-    "lib/pptx/**/*"
+    "app/**/*",
+    "components/**/*",
+    "lib/**/*",
+    "scripts/**/*"
   ],
   "exclude": [
     "**/__tests__/**/*"

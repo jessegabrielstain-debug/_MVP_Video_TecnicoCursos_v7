@@ -1,0 +1,405 @@
+0001:# Plano de Implementação por Fases
+0002:
+0003:## Visão Geral
+0004:- **Objetivo:** profissionalizar o MVP Vídeo TécnicoCursos v7 garantindo confiabilidade, segurança e escalabilidade sustentáveis.
+0005:- **Escopo:** código Next.js/App Router, integrações Supabase/Redis/BullMQ, pipelines CI/CD, observabilidade e operação.
+0006:- **Premissas:** manter implementações reais (sem mocks), TypeScript estrito, validação Zod em entradas, uso prioritário de Server Components.
+0007:- **Critérios de conclusão global:** todas as fases com critérios de aceite atendidos, pipelines automatizados ativos, documentação e governança contínua estabelecidas.
+0008:
+0009:## Cronograma Sugerido
+0010:- **Semana 1-2:** execução completa da Fase 0 com workshops de alinhamento e consolidação do relatório diagnóstico.
+0011:- **Semana 3-6:** implementação da Fase 1 em sprints curtas focadas por domínio (API, serviços, client).
+0012:- **Semana 7-10:** Fase 2 com criação de suites de testes, integração de monitoramento e ajustes finos na infraestrutura.
+0013:- **Semana 11-13:** Fase 3 dedicada à experiência do usuário, performance e operação.
+0014:- **Semana 14+ (contínuo):** Fase 4 com governança recorrente, evolução das métricas e roadmap vivo.
+0015:- **Marcos obrigatórios:** checkpoints quinzenais com stakeholders e gate de aceite formal antes de avançar à próxima fase.
+0016:
+0017:## Recursos Necessários
+0018:- **Equipe técnica:** Tech Lead, 2-3 desenvolvedores full-stack, 1 engenheiro de QA/automação, 1 DevOps/SRE.
+0019:- **Stakeholders de negócio:** product manager, responsável por operações (suporte/atendimento) e gestor financeiro (para priorização de custos).
+0020:- **Ferramentas:** plataforma de CI/CD (GitHub Actions/Azure), monitoramento (Sentry, Grafana), gestão de tarefas (Jira/Trello), canal oficial de comunicação (Slack/Teams).
+0021:- **Ambientes:** desenvolvimento, staging com dados sanitizados e produção controlada por feature flags ou toggles.
+0022:
+0023:## Estrutura de Governança
+0024:- **Sponsor:** liderança de produto/engenharia responsável por priorização e remoção de impedimentos.
+0025:- **Tech Lead:** garante aderência às regras do projeto, supervisiona padrões técnicos e revisa entregáveis críticos.
+0026:- **Owners por fase:** responsáveis táticos, registram progresso em quadros Kanban e relatórios semanais.
+0027:- **Cadência:** cerimônia semanal de acompanhamento, checkpoint ao fim de cada fase com evidências (PRs, relatórios, pipelines).
+0028:
+0029:## Template de Backlog por Fase
+0030:- **Épicos:** correspondem às fases; cada épico contém features ou iniciativas com descrição clara e impacto esperado.
+0031:- **Histórias:** formato "Como [persona] quero [ação] para [benefício]" com critérios de aceite alinhados ao plano.
+0032:- **Tarefas técnicas:** vinculadas às histórias, detalhando atividades como refatorações, ajustes de configuração ou criação de testes.
+0033:- **Campos obrigatórios:** fase, prioridade (P0/P1/P2), responsável, dependências, esforço estimado (story points/horas) e status.
+0034:- **Revisão:** backlog refinado semanalmente durante cerimônia de planejamento, com atualizações síncronas no board compartilhado.
+0035:
+0036:## Matriz de Risco de Referência
+0037:- **Categorias:** técnica, operacional, segurança, produto e compliance.
+0038:- **Níveis:** probabilidade (baixa/média/alta) × impacto (baixo/médio/alto) com classificação automática (verde/amarelo/vermelho).
+0039:- **Conteúdo mínimo por risco:** descrição, fase afetada, plano de mitigação, owner, gatilho de monitoramento e link para evidências.
+0040:- **Atualização:** revisar na abertura de cada fase e em incidentes relevantes; arquivar riscos mitigados com aprendizado documentado.
+0041:
+0042:## Fase 0 – Diagnóstico
+0043:- **Objetivos:**
+0044:  - Mapear estado atual de código, integrações e infraestrutura.
+0045:  - Identificar gaps críticos em segurança, testes, validação e operações.
+0046:- **Escopo e entregáveis:**
+0047:  - Relatórios `lint`, `type-check`, cobertura de testes.
+0048:  - Inventário de fluxos core (por exemplo, criação de vídeo, renderização, distribuição).
+0049:  - Auditoria de integrações Supabase/Redis/BullMQ e variáveis de ambiente.
+0050:  - Matriz preliminar de riscos e plano de mitigação.
+0051:- **Atividades principais:**
+0052:  - Rodar ferramentas (`npm run lint`, `npm run type-check`, testes existentes) e consolidar resultados.
+0053:  - Analisar pastas `app/`, `@/lib/services/`, `app/api/` para padronização.
+0054:  - Revisar configuração RLS, secrets e rotas protegidas.
+0055:  - Documentar achados em relatório curto (linkado no repositório).
+0056:- **Critérios de aceite:**
+0057:  - Relatório publicado com lista priorizada de problemas e recomendações.
+0058:  - Inventário de fluxos e integrações atualizado.
+0059:  - Checklist de riscos críticos com responsáveis e prazo de tratamento.
+0060:- **Riscos & mitigação:**
+0061:  - Falta de visibilidade em integrações → entrevistas rápidas com responsáveis + logs Supabase/Redis.
+0062:  - Tempo insuficiente → limitar profundidade inicial aos fluxos core definidos.
+0063:- **Métricas de sucesso:**
+0064:  - 100% dos fluxos críticos mapeados.
+0065:  - Lista de ações priorizadas (P0/P1/P2) validada pelo sponsor.
+0066:
+0067:## Fase 1 – Fundação Técnica
+0068:- **Objetivos:**
+0069:  - Garantir base consistente de código e integrações.
+0070:  - Eliminar `any`, padronizar validações e autenticação.
+0071:- **Escopo e entregáveis:**
+0072:  - Repositório sem `any` remanescente; tipos explícitos e interfaces documentadas.
+0073:  - Endpoints com validação Zod, autenticação via `createClient()` e tratamento de erros padronizado.
+0074:  - Serviços Supabase/Redis centralizados em `@/lib/services/` com fallbacks reais e logging estruturado.
+0075:  - Pipeline CI mínima (lint + type-check + testes) rodando em PRs.
+0076:- **Atividades principais:**
+0077:  - Revisar endpoints principais (`app/api/**`), adicionando esquema Zod e handling de erros com `logger`.
+0078:  - Refatorar serviços duplicados; criar interfaces reutilizáveis.
+0079:  - Configurar workflows (GitHub Actions/Azure DevOps) com cache adequado e relatórios.
+0080:  - Atualizar documentação de padrões em `docs/` e `CONTRIBUTING.md`.
+0081:- **Critérios de aceite:**
+0082:  - Pipelines falham quando padrões não são atendidos.
+0083:  - Checklist TypeScript estrito e validações aplicadas nos fluxos core.
+0084:  - Registro de decisões arquiteturais (ADR curto) para mudanças relevantes.
+0085:- **Riscos & mitigação:**
+0086:  - Refatoração quebrar fluxos → uso de feature toggles ou deploy canário.
+0087:  - Falta de testes → criar testes mínimos antes de refatorações.
+0088:- **Métricas de sucesso:**
+0089:  - 0 ocorrências de `any`.
+0090:  - 100% dos endpoints core com validação e autenticação documentadas.
+0091:  - CI executando automaticamente em PRs com tempo médio < 10 minutos.
+0092:
+0093:## Fase 2 – Qualidade e Observabilidade
+0094:- **Objetivos:**
+0095:  - Cobrir fluxos críticos com testes e instrumentação confiável.
+0096:  - Estabelecer monitoramento e alertas proativos.
+0097:- **Escopo e entregáveis:**
+0098:  - Testes unitários para regras de negócio e testes de integração/E2E para fluxo principal.
+0099:  - Cobertura mínima acordada (ex.: 70% nos módulos core).
+0100:  - Integração com Sentry (ou similar), logs estruturados e métricas BullMQ/Redis.
+0101:  - Dashboard Supabase com indicadores de acesso, RLS e performance.
+0102:- **Atividades principais:**
+0103:  - Criar plano de testes, adicionando suites Playwright e integração com Supabase test.
+0104:  - Instrumentar serviços com logger, tracing e métricas customizadas.
+0105:  - Configurar alertas (erro, fila parada, jobs atrasados) e notificações.
+0106:  - Documentar estratégia de testes em `docs/testes/`.
+0107:- **Critérios de aceite:**
+0108:  - Pipelines executam testes automatizados e publicam artefatos.
+0109:  - Alertas de erro/latência configurados e testados.
+0110:  - Playbook de incidentes documentado.
+0111:- **Riscos & mitigação:**
+0112:  - Flakiness em testes → isolamento de dados, uso de fixtures consistentes.
+0113:  - Sobrecarga em Supabase/Redis → monitoramento de quotas e escalonamento planejado.
+0114:- **Métricas de sucesso:**
+0115:  - Testes automatizados cobrindo ≥ 1 fluxo E2E e ≥ 3 serviços core.
+0116:  - Tempo médio de resolução de incidentes (MTTR) definido e medido.
+0117:
+0118:## Fase 3 – Experiência e Operação
+0119:- **Objetivos:**
+0120:  - Entregar UX estável com feedback claro e performance otimizada.
+0121:  - Formalizar operação (deploy, rollback, suporte).
+0122:- **Escopo e entregáveis:**
+0123:  - Estados de loading/erro padronizados nos componentes críticos.
+0124:  - Uso consistente de `next/image`, lazy loading e caching onde aplicável.
+0125:  - Playbooks de deploy/rollback, checklist de pré-produção e backups testados.
+0126:  - Rate limiting e políticas de segurança refinadas nas APIs públicas.
+0127:- **Atividades principais:**
+0128:  - Revisar componentes em `app/(routes)` e `app/components/`, aplicando guidelines de UI/UX.
+0129:  - Configurar CDN/cache e testar impacto (Lighthouse, Web Vitals).
+0130:  - Validar rate limiting e políticas de segredo (Supabase, Redis, APIs externas).
+0131:  - Atualizar documentação operacional em `docs/operacao/`.
+0132:- **Critérios de aceite:**
+0133:  - Fluxos críticos com UX auditada e feedback ao usuário em PT-BR.
+0134:  - Scripts de deploy automático e rollback testados em ambiente de staging.
+0135:  - Política de segurança verificada (RLS, secrets, rate limit).
+0136:- **Riscos & mitigação:**
+0137:  - Degradação de performance → testes comparativos antes/depois e rollback rápido.
+0138:  - Falhas em deploy → uso de staging e checklist obrigatório.
+0139:- **Métricas de sucesso:**
+0140:  - Lighthouse ≥ 90 em páginas principais.
+0141:  - Tempo médio de deploy < 30 minutos com rollback < 10 minutos.
+0142:
+0143:## Fase 4 – Evolução Contínua
+0144:- **Objetivos:**
+0145:  - Garantir sustentabilidade dos padrões e melhoria contínua.
+0146:  - Estabelecer roadmap de evolução técnica e funcional.
+0147:- **Escopo e entregáveis:**
+0148:  - OKRs ou KPIs técnicos definidos (qualidade, incidentes, velocidade de entrega).
+0149:  - Backlog priorizado de otimizações futuras (novos providers, automações).
+0150:  - Rotina de revisão trimestral de arquitetura e políticas de segurança.
+0151:  - Programa de training/onboarding para novos colaboradores.
+0152:- **Atividades principais:**
+0153:  - Criar painel de métricas (DORA, qualidade, infraestrutura).
+0154:  - Definir cadência de tech reviews e retro contínua das fases anteriores.
+0155:  - Atualizar `docs/governanca/` com responsabilidades e fluxo de aprovação de mudanças.
+0156:  - Planejar experimentos (feature flags, canary releases) alinhados ao roadmap.
+0157:- **Critérios de aceite:**
+0158:  - Governança ativa com responsáveis nomeados e calendário publicado.
+0159:  - Indicadores monitorados e revisados periodicamente.
+0160:  - Backlog vivo e priorizado alinhado à estratégia de produto.
+0161:- **Riscos & mitigação:**
+0162:  - Descontinuidade após projeto → institucionalizar rituais e registrar conhecimento.
+0163:  - Foco excessivo em novas features → manter timebox para débito técnico em cada ciclo.
+0164:- **Métricas de sucesso:**
+0165:  - Reuniões de governança ocorrendo com registros.
+0166:  - Redução mensurável de incidentes ou tempo de recuperação a cada trimestre.
+0167:
+0168:## Checklist Resumido por Fase
+0169:- **Fase 0:** relatórios diagnósticos publicados, riscos priorizados e responsáveis definidos.
+0170:- **Fase 1:** código sem `any`, validações Zod, CI operacional e padrões documentados.
+0171:- **Fase 2:** testes automatizados cobrindo fluxos core, observabilidade ativa e alertas configurados.
+0172:- **Fase 3:** UX consistente, performance otimizada, pipelines de deploy e segurança reforçada.
+0173:- **Fase 4:** governança contínua, métricas rastreadas e roadmap de evolução mantido.
+0174:
+0175:## Mecanismo de Acompanhamento e Reporting
+0176:- **Dashboards:** painel unificado com status das fases, progresso das tarefas, indicadores de qualidade e incidentes abertos.
+0177:- **Reporting semanal:** resumo conciso com conquistas, bloqueios, próximos passos e indicadores (lead time, tempo de build, falhas encontradas/resolvidas).
+0178:- **Revisões de fase (Stage Gate):** reunião formal com sponsor e stakeholders apresentando evidências, resultados de métricas e decisão GO/NO-GO.
+0179:- **Base de conhecimento:** atualização contínua em `docs/` com links cruzados para ADRs, relatórios e playbooks, garantindo rastreabilidade.
+0180:
+0181:## Próximos Passos Imediatos
+0182:- Validar este plano com stakeholders (produto, engenharia, operações) e ajustar prioridades.
+0183:- Construir backlog detalhado para a Fase 0, incluindo responsáveis e estimativas.
+0184:- Agendar cerimônia inicial de kick-off e configurar quadros de acompanhamento.
+0185:
+0186:## Apêndice A – Checklist Detalhado por Fase
+0187:- **Fase 0**
+0188:  - [ ] Relatórios `lint`, `type-check` e testes consolidados.
+0189:  - [ ] Inventário de fluxos core documentado com owners.
+0190:  - [ ] Auditoria de integrações e variáveis de ambiente validada.
+0191:  - [ ] Matriz de riscos inicial publicada e aprovada.
+0192:- **Fase 1**
+0193:  - [ ] Endpoints core com validação Zod e autenticação padronizada.
+0194:  - [ ] Serviços críticos migrados para `@/lib/services/` com fallbacks reais.
+0195:  - [ ] CI executando lint, type-check, testes e gerando artefatos.
+0196:  - [ ] ADRs das decisões principais registrados.
+0197:- **Fase 2**
+0198:  - [ ] Suites de testes unitários, integração e E2E implementadas.
+0199:  - [ ] Monitoramento (Sentry, logs estruturados, métricas BullMQ/Redis) ativo.
+0200:  - [ ] Alertas configurados com testes de disparo e resposta.
+0201:  - [ ] Playbook de incidentes revisado e divulgado.
+0202:- **Fase 3**
+0203:  - [ ] UX revisada com loading/erros padronizados em fluxos críticos.
+0204:  - [ ] Métricas de performance otimizadas (Lighthouse ≥ 90).
+0205:  - [ ] Playbooks de deploy/rollback testados em staging.
+0206:  - [ ] Rate limiting e políticas de segurança auditadas.
+0207:- **Fase 4**
+0208:  - [ ] KPIs técnicos definidos, monitorados e publicados.
+0209:  - [ ] Backlog de evolução contínua priorizado e mantido.
+0210:  - [ ] Calendário de governança e rituais registrado.
+0211:  - [ ] Programa de onboarding técnico atualizado.
+0212:
+0213:## Apêndice B – Template Stage Gate
+0214:- **Pré-requisitos:** checklist da fase atual completo, métricas atingidas, riscos críticos mitigados ou aceitos.
+0215:- **Agenda da reunião:** revisão de entregáveis, apresentação de métricas, lições aprendidas, decisão GO/NO-GO.
+0216:- **Artefatos exigidos:** relatórios (diagnóstico, testes, monitoramento), links de PRs, evidências de deploy/testes.
+0217:- **Critérios GO/NO-GO:** atendimento integral aos critérios de aceite, plano claro para itens remanescentes P1/P2, ausência de bloqueadores críticos.
+0218:
+0219:## Apêndice C – Plano de Comunicação
+0220:- **Canais oficiais:** Slack/Teams (canal #projeto-profissionalizacao), e-mail semanal para stakeholders, Confluence/Notion para documentação.
+0221:- **Rituais:**
+0222:  - Daily opcional (15 min) entre membros técnicos.
+0223:  - Weekly sync com liderança (status, riscos, decisões).
+0224:  - Stage Gate ao final de cada fase.
+0225:- **Relatórios:** formato padrão (resumo, conquistas, bloqueios, métricas, próximos passos) distribuído toda sexta-feira.
+0226:- **Gestão de mudanças:** formulário breve com avaliação de impacto, aprovado pelo sponsor antes de alterações fora de escopo.
+0227:
+0228:## Apêndice D – KPIs e Métricas
+0229:- **Qualidade:** taxa de falha em produção, bugs por release, cobertura de testes.
+0230:- **Fluxo de entrega:** Lead Time for Changes, Deployment Frequency, Change Failure Rate, MTTR.
+0231:- **Performance do produto:** tempo médio de renderização, tempo de resposta médio, Web Vitals (LCP, FID, CLS).
+0232:- **Confiabilidade operacional:** disponibilidade (SLA/SLO), atraso médio de filas BullMQ, volume de alertas resolvidos.
+0233:- **Adoção do processo:** % de PRs aprovados com checklist completo, aderência aos templates, participação em rituais.
+0234:
+0235:## Apêndice E – RACI Resumida
+0236:- **Sponsor:** Responsável por Aprovar (A) nos Stage Gates, Informado (I) em relatórios semanais.
+0237:- **Tech Lead:** Responsável (R) pela execução técnica, Consultado (C) em decisões de arquitetura.
+0238:- **Equipe de Desenvolvimento:** Responsável (R) pelas tarefas, Informado (I) sobre decisões estratégicas.
+0239:- **Engenheiro de QA/Automação:** Responsável (R) pelos testes, Consultado (C) em critérios de aceite.
+0240:- **DevOps/SRE:** Responsável (R) por CI/CD, monitoramento e incidentes; Consultado (C) em mudanças infra.
+0241:- **Product Manager:** Consultado (C) em priorização, Informado (I) sobre progresso e riscos.
+0242:
+0243:## Apêndice F – Referências e Artefatos
+0244:- `docs/` (padrões de código, operações, governança).
+0245:- `CONTRIBUTING.md` (políticas de contribuição e revisão).
+0246:- `scripts/` (automação de rotinas de lint, testes, deploy).
+0247:- `supabase/` (migrations, políticas RLS, configuração de ambientes).
+0248:- Relatórios consolidados (`_Fases_REAL/`, `logs/`, `tests/`) como histórico e evidências.
+0249:- Painéis de monitoramento (Sentry, Grafana, Supabase dashboards) linkados no board principal.
+0250:
+0251:## Apêndice G – Plano Financeiro e Capacidade
+0252:- **Orçamento estimado por fase:** detalhar horas previstas por papel, custos de licenças/ferramentas e margem de contingência (10-15%).
+0253:- **Capacidade da equipe:** matriz de disponibilidade semanal por membro, contemplando férias e outras alocações.
+0254:- **Gestão de custos:** revisão quinzenal com gestor financeiro, rastreando variação vs. planejado.
+0255:- **Investimentos obrigatórios:** monitoramento (Sentry), infraestrutura extra (Redis/filas), treinamento e automatizações.
+0256:
+0257:## Apêndice H – Plano de Treinamento
+0258:- **Conteúdos técnicos:** TypeScript avançado, Zod, Supabase (RLS, migrations), BullMQ, padrões de Server Components.
+0259:- **Workshops práticos:** pair programming em fluxos core, simulações de incidentes, criação de testes end-to-end.
+0260:- **Recursos:** documentação interna, vídeos, sessões gravadas, mentoria com especialistas.
+0261:- **Critérios de conclusão:** avaliação prática por fase, certificação interna e registro de aprendizado em base de conhecimento.
+0262:
+0263:## Apêndice I – Roadmap de Automação
+0264:- **Fase 1:** scripts para lint/type-check automáticos em pre-commit (`husky`), geração de relatórios de tipos.
+0265:- **Fase 2:** automação de provisionamento de ambientes, reset de banco de dados de teste, execução nightly de suites E2E.
+0266:- **Fase 3:** pipelines de deploy com validação automática de checklist e rollback automatizado.
+0267:- **Fase 4:** automação do reporting (dashboards atualizados via API), rotinas de auditoria de RLS e validação de secrets.
+0268:- **Monitoramento de automações:** alertas caso jobs falhem, backlog para melhorias contínuas.
+0269:
+0270:## Apêndice J – Glossário de Termos
+0271:- **ADR:** Architecture Decision Record.
+0272:- **RLS:** Row-Level Security do Supabase.
+0273:- **MTTR:** Mean Time to Recovery.
+0274:- **DORA Metrics:** conjunto de métricas de performance de engenharia (Lead Time, Deployment Frequency, Change Failure Rate, MTTR).
+0275:- **Feature Toggle:** mecanismo para habilitar/desabilitar funcionalidades em tempo de execução.
+0276:- **Stage Gate:** checkpoint formal entre fases com decisão GO/NO-GO.
+0277:
+0278:## Apêndice K – Registro de Evidências
+0279:- **Estrutura de pastas sugerida:** `evidencias/fase-0/`, `evidencias/fase-1/` etc., com subpastas para relatórios, capturas de tela, logs e aprovações.
+0280:- **Metadados mínimos:** data, responsável, descrição, link para PR/issue, status (aprovado, em revisão).
+0281:- **Processo:** atualizar o registro ao concluir cada item do checklist; validação pelo Tech Lead durante Stage Gate.
+0282:- **Armazenamento:** versionado no repositório ou em espaço controlado (SharePoint/Drive) com controle de acesso.
+0283:
+0284:## Apêndice L – Template de História/Tarefa
+0285:- **Campos:**
+0286:  - `Título`: descrição concisa com verbo de ação.
+0287:  - `Contexto`: resumo do problema/necessidade.
+0288:  - `Critérios de aceite`: lista numerada com resultados verificáveis.
+0289:  - `Impacto`: risco mitigado ou objetivo atingido.
+0290:  - `Dependências`: blocos que precisam ser concluídos previamente.
+0291:  - `Evidências esperadas`: links para relatórios, PRs ou capturas.
+0292:- **Exemplo de critérios de aceite:**
+0293:  1. Endpoint `/api/videos` valida payload com esquema Zod documentado.
+0294:  2. Teste de integração garantindo comportamento 200/400/401.
+0295:  3. Logs estruturados com `requestId` e `userId`.
+0296:
+0297:## Apêndice M – Fluxo de Aprovação Stage Gate
+0298:- **Passos:**
+0299:  1. Owner da fase reúne evidências no repositório `evidencias/fase-n`.
+0300:  2. Tech Lead executa revisão técnica e valida checklist.
+0301:  3. Sponsor convoca reunião com stakeholders relevantes.
+0302:  4. Durante a reunião: apresentação das métricas, riscos remanescentes e plano da próxima fase.
+0303:  5. Registro da decisão (GO/NO-GO) em documento oficial com assinaturas digitais ou confirmação via e-mail.
+0304:- **Prazos:** submissão com 3 dias úteis de antecedência; feedback formal em até 2 dias úteis após a reunião.
+0305:
+0306:## Apêndice N – Plano de Resposta a Incidentes
+0307:- **Classificação de severidade:** SEV0 (indisponibilidade total), SEV1 (impacto alto em produção), SEV2 (impacto moderado), SEV3 (baixo impacto).
+0308:- **Fluxo:**
+0309:  1. Detectar (alerta automático ou reporte manual).
+0310:  2. Acionar canal de incidentes (#incidentes) e registrar no playbook.
+0311:  3. Nomear Incident Commander e definir tarefas (comunicação, diagnóstico, mitigação).
+0312:  4. Fazer roll back ou mitigação temporária conforme playbooks.
+0313:  5. Conduzir post-mortem em até 48h, registrar ações corretivas no backlog.
+0314:- **Ferramentas:** alertas monitoramento, runbooks documentados, checklists de comunicação (interno/externo).
+0315:
+0316:## Apêndice O – Estratégia de QA
+0317:- **Camadas de teste:**
+0318:  - Unitários (regra de negócio isolada).
+0319:  - Integração (Supabase, Redis, providers externos).
+0320:  - Contrato/API (garantir compatibilidade com consumidores).
+0321:  - End-to-End (fluxo completo de criação/publicação de vídeo).
+0322:- **Cobertura mínima:** 80% em módulos críticos, 60% geral com foco em assertividade (não apenas número).
+0323:- **Processos:** revisão de testes em PR, execução automática em pipelines, revisão trimestral das suites para remover flakiness.
+0324:- **Ferramentas:** Jest, Playwright, Supertest, Supabase Test Harness, relatórios via Allure/HTML.
+0325:
+0326:## Apêndice P – Plano de Segurança
+0327:- **Controles técnicos:** RLS ativo, secrets em vault seguro, rotação periódica de chaves, rate limiting nas APIs públicas.
+0328:- **Processos:** revisão de permissões trimestral, teste de penetração anual, checklist OWASP top 10 aplicado nas features.
+0329:- **Resposta a vulnerabilidades:** SLA de correção (24h crítica, 72h alta, 7 dias média), registro em board de segurança.
+0330:- **Documentos relacionados:** `SECURITY.md`, `database-rls-policies.sql`, políticas de incidentes.
+0331:
+0332:## Apêndice Q – Plano de Gestão de Mudanças
+0333:- **Categorias de mudança:** padrão (baixo risco), normal (avaliada pelo CAB), emergencial (tratada em incidentes).
+0334:- **Fluxo normal:**
+0335:  1. Submissão do formulário com análise de impacto.
+0336:  2. Revisão pelo Change Advisory Board (CAB) semanal.
+0337:  3. Testes em staging e assinatura digital.
+0338:  4. Deploy agendado com plano de rollback.
+0339:- **Comunicação:** notificação prévia ao suporte/comercial, atualização de status em dashboard de mudanças.
+0340:
+0341:## Apêndice R – Roadmap Visual
+0342:- **Estrutura:** timeline horizontal com fases, marcos quinzenais e indicadores de status (verde/amarelo/vermelho).
+0343:- **Ferramenta sugerida:** FigJam/Miro ou mermaid.js no repositório (`docs/roadmap-profissionalizacao.md`).
+0344:- **Conteúdo mínimo:** objetivos da fase, principais entregáveis, responsáveis e dependências críticas.
+0345:- **Atualização:** revisar a cada Stage Gate e sempre que houver mudança relevante no escopo.
+0346:
+0347:## Apêndice S – Modelo de Matriz de Riscos
+0348:| Risco | Categoria | Probabilidade | Impacto | Score | Mitigação | Owner | Status |
+0349:|-------|-----------|---------------|---------|-------|-----------|-------|--------|
+0350:| Ex.: indisponibilidade do Supabase | Técnico | Alta | Alta | Vermelho | Configurar failover, monitoramento proativo, SLA com fornecedor | DevOps/SRE | Em andamento |
+0351:- **Score:** probabilidade × impacto (1-3) resultando em classificação: 1-3 verde, 4-6 amarelo, 7-9 vermelho.
+0352:- **Status possíveis:** Planejado, Em andamento, Mitigado, Aceito.
+0353:- **Revisão:** quinzenal ou após incidentes.
+0354:
+0355:## Apêndice T – Template de Plano de Iteração
+0356:- **Cabeçalho:** duração, objetivos específicos, métricas alvo.
+0357:- **Backlog comprometido:** lista de histórias/tarefas com esforço e responsável.
+0358:- **Critérios de saída:** itens que devem estar concluídos para encerrar a iteração.
+0359:- **Retrospectiva:** perguntas padrão (O que funcionou? O que melhorar? Quais ações tomaremos?).
+0360:- **Acompanhamento diário:** sync de 15 minutos com atualização de progresso e bloqueios.
+0361:
+0362:## Apêndice U – Checklist de Qualidade de Código
+0363:- [ ] Tipos explícitos, sem `any`.
+0364:- [ ] Validação Zod antes de usar dados externos.
+0365:- [ ] Tratamento de erros com `try/catch` e `logger`.
+0366:- [ ] Server Components por padrão; `'use client'` apenas quando necessário.
+0367:- [ ] Sem `console.log` ou `debugger` em produção.
+0368:- [ ] Testes unitários/integração atualizados.
+0369:- [ ] Documentação atualizada (`docs/`, comentários PT-BR).
+0370:- [ ] Verificação manual com dados reais após implementação.
+0371:
+0372:## Apêndice V – Plano de Continuidade de Negócio
+0373:- **Cenários cobertos:** indisponibilidade de infraestrutura, perda de dados, falha de provedores externos.
+0374:- **Medidas preventivas:** backups automáticos (Supabase, Redis), redundância de serviços, testes de restauração trimestrais.
+0375:- **Procedimentos de recuperação:** runbook com responsáveis, passos cronológicos e comunicação para clientes.
+0376:- **Teste anual:** simulação controlada (GameDay) com avaliação dos tempos de recuperação e ajustes.
+0377:
+0378:## Apêndice W – Framework de Priorização
+0379:- **Modelo RICE:** Reach, Impact, Confidence, Effort para estimar pontuação das iniciativas.
+0380:- **Alternativas:** WSJF (Weighted Shortest Job First) para equilibrar valor e urgência.
+0381:- **Processo:** revisar backlog principal a cada ciclo de planejamento, justificando publicamente a pontuação atribuída.
+0382:- **Ferramenta:** planilha compartilhada ou board com campos específicos para cada fator.
+0383:
+0384:## Apêndice X – Gestão de Conhecimento
+0385:- **Repositório oficial:** `docs/` organizado por temas (arquitetura, operações, testes, segurança).
+0386:- **Política de atualização:** toda entrega significativa deve incluir documentação ou link para ADR correspondente.
+0387:- **Onboarding:** trilha de leitura obrigatória com lista de documentos e vídeos.
+0388:- **Métricas:** % de tarefas encerradas com documentação anexada; tempo médio para localizar informação crítica.
+0389:
+0390:## Apêndice Y – Integração com Stakeholders
+0391:- **Mapa de stakeholders:** identificar influência/interesse (alta/baixa) e estratégias de comunicação.
+0392:- **Rituais específicos:** demos mensais para stakeholders de produto, relatórios trimestrais para diretoria.
+0393:- **Feedback loop:** formulário aberto para feedback, tratado na retrospectiva global.
+0394:- **Gestão de expectativas:** definição clara de SLAs internos para respostas e resolução de dúvidas.
+0395:
+0396:## Apêndice Z – Indicadores de Cultura e Pessoas
+0397:- **Engajamento:** pesquisa pulse quinzenal com 3 perguntas (moral, apoio, clareza).
+0398:- **Saúde da equipe:** monitorar horas extras, férias, balanceamento de tarefas.
+0399:- **Desenvolvimento:** plano individual de aprendizado alinhado às fases (ex.: certificação Supabase, cursos TS avançado).
+0400:- **Reconhecimento:** ritual de celebração ao fim de cada fase destacando conquistas e aprendizados.
+0401:
+0402:## Declaração Final
+0403:- Documento estruturado para execução imediata do programa de profissionalização, com fases, governança, métricas e artefatos definidos para garantir conclusão a 100%.
+0404:
+0405:

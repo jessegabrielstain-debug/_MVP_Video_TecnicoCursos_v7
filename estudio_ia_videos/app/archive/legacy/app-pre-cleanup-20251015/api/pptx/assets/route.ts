@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     // Mock massive asset library (simulando Animaker)
     const generateAssets = (type: string, count: number) => {
       return Array.from({ length: count }, (_, i) => {
-        const assetMap: Record<string, any> = {
+        const assetMap: Record<string, unknown> = {
           characters: {
             id: `char_${type}_${i}`,
             name: `Personagem ${i + 1}`,

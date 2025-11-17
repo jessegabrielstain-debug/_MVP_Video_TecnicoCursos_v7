@@ -18,6 +18,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 
@@ -25,7 +26,7 @@ interface HealthCheckResult {
   component: string;
   status: 'healthy' | 'degraded' | 'unhealthy';
   message: string;
-  details?: any;
+  details?: DetailRecord;
   responseTime?: number;
 }
 
@@ -41,8 +42,36 @@ interface SystemHealth {
   };
 }
 
+type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+
+type DetailRecord = Record<string, Json>;
+
+type GenericTable<Row extends Record<string, Json>> = {
+  Row: Row;
+  Insert: Partial<Row>;
+  Update: Partial<Row>;
+};
+
+type Database = {
+  public: {
+    Tables: {
+      users: GenericTable<{ id: string }>;
+      projects: GenericTable<Record<string, Json>>;
+      slides: GenericTable<Record<string, Json>>;
+      render_jobs: GenericTable<Record<string, Json>>;
+      analytics_events: GenericTable<Record<string, Json>>;
+      nr_courses: GenericTable<{ id: string; code: string; title: string }>;
+      nr_modules: GenericTable<{ id: string; course_id: string; title: string }>;
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, unknown>;
+    Enums: Record<string, unknown>;
+    CompositeTypes: Record<string, unknown>;
+  };
+};
+
 class HealthCheckSystem {
-  private supabase: any;
+  private supabase: SupabaseClient<Database> | null = null;
   private results: HealthCheckResult[] = [];
 
   constructor() {
@@ -52,7 +81,7 @@ class HealthCheckSystem {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
     if (supabaseUrl && supabaseKey) {
-      this.supabase = createClient(supabaseUrl, supabaseKey);
+      this.supabase = createClient<Database>(supabaseUrl, supabaseKey);
     }
   }
 
@@ -98,6 +127,21 @@ class HealthCheckSystem {
     };
 
     console.log(`${colors[level]}${icons[level]} ${message}${colors.reset}`);
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+      const maybeMessage = (error as { message?: unknown }).message;
+      if (typeof maybeMessage === 'string') {
+        return maybeMessage;
+      }
+    }
+
+    return 'Unknown error';
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -212,12 +256,12 @@ class HealthCheckSystem {
         details: { latency: responseTime },
         responseTime
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         component: 'Database Connection',
         status: 'unhealthy',
-        message: `Exceção: ${error.message}`,
-        details: { error: error.message },
+        message: `Exceção: ${this.getErrorMessage(error)}`,
+        details: { error: this.getErrorMessage(error) },
         responseTime: Date.now() - startTime
       };
     }
@@ -328,7 +372,7 @@ class HealthCheckSystem {
       }
 
       const expectedBuckets = ['videos', 'avatars', 'thumbnails', 'assets'];
-      const foundBuckets = buckets?.map((b: any) => b.name) || [];
+      const foundBuckets = buckets?.map(bucket => bucket.name) ?? [];
       const bucketsFound = expectedBuckets.filter(name => foundBuckets.includes(name)).length;
       const percentage = Math.round((bucketsFound / expectedBuckets.length) * 100);
 
@@ -370,12 +414,12 @@ class HealthCheckSystem {
           responseTime
         };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         component: 'Storage Buckets',
         status: 'unhealthy',
-        message: `Exceção: ${error.message}`,
-        details: { error: error.message },
+        message: `Exceção: ${this.getErrorMessage(error)}`,
+        details: { error: this.getErrorMessage(error) },
         responseTime: Date.now() - startTime
       };
     }
@@ -434,7 +478,7 @@ class HealthCheckSystem {
           message: `${coursesCount} cursos NR encontrados`,
           details: { 
             count: coursesCount,
-            courses: courses?.map((c: any) => c.code)
+            courses: courses?.map(course => course.code) ?? []
           },
           responseTime
         };
@@ -445,7 +489,7 @@ class HealthCheckSystem {
           message: `Apenas ${coursesCount} cursos encontrados (esperado: 3)`,
           details: { 
             count: coursesCount,
-            courses: courses?.map((c: any) => c.code)
+            courses: courses?.map(course => course.code) ?? []
           },
           responseTime
         };
@@ -458,12 +502,12 @@ class HealthCheckSystem {
           responseTime
         };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         component: 'Seed Data',
         status: 'unhealthy',
-        message: `Exceção: ${error.message}`,
-        details: { error: error.message },
+        message: `Exceção: ${this.getErrorMessage(error)}`,
+        details: { error: this.getErrorMessage(error) },
         responseTime: Date.now() - startTime
       };
     }

@@ -51,7 +51,7 @@ interface TimelineClip {
   name: string
   start: number
   duration: number
-  content: any
+  content: unknown
   thumbnail?: string
   color: string
   selected: boolean
@@ -62,15 +62,15 @@ interface Keyframe {
   id: string
   time: number
   property: string
-  value: any
+  value: unknown
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out'
 }
 
 interface CinematicTimelineEditorProps {
-  scenes?: any[]
-  onSceneUpdate?: (sceneId: string, data: any) => void
-  onExportTimeline?: (timeline: any) => void
-  onPreview?: (timeline: any) => void
+  scenes?: unknown[]
+  onSceneUpdate?: (sceneId: string, data: unknown) => void
+  onExportTimeline?: (timeline: unknown) => void
+  onPreview?: (timeline: unknown) => void
 }
 
 export default function CinematicTimelineEditor({

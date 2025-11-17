@@ -3,6 +3,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 
@@ -37,33 +38,74 @@ loadEnv();
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+
+type GenericTable<Row extends Record<string, Json>> = {
+  Row: Row;
+  Insert: Partial<Row>;
+  Update: Partial<Row>;
+};
+
+type Database = {
+  public: {
+    Tables: {
+      users: GenericTable<{ id: string }>;
+      projects: GenericTable<Record<string, Json>>;
+      slides: GenericTable<Record<string, Json>>;
+      render_jobs: GenericTable<Record<string, Json>>;
+      analytics_events: GenericTable<Record<string, Json>>;
+      nr_courses: GenericTable<Record<string, Json>>;
+      nr_modules: GenericTable<Record<string, Json>>;
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, unknown>;
+    Enums: Record<string, unknown>;
+    CompositeTypes: Record<string, unknown>;
+  };
+};
+
+const supabase: SupabaseClient<Database> = createClient<Database>(supabaseUrl, supabaseKey);
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const maybeMessage = (error as { message?: unknown }).message;
+    if (typeof maybeMessage === 'string') {
+      return maybeMessage;
+    }
+  }
+
+  return 'Unknown error';
+}
 
 async function createVideosBucket() {
   console.log('\n📦 Criando bucket "videos"...\n');
   
   // Tentar com limite de 100MB ao invés de 500MB
-  const { data, error } = await supabase.storage.createBucket('videos', {
+  const { error } = await supabase.storage.createBucket('videos', {
     public: false,
     fileSizeLimit: 104857600, // 100 MB em bytes
     allowedMimeTypes: ['video/mp4', 'video/webm', 'video/quicktime']
   });
 
   if (error) {
-    if (error.message.includes('already exists')) {
+    if (getErrorMessage(error).includes('already exists')) {
       console.log('✅ Bucket "videos" já existe!\n');
       return true;
     } else {
-      console.log('❌ Erro ao criar bucket:', error.message);
+      console.log('❌ Erro ao criar bucket:', getErrorMessage(error));
       console.log('\n💡 Tentando criar sem limitações...\n');
       
       // Tentar sem especificar limitações
-      const { data: data2, error: error2 } = await supabase.storage.createBucket('videos', {
+      const { error: error2 } = await supabase.storage.createBucket('videos', {
         public: false
       });
       
       if (error2) {
-        console.log('❌ Falhou novamente:', error2.message);
+        console.log('❌ Falhou novamente:', getErrorMessage(error2));
         console.log('\n📝 SOLUÇÃO MANUAL NECESSÁRIA:');
         console.log('   1. Abra: https://supabase.com/dashboard/project/ofhzrdiadxigrvmrhaiz/storage/buckets');
         console.log('   2. Clique "New bucket"');
@@ -89,12 +131,12 @@ async function verifyAllBuckets() {
   const { data: buckets, error } = await supabase.storage.listBuckets();
   
   if (error) {
-    console.log('❌ Erro ao listar buckets:', error.message);
+    console.log('❌ Erro ao listar buckets:', getErrorMessage(error));
     return;
   }
   
   const expectedBuckets = ['videos', 'avatars', 'thumbnails', 'assets'];
-  const foundBuckets = buckets?.map((b: any) => b.name) || [];
+  const foundBuckets = buckets?.map(bucket => bucket.name) ?? [];
   
   console.log(`Total: ${foundBuckets.length}/${expectedBuckets.length}\n`);
   

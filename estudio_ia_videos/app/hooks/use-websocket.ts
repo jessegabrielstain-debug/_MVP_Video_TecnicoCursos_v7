@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 export interface WebSocketMessage {
   type: string;
-  data: any;
+  data: unknown;
   timestamp: number;
   id: string;
 }
@@ -36,8 +36,8 @@ export interface WebSocketState {
 export interface WebSocketActions {
   connect: () => void;
   disconnect: () => void;
-  send: (message: any) => boolean;
-  sendMessage: (type: string, data: any) => boolean;
+  send: (message: unknown) => boolean;
+  sendMessage: (type: string, data: unknown) => boolean;
   reconnect: () => void;
 }
 
@@ -64,7 +64,7 @@ export const useWebSocket = (options: WebSocketOptions): WebSocketState & WebSoc
   const heartbeatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messageIdRef = useRef(0);
 
-  const log = useCallback((message: string, ...args: any[]) => {
+  const log = useCallback((message: string, ...args: unknown[]) => {
     if (optionsRef.current.debug) {
       console.log(`[WebSocket] ${message}`, ...args);
     }
@@ -234,12 +234,13 @@ export const useWebSocket = (options: WebSocketOptions): WebSocketState & WebSoc
         }
       };
 
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       log('Failed to create WebSocket:', error);
       setState(prev => ({
         ...prev,
         isConnecting: false,
-        error: `Failed to connect: ${error.message}`,
+        error: `Failed to connect: ${errorMessage}`,
       }));
     }
   }, [state.socket, state.connectionAttempts, startHeartbeat, stopHeartbeat, scheduleReconnect, log, generateMessageId]);
@@ -269,7 +270,7 @@ export const useWebSocket = (options: WebSocketOptions): WebSocketState & WebSoc
     }));
   }, [state.socket, stopHeartbeat, log]);
 
-  const send = useCallback((message: any): boolean => {
+  const send = useCallback((message: unknown): boolean => {
     if (!state.socket || state.socket.readyState !== WebSocket.OPEN) {
       log('Cannot send message: not connected');
       return false;
@@ -286,7 +287,7 @@ export const useWebSocket = (options: WebSocketOptions): WebSocketState & WebSoc
     }
   }, [state.socket, log]);
 
-  const sendMessage = useCallback((type: string, data: any): boolean => {
+  const sendMessage = useCallback((type: string, data: unknown): boolean => {
     const message: WebSocketMessage = {
       type,
       data,

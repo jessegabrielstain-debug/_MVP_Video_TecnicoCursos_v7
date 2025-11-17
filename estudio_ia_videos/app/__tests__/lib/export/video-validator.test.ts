@@ -54,7 +54,11 @@ describe('VideoValidator - File Validation', () => {
   describe('FPS Parsing', () => {
     it('deve parsear FPS string corretamente', () => {
       // Access private method through type assertion for testing
-      const parseFps = (validator as any).parseFps.bind(validator)
+      type VideoValidatorWithPrivate = VideoValidator & {
+        parseFps: (value: string) => number
+      }
+
+      const parseFps = (validator as unknown as VideoValidatorWithPrivate).parseFps.bind(validator)
 
       expect(parseFps('30/1')).toBe(30)
       expect(parseFps('60/1')).toBe(60)

@@ -1,8 +1,7 @@
 
 'use client'
 
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { X, Mail, Lock, User, Building, Loader2 } from 'lucide-react'
@@ -11,6 +10,7 @@ import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Checkbox } from '../ui/checkbox'
 import { useToast } from '../../hooks/use-toast'
+import { createClient } from '@/lib/supabase/client'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -20,6 +20,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose, mode, onModeChange }: AuthModalProps) {
+  const supabase = useMemo(() => createClient(), [])
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
@@ -49,50 +50,40 @@ export default function AuthModal({ isOpen, onClose, mode, onModeChange }: AuthM
           return
         }
 
-        const response = await fetch('/api/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
-        })
-
-        if (response.ok) {
-          // Fazer login automático após cadastro
-          const result = await signIn('credentials', {
-            email: formData.email,
-            password: formData.password,
-            redirect: false
-          })
-
-          if (result?.ok) {
-            toast({
-              title: 'Sucesso!',
-              description: 'Conta criada com sucesso!'
-            })
-            onClose()
-            router.refresh()
-          } else {
-            toast({
-              title: 'Erro',
-              description: 'Erro ao fazer login automático',
-              variant: 'destructive'
-            })
-          }
-        } else {
-          const error = await response.json()
-          toast({
-            title: 'Erro no cadastro',
-            description: error.error || 'Erro desconhecido',
-            variant: 'destructive'
-          })
-        }
-      } else {
-        const result = await signIn('credentials', {
+        const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
-          redirect: false
+          options: {
+            data: {
+              name: formData.fullName,
+              company: formData.companyName
+            }
+          }
         })
 
-        if (result?.ok) {
+        if (error) {
+          toast({
+            title: 'Erro no cadastro',
+            description: error.message || 'Erro desconhecido',
+            variant: 'destructive'
+          })
+        } else {
+          toast({
+            title: 'Sucesso!',
+            description: data.session
+              ? 'Conta criada com sucesso!'
+              : 'Conta criada! Confirme seu email para acessar.'
+          })
+          onClose()
+          router.refresh()
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password
+        })
+
+        if (!error) {
           toast({
             title: 'Sucesso!',
             description: 'Login realizado com sucesso!'
@@ -102,7 +93,7 @@ export default function AuthModal({ isOpen, onClose, mode, onModeChange }: AuthM
         } else {
           toast({
             title: 'Erro no login',
-            description: 'Email ou senha incorretos',
+            description: error.message || 'Email ou senha incorretos',
             variant: 'destructive'
           })
         }

@@ -45,10 +45,10 @@ import { toast } from 'react-hot-toast';
 export default function WorkflowStudio() {
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [executions, setExecutions] = useState<any[]>([]);
-  const [selectedWorkflow, setSelectedWorkflow] = useState<any>(null);
-  const [selectedExecution, setSelectedExecution] = useState<any>(null);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<unknown>(null);
+  const [selectedExecution, setSelectedExecution] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<unknown>(null);
 
   useEffect(() => {
     loadWorkflows();

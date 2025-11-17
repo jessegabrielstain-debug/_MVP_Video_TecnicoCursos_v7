@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -54,6 +54,7 @@ interface Alert {
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+type BadgeVariant = NonNullable<BadgeProps['variant']>;
 
 export function PerformanceDashboard() {
   const [metrics, setMetrics] = useState<Partial<PerformanceMetrics>>({});
@@ -132,13 +133,14 @@ export function PerformanceDashboard() {
     return new Date(timestamp).toLocaleTimeString();
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'high': return 'destructive';
-      case 'medium': return 'secondary';
-      case 'low': return 'outline';
-      default: return 'outline';
-    }
+  const getSeverityColor = (severity: Alert['severity']): BadgeVariant => {
+    const severityMap: Record<Alert['severity'], BadgeVariant> = {
+      high: 'destructive',
+      medium: 'secondary',
+      low: 'outline'
+    };
+
+    return severityMap[severity] ?? 'outline';
   };
 
   return (
@@ -269,7 +271,7 @@ export function PerformanceDashboard() {
                   <div key={index} className="flex items-center justify-between p-2 bg-white/5 rounded">
                     <span className="text-sm text-gray-200">{alert.message}</span>
                     <div className="flex items-center gap-2">
-                      <Badge variant={getSeverityColor(alert.severity) as any}>
+                      <Badge variant={getSeverityColor(alert.severity)}>
                         {alert.severity}
                       </Badge>
                       <span className="text-xs text-gray-400">

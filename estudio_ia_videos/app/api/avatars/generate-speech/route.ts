@@ -117,7 +117,7 @@ interface GenerateSpeechRequest {
   enableLipSync?: boolean;
   lipSyncPrecision?: 'low' | 'medium' | 'high' | 'ultra';
   useUnifiedPipeline?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Interface para response

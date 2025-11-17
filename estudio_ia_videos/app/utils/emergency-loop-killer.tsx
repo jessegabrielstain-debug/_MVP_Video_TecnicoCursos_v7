@@ -93,6 +93,19 @@ export class LoopKiller {
   }
 }
 
+type EmergencyLoopKillerAPI = {
+  status: () => ReturnType<typeof LoopKiller.getStatus>
+  reset: (componentId?: string) => void
+  resetAll: () => void
+  info: () => void
+}
+
+declare global {
+  interface Window {
+    emergencyLoopKiller?: EmergencyLoopKillerAPI
+  }
+}
+
 // Hook para proteger componentes
 export function useLoopProtection(componentId: string, dependencies: any[] = []) {
   const executionCountRef = useRef(0)
@@ -157,7 +170,7 @@ export function LoopDetectionMonitor() {
 
 // 🚨 EMERGENCY GLOBAL LOOP KILLER - Adiciona ao window para acesso via console
 if (typeof window !== 'undefined') {
-  (window as any).emergencyLoopKiller = {
+  window.emergencyLoopKiller = {
     status: () => LoopKiller.getStatus(),
     reset: (componentId?: string) => LoopKiller.reset(componentId),
     resetAll: () => LoopKiller.reset(),

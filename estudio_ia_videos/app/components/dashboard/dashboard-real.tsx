@@ -1,9 +1,8 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { signOut, useSession } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -52,12 +51,17 @@ import { useMetrics } from '../../hooks/use-metrics'
 import { toast } from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { createClient } from '@/lib/supabase/client'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 export default function DashboardReal() {
-  const { data: session } = useSession() || {}
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
   const [selectedPeriod, setSelectedPeriod] = useState<'day' | 'week' | 'month' | 'quarter'>('month')
   const [projectFilter, setProjectFilter] = useState<string>('all')
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [displayName, setDisplayName] = useState<string | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
 
   // Real data hooks
   const { projects, loading: projectsLoading, error: projectsError, refresh: refreshProjects } = useProjects(projectFilter)
@@ -65,6 +69,57 @@ export default function DashboardReal() {
 
   // 🚨 EMERGENCY: Removed auto-refresh to prevent infinite loops
   // Manual refresh only through user interaction
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadSession = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        const authUser = data.user ?? null
+        setUser(authUser)
+
+        if (authUser) {
+          const { data: profile, error } = await supabase
+            .from('user_profiles')
+            .select('full_name')
+            .eq('id', authUser.id)
+            .maybeSingle()
+
+          if (!isMounted) return
+
+          if (error) {
+            console.warn('Erro ao carregar perfil:', error)
+          }
+
+          setDisplayName(profile?.full_name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
+        } else {
+          setDisplayName(null)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error)
+      }
+    }
+
+    void loadSession()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      const authUser = session?.user ?? null
+      setUser(authUser)
+      if (authUser) {
+        setDisplayName(authUser.user_metadata?.name ?? authUser.email ?? null)
+      } else {
+        setDisplayName(null)
+      }
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -100,6 +155,24 @@ export default function DashboardReal() {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+  }
+
+  const handleSignOut = async () => {
+    if (signingOut) return
+    try {
+      setSigningOut(true)
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        throw error
+      }
+      router.replace('/login?reason=session_expired')
+      router.refresh()
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error)
+      toast.error('Não foi possível encerrar a sessão. Tente novamente.')
+    } finally {
+      setSigningOut(false)
+    }
   }
 
   const handleCreateProject = async () => {
@@ -228,7 +301,7 @@ export default function DashboardReal() {
               <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border">
                 <User className="w-4 h-4 text-gray-600" />
                 <span className="text-sm text-gray-700 font-medium">
-                  {session?.user?.email || 'Usuário'}
+                  {displayName ?? user?.email ?? 'Usuário'}
                 </span>
                 <Button 
                   variant="ghost" 
@@ -242,9 +315,10 @@ export default function DashboardReal() {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => signOut()}
+                  onClick={handleSignOut}
                   title="Sair"
                   className="hover:bg-red-100"
+                  disabled={signingOut}
                 >
                   <LogOut className="w-4 h-4 text-red-600" />
                 </Button>
@@ -278,7 +352,7 @@ export default function DashboardReal() {
               </SelectContent>
             </Select>
             
-            <Select value={selectedPeriod} onValueChange={(value: any) => setSelectedPeriod(value)}>
+            <Select value={selectedPeriod} onValueChange={(value: string) => setSelectedPeriod(value)}>
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>

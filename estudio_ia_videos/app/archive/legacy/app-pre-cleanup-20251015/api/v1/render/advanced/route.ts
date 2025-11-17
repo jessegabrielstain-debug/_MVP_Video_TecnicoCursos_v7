@@ -12,7 +12,7 @@ interface RenderJob {
   quality: string
   resolution: string
   fileSize?: number
-  settings?: Record<string, any>
+  settings?: Record<string, unknown>
 }
 
 // In-memory storage for demo (use database in production)

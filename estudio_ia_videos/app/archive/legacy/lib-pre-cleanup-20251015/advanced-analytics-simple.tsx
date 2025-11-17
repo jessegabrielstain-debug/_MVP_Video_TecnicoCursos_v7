@@ -13,7 +13,7 @@ interface AnalyticsEvent {
   userId?: string
   sessionId: string
   timestamp: number
-  data: Record<string, any>
+  data: Record<string, unknown>
 }
 
 class SimpleAnalytics {
@@ -32,7 +32,7 @@ class SimpleAnalytics {
     return SimpleAnalytics.instance
   }
 
-  track(type: string, data: Record<string, any> = {}): void {
+  track(type: string, data: Record<string, unknown> = {}): void {
     const event: AnalyticsEvent = {
       id: 'evt_' + Date.now(),
       type,
@@ -49,19 +49,19 @@ class SimpleAnalytics {
     this.track('page_view', { page, title })
   }
 
-  trackUserAction(action: string, category: string, data: Record<string, any> = {}): void {
+  trackUserAction(action: string, category: string, data: Record<string, unknown> = {}): void {
     this.track('user_action', { action, category, ...data })
   }
 
-  trackVideoCreation(data: Record<string, any>): void {
+  trackVideoCreation(data: Record<string, unknown>): void {
     this.track('video_creation', data)
   }
 
-  trackExport(data: Record<string, any>): void {
+  trackExport(data: Record<string, unknown>): void {
     this.track('export', data)
   }
 
-  trackFunnelStep(step: string, data: Record<string, any> = {}): void {
+  trackFunnelStep(step: string, data: Record<string, unknown> = {}): void {
     this.track('funnel_step', { step, ...data })
   }
 

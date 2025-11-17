@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
       data: {
         timelineId: timeline.id,
         version: timeline.version,
-        tracks: timeline.tracks as any,
-        settings: timeline.settings as any,
+        tracks: timeline.tracks as unknown,
+        settings: timeline.settings as unknown,
         totalDuration: timeline.totalDuration,
         createdBy: session.user.id,
         description: description || `Snapshot v${timeline.version}`,

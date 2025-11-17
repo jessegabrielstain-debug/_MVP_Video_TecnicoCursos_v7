@@ -149,7 +149,7 @@ export async function createVideosFromFavorites(videosData: Array<{ title: strin
  */
 export async function createVideoWithRecommendation(
   videoType: 'tutorial' | 'promo' | 'social' | 'corporate',
-  data: Record<string, any>
+  data: Record<string, unknown>
 ) {
   const library = new VideoTemplateLibrary();
   const engine = new VideoTemplateEngine();

@@ -352,7 +352,7 @@ export default function AvatarLibrary() {
         </div>
         
         <div className="flex gap-2">
-          <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+          <Select value={sortBy} onValueChange={(value: string) => setSortBy(value)}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>

@@ -45,7 +45,7 @@ export interface AudioEffectConfig {
   enabled: boolean;
   mix: number; // 0-1 (dry/wet)
   bypass: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -151,7 +151,7 @@ export interface AudioTrack {
   audioData?: Float32Array[];
   startTime: number;
   duration: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -276,7 +276,7 @@ export interface AudioActivity {
   timestamp: Date;
   type: 'track-added' | 'effect-added' | 'mixed' | 'normalized' | 'exported';
   description: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -1118,7 +1118,7 @@ export class AdvancedAudioProcessor extends EventEmitter {
   private logActivity(
     type: AudioActivity['type'],
     description: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const activity: AudioActivity = {
       id: `activity-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

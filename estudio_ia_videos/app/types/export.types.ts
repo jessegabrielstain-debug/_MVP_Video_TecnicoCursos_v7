@@ -3,6 +3,7 @@
  * Updated Sprint 49: Added advanced rendering options
  */
 
+import type { SubtitleStyle } from './subtitle.types'
 import type { WatermarkConfig } from './watermark.types'
 type VideoFilterConfig = {
   id: string
@@ -66,7 +67,7 @@ export interface ExportSettings {
     source?: string
     format?: 'srt' | 'vtt' | 'ass'
     burnIn: boolean
-    style?: any
+    style?: SubtitleStyle
   }
 }
 
@@ -106,9 +107,39 @@ export enum ExportPhase {
   FINALIZING = 'finalizing',
 }
 
+export interface TimelineLayerData {
+  id: string
+  start: number
+  end: number
+  type: string
+  assetId?: string
+  properties?: Record<string, unknown>
+  metadata?: Record<string, unknown>
+}
+
+export interface TimelineTrackData {
+  id: string
+  type: string
+  name?: string
+  duration?: number
+  layers: TimelineLayerData[]
+  metadata?: Record<string, unknown>
+}
+
+export interface TimelineData {
+  id?: string
+  name?: string
+  duration?: number
+  fps?: number
+  tracks?: TimelineTrackData[]
+  settings?: Record<string, unknown>
+  metadata?: Record<string, unknown>
+  [key: string]: unknown
+}
+
 export interface RenderTask {
   jobId: string
-  timelineData: any // Timeline completa
+  timelineData: TimelineData | null
   settings: ExportSettings
   userId: string
   projectId: string

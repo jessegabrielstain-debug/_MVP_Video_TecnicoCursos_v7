@@ -18,6 +18,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -34,7 +35,7 @@ interface MigrationResult {
   phase: string;
   duration: number;
   error?: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 interface ValidationResult {
@@ -61,12 +62,8 @@ interface SetupProgress {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class SupabaseSetupManager {
-  private supabase: any;
-  private config: {
-    url: string;
-    serviceRoleKey: string;
-    anonKey: string;
-  };
+  private supabase: SupabaseClient;
+  private config: { url: string; serviceRoleKey: string; anonKey: string };
   private progress: SetupProgress;
   private results: MigrationResult[] = [];
 
@@ -264,17 +261,19 @@ class SupabaseSetupManager {
           if ((i + 1) % 10 === 0) {
             this.log(`   Progresso: ${i + 1}/${statements.length}`, 'info');
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const error = err as Error;
           // Alguns erros são aceitáveis (ex: tabela já existe)
-          if (!err.message.includes('already exists') && !err.message.includes('duplicate')) {
-            this.log(`   Aviso no statement ${i + 1}: ${err.message}`, 'warning');
+          if (!error.message.includes('already exists') && !error.message.includes('duplicate')) {
+            this.log(`   Aviso no statement ${i + 1}: ${error.message}`, 'warning');
           }
         }
       }
 
       this.log(`✅ ${description} concluído!`, 'success');
       return true;
-    } catch (error: any) {
+    } catch (e: unknown) {
+      const error = e as Error;
       this.log(`❌ Erro em ${description}: ${error.message}`, 'error');
       return false;
     }
@@ -303,7 +302,8 @@ class SupabaseSetupManager {
         duration,
         details: { tables: 7 }
       };
-    } catch (error: any) {
+    } catch (e: unknown) {
+      const error = e as Error;
       const duration = Date.now() - startTime;
       return {
         success: false,
@@ -337,7 +337,8 @@ class SupabaseSetupManager {
         duration,
         details: { policies: '~20' }
       };
-    } catch (error: any) {
+    } catch (e: unknown) {
+      const error = e as Error;
       const duration = Date.now() - startTime;
       return {
         success: false,
@@ -371,7 +372,8 @@ class SupabaseSetupManager {
         duration,
         details: { courses: 3 }
       };
-    } catch (error: any) {
+    } catch (e: unknown) {
+      const error = e as Error;
       const duration = Date.now() - startTime;
       return {
         success: false,
@@ -421,11 +423,12 @@ class SupabaseSetupManager {
             this.log(`   ✅ Bucket ${bucket.name} criado!`, 'success');
             created++;
           }
-        } catch (err: any) {
-          if (err.message.includes('already exists')) {
+        } catch (err: unknown) {
+          const error = err as Error;
+          if (error.message.includes('already exists')) {
             existing++;
           } else {
-            this.log(`   ⚠️  Erro ao criar bucket ${bucket.name}: ${err.message}`, 'warning');
+            this.log(`   ⚠️  Erro ao criar bucket ${bucket.name}: ${error.message}`, 'warning');
           }
         }
       }
@@ -439,7 +442,8 @@ class SupabaseSetupManager {
         duration,
         details: { created, existing, total: buckets.length }
       };
-    } catch (error: any) {
+    } catch (e: unknown) {
+      const error = e as Error;
       const duration = Date.now() - startTime;
       return {
         success: false,
@@ -498,9 +502,8 @@ class SupabaseSetupManager {
     this.log('   Verificando buckets...', 'info');
     try {
       const { data, error } = await this.supabase.storage.listBuckets();
-      const bucketsFound = data?.filter((b: any) => 
-        ['videos', 'avatars', 'thumbnails', 'assets'].includes(b.name)
-      ).length || 0;
+      const list = (data as Array<{ name: string }> | null) ?? [];
+      const bucketsFound = list.filter((b) => ['videos', 'avatars', 'thumbnails', 'assets'].includes(b.name)).length;
 
       tests.push({
         name: 'Storage buckets',
@@ -516,7 +519,7 @@ class SupabaseSetupManager {
     // Teste 4: Dados seed
     this.log('   Verificando dados iniciais...', 'info');
     try {
-      const { data, error } = await this.supabase.from('nr_courses').select('code');
+      const { data, error } = await this.supabase.from('nr_courses').select('course_code');
       const coursesFound = data?.length || 0;
       
       tests.push({
@@ -570,7 +573,8 @@ class SupabaseSetupManager {
       // Resumo
       this.showSummary(validation);
 
-    } catch (error: any) {
+    } catch (e: unknown) {
+      const error = e as Error;
       this.log(`\n💥 Erro fatal: ${error.message}`, 'error');
       process.exit(1);
     }

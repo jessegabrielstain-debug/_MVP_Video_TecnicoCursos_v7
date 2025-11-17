@@ -82,7 +82,7 @@ export interface Alert {
   timestamp: Date;
   resolved: boolean;
   resolvedAt?: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -577,7 +577,7 @@ export class MonitoringSystem {
   public createAlert(
     severity: 'info' | 'warning' | 'critical',
     message: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Alert {
     const alert: Alert = {
       id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

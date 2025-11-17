@@ -46,7 +46,7 @@ export interface TimelineTrack {
     type: 'fadeIn' | 'fadeOut' | 'zoom' | 'pan' | 'rotate'
     startTime: number
     duration: number
-    parameters: Record<string, any>
+    parameters: Record<string, unknown>
   }>
   position?: { x: number; y: number; width: number; height: number }
 }

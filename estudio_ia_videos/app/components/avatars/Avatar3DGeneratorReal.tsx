@@ -78,7 +78,11 @@ export default function Avatar3DGeneratorReal({ onAvatarGenerated }: Avatar3DGen
     { value: 'female', label: 'Feminino', icon: '👩' },
     { value: 'male', label: 'Masculino', icon: '👨' },
     { value: 'neutral', label: 'Neutro', icon: '🧑' }
-  ];
+  ] as const satisfies ReadonlyArray<{
+    value: Avatar3DConfig['gender']
+    label: string
+    icon: string
+  }>;
 
   const ethnicityOptions = [
     { value: 'brazilian', label: 'Brasileiro', flag: '🇧🇷' },
@@ -227,8 +231,10 @@ export default function Avatar3DGeneratorReal({ onAvatarGenerated }: Avatar3DGen
     return colors[clothing] || '#6b7280';
   };
 
+  const pickRandom = <T,>(values: readonly T[]): T => values[Math.floor(Math.random() * values.length)];
+
   const randomizeAvatar = () => {
-    const randomGender = genderOptions[Math.floor(Math.random() * genderOptions.length)].value as 'male' | 'female' | 'neutral';
+    const randomGender = pickRandom(genderOptions).value;
     const randomEthnicity = ethnicityOptions[Math.floor(Math.random() * ethnicityOptions.length)].value;
     const randomHair = hairStyles[Math.floor(Math.random() * hairStyles.length)].value;
     const randomClothing = clothingOptions[Math.floor(Math.random() * clothingOptions.length)].value;
@@ -335,7 +341,7 @@ export default function Avatar3DGeneratorReal({ onAvatarGenerated }: Avatar3DGen
                     key={option.value}
                     variant={currentAvatar.gender === option.value ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setCurrentAvatar({ ...currentAvatar, gender: option.value as any })}
+                    onClick={() => setCurrentAvatar({ ...currentAvatar, gender: option.value })}
                   >
                     {option.icon} {option.label}
                   </Button>

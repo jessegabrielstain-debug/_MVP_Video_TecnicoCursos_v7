@@ -21,7 +21,7 @@ const cache = getInMemoryCache();
 export interface AnalyticsEvent {
   userId: string;
   event: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
   sessionId?: string;
   timestamp?: Date;
 }

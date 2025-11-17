@@ -11,7 +11,7 @@ interface EmailData {
   html: string;
   text?: string;
   templateId?: string;
-  dynamicData?: Record<string, any>;
+  dynamicData?: Record<string, unknown>;
 }
 
 /**

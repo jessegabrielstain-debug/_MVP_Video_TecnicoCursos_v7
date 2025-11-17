@@ -180,7 +180,7 @@ export function useApiRecovery<T>(
       ...requestOptions,
       enableCache: requestOptions.cache,
       headers: requestOptions.headers as Record<string, string> | undefined
-    } as any);
+    } as unknown);
     if (!response.success) {
       throw response.error || new Error('API request failed');
     }

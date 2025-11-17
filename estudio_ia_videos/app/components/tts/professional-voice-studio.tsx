@@ -90,7 +90,7 @@ export default function ProfessionalVoiceStudio({
   // Estados de dados
   const [azureVoices] = useState<AzureVoice[]>(azureSpeechService.getAvailableVoices())
   const [regionalVoices] = useState<BrazilianVoiceRegional[]>(BrazilianRegionalTTS.REGIONAL_VOICES)
-  const [textAnalysis, setTextAnalysis] = useState<any>(null)
+  const [textAnalysis, setTextAnalysis] = useState<unknown>(null)
 
   // Analisar texto quando muda
   useEffect(() => {

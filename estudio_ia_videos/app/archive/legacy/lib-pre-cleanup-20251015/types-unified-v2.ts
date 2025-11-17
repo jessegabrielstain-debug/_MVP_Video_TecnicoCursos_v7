@@ -154,7 +154,7 @@ export interface UnifiedElement {
     muted?: boolean
     
     // Dados personalizados
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   }
 }
 
@@ -273,7 +273,7 @@ export interface UnifiedTimeline {
         type: string
         startTime: number
         duration: number
-        properties: Record<string, any>
+        properties: Record<string, unknown>
       }>
     }>
   }>

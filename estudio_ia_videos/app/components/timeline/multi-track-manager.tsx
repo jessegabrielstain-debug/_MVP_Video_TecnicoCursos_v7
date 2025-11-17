@@ -144,7 +144,7 @@ interface TimelineItem {
   start: number
   duration: number
   content: string
-  properties?: Record<string, any>
+  properties?: Record<string, unknown>
   selected?: boolean
   keyframes?: Keyframe[]
   effects?: Effect[]
@@ -160,7 +160,7 @@ interface TimelineItem {
 interface Keyframe {
   id: string
   time: number
-  properties: Record<string, any>
+  properties: Record<string, unknown>
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'cubic-bezier'
   interpolation: 'linear' | 'bezier' | 'step'
 }
@@ -168,7 +168,7 @@ interface Keyframe {
 interface Effect {
   id: string
   type: 'fade' | 'slide' | 'zoom' | 'rotate' | 'blur' | 'color' | 'transition'
-  parameters: Record<string, any>
+  parameters: Record<string, unknown>
   enabled: boolean
   keyframes?: Keyframe[]
 }

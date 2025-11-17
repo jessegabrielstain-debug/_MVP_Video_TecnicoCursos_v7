@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     // Filtrar por categoria
     if (category && category !== 'all') {
       // Mapear categorias legadas para novas
-      const categoryMap: Record<string, any> = {
+      const categoryMap: Record<string, unknown> = {
         'professional': 'business',
         'technical': 'safety',
         'executive': 'business',
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Filtrar por tipo de conteúdo
     if (contentType) {
-      const contentCategoryMap: Record<string, any> = {
+      const contentCategoryMap: Record<string, unknown> = {
         'nr': 'safety',
         'corporate': 'business',
         'general': 'business'
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     // Filtrar por região (aparência étnica)
     if (region && region !== 'all') {
-      const regionMap: Record<string, any> = {
+      const regionMap: Record<string, unknown> = {
         'caucasiano': 'caucasian',
         'afrodescendente': 'afro',
         'asiatico': 'asian',

@@ -101,8 +101,8 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('browse');
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
-  const [complianceResults, setComplianceResults] = useState<Record<string, any>>({});
-  const [analytics, setAnalytics] = useState<Record<string, any>>({});
+  const [complianceResults, setComplianceResults] = useState<Record<string, unknown>>({});
+  const [analytics, setAnalytics] = useState<Record<string, unknown>>({});
   const [recommendations, setRecommendations] = useState<Template[]>([]);
 
   // Load analytics and compliance data
@@ -219,6 +219,31 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
     'NR-12', 'NR-35', 'NR-33', 'NR-10', 'NR-06', 'NR-23', 'NR-18', 'NR-05', 'NR-07', 'NR-09'
   ];
 
+  const categoryOptions = categories;
+  const difficultyOptions: Array<NonNullable<TemplateFilter['difficulty']>[number]> = [
+    'beginner',
+    'intermediate',
+    'advanced',
+  ];
+  const complianceOptions: NonNullable<TemplateFilter['compliance']>[] = ['compliant', 'non-compliant', 'pending'];
+  const sortFieldOptions: TemplateSort['field'][] = ['name', 'createdAt', 'updatedAt', 'downloads', 'rating', 'usage'];
+
+  const isNRCategory = (value: string): value is NRCategory => {
+    return categoryOptions.includes(value as NRCategory);
+  };
+
+  const isDifficulty = (value: string): value is TemplateFilter['difficulty'][number] => {
+    return difficultyOptions.includes(value as TemplateFilter['difficulty'][number]);
+  };
+
+  const isComplianceStatus = (value: string): value is NonNullable<TemplateFilter['compliance']> => {
+    return complianceOptions.includes(value as NonNullable<TemplateFilter['compliance']>);
+  };
+
+  const isSortField = (value: string): value is TemplateSort['field'] => {
+    return sortFieldOptions.includes(value as TemplateSort['field']);
+  };
+
   return (
     <div className={`template-studio-advanced ${className}`}>
       <div className="space-y-6">
@@ -259,8 +284,16 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
                     Categoria NR
                   </label>
                   <Select
-                    value={filter.category || ''}
-                    onValueChange={(value) => setFilter({ ...filter, category: value as NRCategory })}
+                    value={filter.category?.[0] ?? ''}
+                    onValueChange={(value) => {
+                      if (!value) {
+                        setFilter({ category: undefined });
+                        return;
+                      }
+                      if (isNRCategory(value)) {
+                        setFilter({ category: [value] });
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Todas as categorias" />
@@ -281,8 +314,16 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
                     Dificuldade
                   </label>
                   <Select
-                    value={filter.difficulty || ''}
-                    onValueChange={(value) => setFilter({ ...filter, difficulty: value as any })}
+                    value={filter.difficulty?.[0] ?? ''}
+                    onValueChange={(value) => {
+                      if (!value) {
+                        setFilter({ difficulty: undefined });
+                        return;
+                      }
+                      if (isDifficulty(value)) {
+                        setFilter({ difficulty: [value] });
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Todas as dificuldades" />
@@ -301,8 +342,16 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
                     Status de Compliance
                   </label>
                   <Select
-                    value={filter.compliance || ''}
-                    onValueChange={(value) => setFilter({ ...filter, compliance: value as any })}
+                    value={filter.compliance ?? ''}
+                    onValueChange={(value) => {
+                      if (!value) {
+                        setFilter({ compliance: undefined });
+                        return;
+                      }
+                      if (isComplianceStatus(value)) {
+                        setFilter({ compliance: value });
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Todos os status" />
@@ -322,7 +371,11 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
                   </label>
                   <Select
                     value={sort.field}
-                    onValueChange={(value) => setSort({ ...sort, field: value as any })}
+                    onValueChange={(value) => {
+                      if (isSortField(value)) {
+                        setSort({ field: value, direction: sort.direction });
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -342,8 +395,10 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="favorites"
-                    checked={filter.favorites}
-                    onCheckedChange={(checked) => setFilter({ ...filter, favorites: checked as boolean })}
+                    checked={filter.favorites ?? false}
+                    onCheckedChange={(checked) => {
+                      setFilter({ favorites: checked === true ? true : undefined });
+                    }}
                   />
                   <label htmlFor="favorites" className="text-sm font-medium text-gray-700">
                     Apenas favoritos
@@ -352,8 +407,10 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="has3d"
-                    checked={filter.has3DPreview}
-                    onCheckedChange={(checked) => setFilter({ ...filter, has3DPreview: checked as boolean })}
+                    checked={filter.has3DPreview ?? false}
+                    onCheckedChange={(checked) => {
+                      setFilter({ has3DPreview: checked === true ? true : undefined });
+                    }}
                   />
                   <label htmlFor="has3d" className="text-sm font-medium text-gray-700">
                     Com preview 3D

@@ -45,7 +45,7 @@ export function captureError(
     module?: 'compliance' | 'voice' | 'collab' | 'cert' | 'editor'
     userId?: string
     projectId?: string
-    extra?: Record<string, any>
+    extra?: Record<string, unknown>
   }
 ) {
   if (!Sentry) {
@@ -69,7 +69,7 @@ export function captureError(
 export function captureMessage(
   message: string,
   level: 'info' | 'warning' | 'error' = 'info',
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ) {
   if (!Sentry) {
     console.log(`[${level.toUpperCase()}]`, message, context);

@@ -44,6 +44,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Tipos para Motion Graphics
+type MotionProperty = 'x' | 'y' | 'scale' | 'rotation' | 'opacity';
+
 interface MotionElement {
   id: string;
   type: 'shape' | 'text' | 'image' | 'video' | 'particle' | 'path';
@@ -64,11 +66,11 @@ interface MotionElement {
 
 interface MotionAnimation {
   id: string;
-  property: string;
+  property: MotionProperty;
   startTime: number;
   duration: number;
-  fromValue: any;
-  toValue: any;
+  fromValue: number;
+  toValue: number;
   easing: string;
   loop: boolean;
 }
@@ -283,11 +285,11 @@ export default function MotionGraphicsEngine() {
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Convert canvas coordinates
-  const getElementStyle = (element: MotionElement) => {
+  const getElementStyle = (element: MotionElement): React.CSSProperties => {
     const currentValue = getCurrentAnimatedValue(element);
     
     return {
-      position: 'absolute' as const,
+      position: 'absolute',
       left: `${currentValue.x}px`,
       top: `${currentValue.y}px`,
       width: `${element.width * currentValue.scale}px`,
@@ -309,7 +311,7 @@ export default function MotionGraphicsEngine() {
 
   // Get current animated value
   const getCurrentAnimatedValue = (element: MotionElement) => {
-    const result = {
+    const result: Record<MotionProperty, number> = {
       x: element.x,
       y: element.y,
       scale: element.scale,
@@ -327,8 +329,8 @@ export default function MotionGraphicsEngine() {
         const from = animation.fromValue;
         const to = animation.toValue;
         const currentValue = from + (to - from) * easedProgress;
-        
-        (result as any)[animation.property] = currentValue;
+
+        result[animation.property] = currentValue;
       }
     });
 
@@ -629,7 +631,7 @@ export default function MotionGraphicsEngine() {
                     {motionElements.map(element => (
                       <motion.div
                         key={element.id}
-                        style={getElementStyle(element) as any}
+                        style={getElementStyle(element)}
                         className={`cursor-pointer border-2 transition-all duration-200 ${
                           selectedElements.includes(element.id) 
                             ? 'border-blue-400 shadow-lg' 

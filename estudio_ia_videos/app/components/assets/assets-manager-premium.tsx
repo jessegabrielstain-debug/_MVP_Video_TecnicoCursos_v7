@@ -48,6 +48,44 @@ import { assetsManager, AssetItem, AssetCollection, SearchFilters, SEARCH_PRESET
 import { cn } from '../../lib/utils'
 import Image from 'next/image'
 
+const ASSET_TYPES: readonly AssetItem['type'][] = ['image', 'audio', 'video', 'font', 'template']
+const isAssetType = (value: string): value is AssetItem['type'] =>
+  ASSET_TYPES.includes(value as AssetItem['type'])
+
+const ORIENTATION_OPTIONS = ['landscape', 'portrait', 'square'] as const
+type OrientationOption = (typeof ORIENTATION_OPTIONS)[number]
+const isOrientationOption = (value: string): value is OrientationOption =>
+  ORIENTATION_OPTIONS.includes(value as OrientationOption)
+
+const LICENSE_OPTIONS = ['all', 'free', 'creative-commons', 'royalty-free'] as const
+type LicenseFilterOption = (typeof LICENSE_OPTIONS)[number]
+const isLicenseFilterOption = (value: string): value is LicenseFilterOption =>
+  LICENSE_OPTIONS.includes(value as LicenseFilterOption)
+
+const QUALITY_OPTIONS = ['all', 'high', 'medium', 'low'] as const
+type QualityFilterOption = (typeof QUALITY_OPTIONS)[number]
+const isQualityFilterOption = (value: string): value is QualityFilterOption =>
+  QUALITY_OPTIONS.includes(value as QualityFilterOption)
+
+const formatImageDimensions = (asset: AssetItem) => {
+  if (asset.type !== 'image') {
+    return null
+  }
+  const width = asset.width ?? undefined
+  const height = asset.height ?? undefined
+  if (!width && !height) {
+    return 'N/A'
+  }
+  return `${width ?? 'N/A'}x${height ?? 'N/A'}`
+}
+
+const formatAudioDuration = (asset: AssetItem) => {
+  if (asset.type !== 'audio' || typeof asset.duration !== 'number') {
+    return null
+  }
+  return `${Math.round(asset.duration)}s`
+}
+
 interface AssetsManagerPremiumProps {
   onAssetSelect?: (asset: AssetItem) => void
   selectedAssets?: string[]
@@ -78,6 +116,43 @@ export default function AssetsManagerPremium({
     license: 'all',
     safeSearch: true
   })
+
+  const updateFilters = (updater: (current: SearchFilters) => SearchFilters) => {
+    setFilters(updater)
+  }
+
+  const handleTypeFilterChange = (value: string) => {
+    updateFilters((prev) => ({
+      ...prev,
+      type: value === 'all' ? undefined : isAssetType(value) ? value : prev.type
+    }))
+  }
+
+  const handleOrientationFilterChange = (value: string) => {
+    updateFilters((prev) => ({
+      ...prev,
+      orientation: value === 'all' ? undefined : isOrientationOption(value) ? value : prev.orientation
+    }))
+  }
+
+  const handleLicenseFilterChange = (value: string) => {
+    updateFilters((prev) => ({
+      ...prev,
+      license: isLicenseFilterOption(value) ? value : prev.license
+    }))
+  }
+
+  const handleQualityFilterChange = (value: string) => {
+    updateFilters((prev) => ({
+      ...prev,
+      quality:
+        value === 'all'
+          ? undefined
+          : isQualityFilterOption(value)
+          ? (value as Exclude<QualityFilterOption, 'all'>)
+          : prev.quality
+    }))
+  }
   
   // View modes
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -266,6 +341,9 @@ export default function AssetsManagerPremium({
     const isFavorite = favoriteAssets.includes(asset.id)
     const isPlaying = currentlyPlaying === asset.id
 
+    const imageDimensions = formatImageDimensions(asset)
+    const audioDuration = formatAudioDuration(asset)
+
     return (
       <Card 
         className={cn(
@@ -395,14 +473,8 @@ export default function AssetsManagerPremium({
 
           {/* Metadados específicos */}
           <div className="mt-2 text-xs text-muted-foreground">
-            {asset.type === 'image' && asset.metadata && (
-              <span>
-                {(asset.metadata as any).width || 'N/A'}x{(asset.metadata as any).height || 'N/A'}
-              </span>
-            )}
-            {asset.type === 'audio' && asset.metadata && (asset.metadata as any).duration && (
-              <span>{Math.round((asset.metadata as any).duration)}s</span>
-            )}
+            {imageDimensions && <span>{imageDimensions}</span>}
+            {audioDuration && <span>{audioDuration}</span>}
           </div>
 
           {/* Tags */}
@@ -512,8 +584,7 @@ export default function AssetsManagerPremium({
                 
                 <div className="space-y-1">
                   <Label className="text-xs">Tipo</Label>
-                  <Select value={filters.type || 'all'} onValueChange={(value) => 
-                    setFilters(prev => ({ ...prev, type: value === 'all' ? undefined : value as any }))}>
+                  <Select value={filters.type || 'all'} onValueChange={handleTypeFilterChange}>
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -529,8 +600,7 @@ export default function AssetsManagerPremium({
 
                 <div className="space-y-1">
                   <Label className="text-xs">Orientação</Label>
-                  <Select value={filters.orientation || 'all'} onValueChange={(value) => 
-                    setFilters(prev => ({ ...prev, orientation: value === 'all' ? undefined : value as any }))}>
+                  <Select value={filters.orientation || 'all'} onValueChange={handleOrientationFilterChange}>
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -545,8 +615,7 @@ export default function AssetsManagerPremium({
 
                 <div className="space-y-1">
                   <Label className="text-xs">Licença</Label>
-                  <Select value={filters.license || 'all'} onValueChange={(value) => 
-                    setFilters(prev => ({ ...prev, license: value === 'all' ? undefined : value as any }))}>
+                  <Select value={filters.license || 'all'} onValueChange={handleLicenseFilterChange}>
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -561,8 +630,7 @@ export default function AssetsManagerPremium({
 
                 <div className="space-y-1">
                   <Label className="text-xs">Qualidade</Label>
-                  <Select value={filters.quality || 'all'} onValueChange={(value) => 
-                    setFilters(prev => ({ ...prev, quality: value === 'all' ? undefined : value as any }))}>
+                  <Select value={filters.quality || 'all'} onValueChange={handleQualityFilterChange}>
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>

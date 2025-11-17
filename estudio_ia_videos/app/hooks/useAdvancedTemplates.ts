@@ -3,6 +3,7 @@ import { Template, NRCategory, TemplateFilter, TemplateSort } from '@/types/temp
 import { useTemplates } from './useTemplates';
 import { useComplianceAnalyzer } from './useComplianceAnalyzer';
 import { useAdvancedAI } from './useAdvancedAI';
+import type { OptimizedContentResult } from './useAdvancedAI';
 
 interface AdvancedTemplateFeatures {
   // 3D Preview
@@ -327,6 +328,10 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
           complianceLevel: 'strict',
         }
       });
+
+      const contentToUse = isTemplateContent(optimizedContent)
+        ? optimizedContent
+        : template.content;
       
       // Generate optimized tags
       const optimizedTags = await generateTags(template);
@@ -334,12 +339,12 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
       // Update template with optimizations
       const optimizedTemplate: Template = {
         ...template,
-        content: optimizedContent,
+        content: contentToUse,
         tags: optimizedTags,
         metadata: {
           ...template.metadata,
           lastOptimization: new Date(),
-          optimizationScore: calculateOptimizationScore(template, optimizedContent),
+          optimizationScore: calculateOptimizationScore(template, contentToUse),
         },
         updatedAt: new Date(),
       };
@@ -487,6 +492,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
     }
     
     // Generate mock analytics for demonstration
+    const sentimentOptions: TemplateAnalytics['feedback']['sentiment'][] = ['positive', 'neutral', 'negative'];
     const mockAnalytics: TemplateAnalytics = {
       usage: {
         views: Math.floor(Math.random() * 1000) + 100,
@@ -508,7 +514,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
       feedback: {
         rating: Math.random() * 1.5 + 3.5,
         reviews: Math.floor(Math.random() * 50) + 10,
-        sentiment: ['positive', 'neutral', 'negative'][Math.floor(Math.random() * 3)] as any,
+        sentiment: sentimentOptions[Math.floor(Math.random() * sentimentOptions.length)],
       },
     };
     
@@ -565,7 +571,16 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
     };
   };
 
-  const calculateOptimizationScore = (original: Template, optimized: any): number => {
+  const isTemplateContent = (value: OptimizedContentResult | null): value is Template['content'] => {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    const partialContent = value as Partial<Template['content']>;
+    return Array.isArray(partialContent.slides) && Array.isArray(partialContent.assets);
+  };
+
+  const calculateOptimizationScore = (original: Template, optimized: unknown): number => {
     // Simple scoring based on content improvements
     return Math.floor(Math.random() * 20) + 80;
   };

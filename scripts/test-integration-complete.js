@@ -263,12 +263,12 @@ async function testFileStructure() {
         'next.config.js',
         'tailwind.config.js',
         '.env',
-        'src/app/page.tsx',
-        'src/components/ui',
-        'src/lib/supabase.ts',
+        'app/page.tsx',
+        'components/ui',
+        'lib/supabase/client.ts',
         'database-schema.sql',
         'database-rls-policies.sql',
-        'seed-nr-courses.sql'
+        'supabase/seed.sql'
     ];
     
     let allFilesExist = true;
@@ -298,7 +298,9 @@ async function testEnvironmentVariables() {
         'NEXTAUTH_SECRET',
         'AZURE_SPEECH_KEY',
         'AZURE_SPEECH_REGION',
-        'ELEVENLABS_API_KEY'
+        'ELEVENLABS_API_KEY',
+        'UPSTASH_REDIS_REST_URL',
+        'UPSTASH_REDIS_REST_TOKEN'
     ];
     
     let allVarsExist = true;

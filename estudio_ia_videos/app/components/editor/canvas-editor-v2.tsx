@@ -56,7 +56,16 @@ interface SelectionBox {
   active: boolean
 }
 
-const CanvasEditorV2 = forwardRef<any, CanvasEditorProps>(({
+export interface CanvasEditorHandle {
+  addElement: (type: string) => void;
+  deleteSelectedElements: () => void;
+  copySelectedElements: () => void;
+  pasteElements: () => void;
+  selectAll: () => void;
+  clearSelection: () => void;
+}
+
+const CanvasEditorV2 = forwardRef<CanvasEditorHandle, CanvasEditorProps>(({
   slide,
   selectedElements,
   editorState,

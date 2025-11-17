@@ -6,8 +6,17 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { createClient } from '@supabase/supabase-js'
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const SMOKE_TEST_EMAIL = process.env.SMOKE_TEST_EMAIL || 'demo@estudio-ia.com'
+const SMOKE_TEST_PASSWORD = process.env.SMOKE_TEST_PASSWORD || 'demo123'
+
+const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null
 
 // 1. Health Check
 test('Health endpoint should respond', async ({ page }) => {
@@ -53,18 +62,45 @@ test('Login page should be accessible', async ({ page }) => {
 
 // 5. Dashboard (authenticated)
 test('Dashboard should load for authenticated users', async ({ page }) => {
-  // Mock de autenticação (ajustar conforme sistema real)
-  await page.context().addCookies([
-    {
-      name: 'next-auth.session-token',
-      value: 'test-session',
-      domain: 'localhost',
-      path: '/',
-      httpOnly: true,
-      secure: false,
-      sameSite: 'Lax'
-    }
-  ])
+  if (!supabase) {
+    test.skip(true, 'Supabase client não configurado para smoke tests')
+  }
+
+  const { hostname } = new URL(BASE_URL)
+
+  const { data, error } = await supabase!.auth.signInWithPassword({
+    email: SMOKE_TEST_EMAIL,
+    password: SMOKE_TEST_PASSWORD
+  })
+
+  if (error || !data.session) {
+    test.skip(true, `Falha ao autenticar usuário de smoke test: ${error?.message ?? 'sessão indisponível'}`)
+  }
+
+  const { access_token: accessToken, refresh_token: refreshToken } = data.session
+
+  await page.context().addCookies(
+    [
+      {
+        name: 'sb-access-token',
+        value: accessToken,
+        domain: hostname,
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax'
+      },
+      {
+        name: 'sb-refresh-token',
+        value: refreshToken,
+        domain: hostname,
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax'
+      }
+    ]
+  )
   
   await page.goto(`${BASE_URL}/dashboard`)
   

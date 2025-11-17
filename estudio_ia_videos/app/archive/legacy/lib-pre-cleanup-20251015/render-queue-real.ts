@@ -57,7 +57,7 @@ export interface RenderJob {
   type: 'video' | 'audio' | 'image';
   priority: 'low' | 'normal' | 'high' | 'urgent';
   settings: RenderSettings;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   // Campos adicionais para compatibilidade com Prisma
   sourceFile?: string;
   outputFormat?: string;

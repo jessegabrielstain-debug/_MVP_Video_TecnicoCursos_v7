@@ -103,6 +103,17 @@ interface ProjectSettings {
   quality: 'draft' | 'standard' | 'high' | 'ultra'
 }
 
+const FPS_OPTIONS = ['24', '30', '60'] as const
+type FpsOptionValue = (typeof FPS_OPTIONS)[number]
+
+const parseFpsValue = (value: string): ProjectSettings['fps'] | null => {
+  if (!FPS_OPTIONS.includes(value as FpsOptionValue)) {
+    return null
+  }
+
+  return Number(value) as ProjectSettings['fps']
+}
+
 export default function VidnozTalkingHeadStudio({ 
   onVideoGenerated,
   initialText = '',
@@ -1052,7 +1063,7 @@ export default function VidnozTalkingHeadStudio({
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <Label className="text-sm font-medium mb-2 block">Qualidade</Label>
-                        <Select value={projectSettings.quality} onValueChange={(value: any) => setProjectSettings({...projectSettings, quality: value})}>
+                        <Select value={projectSettings.quality} onValueChange={(value: string) => setProjectSettings({...projectSettings, quality: value})}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -1067,7 +1078,7 @@ export default function VidnozTalkingHeadStudio({
 
                       <div>
                         <Label className="text-sm font-medium mb-2 block">Proporção</Label>
-                        <Select value={projectSettings.aspectRatio} onValueChange={(value: any) => setProjectSettings({...projectSettings, aspectRatio: value})}>
+                        <Select value={projectSettings.aspectRatio} onValueChange={(value: string) => setProjectSettings({...projectSettings, aspectRatio: value})}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -1082,7 +1093,7 @@ export default function VidnozTalkingHeadStudio({
 
                       <div>
                         <Label className="text-sm font-medium mb-2 block">Resolução</Label>
-                        <Select value={projectSettings.resolution} onValueChange={(value: any) => setProjectSettings({...projectSettings, resolution: value})}>
+                        <Select value={projectSettings.resolution} onValueChange={(value: string) => setProjectSettings({...projectSettings, resolution: value})}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -1096,14 +1107,25 @@ export default function VidnozTalkingHeadStudio({
 
                       <div>
                         <Label className="text-sm font-medium mb-2 block">FPS</Label>
-                        <Select value={projectSettings.fps.toString()} onValueChange={(value) => setProjectSettings({...projectSettings, fps: Number(value) as any})}>
+                        <Select
+                          value={projectSettings.fps.toString()}
+                          onValueChange={(value) => {
+                            const parsedFps = parseFpsValue(value)
+                            if (!parsedFps) {
+                              return
+                            }
+                            setProjectSettings((prev) => ({ ...prev, fps: parsedFps }))
+                          }}
+                        >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="24">24 FPS</SelectItem>
-                            <SelectItem value="30">30 FPS</SelectItem>
-                            <SelectItem value="60">60 FPS</SelectItem>
+                            {FPS_OPTIONS.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {option} FPS
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>

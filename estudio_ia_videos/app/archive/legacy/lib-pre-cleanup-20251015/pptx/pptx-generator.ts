@@ -18,7 +18,7 @@ import {
 export interface PPTXGenerationOptions {
   template?: PPTXTemplate;
   theme?: PPTXTheme;
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
   settings?: PPTXProcessingSettings;
   branding?: {
     logo?: string;
@@ -98,7 +98,7 @@ export class PPTXGenerator {
    */
   async generateFromTemplate(
     templateId: string,
-    variables: Record<string, any>
+    variables: Record<string, unknown>
   ): Promise<Buffer> {
     
     if (!this.options.template) {
@@ -413,7 +413,7 @@ export class PPTXGenerator {
    */
   private async generateSlideFromTemplate(
     templateSlide: PPTXSlide,
-    variables: Record<string, any>,
+    variables: Record<string, unknown>,
     slideNumber: number
   ): Promise<void> {
     const slide = this.pptx.addSlide();
@@ -430,7 +430,7 @@ export class PPTXGenerator {
   private async generateElementFromTemplate(
     slide: any,
     element: PPTXElement,
-    variables: Record<string, any>
+    variables: Record<string, unknown>
   ): Promise<void> {
     let content = element.content;
 
@@ -478,7 +478,7 @@ export class PPTXGenerator {
   /**
    * Substituir variáveis no texto
    */
-  private replaceVariables(text: string, variables: Record<string, any>): string {
+  private replaceVariables(text: string, variables: Record<string, unknown>): string {
     let result = text;
     for (const [key, value] of Object.entries(variables)) {
       const placeholder = new RegExp(`{{${key}}}`, 'g');

@@ -63,7 +63,7 @@ export interface TTSEngineResult {
   // Metadados
   quality_score: number // 0.0 - 1.0
   processing_time: number // ms
-  engine_metadata: Record<string, any>
+  engine_metadata: Record<string, unknown>
   
   // Status
   success: boolean

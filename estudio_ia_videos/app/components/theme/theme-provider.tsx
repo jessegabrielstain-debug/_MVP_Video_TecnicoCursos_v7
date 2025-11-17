@@ -28,8 +28,8 @@ export function ThemeProvider({
 
   useEffect(() => {
     // Carregar tema salvo
-    const preferences = userPreferencesCache.get() as any
-    const savedTheme = (preferences && preferences.theme) ? preferences.theme : defaultTheme
+    const preferences = userPreferencesCache.get()
+    const savedTheme = preferences.theme ?? defaultTheme
     setTheme(savedTheme)
   }, [defaultTheme])
 
@@ -62,7 +62,7 @@ export function ThemeProvider({
     theme,
     setTheme: (newTheme: Theme) => {
       setTheme(newTheme)
-      userPreferencesCache.update({ theme: newTheme } as any)
+      userPreferencesCache.update({ theme: newTheme })
     },
     actualTheme
   }

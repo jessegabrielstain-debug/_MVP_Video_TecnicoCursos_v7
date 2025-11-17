@@ -9,14 +9,29 @@
  * - Operações bulk colaborativas
  */
 
-import { createServer } from 'http'
+import { createServer, Server as HttpServer } from 'http'
 import { Server as SocketIOServer } from 'socket.io'
 import { io as ioClient, Socket as ClientSocket } from 'socket.io-client'
 import { AddressInfo } from 'net'
 import { initializeWebSocket, TimelineEvent } from '@/lib/websocket/timeline-websocket'
 
+// Event data types
+interface LockEventData {
+  trackId: string;
+  userId: string;
+  userName?: string;
+  projectId: string;
+}
+
+interface TimelineUpdateData {
+  userId: string;
+  version: number;
+  changes: string[];
+  timestamp?: number;
+}
+
 describe('WebSocket - Testes de Integração Multi-Usuário', () => {
-  let httpServer: any
+  let httpServer: HttpServer
   let io: SocketIOServer
   let serverUrl: string
   let clients: ClientSocket[] = []
@@ -116,11 +131,11 @@ describe('WebSocket - Testes de Integração Multi-Usuário', () => {
         }, 10)
 
         // Contar quantos locks foram emitidos
-        const onLock = (data: any) => {
+        const onLock = (data: LockEventData) => {
           if (data.trackId === trackId) {
-            lockCount++
+            lockCount++;
           }
-        }
+        };
 
         client1.on(TimelineEvent.TRACK_LOCKED, onLock)
         client2.on(TimelineEvent.TRACK_LOCKED, onLock)
@@ -141,14 +156,14 @@ describe('WebSocket - Testes de Integração Multi-Usuário', () => {
       await joinAllToProject('proj_test_1', [client1, client2])
 
       return new Promise<void>((resolve) => {
-        const trackId = 'track_video_1'
-        let firstLock: string | null = null
+        const trackId = 'track_video_1';
+        let firstLock: string | null = null;
 
-        const onLock = (data: any) => {
+        const onLock = (data: LockEventData) => {
           if (data.trackId === trackId && !firstLock) {
-            firstLock = data.userId
+            firstLock = data.userId;
           }
-        }
+        };
 
         client1.on(TimelineEvent.TRACK_LOCKED, onLock)
         client2.on(TimelineEvent.TRACK_LOCKED, onLock)
@@ -644,16 +659,17 @@ describe('WebSocket - Testes de Integração Multi-Usuário', () => {
       await joinAllToProject('proj_test_1', [client1, client2, client3])
 
       return new Promise<void>((resolve) => {
-        let operations: any[] = []
+        let operations: TimelineUpdateData[] = [];
 
         // Todos escutam timeline updates
-        const onUpdate = (data: any) => {
+        const onUpdate = (data: TimelineUpdateData) => {
           operations.push({
             userId: data.userId,
             version: data.version,
+            changes: data.changes,
             timestamp: Date.now()
-          })
-        }
+          });
+        };
 
         client1.on(TimelineEvent.TIMELINE_UPDATED, onUpdate)
         client2.on(TimelineEvent.TIMELINE_UPDATED, onUpdate)

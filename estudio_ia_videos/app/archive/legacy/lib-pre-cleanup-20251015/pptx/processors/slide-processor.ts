@@ -14,7 +14,7 @@ export interface SlideElement {
   content?: string;
   style?: ElementStyle;
   position: ElementPosition;
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
 }
 
 export interface ElementStyle {
@@ -300,8 +300,8 @@ export class SlideProcessor {
   /**
    * Processa relacionamentos do slide
    */
-  private async processRelationships(zip: JSZip, relsPath: string): Promise<Record<string, any>> {
-    const relationships: Record<string, any> = {};
+  private async processRelationships(zip: JSZip, relsPath: string): Promise<Record<string, unknown>> {
+    const relationships: Record<string, unknown> = {};
     
     const relsContent = await zip.file(relsPath)?.async('text');
     if (relsContent) {

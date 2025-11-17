@@ -14,7 +14,7 @@ export interface WorkflowStep {
   id: string;
   name: string;
   type: 'pptx_upload' | 'ai_generation' | 'tts_synthesis' | 'video_render' | 'quality_check' | 'distribution';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   dependencies: string[]; // IDs de steps que devem ser concluídos antes
   timeout: number; // em segundos
   retries: number;
@@ -63,8 +63,8 @@ export interface WorkflowExecution {
     output?: any;
     error?: string;
   }>;
-  inputs: Record<string, any>;
-  outputs: Record<string, any>;
+  inputs: Record<string, unknown>;
+  outputs: Record<string, unknown>;
   logs: Array<{
     timestamp: Date;
     level: 'info' | 'warning' | 'error';
@@ -270,7 +270,7 @@ export class WorkflowEngine {
    */
   async executeWorkflow(
     workflowId: string,
-    inputs: Record<string, any> = {}
+    inputs: Record<string, unknown> = {}
   ): Promise<string> {
     const workflow = this.workflows.get(workflowId);
     if (!workflow) {
@@ -408,7 +408,7 @@ export class WorkflowEngine {
   private async executeStep(
     step: WorkflowStep,
     previousResults: Map<string, any>,
-    inputs: Record<string, any>
+    inputs: Record<string, unknown>
   ): Promise<any> {
     const stepInputs = {
       ...inputs,

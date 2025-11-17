@@ -13,12 +13,12 @@ export interface TraceSpan {
   start_time: number
   end_time?: number
   duration?: number
-  tags: Record<string, any>
+  tags: Record<string, unknown>
   logs: Array<{
     timestamp: number
     level: 'info' | 'warn' | 'error'
     message: string
-    fields?: Record<string, any>
+    fields?: Record<string, unknown>
   }>
   status: 'ok' | 'error' | 'timeout'
 }
@@ -47,7 +47,7 @@ export class TracingManager {
   /**
    * Start new trace
    */
-  startTrace(operationName: string, tags: Record<string, any> = {}): string {
+  startTrace(operationName: string, tags: Record<string, unknown> = {}): string {
     const traceId = this.generateTraceId()
     const spanId = this.generateSpanId()
     
@@ -88,7 +88,7 @@ export class TracingManager {
     traceId: string, 
     operationName: string, 
     parentSpanId?: string,
-    tags: Record<string, any> = {}
+    tags: Record<string, unknown> = {}
   ): string {
     const trace = this.traces.get(traceId)
     if (!trace) {
@@ -146,7 +146,7 @@ export class TracingManager {
     spanId: string, 
     level: 'info' | 'warn' | 'error',
     message: string,
-    fields?: Record<string, any>
+    fields?: Record<string, unknown>
   ): void {
     const span = this.activeSpans.get(spanId)
     if (!span) return
@@ -162,7 +162,7 @@ export class TracingManager {
   /**
    * Add tags to span
    */
-  addSpanTags(spanId: string, tags: Record<string, any>): void {
+  addSpanTags(spanId: string, tags: Record<string, unknown>): void {
     const span = this.activeSpans.get(spanId)
     if (!span) return
 
@@ -304,7 +304,7 @@ export const tracingManager = new TracingManager()
 /**
  * Trace decorator for automatic instrumentation
  */
-export function traced(operationName: string, tags: Record<string, any> = {}) {
+export function traced(operationName: string, tags: Record<string, unknown> = {}) {
   return function(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value
 

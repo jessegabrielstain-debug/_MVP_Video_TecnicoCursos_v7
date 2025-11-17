@@ -5,7 +5,7 @@ import JSZip from 'jszip';
 jest.mock('jszip');
 jest.mock('xml2js');
 jest.mock('sharp');
-jest.mock('../../../lib/s3/storage-service');
+jest.mock('../../../lib/s3-storage');
 
 // Mock S3StorageService
 const mockS3StorageService = {

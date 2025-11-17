@@ -1,0 +1,59 @@
+[36mÔä╣´©Å 
+ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù[0m
+[36mÔä╣´©Å Ôòæ                                                                   Ôòæ[0m
+[36mÔä╣´©Å Ôòæ           ­ƒöÉ VALIDA├ç├âO DE AMBIENTE v1.0                          Ôòæ[0m
+[36mÔä╣´©Å Ôòæ                                                                   Ôòæ[0m
+[36mÔä╣´©Å ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ
+[0m
+[36mÔä╣´©Å 
+­ƒöì Validando: Vari├ível NEXT_PUBLIC_SUPABASE_URL...[0m
+[32mÔ£à Ô£à URL configurada corretamente[0m
+[36mÔä╣´©Å 
+­ƒöì Validando: Vari├ível SUPABASE_SERVICE_ROLE_KEY...[0m
+[32mÔ£à Ô£à Service role key configurada[0m
+[36mÔä╣´©Å 
+­ƒöì Validando: Vari├ível DATABASE_URL...[0m
+[32mÔ£à Ô£à DATABASE_URL configurada[0m
+[36mÔä╣´©Å 
+­ƒöì Validando: Vari├ível NEXTAUTH_SECRET...[0m
+[32mÔ£à Ô£à NEXTAUTH_SECRET configurada[0m
+[36mÔä╣´©Å 
+­ƒöì Validando: Vari├ível NEXTAUTH_URL...[0m
+[32mÔ£à Ô£à NEXTAUTH_URL configurada[0m
+[36mÔä╣´©Å 
+­ƒöì Validando: Arquivo database-schema.sql...[0m
+[32mÔ£à Ô£à Arquivo v├ílido[0m
+[36mÔä╣´©Å 
+­ƒöì Validando: Arquivo database-rls-policies.sql...[0m
+[32mÔ£à Ô£à Arquivo v├ílido[0m
+[36mÔä╣´©Å 
+­ƒöì Validando: Conex├úo com Supabase...[0m
+[32mÔ£à Ô£à Conex├úo estabelecida com sucesso[0m
+[36mÔä╣´©Å 
+­ƒöì Validando: Node.js vers├úo...[0m
+[32mÔ£à Ô£à Node.js v20.18.0 OK[0m
+[36mÔä╣´©Å 
+­ƒöì Validando: Diret├│rio node_modules...[0m
+[32mÔ£à Ô£à Depend├¬ncias instaladas[0m
+[36mÔä╣´©Å 
+ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù[0m
+[36mÔä╣´©Å Ôòæ                    ­ƒôè RELAT├ôRIO DE VALIDA├ç├âO                     Ôòæ[0m
+[36mÔä╣´©Å ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ
+[0m
+[32mÔ£à ­ƒƒó Status Geral: APROVADO[0m
+[36mÔä╣´©Å ­ƒôè Score: 100/100[0m
+[36mÔä╣´©Å ÔÅ░ Timestamp: 2025-11-13T12:58:13.482Z
+[0m
+[36mÔä╣´©Å ­ƒôï Resumo:
+[0m
+[32mÔ£à    Ô£à Aprovados: 10/10[0m
+[31mÔØî    ÔØî Reprovados (Cr├¡ticos): 0/10[0m
+[33mÔÜá´©Å    ÔÜá´©Å  Avisos (Opcionais): 0/10
+[0m
+[36mÔä╣´©Å ­ƒÆí Recomenda├º├Áes:
+[0m
+[32mÔ£à    Ô£à Ambiente completamente configurado![0m
+[32mÔ£à    Ô£à Pronto para desenvolvimento e produ├º├úo[0m
+[32mÔ£à    Ô£à Todas as valida├º├Áes passaram[0m
+[36mÔä╣´©Å 
+[0m

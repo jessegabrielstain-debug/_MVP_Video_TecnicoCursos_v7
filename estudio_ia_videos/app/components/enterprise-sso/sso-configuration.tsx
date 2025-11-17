@@ -9,9 +9,36 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+
+type SSOStatus = 'active' | 'inactive' | 'testing'
+
+interface SSOProvider {
+  id: string;
+  name: string;
+  type: string;
+  status: SSOStatus;
+  enabled?: boolean;
+  [key: string]: unknown;
+}
+
+interface TestResult {
+  success: boolean;
+  message?: string;
+  [key: string]: unknown;
+}
+
+interface AuditStats {
+  securityAlerts: Array<{
+    id: string;
+    level: string;
+    message: string;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+}
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Shield,
@@ -33,11 +60,11 @@ import {
 } from 'lucide-react';
 
 export default function SSOConfiguration() {
-  const [providers, setProviders] = useState<any[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState<any>(null);
+  const [providers, setProviders] = useState<SSOProvider[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<SSOProvider | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [testResult, setTestResult] = useState<any>(null);
-  const [auditStats, setAuditStats] = useState<any>(null);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [auditStats, setAuditStats] = useState<AuditStats | null>(null);
 
   useEffect(() => {
     loadSSOProviders();
@@ -144,16 +171,16 @@ export default function SSOConfiguration() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      active: { variant: 'default', icon: '✅', text: 'Ativo' },
-      inactive: { variant: 'secondary', icon: '⏸️', text: 'Inativo' },
-      testing: { variant: 'outline', icon: '🧪', text: 'Testando' }
-    };
+  const STATUS_CONFIG: Record<SSOStatus, { variant: NonNullable<BadgeProps['variant']>; icon: string; text: string }> = {
+    active: { variant: 'default', icon: '✅', text: 'Ativo' },
+    inactive: { variant: 'secondary', icon: '⏸️', text: 'Inativo' },
+    testing: { variant: 'outline', icon: '🧪', text: 'Testando' }
+  };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.inactive;
+  const getStatusBadge = (status: SSOStatus) => {
+    const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.inactive;
     return (
-      <Badge variant={config.variant as any}>
+      <Badge variant={config.variant}>
         {config.icon} {config.text}
       </Badge>
     );

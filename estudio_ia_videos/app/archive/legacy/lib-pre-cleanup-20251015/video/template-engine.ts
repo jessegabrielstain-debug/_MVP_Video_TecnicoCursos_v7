@@ -67,7 +67,7 @@ export interface TemplatePlaceholder {
   animation?: AnimationType;
   animationDuration?: number;
   style?: PlaceholderStyle;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -99,12 +99,12 @@ export interface VideoTemplate {
   duration: number;
   backgroundColor: string;
   placeholders: TemplatePlaceholder[];
-  variables: Record<string, any>;
+  variables: Record<string, unknown>;
   status: TemplateStatus;
   version: string;
   createdAt: Date;
   updatedAt: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -152,7 +152,7 @@ export interface RenderConfig {
   outputPath: string;
   backgroundColor?: string;
   includeAudio?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -166,7 +166,7 @@ export interface RenderResult {
   fileSize?: number;
   error?: string;
   warnings?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -260,7 +260,7 @@ export class VideoTemplateEngine extends EventEmitter {
       fps?: number;
       duration?: number;
       backgroundColor?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
   ): string {
     const templateId = `template-${this.nextTemplateId++}`;
@@ -740,8 +740,8 @@ export class VideoTemplateEngine extends EventEmitter {
   /**
    * Preenche placeholders com dados
    */
-  private fillPlaceholders(template: VideoTemplate, data: TemplateData): Record<string, any> {
-    const filled: Record<string, any> = {};
+  private fillPlaceholders(template: VideoTemplate, data: TemplateData): Record<string, unknown> {
+    const filled: Record<string, unknown> = {};
 
     template.placeholders.forEach((placeholder) => {
       let value = data[placeholder.id];

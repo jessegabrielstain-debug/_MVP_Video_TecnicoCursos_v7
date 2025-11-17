@@ -1,5 +1,9 @@
 # 🎬 MVP Video TécnicoCursos v7
 
+[![CI/CD Pipeline](https://github.com/aline-jesse/_MVP_Video_TecnicoCursos/actions/workflows/ci.yml/badge.svg)](https://github.com/aline-jesse/_MVP_Video_TecnicoCursos/actions/workflows/ci.yml)
+[![Quality](https://github.com/aline-jesse/_MVP_Video_TecnicoCursos/actions/workflows/quality.yml/badge.svg)](https://github.com/aline-jesse/_MVP_Video_TecnicoCursos/actions/workflows/quality.yml)
+[![Nightly](https://github.com/aline-jesse/_MVP_Video_TecnicoCursos/actions/workflows/nightly.yml/badge.svg)](https://github.com/aline-jesse/_MVP_Video_TecnicoCursos/actions/workflows/nightly.yml)
+
 > **Plataforma completa para geração automatizada de vídeos técnicos a partir de apresentações PowerPoint**
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
@@ -166,6 +170,15 @@ npm run build
 
 # Lint código
 npm run lint
+```
+
+### Qualidade
+```bash
+# Checagem rápida (type-check + lint + auditoria de any)
+npm run quality:check
+
+# Somente relatório de any (salva evidências/fase-1/any-report.json)
+npm run quality:report
 ```
 
 ---

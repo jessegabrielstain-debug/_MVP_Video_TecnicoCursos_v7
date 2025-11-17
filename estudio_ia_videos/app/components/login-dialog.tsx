@@ -1,8 +1,7 @@
 
 'use client'
 
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { useMemo, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -11,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Mail, Lock, User, AlertCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { createClient } from '@/lib/supabase/client'
 
 interface LoginDialogProps {
   open: boolean
@@ -18,6 +18,7 @@ interface LoginDialogProps {
 }
 
 export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
+  const supabase = useMemo(() => createClient(), [])
   const [loading, setLoading] = useState(false)
   const [loginData, setLoginData] = useState({ email: '', password: '' })
   const [signupData, setSignupData] = useState({ 
@@ -37,14 +38,13 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
     setLoading(true)
     try {
-      const result = await signIn('credentials', {
+      const { error } = await supabase.auth.signInWithPassword({
         email: loginData.email,
-        password: loginData.password,
-        redirect: false,
+        password: loginData.password
       })
 
-      if (result?.error) {
-        toast.error('Credenciais inválidas')
+      if (error) {
+        toast.error(error.message || 'Credenciais inválidas')
       } else {
         toast.success('Login realizado com sucesso!')
         onOpenChange(false)
@@ -76,17 +76,24 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
     setLoading(true)
     try {
-      // Para o MVP, simular cadastro e fazer login automaticamente
-      const result = await signIn('credentials', {
+      const { data, error } = await supabase.auth.signUp({
         email: signupData.email,
-        password: 'demo123', // Senha padrão para demo
-        redirect: false,
+        password: signupData.password,
+        options: {
+          data: {
+            name: signupData.name
+          }
+        }
       })
 
-      if (result?.error) {
-        toast.error('Erro no cadastro')
+      if (error) {
+        toast.error(error.message || 'Erro no cadastro')
       } else {
-        toast.success('Conta criada com sucesso!')
+        toast.success(
+          data.session
+            ? 'Conta criada com sucesso!'
+            : 'Conta criada! Verifique seu email para confirmar.'
+        )
         onOpenChange(false)
       }
     } catch (error) {
@@ -99,14 +106,13 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
   const handleDemoLogin = async () => {
     setLoading(true)
     try {
-      const result = await signIn('credentials', {
+      const { error } = await supabase.auth.signInWithPassword({
         email: 'demo@estudio-ia.com',
-        password: 'demo123',
-        redirect: false,
+        password: 'demo123'
       })
 
-      if (result?.error) {
-        toast.error('Erro no login demo')
+      if (error) {
+        toast.error(error.message || 'Erro no login demo')
       } else {
         toast.success('Bem-vindo à demonstração!')
         onOpenChange(false)

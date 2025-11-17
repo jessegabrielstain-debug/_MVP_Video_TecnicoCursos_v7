@@ -48,7 +48,7 @@ export default function LMSExportInterface({
   const [selectedFormat, setSelectedFormat] = useState<string>('SCORM_1_2')
   const [isExporting, setIsExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
-  const [exportResult, setExportResult] = useState<any>(null)
+  const [exportResult, setExportResult] = useState<unknown>(null)
   
   // Metadados do curso
   const [metadata, setMetadata] = useState<Partial<LMSMetadata>>({
@@ -321,7 +321,7 @@ export default function LMSExportInterface({
                 <label className="text-sm font-medium mb-2 block">Nível de Dificuldade</label>
                 <Select
                   value={metadata.difficulty || 'intermediate'}
-                  onValueChange={(value) => setMetadata({...metadata, difficulty: value as any})}
+                  onValueChange={(value) => setMetadata({...metadata, difficulty: value})}
                 >
                   <SelectTrigger>
                     <SelectValue />

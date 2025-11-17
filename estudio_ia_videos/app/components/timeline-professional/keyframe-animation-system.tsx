@@ -731,7 +731,7 @@ export default function KeyframeAnimationSystem() {
                               <label className="text-xs text-gray-400">Easing</label>
                               <Select
                                 value={keyframe.easing}
-                                onValueChange={(value: any) => 
+                                onValueChange={(value: string) => 
                                   updateKeyframe(track.id, keyframe.id, { easing: value })
                                 }
                               >

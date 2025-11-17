@@ -92,6 +92,14 @@ interface Alert {
   resolved: boolean;
 }
 
+interface HistoricalDataPoint {
+  time: string;
+  cpu: number;
+  memory: number;
+  requests: number;
+  errors: number;
+}
+
 export default function MetricsDashboard() {
   // Estados
   const [timeRange, setTimeRange] = useState('24h');
@@ -136,7 +144,7 @@ export default function MetricsDashboard() {
     userGrowth: 0
   });
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [historicalData, setHistoricalData] = useState<any[]>([]);
+  const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
 
   // Gerar dados simulados
   const generateMockData = () => {

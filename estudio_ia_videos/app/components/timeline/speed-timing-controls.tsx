@@ -35,7 +35,8 @@ import {
   RefreshCw,
   Scissors,
   Copy,
-  Move3D
+  Move3D,
+  Trash2
 } from 'lucide-react';
 
 // Interfaces para controles de velocidade e timing
@@ -124,6 +125,19 @@ interface SpeedCurve {
   bias: number;
   continuity: number;
 }
+
+const speedControlTypes: SpeedControl['type'][] = ['constant', 'ramp', 'curve', 'keyframed']
+const timecodeFormats: TimecodeSettings['format'][] = ['SMPTE', 'frames', 'seconds', 'milliseconds']
+const pulldownOptions: TimingSettings['pulldown'][] = ['2:3', '3:2', 'none']
+
+const isSpeedControlType = (value: string): value is SpeedControl['type'] =>
+  speedControlTypes.some((type) => type === value)
+
+const isTimecodeFormat = (value: string): value is TimecodeSettings['format'] =>
+  timecodeFormats.some((format) => format === value)
+
+const isPulldownOption = (value: string): value is TimingSettings['pulldown'] =>
+  pulldownOptions.some((option) => option === value)
 
 const FRAME_RATES: FrameRate[] = [
   { fps: 23.976, name: '23.976 fps (Film)', standard: 'FILM', dropFrame: false },
@@ -607,7 +621,11 @@ export function SpeedTimingControls() {
                               <Label className="text-xs">Tipo</Label>
                               <Select
                                 value={control.type}
-                                onValueChange={(value) => updateSpeedControl(control.id, { type: value as any })}
+                                onValueChange={(value) => {
+                                  if (isSpeedControlType(value)) {
+                                    updateSpeedControl(control.id, { type: value })
+                                  }
+                                }}
                               >
                                 <SelectTrigger className="bg-gray-600 border-gray-500 text-sm">
                                   <SelectValue />
@@ -698,7 +716,11 @@ export function SpeedTimingControls() {
                       <Label className="text-sm">Formato</Label>
                       <Select
                         value={timecodeSettings.format}
-                        onValueChange={(value) => setTimecodeSettings(prev => ({ ...prev, format: value as any }))}
+                        onValueChange={(value) => {
+                          if (isTimecodeFormat(value)) {
+                            setTimecodeSettings(prev => ({ ...prev, format: value }))
+                          }
+                        }}
                       >
                         <SelectTrigger className="bg-gray-600 border-gray-500">
                           <SelectValue />
@@ -1001,7 +1023,11 @@ export function SpeedTimingControls() {
                   <CardContent className="space-y-2">
                     <Select
                       value={timingSettings.pulldown}
-                      onValueChange={(value) => setTimingSettings(prev => ({ ...prev, pulldown: value as any }))}
+                      onValueChange={(value) => {
+                        if (isPulldownOption(value)) {
+                          setTimingSettings(prev => ({ ...prev, pulldown: value }))
+                        }
+                      }}
                     >
                       <SelectTrigger className="bg-gray-700 border-gray-600">
                         <SelectValue />

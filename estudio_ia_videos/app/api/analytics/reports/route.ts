@@ -1,11 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
+import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { ReportGenerator, ReportType } from '@/lib/analytics/report-generator';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 
+// Type-safe helper extraindo organizationId
+const getOrgId = (user: unknown): string | undefined => {
+  const u = user as { currentOrgId?: string; organizationId?: string };
+  return u.currentOrgId || u.organizationId || undefined;
+};
+
+// Type-safe helper verificando admin
+const isAdmin = (user: unknown): boolean => {
+  return ((user as { isAdmin?: boolean }).isAdmin) === true;
+};
+// Type-safe helper extraindo organizationId
+const getOrgId = (user: unknown): string | undefined => {
+  const u = user as { currentOrgId?: string; organizationId?: string };
+  return u.currentOrgId || u.organizationId || undefined;
+};
+
+// Type-safe helper verificando admin
+const isAdmin = (user: unknown): boolean => {
+  return ((user as { isAdmin?: boolean }).isAdmin) === true;
+};
 /**
  * GET /api/analytics/reports
  * Lista relatórios disponíveis ou gera um relatório específico
@@ -32,7 +53,7 @@ async function getHandler(req: NextRequest) {
     const format = searchParams.get('format') || 'json';
     const dateParam = searchParams.get('date');
     const generate = searchParams.get('generate') === 'true';
-    const organizationId = (session.user as any)?.currentOrgId;
+    const organizationId = getOrgId(session.user);
 
     // Se não especificar tipo, listar relatórios disponíveis
     if (!type) {
@@ -106,7 +127,7 @@ async function getHandler(req: NextRequest) {
       });
 
       if (existingReport && existingReport.metadata) {
-        const cachedData = existingReport.metadata as any;
+        const cachedData = existingReport.metadata as Record<string, unknown>;
         
         if (format === 'html') {
           const htmlContent = await reportGenerator.generateHTMLReport(cachedData);
@@ -231,7 +252,7 @@ async function postHandler(req: NextRequest) {
       );
     }
 
-    const organizationId = (session.user as any)?.currentOrgId;
+    const organizationId = getOrgId(session.user);
     const reportGenerator = new ReportGenerator();
 
     if (autoGenerate) {
@@ -343,7 +364,7 @@ async function deleteHandler(req: NextRequest) {
       );
     }
 
-    const organizationId = (session.user as any)?.currentOrgId;
+    const organizationId = getOrgId(session.user);
 
     if (reportId) {
       // Remover relatório específico

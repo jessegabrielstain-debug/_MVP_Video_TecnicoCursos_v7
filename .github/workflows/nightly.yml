@@ -1,0 +1,94 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 5 * * *' # 05:00 UTC (~02:00 BRT)
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Nightly Quality (typecheck/lint/any)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Type-check
+        run: npm run type-check
+      - name: Lint
+        run: npm run lint
+      - name: Any audit (fail on findings)
+        run: npm run quality:any
+      - name: Upload any-report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-any-report
+          path: evidencias/fase-1/any-report.json
+          if-no-files-found: warn
+
+  tests:
+    name: Nightly Tests (matrix)
+    runs-on: ubuntu-latest
+    needs: [quality]
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [contract, pptx]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install root dependencies
+        run: npm ci
+      - name: Run API Contract tests
+        if: matrix.suite == 'contract'
+        run: npm run test:contract
+        env:
+          CI: true
+      - name: Upload contract suite evidence
+        if: always() && matrix.suite == 'contract'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-contract-suite-result
+          path: |
+            evidencias/fase-2/contract-suite-result.json
+            evidencias/fase-2/contract-report.md
+          if-no-files-found: warn
+      - name: Install app dependencies (Jest)
+        if: matrix.suite == 'pptx'
+        run: npm ci --prefix ./estudio_ia_videos/app
+      - name: Run PPTX Jest suite
+        if: matrix.suite == 'pptx'
+        run: npm run test:suite:pptx
+        env:
+          CI: true
+      - name: Upload PPTX suite evidence
+        if: always() && matrix.suite == 'pptx'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-pptx-suite-result
+          path: |
+            evidencias/fase-2/pptx-suite-result.json
+            evidencias/fase-2/pptx-tests-results.md
+            evidencias/fase-2/cobertura.md
+          if-no-files-found: warn
+      - name: Upload coverage (app)
+        if: always() && matrix.suite == 'pptx'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-jest-coverage-app
+          path: estudio_ia_videos/app/coverage
+          if-no-files-found: warn

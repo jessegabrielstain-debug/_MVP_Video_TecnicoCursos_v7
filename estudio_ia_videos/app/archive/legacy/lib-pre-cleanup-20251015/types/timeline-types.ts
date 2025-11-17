@@ -68,7 +68,7 @@ export interface TimelineElement {
   // Source data
   sourceUrl?: string
   sourceType?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface TimelineLayer {
@@ -230,7 +230,7 @@ export interface PPTXAnimation {
   startTime: number
   duration: number
   target: string // CSS selector ou element ID
-  properties: Record<string, any>
+  properties: Record<string, unknown>
   easing: string
 }
 

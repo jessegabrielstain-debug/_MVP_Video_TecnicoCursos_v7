@@ -32,14 +32,19 @@
   },
   "include": [
     "next-env.d.ts",
-    "app/app/**/*.ts",
-    "app/app/**/*.tsx",
-    "app/lib/**/*.ts",
-    "app/lib/**/*.tsx",
-    "app/types/**/*.ts",
-    "app/types/**/*.tsx",
-    ".next/types/**/*.ts",
-    ".build/types/**/*.ts"
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "hooks/**/*.ts",
+    "hooks/**/*.tsx",
+    "types/**/*.ts",
+    "types/**/*.tsx",
+    "editor/**/*.ts",
+    "editor/**/*.tsx",
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

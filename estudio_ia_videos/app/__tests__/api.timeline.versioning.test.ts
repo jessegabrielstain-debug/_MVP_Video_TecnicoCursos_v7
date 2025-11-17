@@ -112,9 +112,14 @@ jest.mock('@/lib/analytics/analytics-tracker', () => ({
   AnalyticsTracker: { trackTimelineEdit: jest.fn().mockResolvedValue(true) } 
 }))
 
-function makeRequest(method: string, url: string, body?: any) {
-  const init: any = { method, headers: { 'content-type': 'application/json' } }
-  if (body) init.body = JSON.stringify(body)
+function makeRequest(method: string, url: string, body?: unknown): NextRequest {
+  const headers: HeadersInit = { 'content-type': 'application/json' }
+  const init: RequestInit = { method, headers }
+
+  if (body !== undefined) {
+    init.body = JSON.stringify(body)
+  }
+
   return new NextRequest(new URL(url, 'http://localhost').toString(), init)
 }
 
@@ -125,7 +130,7 @@ describe('API timeline versioning', () => {
 
   describe('History', () => {
     it('retorna 400 sem projectId', async () => {
-      const req = makeRequest('GET', '/api/v1/timeline/multi-track/history') as any
+      const req = makeRequest('GET', '/api/v1/timeline/multi-track/history')
       const res = await historyRoute.GET(req)
       expect(res.status).toBe(400)
       const json = await res.json()
@@ -133,7 +138,7 @@ describe('API timeline versioning', () => {
     })
 
     it('retorna histórico de versões', async () => {
-      const req = makeRequest('GET', '/api/v1/timeline/multi-track/history?projectId=p1') as any
+      const req = makeRequest('GET', '/api/v1/timeline/multi-track/history?projectId=p1')
       const res = await historyRoute.GET(req)
       const json = await res.json()
       expect(res.status).toBe(200)
@@ -161,7 +166,7 @@ describe('API timeline versioning', () => {
         }
       ])
       
-      const req = makeRequest('GET', '/api/v1/timeline/multi-track/history?projectId=p1&limit=1&offset=0') as any
+      const req = makeRequest('GET', '/api/v1/timeline/multi-track/history?projectId=p1&limit=1&offset=0')
       const res = await historyRoute.GET(req)
       const json = await res.json()
       expect(res.status).toBe(200)
@@ -174,7 +179,7 @@ describe('API timeline versioning', () => {
     it('retorna 400 sem projectId', async () => {
       const req = makeRequest('POST', '/api/v1/timeline/multi-track/snapshot', {
         description: 'Test snapshot'
-      }) as any
+      })
       const res = await snapshotRoute.POST(req)
       expect(res.status).toBe(400)
       const json = await res.json()
@@ -185,7 +190,7 @@ describe('API timeline versioning', () => {
       const req = makeRequest('POST', '/api/v1/timeline/multi-track/snapshot', {
         projectId: 'p1',
         description: 'Snapshot de teste'
-      }) as any
+      })
       const res = await snapshotRoute.POST(req)
       const json = await res.json()
       expect(res.status).toBe(200)
@@ -199,7 +204,7 @@ describe('API timeline versioning', () => {
     it('cria snapshot com descrição padrão', async () => {
       const req = makeRequest('POST', '/api/v1/timeline/multi-track/snapshot', {
         projectId: 'p1'
-      }) as any
+      })
       const res = await snapshotRoute.POST(req)
       const json = await res.json()
       expect(res.status).toBe(200)
@@ -212,7 +217,7 @@ describe('API timeline versioning', () => {
     it('retorna 400 sem snapshotId', async () => {
       const req = makeRequest('POST', '/api/v1/timeline/multi-track/restore', {
         projectId: 'p1'
-      }) as any
+      })
       const res = await restoreRoute.POST(req)
       expect(res.status).toBe(400)
       const json = await res.json()
@@ -224,7 +229,7 @@ describe('API timeline versioning', () => {
       const req = makeRequest('POST', '/api/v1/timeline/multi-track/restore', {
         snapshotId: 's1',
         projectId: 'p1'
-      }) as any
+      })
       const res = await restoreRoute.POST(req)
       const json = await res.json()
       expect(res.status).toBe(200)
@@ -240,7 +245,7 @@ describe('API timeline versioning', () => {
       
       const req = makeRequest('POST', '/api/v1/timeline/multi-track/restore', {
         snapshotId: 's1'
-      }) as any
+      })
       const res = await restoreRoute.POST(req)
       const json = await res.json()
       
@@ -252,7 +257,7 @@ describe('API timeline versioning', () => {
     it('retorna 404 para snapshot inexistente', async () => {
       const req = makeRequest('POST', '/api/v1/timeline/multi-track/restore', {
         snapshotId: 's999'
-      }) as any
+      })
       const res = await restoreRoute.POST(req)
       expect(res.status).toBe(404)
       const json = await res.json()

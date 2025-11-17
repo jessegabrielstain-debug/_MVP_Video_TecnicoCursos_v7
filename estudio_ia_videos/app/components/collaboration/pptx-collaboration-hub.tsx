@@ -213,8 +213,13 @@ export default function PPTXCollaborationHub({
   const [newComment, setNewComment] = useState('')
   const [mentionQuery, setMentionQuery] = useState('')
   const [showInviteDialog, setShowInviteDialog] = useState(false)
+  const INVITE_ROLES = ['viewer', 'commenter', 'editor'] as const
+  type InviteRole = (typeof INVITE_ROLES)[number]
+  const isInviteRole = (value: string): value is InviteRole =>
+    INVITE_ROLES.includes(value as InviteRole)
+
   const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState<'editor' | 'viewer' | 'commenter'>('viewer')
+  const [inviteRole, setInviteRole] = useState<InviteRole>('viewer')
 
   // Voice/Video state
   const [voiceEnabled, setVoiceEnabled] = useState(false)
@@ -463,7 +468,13 @@ export default function PPTXCollaborationHub({
                     <select 
                       className="w-full mt-1 p-2 border rounded"
                       value={inviteRole}
-                      onChange={(e) => setInviteRole(e.target.value as any)}
+                      onChange={(e) => {
+                        const { value } = e.target
+                        if (!isInviteRole(value)) {
+                          return
+                        }
+                        setInviteRole(value)
+                      }}
                     >
                       <option value="viewer">Visualizar</option>
                       <option value="commenter">Comentar</option>

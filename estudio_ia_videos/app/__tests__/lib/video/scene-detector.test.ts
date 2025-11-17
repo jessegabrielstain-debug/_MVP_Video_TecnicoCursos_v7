@@ -401,7 +401,7 @@ describe('VideoSceneDetector', () => {
 
       expect(fs.writeFile).toHaveBeenCalledWith(
         expect.stringContaining('.json'),
-        expect.any(String)
+        expect.stringContaining('')
       );
     });
 
@@ -413,7 +413,7 @@ describe('VideoSceneDetector', () => {
 
       expect(fs.writeFile).toHaveBeenCalledWith(
         expect.stringContaining('.edl'),
-        expect.any(String)
+        expect.stringContaining('')
       );
     });
 

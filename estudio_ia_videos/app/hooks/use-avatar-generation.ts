@@ -82,8 +82,8 @@ export function useAvatarGeneration(): UseAvatarGenerationReturn {
           setError(data.job.error || 'Erro desconhecido');
         }
       }
-    } catch (err: any) {
-      console.error('Erro ao fazer polling:', err);
+    } catch (err) {
+      console.error('Erro ao fazer polling:', err instanceof Error ? err.message : String(err));
     }
   }, [pollingInterval]);
 
@@ -128,11 +128,12 @@ export function useAvatarGeneration(): UseAvatarGenerationReturn {
       // Poll imediatamente uma vez
       pollJobStatus(data.job.id);
 
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
       console.error('Erro ao gerar avatar:', err);
-      setError(err.message);
+      setError(errorMessage);
       setIsGenerating(false);
-      toast.error(err.message, { id: 'avatar-gen' });
+      toast.error(errorMessage, { id: 'avatar-gen' });
     }
   }, [pollJobStatus]);
 

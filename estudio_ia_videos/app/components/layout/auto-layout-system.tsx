@@ -159,6 +159,13 @@ export default function AutoLayoutSystem() {
   const [currentElements, setCurrentElements] = useState<LayoutElement[]>([])
   const [previewMode, setPreviewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
 
+  const alignmentOptions: LayoutSettings['alignment'][] = ['left', 'center', 'right', 'justify']
+  const colorSchemeOptions: LayoutSettings['colorScheme'][] = ['corporate', 'creative', 'minimal', 'vibrant']
+
+  const isAlignmentValue = (value: string): value is LayoutSettings['alignment'] => {
+    return alignmentOptions.some(option => option === value)
+  }
+
   const generateAILayout = async () => {
     setIsGenerating(true)
     toast.info('Gerando layout otimizado com IA...')
@@ -518,7 +525,12 @@ export default function AutoLayoutSystem() {
                   <Label>Alinhamento</Label>
                   <select
                     value={layoutSettings.alignment}
-                    onChange={(e) => setLayoutSettings(prev => ({ ...prev, alignment: e.target.value as any }))}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (isAlignmentValue(value)) {
+                        setLayoutSettings(prev => ({ ...prev, alignment: value }))
+                      }
+                    }}
                     className="w-full p-2 border rounded-md bg-background"
                   >
                     <option value="left">Esquerda</option>
@@ -569,12 +581,12 @@ export default function AutoLayoutSystem() {
                 <div className="space-y-2">
                   <Label>Esquema de Cores</Label>
                   <div className="grid grid-cols-2 gap-2">
-                    {['corporate', 'creative', 'minimal', 'vibrant'].map((scheme) => (
+                    {colorSchemeOptions.map((scheme) => (
                       <Button
                         key={scheme}
                         variant={layoutSettings.colorScheme === scheme ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => setLayoutSettings(prev => ({ ...prev, colorScheme: scheme as any }))}
+                        onClick={() => setLayoutSettings(prev => ({ ...prev, colorScheme: scheme }))}
                         className="capitalize"
                       >
                         {scheme}

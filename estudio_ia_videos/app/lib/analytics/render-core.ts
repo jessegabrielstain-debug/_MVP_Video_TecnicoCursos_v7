@@ -2,6 +2,8 @@
  * Core puro de métricas de render para facilitar testes unitários.
  */
 
+import type { RenderJobSettings } from '../queue/setup'
+
 export interface BasicRenderJob {
   id: string
   status: string
@@ -9,7 +11,7 @@ export interface BasicRenderJob {
   started_at: string | null
   completed_at: string | null
   error_message: string | null
-  render_settings?: any
+  render_settings?: RenderJobSettings | null
 }
 
 export interface BasicStatsResult {
@@ -73,9 +75,9 @@ export function computePerformanceMetrics(jobs: BasicRenderJob[]): PerformanceMe
   const resolutionCounts: Record<string, number> = {}
   const formatCounts: Record<string, number> = {}
   for (const j of completed) {
-    const settings = j.render_settings || {}
-    const res = settings?.resolution || 'unknown'
-    const fmt = settings?.format || 'unknown'
+    const settings = j.render_settings
+    const res = settings?.resolution ?? 'unknown'
+    const fmt = settings?.format ?? 'unknown'
     resolutionCounts[res] = (resolutionCounts[res] || 0) + 1
     formatCounts[fmt] = (formatCounts[fmt] || 0) + 1
   }
@@ -163,7 +165,7 @@ export interface QueueStatsResult {
 }
 
 export function computeQueueStats(jobs: BasicRenderJob[]): QueueStatsResult {
-  const pending = jobs.filter(j => j.status === 'pending')
+  const pending = jobs.filter(j => j.status === 'queued')
   const processing = jobs.filter(j => j.status === 'processing')
   const started = jobs.filter(j => j.started_at)
   const waits = started.map(j => {

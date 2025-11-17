@@ -191,6 +191,20 @@ const NotificationItem: React.FC<{
 // COMPONENTE PRINCIPAL
 // ============================================================================
 
+const filterOptions: Array<NotificationType | 'all'> = [
+  'all',
+  'render_complete',
+  'render_failed',
+  'comment',
+  'mention',
+  'share',
+  'system'
+]
+
+const isNotificationFilter = (value: string): value is NotificationType | 'all' => {
+  return filterOptions.includes(value as NotificationType | 'all')
+}
+
 export default function NotificationsCenter() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isOpen, setIsOpen] = useState(false)
@@ -386,7 +400,12 @@ export default function NotificationsCenter() {
               <div className="flex items-center justify-between">
                 <select
                   value={filter}
-                  onChange={(e) => setFilter(e.target.value as any)}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (isNotificationFilter(value)) {
+                      setFilter(value)
+                    }
+                  }}
                   className="text-sm border rounded px-2 py-1"
                 >
                   <option value="all">Todas</option>

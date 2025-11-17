@@ -39,8 +39,9 @@ export function useNRStandards(): UseNRStandardsReturn {
 
       const data = await response.json();
       setStandards(data.standards || []);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage);
       console.error('Erro ao buscar normas:', err);
     } finally {
       setLoading(false);

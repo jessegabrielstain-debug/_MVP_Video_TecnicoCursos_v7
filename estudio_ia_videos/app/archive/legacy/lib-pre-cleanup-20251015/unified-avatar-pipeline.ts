@@ -80,7 +80,7 @@ interface RenderJob {
   input: {
     text: string
     config: UnifiedPipelineConfig
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   }
   
   // Resultados intermediários
@@ -224,7 +224,7 @@ export class UnifiedAvatarPipeline {
   async createRenderJob(
     text: string,
     config: Partial<UnifiedPipelineConfig> = {},
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<string> {
     const jobId = this.generateJobId()
     const fullConfig = this.mergeConfig(config)

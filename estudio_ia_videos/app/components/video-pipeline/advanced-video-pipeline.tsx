@@ -599,7 +599,7 @@ const AdvancedVideoPipeline: React.FC = () => {
                   </label>
                   <Select 
                     value={pipelineSettings.quality_preset} 
-                    onValueChange={(value: any) => 
+                    onValueChange={(value: string) => 
                       setPipelineSettings(prev => ({ ...prev, quality_preset: value }))
                     }
                   >

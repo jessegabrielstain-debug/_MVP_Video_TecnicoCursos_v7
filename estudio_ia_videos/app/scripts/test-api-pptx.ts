@@ -1,9 +1,15 @@
 // 🧪 Teste da API PPTX
 // Teste completo via HTTP da API de processamento PPTX
 
-import fs from 'fs'
-import path from 'path'
 import PptxGenJS from 'pptxgenjs'
+
+interface ProcessedSlidePreview {
+  slideNumber: number
+  title: string
+  content?: string
+  images?: unknown[]
+  duration?: number
+}
 
 async function testPPTXAPI() {
   console.log('🧪 TESTANDO API PPTX VIA HTTP')
@@ -69,7 +75,7 @@ async function testPPTXAPI() {
       
       if (result.slidesData && result.slidesData.length > 0) {
         console.log('\n📄 SLIDES PROCESSADOS:')
-        result.slidesData.forEach((slide: any, index: number) => {
+        result.slidesData.forEach((slide: ProcessedSlidePreview, index: number) => {
           console.log(`\nSlide ${slide.slideNumber}:`)
           console.log(`  Título: ${slide.title}`)
           console.log(`  Conteúdo: ${slide.content?.substring(0, 50)}...`)

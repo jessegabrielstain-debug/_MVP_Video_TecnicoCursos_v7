@@ -1,0 +1,98 @@
+{
+  "command": "npm run test:contract",
+  "executed_at": "2025-11-15T01:09:49.277Z",
+  "totals": {
+    "total": 12,
+    "passed": 10,
+    "skipped": 1,
+    "failed": 1
+  },
+  "results": [
+    {
+      "name": "video-jobs",
+      "description": "Validação do payload de criação de vídeo",
+      "status": "ok",
+      "durationMs": 465,
+      "output": "[contract] video-jobs: OK"
+    },
+    {
+      "name": "video-jobs-query",
+      "description": "Consultas e filtros",
+      "status": "ok",
+      "durationMs": 367,
+      "output": "[contract] video-jobs-query: OK"
+    },
+    {
+      "name": "video-jobs-cancel",
+      "description": "Cancelamento de jobs",
+      "status": "ok",
+      "durationMs": 351,
+      "output": "[contract] video-jobs-cancel: OK"
+    },
+    {
+      "name": "video-jobs-progress",
+      "description": "Atualização de progresso",
+      "status": "ok",
+      "durationMs": 393,
+      "output": "[contract] video-jobs-progress: OK"
+    },
+    {
+      "name": "video-jobs-requeue",
+      "description": "Reenfileirar jobs",
+      "status": "ok",
+      "durationMs": 375,
+      "output": "[contract] video-jobs-requeue: OK"
+    },
+    {
+      "name": "video-jobs-id",
+      "description": "Busca por ID",
+      "status": "ok",
+      "durationMs": 359,
+      "output": "[contract] video-jobs-id: OK"
+    },
+    {
+      "name": "video-jobs-status",
+      "description": "Consulta de status",
+      "status": "ok",
+      "durationMs": 278,
+      "output": "[contract] video-jobs-status: OK"
+    },
+    {
+      "name": "video-jobs-response",
+      "description": "Estrutura da resposta",
+      "status": "ok",
+      "durationMs": 296,
+      "output": "[contract] video-jobs-response: OK"
+    },
+    {
+      "name": "video-jobs-stats",
+      "description": "Estatísticas agregadas (requer servidor)",
+      "status": "ok",
+      "durationMs": 9467,
+      "output": "[contract] video-jobs-stats: OK"
+    },
+    {
+      "name": "video-jobs-list-cache",
+      "description": "Cache de listagem (requer servidor)",
+      "status": "ok",
+      "durationMs": 8349,
+      "output": "[contract] video-jobs-list-cache: OK"
+    },
+    {
+      "name": "video-jobs-rate-limit",
+      "description": "Rate limiting (requer servidor)",
+      "status": "fail",
+      "durationMs": 101169,
+      "output": "[contract] video-jobs-rate-limit: FAIL did not hit rate limit in 31 requests (limit should be 30)"
+    },
+    {
+      "name": "video-jobs-metrics",
+      "description": "Métricas detalhadas (requer servidor)",
+      "status": "skip",
+      "durationMs": 2862,
+      "output": "[contract] video-jobs-metrics: SKIP (no auth token)"
+    }
+  ],
+  "base_url": "http://127.0.0.1:3320",
+  "server_started": true
+}

@@ -36,7 +36,7 @@ export interface LogEntry {
   message: string;
   context?: string; // Contexto da aplicação (auth, render, upload, etc)
   correlationId?: string; // ID para rastrear operação completa
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   error?: {
     name: string;
     message: string;
@@ -208,28 +208,28 @@ export class LoggingSystem {
   /**
    * Log trace (menor nível)
    */
-  public trace(message: string, metadata?: Record<string, any>, context?: string): void {
+  public trace(message: string, metadata?: Record<string, unknown>, context?: string): void {
     this.log('trace', message, metadata, context);
   }
 
   /**
    * Log debug
    */
-  public debug(message: string, metadata?: Record<string, any>, context?: string): void {
+  public debug(message: string, metadata?: Record<string, unknown>, context?: string): void {
     this.log('debug', message, metadata, context);
   }
 
   /**
    * Log info
    */
-  public info(message: string, metadata?: Record<string, any>, context?: string): void {
+  public info(message: string, metadata?: Record<string, unknown>, context?: string): void {
     this.log('info', message, metadata, context);
   }
 
   /**
    * Log warning
    */
-  public warn(message: string, metadata?: Record<string, any>, context?: string): void {
+  public warn(message: string, metadata?: Record<string, unknown>, context?: string): void {
     this.log('warn', message, metadata, context);
     this.stats.warnings++;
   }
@@ -237,7 +237,7 @@ export class LoggingSystem {
   /**
    * Log error
    */
-  public error(message: string, error?: Error, metadata?: Record<string, any>, context?: string): void {
+  public error(message: string, error?: Error, metadata?: Record<string, unknown>, context?: string): void {
     const entry: Partial<LogEntry> = { metadata, context };
     
     if (error) {
@@ -261,7 +261,7 @@ export class LoggingSystem {
   /**
    * Log fatal (maior nível)
    */
-  public fatal(message: string, error?: Error, metadata?: Record<string, any>, context?: string): void {
+  public fatal(message: string, error?: Error, metadata?: Record<string, unknown>, context?: string): void {
     const entry: Partial<LogEntry> = { metadata, context };
     
     if (error) {
@@ -287,7 +287,7 @@ export class LoggingSystem {
   private async log(
     level: LogLevel,
     message: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
     context?: string,
     error?: LogEntry['error']
   ): Promise<void> {
@@ -681,27 +681,27 @@ export class ContextLogger {
     private context: string
   ) {}
 
-  trace(message: string, metadata?: Record<string, any>): void {
+  trace(message: string, metadata?: Record<string, unknown>): void {
     this.logger.trace(message, metadata, this.context);
   }
 
-  debug(message: string, metadata?: Record<string, any>): void {
+  debug(message: string, metadata?: Record<string, unknown>): void {
     this.logger.debug(message, metadata, this.context);
   }
 
-  info(message: string, metadata?: Record<string, any>): void {
+  info(message: string, metadata?: Record<string, unknown>): void {
     this.logger.info(message, metadata, this.context);
   }
 
-  warn(message: string, metadata?: Record<string, any>): void {
+  warn(message: string, metadata?: Record<string, unknown>): void {
     this.logger.warn(message, metadata, this.context);
   }
 
-  error(message: string, error?: Error, metadata?: Record<string, any>): void {
+  error(message: string, error?: Error, metadata?: Record<string, unknown>): void {
     this.logger.error(message, error, metadata, this.context);
   }
 
-  fatal(message: string, error?: Error, metadata?: Record<string, any>): void {
+  fatal(message: string, error?: Error, metadata?: Record<string, unknown>): void {
     this.logger.fatal(message, error, metadata, this.context);
   }
 }
@@ -716,34 +716,34 @@ export class CorrelatedLogger {
     public readonly correlationId: string
   ) {}
 
-  private addCorrelation(metadata?: Record<string, any>): Record<string, any> {
+  private addCorrelation(metadata?: Record<string, unknown>): Record<string, unknown> {
     return {
       ...metadata,
       correlationId: this.correlationId
     };
   }
 
-  trace(message: string, metadata?: Record<string, any>, context?: string): void {
+  trace(message: string, metadata?: Record<string, unknown>, context?: string): void {
     this.logger.trace(message, this.addCorrelation(metadata), context);
   }
 
-  debug(message: string, metadata?: Record<string, any>, context?: string): void {
+  debug(message: string, metadata?: Record<string, unknown>, context?: string): void {
     this.logger.debug(message, this.addCorrelation(metadata), context);
   }
 
-  info(message: string, metadata?: Record<string, any>, context?: string): void {
+  info(message: string, metadata?: Record<string, unknown>, context?: string): void {
     this.logger.info(message, this.addCorrelation(metadata), context);
   }
 
-  warn(message: string, metadata?: Record<string, any>, context?: string): void {
+  warn(message: string, metadata?: Record<string, unknown>, context?: string): void {
     this.logger.warn(message, this.addCorrelation(metadata), context);
   }
 
-  error(message: string, error?: Error, metadata?: Record<string, any>, context?: string): void {
+  error(message: string, error?: Error, metadata?: Record<string, unknown>, context?: string): void {
     this.logger.error(message, error, this.addCorrelation(metadata), context);
   }
 
-  fatal(message: string, error?: Error, metadata?: Record<string, any>, context?: string): void {
+  fatal(message: string, error?: Error, metadata?: Record<string, unknown>, context?: string): void {
     this.logger.fatal(message, error, this.addCorrelation(metadata), context);
   }
 }

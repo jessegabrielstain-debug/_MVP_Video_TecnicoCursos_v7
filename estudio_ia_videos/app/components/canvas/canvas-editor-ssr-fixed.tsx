@@ -72,7 +72,7 @@ export default function CanvasEditorSSRFixed({
 }: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [canvas, setCanvas] = useState<any>(null)
+  const [canvas, setCanvas] = useState<unknown>(null)
   const [isClient, setIsClient] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isMobile, setIsMobile] = useState(false)

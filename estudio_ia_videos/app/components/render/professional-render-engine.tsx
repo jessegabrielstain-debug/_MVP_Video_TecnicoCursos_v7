@@ -315,7 +315,7 @@ export default function ProfessionalRenderEngine() {
                 <Label>Qualidade e Resolução</Label>
                 <Select
                   value={renderSettings.quality}
-                  onValueChange={(value: any) => 
+                  onValueChange={(value: string) => 
                     setRenderSettings(prev => ({ ...prev, quality: value }))
                   }
                 >
@@ -338,7 +338,7 @@ export default function ProfessionalRenderEngine() {
                 <Label>Formato de Vídeo</Label>
                 <Select
                   value={renderSettings.format}
-                  onValueChange={(value: any) => 
+                  onValueChange={(value: string) => 
                     setRenderSettings(prev => ({ ...prev, format: value }))
                   }
                 >
@@ -359,7 +359,7 @@ export default function ProfessionalRenderEngine() {
                 <Label>Codec de Vídeo</Label>
                 <Select
                   value={renderSettings.codec}
-                  onValueChange={(value: any) => 
+                  onValueChange={(value: string) => 
                     setRenderSettings(prev => ({ ...prev, codec: value }))
                   }
                 >

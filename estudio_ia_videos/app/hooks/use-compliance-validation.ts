@@ -81,10 +81,11 @@ export function useComplianceValidation(): UseComplianceValidationReturn {
 
       return data.result;
 
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
       console.error('Erro ao validar compliance:', err);
-      setError(err.message);
-      toast.error(err.message, { id: 'compliance-validation' });
+      setError(errorMessage);
+      toast.error(errorMessage, { id: 'compliance-validation' });
       return null;
     } finally {
       setIsValidating(false);

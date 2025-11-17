@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { WYSIWYGEditor } from '@/components/editor/wysiwyg-editor';
+import { WYSIWYGEditor, type WysiwygProjectSnapshot, type ExportFormat } from '@/components/editor/wysiwyg-editor';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,18 +37,18 @@ import { toast } from 'sonner';
 
 export default function EditorWYSIWYGPage() {
   const router = useRouter();
-  const [projectData, setProjectData] = useState(null);
+  const [projectData, setProjectData] = useState<WysiwygProjectSnapshot | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [activeView, setActiveView] = useState('editor');
 
-  const handleSave = useCallback((data: any) => {
+  const handleSave = useCallback((data: WysiwygProjectSnapshot) => {
     setProjectData(data);
     toast.success('Projeto salvo com sucesso!');
     console.log('Saving project data:', data);
   }, []);
 
-  const handleExport = useCallback((format: string) => {
+  const handleExport = useCallback((format: ExportFormat) => {
     toast.success(`Projeto exportado em formato ${format.toUpperCase()}!`);
     console.log('Exporting project in format:', format);
   }, []);

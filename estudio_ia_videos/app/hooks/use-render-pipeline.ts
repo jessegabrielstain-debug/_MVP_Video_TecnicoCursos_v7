@@ -5,11 +5,12 @@
 
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import useSWR from 'swr'
 import { useWebSocket } from './use-websocket'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
 
 // Types and Interfaces
 export interface RenderJob {
@@ -19,7 +20,7 @@ export interface RenderJob {
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
   priority: 'low' | 'normal' | 'high' | 'urgent'
   type: 'video' | 'audio' | 'image' | 'animation' | 'composite'
-  input_data: Record<string, any>
+  input_data: Record<string, unknown>
   output_url?: string
   progress: number
   estimated_duration?: number
@@ -125,7 +126,8 @@ const fetcher = async (url: string) => {
 }
 
 export function useRenderPipeline() {
-  const { data: session } = useSession()
+  const supabase = useMemo(() => createClient(), [])
+  const [user, setUser] = useState<User | null>(null)
   const [filters, setFilters] = useState<RenderFilters>({})
   const [settings, setSettings] = useState<RenderSettings>({
     auto_retry: true,
@@ -145,7 +147,7 @@ export function useRenderPipeline() {
   })
 
   // Build query parameters
-  const buildQueryParams = useCallback((additionalParams: Record<string, any> = {}) => {
+  const buildQueryParams = useCallback((additionalParams: Record<string, unknown> = {}) => {
     const params = new URLSearchParams()
     
     if (filters.status?.length) {
@@ -184,7 +186,7 @@ export function useRenderPipeline() {
     mutate: mutateQueue,
     isLoading: isLoadingQueue 
   } = useSWR<RenderQueue>(
-    session ? `/api/render/queue?${buildQueryParams()}` : null,
+    user ? `/api/render/queue?${buildQueryParams()}` : null,
     fetcher,
     {
       refreshInterval: 5000, // Refresh every 5 seconds
@@ -198,7 +200,7 @@ export function useRenderPipeline() {
     mutate: mutateStats,
     isLoading: isLoadingStats 
   } = useSWR<RenderStats>(
-    session ? `/api/render/stats?${buildQueryParams()}` : null,
+    user ? `/api/render/stats?${buildQueryParams()}` : null,
     fetcher,
     {
       refreshInterval: 30000, // Refresh every 30 seconds
@@ -211,9 +213,35 @@ export function useRenderPipeline() {
     error: settingsError, 
     mutate: mutateSettings 
   } = useSWR<RenderSettings>(
-    session ? '/api/render/settings' : null,
+    user ? '/api/render/settings' : null,
     fetcher
   )
+  useEffect(() => {
+    let isMounted = true
+
+    const loadUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        setUser(data.user ?? null)
+      } catch (error) {
+        console.error('[RenderPipeline] Falha ao carregar usuário:', error)
+      }
+    }
+
+    void loadUser()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
+
 
   // WebSocket for real-time updates
   const { isConnected, sendMessage } = useWebSocket({

@@ -525,7 +525,7 @@ export default function AdvancedRenderStudio() {
                     <Label>Resolução</Label>
                     <Select 
                       value={renderSettings.resolution} 
-                      onValueChange={(value: any) => setRenderSettings(prev => ({ ...prev, resolution: value }))}
+                      onValueChange={(value: string) => setRenderSettings(prev => ({ ...prev, resolution: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -543,7 +543,7 @@ export default function AdvancedRenderStudio() {
                     <Label>Formato</Label>
                     <Select 
                       value={renderSettings.format} 
-                      onValueChange={(value: any) => setRenderSettings(prev => ({ ...prev, format: value }))}
+                      onValueChange={(value: string) => setRenderSettings(prev => ({ ...prev, format: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -561,7 +561,7 @@ export default function AdvancedRenderStudio() {
                     <Label>Qualidade</Label>
                     <Select 
                       value={renderSettings.quality} 
-                      onValueChange={(value: any) => setRenderSettings(prev => ({ ...prev, quality: value }))}
+                      onValueChange={(value: string) => setRenderSettings(prev => ({ ...prev, quality: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -609,7 +609,7 @@ export default function AdvancedRenderStudio() {
                     <Label>Avatar Apresentador</Label>
                     <Select 
                       value={renderSettings.avatarId} 
-                      onValueChange={(value: any) => setRenderSettings(prev => ({ ...prev, avatarId: value }))}
+                      onValueChange={(value: string) => setRenderSettings(prev => ({ ...prev, avatarId: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -632,7 +632,7 @@ export default function AdvancedRenderStudio() {
                     <Label>Voz para Narração</Label>
                     <Select 
                       value={renderSettings.voiceId} 
-                      onValueChange={(value: any) => setRenderSettings(prev => ({ ...prev, voiceId: value }))}
+                      onValueChange={(value: string) => setRenderSettings(prev => ({ ...prev, voiceId: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -657,7 +657,7 @@ export default function AdvancedRenderStudio() {
                     <Label>Cenário</Label>
                     <Select 
                       value={renderSettings.background} 
-                      onValueChange={(value: any) => setRenderSettings(prev => ({ ...prev, background: value }))}
+                      onValueChange={(value: string) => setRenderSettings(prev => ({ ...prev, background: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue />

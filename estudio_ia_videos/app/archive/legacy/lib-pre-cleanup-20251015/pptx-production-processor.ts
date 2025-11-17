@@ -42,7 +42,7 @@ export interface PPTXElement {
   };
   content?: string;
   src?: string; // para imagens/vídeos
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   animations?: PPTXAnimation[];
   layer: number;
 }
@@ -54,7 +54,7 @@ export interface PPTXAnimation {
   duration: number;
   delay: number;
   trigger: 'click' | 'after' | 'with';
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
 }
 
 export interface PPTXMetadata {
@@ -81,7 +81,7 @@ export interface PPTXAsset {
   mimeType: string;
   dimensions?: { width: number; height: number };
   duration?: number; // para vídeos/áudios
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProcessedPPTXData {

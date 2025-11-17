@@ -3,10 +3,11 @@
  * Enhanced analytics with WebSocket integration and comprehensive metrics
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useSession } from 'next-auth/react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import useSWR from 'swr'
 import { useWebSocket } from './useWebSocket'
+import { createClient } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
 
 // Types for analytics data
 export interface SystemMetrics {
@@ -35,7 +36,7 @@ export interface UserMetrics {
     type: string
     action: string
     timestamp: string
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   }>
   collaboration_stats: {
     owned_projects: number
@@ -47,6 +48,22 @@ export interface UserMetrics {
     preferred_features: string[]
     avg_session_duration: number
   }
+}
+
+export interface AnalyticsLoadingState {
+  system: boolean
+  user: boolean
+  render: boolean
+  combined: boolean
+}
+
+type AnalyticsError = Error | undefined
+
+export interface AnalyticsErrorState {
+  system: AnalyticsError
+  user: AnalyticsError
+  render: AnalyticsError
+  combined: boolean
 }
 
 export interface RenderStatistics {
@@ -90,7 +107,7 @@ export interface AnalyticsEvent {
   type: 'system' | 'user' | 'render' | 'error'
   category: string
   action: string
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
   timestamp: string
   user_id?: string
   project_id?: string
@@ -112,11 +129,38 @@ const fetcher = async (url: string) => {
 }
 
 export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
-  const { data: session } = useSession()
+  const supabase = useMemo(() => createClient(), [])
+  const [user, setUser] = useState<User | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [realTimeEvents, setRealTimeEvents] = useState<AnalyticsEvent[]>([])
   const eventBuffer = useRef<AnalyticsEvent[]>([])
   
+  useEffect(() => {
+    let isMounted = true
+
+    const loadUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        setUser(data.user ?? null)
+      } catch (error) {
+        console.error('[Analytics] Falha ao carregar usuário:', error)
+      }
+    }
+
+    void loadUser()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
+
   // Build query parameters
   const queryParams = new URLSearchParams({
     timeRange: filters.timeRange,
@@ -132,7 +176,7 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
     mutate: refreshSystemMetrics,
     isLoading: systemLoading 
   } = useSWR<{ success: boolean; data: SystemMetrics }>(
-    session ? `/api/analytics/system-metrics?${queryParams}` : null,
+    user ? `/api/analytics/system-metrics?${queryParams}` : null,
     fetcher,
     {
       refreshInterval: 30000, // Refresh every 30 seconds
@@ -149,7 +193,7 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
     mutate: refreshUserMetrics,
     isLoading: userLoading 
   } = useSWR<{ success: boolean; data: UserMetrics }>(
-    session ? `/api/analytics/user-metrics?${queryParams}` : null,
+    user ? `/api/analytics/user-metrics?${queryParams}` : null,
     fetcher,
     {
       refreshInterval: 60000, // Refresh every minute
@@ -165,7 +209,7 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
     mutate: refreshRenderStats,
     isLoading: renderLoading 
   } = useSWR<{ success: boolean; data: RenderStatistics }>(
-    session ? `/api/analytics/render-stats?${queryParams}` : null,
+    user ? `/api/analytics/render-stats?${queryParams}` : null,
     fetcher,
     {
       refreshInterval: 15000, // Refresh every 15 seconds
@@ -217,7 +261,7 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
               refreshSystemMetrics()
             } else if (event.type === 'render') {
               refreshRenderStats()
-            } else if (event.type === 'user' && event.user_id === session?.user?.id) {
+          } else if (event.type === 'user' && event.user_id === user?.id) {
               refreshUserMetrics()
             }
             break
@@ -242,13 +286,13 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
         console.error('Error parsing analytics WebSocket message:', error)
       }
     }
-  }, [lastMessage, refreshSystemMetrics, refreshUserMetrics, refreshRenderStats, session?.user?.id])
+  }, [lastMessage, refreshSystemMetrics, refreshUserMetrics, refreshRenderStats, user?.id])
 
   // Track custom events
   const trackEvent = useCallback(async (
     category: string,
     action: string,
-    metadata: Record<string, any> = {},
+    metadata: Record<string, unknown> = {},
     projectId?: string
   ) => {
     try {
@@ -282,7 +326,7 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
   const trackProjectEvent = useCallback((
     action: 'created' | 'updated' | 'deleted' | 'viewed' | 'shared',
     projectId: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) => {
     return trackEvent('project', action, metadata, projectId)
   }, [trackEvent])
@@ -290,14 +334,14 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
   const trackRenderEvent = useCallback((
     action: 'started' | 'completed' | 'failed' | 'queued',
     projectId: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) => {
     return trackEvent('render', action, metadata, projectId)
   }, [trackEvent])
 
   const trackUserEvent = useCallback((
     action: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) => {
     return trackEvent('user', action, metadata)
   }, [trackEvent])
@@ -374,6 +418,20 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
     }
   }, [isConnected, sendMessage, filters])
 
+  const loadingState: AnalyticsLoadingState = {
+    system: systemLoading,
+    user: userLoading,
+    render: renderLoading,
+    combined: systemLoading || userLoading || renderLoading
+  }
+
+  const errorState: AnalyticsErrorState = {
+    system: systemError,
+    user: userError,
+    render: renderError,
+    combined: !!(systemError || userError || renderError)
+  }
+
   return {
     // Data
     systemMetrics: systemMetrics?.data,
@@ -382,20 +440,10 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
     realTimeEvents,
     
     // Loading states
-    isLoading: {
-      system: systemLoading,
-      user: userLoading,
-      render: renderLoading,
-      any: systemLoading || userLoading || renderLoading
-    },
+    isLoading: loadingState,
     
     // Error states
-    errors: {
-      system: systemError,
-      user: userError,
-      render: renderError,
-      any: !!(systemError || userError || renderError)
-    },
+    errors: errorState,
     
     // Connection status
     isConnected: isConnected && wsConnected,

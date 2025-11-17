@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
+import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { prisma } from '@/lib/db';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
 
+// Utilitários locais para normalização
+const toNumber = (v: unknown): number => (typeof v === 'number' ? v : Number(v ?? 0));
 /**
  * GET /api/analytics/user-behavior
  * Retorna métricas detalhadas de comportamento do usuário
@@ -28,7 +31,7 @@ async function getHandler(req: NextRequest) {
     const period = searchParams.get('period') || '7d';
     const metric = searchParams.get('metric') || 'all';
     const targetUserId = searchParams.get('userId');
-    const organizationId = (session.user as any)?.currentOrgId;
+    const organizationId = getOrgId(session.user);
 
     // Calcular data de início baseada no período
     const startDate = new Date();
@@ -55,7 +58,7 @@ async function getHandler(req: NextRequest) {
       ...(targetUserId && { userId: targetUserId })
     };
 
-    let behaviorData: any = {};
+    const behaviorData: Record<string, unknown> = {};
 
     // Métricas de engajamento
     if (metric === 'engagement' || metric === 'all') {
@@ -102,22 +105,23 @@ async function getHandler(req: NextRequest) {
       });
 
       // Calcular métricas de engajamento
-      const avgSessionDuration = (sessionData as any[]).reduce((sum, session) => 
-        sum + (session.session_duration || 0), 0) / Math.max(1, (sessionData as any[]).length);
+      const sessionRows = sessionData as unknown as Array<Record<string, unknown>>;
+      const avgSessionDuration = sessionRows.reduce((sum, session) => 
+        sum + toNumber(session.session_duration), 0) / Math.max(1, sessionRows.length);
 
-      const avgEventsPerSession = (sessionData as any[]).reduce((sum, session) => 
-        sum + (session.events || 0), 0) / Math.max(1, (sessionData as any[]).length);
+      const avgEventsPerSession = sessionRows.reduce((sum, session) => 
+        sum + toNumber(session.events), 0) / Math.max(1, sessionRows.length);
 
       behaviorData.engagement = {
         avgSessionDuration: Math.round(avgSessionDuration),
         avgEventsPerSession: Math.round(avgEventsPerSession),
-        totalSessions: (sessionData as any[]).length,
-        uniqueUsers: new Set((sessionData as any[]).map(s => s.user_id)).size,
-        pageViews: pageViews.map((item: any) => ({
+        totalSessions: sessionRows.length,
+        uniqueUsers: new Set(sessionRows.map(s => String(s.user_id))).size,
+        pageViews: (pageViews as unknown as Array<{ label: string | null; _count: { id: number } }>).map(item => ({
           page: item.label,
           views: item._count.id
         })),
-        interactions: interactions.map((item: any) => ({
+        interactions: (interactions as unknown as Array<{ action: string | null; _count: { id: number } }>).map(item => ({
           action: item.action,
           count: item._count.id
         }))
@@ -336,10 +340,13 @@ async function getHandler(req: NextRequest) {
       const browsers = new Map();
       const os = new Map();
 
-      deviceData.forEach((item: any) => {
-        const metadata = item.metadata as any;
-        if (metadata?.userAgent) {
-          const ua = metadata.userAgent.toLowerCase();
+      (deviceData as unknown as Array<{ metadata: unknown; _count: { id: number } }>).forEach((item) => {
+        const metadata = item.metadata;
+        const uaRaw = (metadata && typeof metadata === 'object' && 'userAgent' in (metadata as Record<string, unknown>)
+          ? (metadata as Record<string, unknown>).userAgent
+          : undefined);
+        if (typeof uaRaw === 'string' && uaRaw.length > 0) {
+          const ua = uaRaw.toLowerCase();
           
           // Detectar tipo de dispositivo
           if (ua.includes('mobile')) devices.mobile += item._count.id;
@@ -382,13 +389,14 @@ async function getHandler(req: NextRequest) {
       ...behaviorData
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics User Behavior] Error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     
     return NextResponse.json(
       {
         error: 'Failed to fetch user behavior metrics',
-        message: error.message
+        message
       },
       { status: 500 }
     );
@@ -425,7 +433,7 @@ async function postHandler(req: NextRequest) {
     }
 
     const userId = session?.user?.id || null;
-    const organizationId = (session?.user as any)?.currentOrgId || null;
+    const organizationId = (session?.user ? getOrgId(session.user) : undefined) || null;
 
     // Registrar evento de comportamento
       await prisma.analyticsEvent.create({
@@ -455,13 +463,14 @@ async function postHandler(req: NextRequest) {
       message: 'User behavior event recorded'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics User Behavior POST] Error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     
     return NextResponse.json(
       {
         error: 'Failed to record user behavior event',
-        message: error.message
+        message
       },
       { status: 500 }
     );

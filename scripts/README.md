@@ -103,6 +103,28 @@ Executa bateria completa de testes:
 
 ---
 
+#### `npm run test:contract`
+**Testes de contrato da API Video Jobs (12 cenários)**
+
+Executa `scripts/run-contract-suite.js`, que:
+- Orquestra todos os arquivos `scripts/test-contract-video-jobs*.js` em sequência.
+- Inicializa automaticamente um servidor Next.js dedicado (`estudio_ia_videos`, porta padrão **3310**) antes dos testes que dependem das rotas reais.
+- Gera evidências em `evidencias/fase-2/contract-suite-result.json` e `evidencias/fase-2/contract-report.md` (mesma saída publicada no job `tests` do CI).
+
+**Variáveis úteis:**
+| Variável | Descrição |
+| --- | --- |
+| `BASE_URL` | Usa um endpoint remoto existente (pula o servidor local se não for `localhost`). |
+| `CONTRACT_SKIP_SERVER=true` | Desabilita o spin-up automático (mantém SKIPs para cenários dependentes de servidor). |
+| `CONTRACT_SERVER_PORT` | Porta do servidor local (default `3310`). |
+| `CONTRACT_SERVER_TIMEOUT_MS` | Tempo limite para o servidor subir (default `90000`). |
+| `CONTRACT_SERVER_LOGS=true` | Exibe stdout do `next dev` durante a execução. |
+| `TEST_ACCESS_TOKEN` | Token Bearer usado pelos testes protegidos (cai para `ACCESS_TOKEN`). |
+
+**Saída esperada:** `✅ 12/12` quando as rotas locais estão disponíveis; se o servidor não puder subir, os testes críticos retornam `SKIP` com instruções para habilitá-lo.
+
+---
+
 #### `npm run logs:test`
 **Teste do Sistema de Logging**
 

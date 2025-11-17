@@ -38,7 +38,7 @@ const mixpanelClient = process.env.MIXPANEL_TOKEN
 export interface AnalyticsEvent {
   userId: string;
   event: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   timestamp?: Date;
   sessionId?: string;
   deviceInfo?: DeviceInfo;
@@ -193,7 +193,7 @@ export class AnalyticsManager {
   async trackPageView(
     userId: string,
     pageName: string,
-    properties: Record<string, any> = {}
+    properties: Record<string, unknown> = {}
   ): Promise<void> {
     await this.track({
       userId,
@@ -211,7 +211,7 @@ export class AnalyticsManager {
   async trackVideoCreated(
     userId: string,
     videoId: string,
-    properties: Record<string, any> = {}
+    properties: Record<string, unknown> = {}
   ): Promise<void> {
     await this.track({
       userId,

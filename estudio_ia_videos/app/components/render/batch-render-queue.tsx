@@ -448,7 +448,7 @@ export default function BatchRenderQueue() {
                 <Label>Prioridade Padrão</Label>
                 <Select
                   value={queueSettings.priority}
-                  onValueChange={(value: any) => 
+                  onValueChange={(value: string) => 
                     setQueueSettings(prev => ({ ...prev, priority: value }))
                   }
                 >

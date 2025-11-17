@@ -87,11 +87,11 @@ export function ExternalAPIs() {
   const [activeTab, setActiveTab] = useState('tts')
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false)
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false)
-  const [selectedProvider, setSelectedProvider] = useState<any>(null)
+  const [selectedProvider, setSelectedProvider] = useState<unknown>(null)
   const [testInput, setTestInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
-  const [complianceResults, setComplianceResults] = useState<any>(null)
+  const [complianceResults, setComplianceResults] = useState<unknown>(null)
 
   const handleUpdateConfig = async (providerId: string, config: any) => {
     try {

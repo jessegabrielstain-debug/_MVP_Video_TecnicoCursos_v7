@@ -31,7 +31,7 @@ export interface Job<T = any> {
   failedAt?: Date;
   error?: string;
   result?: any;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface QueueConfig {
@@ -131,7 +131,7 @@ export class QueueManager extends EventEmitter {
     options: {
       priority?: JobPriority;
       maxAttempts?: number;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     } = {}
   ): Promise<Job<T>> {
     const job: Job<T> = {

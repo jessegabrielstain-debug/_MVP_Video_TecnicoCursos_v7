@@ -46,7 +46,7 @@ export interface MediaMetadata {
 export interface OptimizationResult {
   type: 'resize' | 'compress' | 'format-conversion' | 'color-correction' | 'noise-reduction';
   appliedAt: Date;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   before: {
     fileSize: number;
     quality?: number;

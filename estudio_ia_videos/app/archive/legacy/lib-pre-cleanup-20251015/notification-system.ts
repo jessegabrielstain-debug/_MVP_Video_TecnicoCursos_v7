@@ -128,7 +128,7 @@ export interface Notification {
   icon?: string;
   image?: string;
   link?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   priority: NotificationPriority;
   channels: NotificationChannel[];
   createdAt: Date;
@@ -142,7 +142,7 @@ export interface Notification {
   deliveryStatus: Record<NotificationChannel, DeliveryStatus>;
   deliveryAttempts: number;
   maxRetries: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -154,7 +154,7 @@ export interface NotificationAction {
   type: 'primary' | 'secondary' | 'danger';
   action: string;
   url?: string;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
 }
 
 /**
@@ -171,7 +171,7 @@ export interface NotificationTemplate {
   variables: string[];
   actions?: NotificationAction[];
   emailHtml?: string;
-  pushPayload?: Record<string, any>;
+  pushPayload?: Record<string, unknown>;
   smsTemplate?: string;
   slackBlocks?: any[];
   isActive: boolean;
@@ -361,7 +361,7 @@ export class NotificationSystem extends EventEmitter {
       icon?: string;
       image?: string;
       link?: string;
-      data?: Record<string, any>;
+      data?: Record<string, unknown>;
       priority?: NotificationPriority;
       channels?: NotificationChannel[];
       scheduledFor?: Date;
@@ -435,7 +435,7 @@ export class NotificationSystem extends EventEmitter {
   public async sendFromTemplate(
     templateId: string,
     userId: string,
-    variables: Record<string, any> = {}
+    variables: Record<string, unknown> = {}
   ): Promise<Notification> {
     const template = this.templates.get(templateId);
     if (!template || !template.isActive) {
@@ -1015,7 +1015,7 @@ export class NotificationSystem extends EventEmitter {
     };
   }
 
-  private replaceVariables(template: string, variables: Record<string, any>): string {
+  private replaceVariables(template: string, variables: Record<string, unknown>): string {
     let result = template;
     
     Object.entries(variables).forEach(([key, value]) => {

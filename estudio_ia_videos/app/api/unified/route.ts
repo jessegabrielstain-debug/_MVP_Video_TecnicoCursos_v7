@@ -24,27 +24,37 @@ const ProjectCreateSchema = z.object({
   type: z.enum(['pptx', 'template-nr', 'talking-photo', 'custom']),
   source: z.object({
     type: z.enum(['upload', 'template', 'blank']),
-    data: z.any().optional()
+    data: z.unknown().optional()
   })
 })
 
 const ProjectUpdateSchema = z.object({
   id: z.string(),
   action: z.enum(['edit', 'render', 'export', 'delete']),
-  data: z.any().optional()
+  data: z.unknown().optional()
 })
+
+// Types for workflow data
+interface StepData {
+  [key: string]: unknown;
+}
+
+interface WorkflowStepStatus {
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  data?: StepData;
+}
 
 // Interface para o fluxo unificado
 interface UnifiedWorkflow {
   projectId: string
   currentStep: 'import' | 'edit' | 'avatar' | 'tts' | 'render' | 'export' | 'complete'
   steps: {
-    import: { status: 'pending' | 'processing' | 'completed' | 'error', data?: any }
-    edit: { status: 'pending' | 'processing' | 'completed' | 'error', data?: any }
-    avatar: { status: 'pending' | 'processing' | 'completed' | 'error', data?: any }
-    tts: { status: 'pending' | 'processing' | 'completed' | 'error', data?: any }
-    render: { status: 'pending' | 'processing' | 'completed' | 'error', data?: any }
-    export: { status: 'pending' | 'processing' | 'completed' | 'error', data?: any }
+    import: WorkflowStepStatus
+    edit: WorkflowStepStatus
+    avatar: WorkflowStepStatus
+    tts: WorkflowStepStatus
+    render: WorkflowStepStatus
+    export: WorkflowStepStatus
   }
   metadata: {
     createdAt: Date
@@ -85,7 +95,7 @@ class UnifiedWorkflowManager {
     projectId: string,
     step: keyof UnifiedWorkflow['steps'],
     status: 'pending' | 'processing' | 'completed' | 'error',
-    data?: any
+    data?: StepData
   ): Promise<UnifiedWorkflow | null> {
     const workflow = this.workflows.get(projectId)
     if (!workflow) return null
@@ -112,14 +122,14 @@ class UnifiedWorkflowManager {
     return this.workflows.get(projectId) || null
   }
 
-  async executeStep(projectId: string, step: keyof UnifiedWorkflow['steps'], data?: any): Promise<any> {
+  async executeStep(projectId: string, step: keyof UnifiedWorkflow['steps'], data?: StepData): Promise<StepData> {
     const workflow = this.workflows.get(projectId)
     if (!workflow) throw new Error('Workflow not found')
 
     await this.updateWorkflowStep(projectId, step, 'processing')
 
     try {
-      let result: any
+      let result: StepData
 
       switch (step) {
         case 'import':
@@ -147,15 +157,16 @@ class UnifiedWorkflowManager {
       await this.updateWorkflowStep(projectId, step, 'completed', result)
       return result
 
-    } catch (error: any) {
-      await this.updateWorkflowStep(projectId, step, 'error', { error: error.message })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      await this.updateWorkflowStep(projectId, step, 'error', { error: errorMessage })
       throw error
     }
   }
 
-  private async executeImport(projectId: string, data: any): Promise<any> {
+  private async executeImport(projectId: string, data?: StepData): Promise<StepData> {
     // Integração com PPTX Studio
-    if (data?.type === 'pptx') {
+    if (data && typeof data.type === 'string' && data.type === 'pptx') {
       const response = await fetch('/api/pptx/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -165,7 +176,7 @@ class UnifiedWorkflowManager {
     }
 
     // Integração com Templates NR
-    if (data?.type === 'template-nr') {
+    if (data && typeof data.type === 'string' && data.type === 'template-nr') {
       const response = await fetch('/api/templates/nr/load', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -177,7 +188,7 @@ class UnifiedWorkflowManager {
     return { success: true, message: 'Import completed' }
   }
 
-  private async executeEdit(projectId: string, data: any): Promise<any> {
+  private async executeEdit(projectId: string, data?: StepData): Promise<StepData> {
     // Integração com Canvas Editor
     const response = await fetch('/api/editor/canvas/save', {
       method: 'POST',
@@ -187,36 +198,36 @@ class UnifiedWorkflowManager {
     return await response.json()
   }
 
-  private async executeAvatar(projectId: string, data: any): Promise<any> {
+  private async executeAvatar(projectId: string, data?: StepData): Promise<StepData> {
     // Integração com Avatar 3D System
     const response = await fetch('/api/avatars/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         projectId,
-        avatarConfig: data?.avatar || { model: 'default' },
-        script: data?.script || 'Texto padrão'
+        avatarConfig: (data && typeof data.avatar === 'object') ? data.avatar : { model: 'default' },
+        script: (data && typeof data.script === 'string') ? data.script : 'Texto padrão'
       })
     })
     return await response.json()
   }
 
-  private async executeTTS(projectId: string, data: any): Promise<any> {
+  private async executeTTS(projectId: string, data?: StepData): Promise<StepData> {
     // Integração com TTS System
     const response = await fetch('/api/tts/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         projectId,
-        text: data?.text || 'Texto padrão',
-        voice: data?.voice || 'pt-BR-female-1',
-        language: data?.language || 'pt-BR'
+        text: (data && typeof data.text === 'string') ? data.text : 'Texto padrão',
+        voice: (data && typeof data.voice === 'string') ? data.voice : 'pt-BR-female-1',
+        language: (data && typeof data.language === 'string') ? data.language : 'pt-BR'
       })
     })
     return await response.json()
   }
 
-  private async executeRender(projectId: string, data: any): Promise<any> {
+  private async executeRender(projectId: string, data?: StepData): Promise<StepData> {
     // Integração com Render Pipeline
     const response = await fetch('/api/render/video', {
       method: 'POST',
@@ -235,7 +246,7 @@ class UnifiedWorkflowManager {
     return await response.json()
   }
 
-  private async executeExport(projectId: string, data: any): Promise<any> {
+  private async executeExport(projectId: string, data?: StepData): Promise<StepData> {
     // Integração com Export System
     const response = await fetch('/api/export/mp4', {
       method: 'POST',
@@ -301,7 +312,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: validatedData.name,
         type: validatedData.type,
-        status: 'DRAFT' as any,
+        status: 'DRAFT',
         userId: session.user.id,
         description: '',
         organizationId: '',
@@ -374,7 +385,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
-    let result: any
+    let result: StepData | undefined
 
     switch (validatedData.action) {
       case 'edit':
@@ -382,9 +393,10 @@ export async function PUT(request: NextRequest) {
         break
       case 'render':
         // Executar sequência: avatar -> tts -> render
-        await workflowManager.executeStep(validatedData.id, 'avatar', validatedData.data?.avatar)
-        await workflowManager.executeStep(validatedData.id, 'tts', validatedData.data?.tts)
-        result = await workflowManager.executeStep(validatedData.id, 'render', validatedData.data?.render)
+        const renderData = validatedData.data as StepData | undefined;
+        await workflowManager.executeStep(validatedData.id, 'avatar', renderData?.avatar as StepData | undefined)
+        await workflowManager.executeStep(validatedData.id, 'tts', renderData?.tts as StepData | undefined)
+        result = await workflowManager.executeStep(validatedData.id, 'render', renderData?.render as StepData | undefined)
         break
       case 'export':
         result = await workflowManager.executeStep(validatedData.id, 'export', validatedData.data)

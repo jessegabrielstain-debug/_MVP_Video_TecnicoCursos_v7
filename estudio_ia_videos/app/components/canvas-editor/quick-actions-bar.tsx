@@ -26,8 +26,13 @@ import {
   Ungroup
 } from 'lucide-react'
 
+interface CanvasObject {
+  id?: string;
+  [key: string]: unknown;
+}
+
 interface QuickActionsBarProps {
-  selectedObjects: any[]
+  selectedObjects: CanvasObject[]
   canUndo: boolean
   canRedo: boolean
   zoom: number
@@ -287,8 +292,8 @@ export function QuickActionsBar({
 }
 
 // Hook para integrar com canvas
-export function useQuickActions(canvas: any | null) {
-  const [selectedObjects, setSelectedObjects] = useState<any[]>([])
+export function useQuickActions(canvas: unknown) {
+  const [selectedObjects, setSelectedObjects] = useState<CanvasObject[]>([])
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
   const [zoom, setZoom] = useState(100)

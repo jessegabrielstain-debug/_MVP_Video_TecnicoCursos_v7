@@ -11,16 +11,16 @@
 
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 export interface AnalyticsEvent {
   category: string;
   action: string;
   label?: string;
   value?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UserInteractionEvent {
@@ -28,7 +28,7 @@ export interface UserInteractionEvent {
   element: string;
   position?: { x: number; y: number };
   timestamp: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PageMetrics {
@@ -42,9 +42,35 @@ export interface PageMetrics {
 }
 
 export function useAnalytics() {
-  const { data: session } = useSession();
+  const supabase = useMemo(() => createClient(), []);
   const pathname = usePathname();
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [userId, setUserId] = useState<string | null>(null);
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (!isMounted) return;
+        setUserId(data.user?.id ?? null);
+      } catch (error) {
+        console.error('[Analytics] Falha ao obter usuário:', error);
+      }
+    };
+
+    void loadUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setUserId(session?.user?.id ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+      listener?.subscription.unsubscribe();
+    };
+  }, [supabase]);
   
   // Refs para tracking
   const pageStartTime = useRef<number>(Date.now());
@@ -133,7 +159,7 @@ export function useAnalytics() {
   /**
    * Tracking de cliques
    */
-  const trackClick = useCallback((element: string, position?: { x: number; y: number }, metadata?: Record<string, any>) => {
+  const trackClick = useCallback((element: string, position?: { x: number; y: number }, metadata?: Record<string, unknown>) => {
     trackInteraction({
       type: 'click',
       element,
@@ -199,6 +225,11 @@ export function useAnalytics() {
       const domContentLoaded = timing.domContentLoadedEventEnd - timing.navigationStart;
       const firstPaint = performance.getEntriesByType('paint').find(entry => entry.name === 'first-paint');
       
+      const connectionType =
+        typeof navigator !== 'undefined' && 'connection' in navigator
+          ? (navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType ?? null
+          : null;
+
       await trackEvent({
         category: 'performance',
         action: 'page_load',
@@ -207,7 +238,7 @@ export function useAnalytics() {
           loadTime,
           domContentLoaded,
           firstPaint: firstPaint ? firstPaint.startTime : null,
-          connectionType: (navigator as any).connection?.effectiveType,
+          connectionType,
         },
       });
     }
@@ -216,7 +247,7 @@ export function useAnalytics() {
   /**
    * Tracking de erros JavaScript
    */
-  const trackError = useCallback(async (error: Error, errorInfo?: any) => {
+  const trackError = useCallback(async (error: Error, errorInfo?: unknown) => {
     await trackEvent({
       category: 'error',
       action: 'javascript_error',
@@ -232,7 +263,7 @@ export function useAnalytics() {
   /**
    * Tracking de features utilizadas
    */
-  const trackFeatureUsage = useCallback(async (feature: string, action: string, metadata?: Record<string, any>) => {
+  const trackFeatureUsage = useCallback(async (feature: string, action: string, metadata?: Record<string, unknown>) => {
     await trackEvent({
       category: 'feature_usage',
       action: `${feature}_${action}`,
@@ -244,7 +275,7 @@ export function useAnalytics() {
   /**
    * Tracking de conversões
    */
-  const trackConversion = useCallback(async (conversionType: string, value?: number, metadata?: Record<string, any>) => {
+  const trackConversion = useCallback(async (conversionType: string, value?: number, metadata?: Record<string, unknown>) => {
     await trackEvent({
       category: 'conversion',
       action: conversionType,
@@ -343,7 +374,7 @@ export function useAnalytics() {
     trackFeatureUsage,
     trackConversion,
     sessionId,
-    userId: session?.user?.id,
+    userId,
   };
 }
 

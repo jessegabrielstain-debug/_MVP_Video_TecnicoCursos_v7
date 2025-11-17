@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 export interface WebSocketMessage {
   type: string;
-  data: any;
+  data: unknown;
   timestamp: number;
 }
 
@@ -27,8 +27,8 @@ export interface UseWebSocketReturn {
   connectionState: 'disconnected' | 'connecting' | 'connected' | 'error';
   connect: () => void;
   disconnect: () => void;
-  sendMessage: (type: string, data: any) => void;
-  subscribe: (type: string, callback: (data: any) => void) => () => void;
+  sendMessage: (type: string, data: unknown) => void;
+  subscribe: (type: string, callback: (data: unknown) => void) => () => void;
 }
 
 export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
@@ -51,7 +51,8 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
 
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-  const subscribersRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
+  type WebSocketEventCallback = (data: unknown) => void;
+  const subscribersRef = useRef<Map<string, Set<WebSocketEventCallback>>>(new Map());
 
   const connect = useCallback(() => {
     // Prevent connection during SSR
@@ -137,7 +138,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     }
   }, [socket]);
 
-  const sendMessage = useCallback((type: string, data: any) => {
+  const sendMessage = useCallback((type: string, data: unknown) => {
     if (socket?.readyState === WebSocket.OPEN) {
       const message: WebSocketMessage = {
         type,
@@ -148,7 +149,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     }
   }, [socket]);
 
-  const subscribe = useCallback((type: string, callback: (data: any) => void) => {
+  const subscribe = useCallback((type: string, callback: WebSocketEventCallback) => {
     if (!subscribersRef.current.has(type)) {
       subscribersRef.current.set(type, new Set());
     }
@@ -192,7 +193,16 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
 
 // Specialized hooks for different types of notifications
 export function useRenderProgress() {
-  const [progress, setProgress] = useState<any>(null);
+  interface RenderProgress { percent: number; phase: string; message?: string; }
+  const isRenderProgress = (data: unknown): data is RenderProgress => {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+
+    const payload = data as Partial<RenderProgress>;
+    return typeof payload.percent === 'number' && typeof payload.phase === 'string';
+  };
+  const [progress, setProgress] = useState<RenderProgress | null>(null);
   const [isRendering, setIsRendering] = useState(false);
 
   const { subscribe } = useWebSocket({
@@ -202,17 +212,23 @@ export function useRenderProgress() {
 
   useEffect(() => {
     const unsubscribeProgress = subscribe('render_progress', (data) => {
-      setProgress(data);
-      setIsRendering(true);
+      if (isRenderProgress(data)) {
+        setProgress(data);
+        setIsRendering(true);
+      }
     });
 
     const unsubscribeComplete = subscribe('render_complete', (data) => {
-      setProgress(data);
+      if (isRenderProgress(data)) {
+        setProgress(data);
+      }
       setIsRendering(false);
     });
 
     const unsubscribeError = subscribe('render_error', (data) => {
-      setProgress(data);
+      if (isRenderProgress(data)) {
+        setProgress(data);
+      }
       setIsRendering(false);
     });
 
@@ -227,7 +243,17 @@ export function useRenderProgress() {
 }
 
 export function useRenderNotifications() {
-  const [notifications, setNotifications] = useState<any[]>([]);
+  interface RenderNotification { id: string; type: string; message: string; timestamp: number; }
+  const isRenderNotification = (data: unknown): data is RenderNotification => {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+
+    const payload = data as Partial<RenderNotification>;
+    return typeof payload.id === 'string' && typeof payload.type === 'string' &&
+      typeof payload.message === 'string' && typeof payload.timestamp === 'number';
+  };
+  const [notifications, setNotifications] = useState<RenderNotification[]>([]);
 
   const { subscribe } = useWebSocket({
     url: 'ws://localhost:8080',
@@ -236,7 +262,9 @@ export function useRenderNotifications() {
 
   useEffect(() => {
     const unsubscribe = subscribe('render_notification', (data) => {
-      setNotifications(prev => [...prev, data]);
+      if (isRenderNotification(data)) {
+        setNotifications(prev => [...prev, data]);
+      }
     });
 
     return unsubscribe;
@@ -246,7 +274,17 @@ export function useRenderNotifications() {
 }
 
 export function useSystemNotifications() {
-  const [notifications, setNotifications] = useState<any[]>([]);
+  interface SystemNotification { id: string; level: string; message: string; timestamp: number; }
+  const isSystemNotification = (data: unknown): data is SystemNotification => {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+
+    const payload = data as Partial<SystemNotification>;
+    return typeof payload.id === 'string' && typeof payload.level === 'string' &&
+      typeof payload.message === 'string' && typeof payload.timestamp === 'number';
+  };
+  const [notifications, setNotifications] = useState<SystemNotification[]>([]);
 
   const { subscribe } = useWebSocket({
     url: 'ws://localhost:8080',
@@ -255,7 +293,9 @@ export function useSystemNotifications() {
 
   useEffect(() => {
     const unsubscribe = subscribe('system_notification', (data) => {
-      setNotifications(prev => [...prev, data]);
+      if (isSystemNotification(data)) {
+        setNotifications(prev => [...prev, data]);
+      }
     });
 
     return unsubscribe;

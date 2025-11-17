@@ -1,20 +1,26 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  User, 
-  Comment, 
-  CommentReply, 
-  ProjectVersion, 
-  ActivityNotification, 
+import {
+  User,
+  Comment,
+  CommentReply,
+  ProjectVersion,
+  ActivityNotification,
   CollaborationSession,
-  RealTimeEvent,
-  ConflictResolution 
+  ConflictResolution,
 } from '@/types/collaboration';
-import { getWebSocketService, WebSocketService } from '@/services/websocket';
+import {
+  CursorMovePayload,
+  ElementUpdatePayload,
+  WebSocketEventPayloadMap,
+  WebSocketEventType,
+  getWebSocketService,
+  WebSocketService,
+} from '@/services/websocket';
 
 interface UseCollaborationProps {
   projectId: string;
   userId: string;
-  onElementChange?: (elementId: string, changes: any) => void;
+  onElementChange?: (elementId: string, changes: Record<string, unknown>) => void;
   onConflict?: (conflict: ConflictResolution) => void;
 }
 
@@ -33,12 +39,9 @@ export function useCollaboration({
   const [notifications, setNotifications] = useState<ActivityNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [cursors, setCursors] = useState<Record<string, { x: number; y: number; lastUpdate: Date }>>({});
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocketService | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize collaboration session
   const initializeSession = useCallback(async () => {
@@ -54,22 +57,32 @@ export function useCollaboration({
       // Set up event listeners
       wsRef.current.on('user_joined', (user: User) => {
         setActiveUsers(prev => [...prev.filter(u => u.id !== user.id), user]);
-        addNotification('User Joined', `${user.name} joined the project`);
+        addNotification({
+          type: 'permission',
+          title: 'User Joined',
+          message: `${user.name} joined the project`,
+          userId: user.id,
+          projectId,
+        });
       });
       
       wsRef.current.on('user_left', (userId: string) => {
         setActiveUsers(prev => prev.filter(u => u.id !== userId));
       });
       
-      wsRef.current.on('cursor_move', ({ userId: cursorUserId, x, y }: { userId: string; x: number; y: number }) => {
+      wsRef.current.on('cursor_move', ({ userId: cursorUserId, x, y, elementId }: CursorMovePayload) => {
+        if (!cursorUserId) {
+          return;
+        }
+
         setActiveUsers(prev => prev.map(user => 
           user.id === cursorUserId 
-            ? { ...user, cursor: { x, y, elementId: undefined } }
+            ? { ...user, cursor: { x, y, elementId } }
             : user
         ));
       });
       
-      wsRef.current.on('element_update', (data: any) => {
+      wsRef.current.on('element_update', (data: ElementUpdatePayload) => {
         if (onElementChange) {
           onElementChange(data.elementId, data.changes);
         }
@@ -87,7 +100,7 @@ export function useCollaboration({
         });
       });
       
-      wsRef.current.on('comment_reply', ({ commentId, reply }: { commentId: string; reply: CommentReply }) => {
+      wsRef.current.on('comment_reply', ({ commentId, reply }) => {
         setComments(prev => prev.map(comment => 
           comment.id === commentId 
             ? { ...comment, replies: [...comment.replies, reply] }
@@ -176,124 +189,15 @@ export function useCollaboration({
     }
   }, [projectId, userId, onElementChange]);
 
-  // WebSocket connection management
-  const connectWebSocket = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-    try {
-      // In production, use actual WebSocket URL
-      const wsUrl = `ws://localhost:8080/collaboration/${projectId}?userId=${userId}`;
-      wsRef.current = new WebSocket(wsUrl);
-
-      wsRef.current.onopen = () => {
-        setIsConnected(true);
-        setError(null);
-        
-        // Start heartbeat
-        heartbeatIntervalRef.current = setInterval(() => {
-          if (wsRef.current?.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({ type: 'ping' }));
-          }
-        }, 30000);
-      };
-
-      wsRef.current.onmessage = (event) => {
-        try {
-          const message: RealTimeEvent = JSON.parse(event.data);
-          handleRealTimeEvent(message);
-        } catch (err) {
-          console.error('Failed to parse WebSocket message:', err);
-        }
-      };
-
-      wsRef.current.onclose = () => {
-        setIsConnected(false);
-        if (heartbeatIntervalRef.current) {
-          clearInterval(heartbeatIntervalRef.current);
-        }
-        
-        // Attempt to reconnect
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connectWebSocket();
-        }, 5000);
-      };
-
-      wsRef.current.onerror = (error) => {
-        setError('WebSocket connection error');
-        console.error('WebSocket error:', error);
-      };
-    } catch (err) {
-      setError('Failed to connect to collaboration server');
-    }
-  }, [projectId, userId]);
-
-  // Handle real-time events
-  const handleRealTimeEvent = useCallback((event: RealTimeEvent) => {
-    switch (event.type) {
-      case 'user_join':
-        setActiveUsers(prev => {
-          const exists = prev.find(u => u.id === event.data.user.id);
-          if (exists) return prev;
-          return [...prev, { ...event.data.user, isOnline: true }];
-        });
-        break;
-
-      case 'user_leave':
-        setActiveUsers(prev => prev.filter(u => u.id !== event.data.userId));
-        break;
-
-      case 'cursor_move':
-        setActiveUsers(prev => prev.map(user => 
-          user.id === event.userId 
-            ? { ...user, cursor: event.data.cursor }
-            : user
-        ));
-        break;
-
-      case 'element_change':
-        if (onElementChange && event.userId !== userId) {
-          onElementChange(event.data.elementId, event.data.changes);
-        }
-        break;
-
-      case 'comment_add':
-        setComments(prev => [...prev, event.data.comment]);
-        addNotification({
-          type: 'comment',
-          title: 'New Comment',
-          message: `${event.data.comment.user.name} added a comment`,
-          userId: event.userId,
-          projectId,
-          commentId: event.data.comment.id,
-        });
-        break;
-
-      case 'comment_update':
-        setComments(prev => prev.map(comment =>
-          comment.id === event.data.comment.id ? event.data.comment : comment
-        ));
-        break;
-
-      case 'version_create':
-        setVersions(prev => [...prev, event.data.version]);
-        addNotification({
-          type: 'version',
-          title: 'New Version',
-          message: `${event.data.version.name} created`,
-          userId: event.userId,
-          projectId,
-          versionId: event.data.version.id,
-        });
-        break;
-    }
-  }, [userId, projectId, onElementChange]);
-
   // Send real-time event
-  const sendEvent = useCallback((type: string, payload: any) => {
-    if (wsRef.current && wsRef.current.isConnected()) {
-      wsRef.current.send(type as any, payload);
-    }
-  }, []);
+  const sendEvent = useCallback(
+    <T extends WebSocketEventType>(type: T, payload: WebSocketEventPayloadMap[T]) => {
+      if (wsRef.current?.isConnected()) {
+        wsRef.current.send(type, payload);
+      }
+    },
+    [],
+  );
 
 
 
@@ -395,9 +299,9 @@ export function useCollaboration({
 
   // Version management
   const createVersion = useCallback(async (
-    name: string, 
-    description: string, 
-    state: any
+    name: string,
+    description: string,
+    state: ProjectVersion['state'],
   ) => {
     const version: ProjectVersion = {
       id: `version-${Date.now()}`,

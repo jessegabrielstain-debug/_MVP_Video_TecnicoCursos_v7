@@ -48,6 +48,37 @@ export interface TimelineProject {
   zoom: number;
 }
 
+export interface PPTXTextElement {
+  id?: string;
+  content?: string;
+  text?: string;
+  fontSize?: number;
+  color?: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  rotation?: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PPTXSlide {
+  id?: string;
+  title?: string;
+  thumbnail?: string;
+  image?: string;
+  duration?: number;
+  notes?: string;
+  textElements?: PPTXTextElement[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface PPTXData {
+  fileName?: string;
+  slides: PPTXSlide[];
+  metadata?: Record<string, unknown>;
+}
+
 interface UseTimelineReturn {
   project: TimelineProject | null;
   selectedElementId: string | null;
@@ -80,7 +111,7 @@ interface UseTimelineReturn {
   reorderTracks: (fromIndex: number, toIndex: number) => void;
   
   // PPTX Integration
-  loadFromPPTX: (pptxData: any) => void;
+  loadFromPPTX: (pptxData: PPTXData) => void;
   exportToVideo: () => Promise<void>;
 }
 
@@ -402,7 +433,7 @@ export function useTimeline(): UseTimelineReturn {
   }, []);
 
   // PPTX Integration
-  const loadFromPPTX = useCallback((pptxData: any) => {
+  const loadFromPPTX = useCallback((pptxData: PPTXData) => {
     if (!pptxData || !pptxData.slides) {
       toast.error('Dados PPTX inválidos');
       return;
@@ -413,7 +444,7 @@ export function useTimeline(): UseTimelineReturn {
     const totalDuration = pptxData.slides.length * slideDuration;
 
     // Criar elementos para slides
-    const slideElements = pptxData.slides.map((slide: any, index: number) => ({
+    const slideElements = pptxData.slides.map((slide, index) => ({
       id: `slide-${index}`,
       type: 'image' as const,
       name: slide.title || `Slide ${index + 1}`,
@@ -433,10 +464,10 @@ export function useTimeline(): UseTimelineReturn {
     }));
 
     // Criar elementos de texto se existirem
-    const textElements = pptxData.slides.flatMap((slide: any, slideIndex: number) => {
+    const textElements = pptxData.slides.flatMap((slide, slideIndex) => {
       if (!slide.textElements || slide.textElements.length === 0) return [];
-      
-      return slide.textElements.map((text: any, textIndex: number) => ({
+
+      return slide.textElements.map((text, textIndex) => ({
         id: `text-${slideIndex}-${textIndex}`,
         type: 'text' as const,
         name: `Texto Slide ${slideIndex + 1}`,
@@ -447,13 +478,13 @@ export function useTimeline(): UseTimelineReturn {
         locked: false,
         properties: {
           opacity: 1,
-          x: text.x || 0,
-          y: text.y || 0,
+          x: text?.x ?? 0,
+          y: text?.y ?? 0,
           scale: 1,
-          rotation: 0,
-          content: text.content || text.text,
-          fontSize: text.fontSize || 24,
-          color: text.color || '#000000'
+          rotation: text?.rotation ?? 0,
+          content: text?.content || text?.text || '',
+          fontSize: text?.fontSize ?? 24,
+          color: text?.color || '#000000'
         }
       }));
     });

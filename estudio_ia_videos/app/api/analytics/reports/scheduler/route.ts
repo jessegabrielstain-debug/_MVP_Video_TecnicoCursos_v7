@@ -1,9 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
+import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { ReportScheduler } from '@/lib/analytics/report-scheduler';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
 
+// Type-safe helper extraindo organizationId
+const getOrgId = (user: unknown): string | undefined => {
+  const u = user as { currentOrgId?: string; organizationId?: string };
+  return u.currentOrgId || u.organizationId || undefined;
+};
+
+// Type-safe helper verificando admin
+const isAdmin = (user: unknown): boolean => {
+  return ((user as { isAdmin?: boolean }).isAdmin) === true;
+};
+// Type-safe helper extraindo organizationId
+const getOrgId = (user: unknown): string | undefined => {
+  const u = user as { currentOrgId?: string; organizationId?: string };
+  return u.currentOrgId || u.organizationId || undefined;
+};
+
+// Type-safe helper verificando admin
+const isAdmin = (user: unknown): boolean => {
+  return ((user as { isAdmin?: boolean }).isAdmin) === true;
+};
 /**
  * GET /api/analytics/reports/scheduler
  * Retorna informações sobre relatórios agendados e estatísticas do agendador
@@ -24,7 +45,7 @@ async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const action = searchParams.get('action') || 'list';
-    const organizationId = (session.user as any)?.currentOrgId;
+    const organizationId = getOrgId(session.user);
 
     const scheduler = new ReportScheduler();
 
@@ -43,7 +64,7 @@ async function GET(req: NextRequest) {
 
       case 'run':
         // Verificar se o usuário tem permissão para executar manualmente
-        if (!(session.user as any)?.isAdmin) {
+        if (!isAdmin(session.user)) {
           return NextResponse.json(
             { error: 'Admin privileges required to run scheduler manually' },
             { status: 403 }

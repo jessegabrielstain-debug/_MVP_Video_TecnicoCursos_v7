@@ -111,105 +111,105 @@ export interface Database {
       }
       // Tabelas adicionais (stubs) para compatibilidade com código existente
       analytics_events: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       analytics_alerts: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       analytics_reports: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       projects: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       project_versions: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       project_collaborators: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       project_analytics: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       users: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       notifications: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       notification_preferences: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       user_render_settings: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       slides: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       user_external_api_configs: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       external_api_usage: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       tts_generation_history: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       media_download_history: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       compliance_check_history: {
-        Row: Record<string, any>
-        Insert: Record<string, any>
-        Update: Record<string, any>
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
         Relationships: []
       }
       voice_profiles: {

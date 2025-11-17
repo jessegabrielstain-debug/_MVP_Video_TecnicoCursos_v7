@@ -10,14 +10,14 @@
  * - Cleanup ao desconectar
  */
 
-import { createServer } from 'http'
+import { createServer, Server as HttpServer } from 'http'
 import { Server as SocketIOServer } from 'socket.io'
 import { io as ioClient, Socket as ClientSocket } from 'socket.io-client'
 import { AddressInfo } from 'net'
 import { initializeWebSocket, TimelineEvent } from '@/lib/websocket/timeline-websocket'
 
 describe('WebSocket Server - Testes Unitários', () => {
-  let httpServer: any
+  let httpServer: HttpServer
   let io: SocketIOServer
   let serverUrl: string
   let clientSocket1: ClientSocket

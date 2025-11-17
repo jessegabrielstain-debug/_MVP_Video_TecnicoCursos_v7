@@ -256,7 +256,12 @@ export function PPTXImportWizard() {
                 <Label>Transição entre Slides</Label>
                 <select
                   value={config.transition}
-                  onChange={(e) => updateConfig({ transition: e.target.value as any })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'fade' || value === 'slide' || value === 'none') {
+                      updateConfig({ transition: value });
+                    }
+                  }}
                   className="w-full mt-2 p-2 border rounded"
                 >
                   <option value="fade">Fade</option>

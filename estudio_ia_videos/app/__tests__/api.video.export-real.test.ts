@@ -15,49 +15,49 @@ jest.mock('@/lib/video-export-real', () => ({
   })
 }))
 
-function makeRequest(method: string, url: string) {
-  return new NextRequest(new URL(url, 'http://localhost').toString(), { method })
+function makeRequest(method: string, url: string): NextRequest {
+  return new NextRequest(new URL(url, 'http://localhost').toString(), { method });
 }
 
 describe('API video export-real', () => {
   it('GET retorna status do job', async () => {
-    const req = makeRequest('GET', '/api/v1/video/export-real?jobId=job1') as any
-    const res = await exportRoute.GET(req)
-    const json = await res.json()
-    expect(res.status).toBe(200)
-    expect(json.success).toBe(true)
-    expect(json.job?.id).toBe('job1')
-    expect(['queued','processing','completed','error']).toContain(json.job?.status)
-  })
+    const req = makeRequest('GET', '/api/v1/video/export-real?jobId=job1');
+    const res = await exportRoute.GET(req);
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(json.job?.id).toBe('job1');
+    expect(['queued','processing','completed','error']).toContain(json.job?.status);
+  });
 
   it('GET retorna outputUrl quando completed', async () => {
-    const mod = require('@/lib/video-export-real')
+    const mod = require('@/lib/video-export-real');
     mod.getExportJobStatus.mockResolvedValueOnce({
       job: {
         id: 'job2', projectId: 'p1', status: 'completed', progress: 100,
         outputUrl: 'https://cdn.local/exports/job2.mp4', error: null,
         startedAt: new Date(), completedAt: new Date(), metadata: {}
       }
-    })
-    const req = makeRequest('GET', '/api/v1/video/export-real?jobId=job2') as any
-    const res = await exportRoute.GET(req)
-    const json = await res.json()
-    expect(res.status).toBe(200)
-    expect(json.success).toBe(true)
-    expect(json.job?.status).toBe('completed')
-    expect(json.job?.outputUrl).toMatch(/\.mp4$/)
-  })
+    });
+    const req = makeRequest('GET', '/api/v1/video/export-real?jobId=job2');
+    const res = await exportRoute.GET(req);
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(json.job?.status).toBe('completed');
+    expect(json.job?.outputUrl).toMatch(/\.mp4$/);
+  });
 
   it('GET retorna metadata quando disponível', async () => {
-    const mod = require('@/lib/video-export-real')
+    const mod = require('@/lib/video-export-real');
     mod.getExportJobStatus.mockResolvedValueOnce({
       job: {
         id: 'job3', projectId: 'p1', status: 'completed', progress: 100,
         outputUrl: 'https://cdn.local/exports/job3.webm', error: null,
         startedAt: new Date(), completedAt: new Date(), metadata: { codec: 'vp9', duration: 123.4, sizeBytes: 104857600 }
       }
-    })
-    const req = makeRequest('GET', '/api/v1/video/export-real?jobId=job3') as any
+    });
+    const req = makeRequest('GET', '/api/v1/video/export-real?jobId=job3');
     const res = await exportRoute.GET(req)
     const json = await res.json()
     expect(res.status).toBe(200)

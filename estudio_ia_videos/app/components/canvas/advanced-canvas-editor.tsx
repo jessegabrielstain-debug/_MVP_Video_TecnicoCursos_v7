@@ -40,6 +40,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface FabricTextObject {
+  type: string;
+  fontSize?: number;
+  fill?: string;
+  fontWeight?: string;
+  fontStyle?: string;
+  underline?: boolean;
+  set: (property: string, value: unknown) => void;
+}
+
 interface AdvancedCanvasEditorProps {
   slideId: string;
   initialData?: any;
@@ -263,10 +273,10 @@ export default function AdvancedCanvasEditor({
   }, [selectedObject]);
 
   // Change text properties
-  const changeTextProperty = useCallback((property: string, value: any) => {
+  const changeTextProperty = useCallback((property: string, value: unknown) => {
     if (!selectedObject || selectedObject.type !== 'i-text') return;
 
-    (selectedObject as any).set(property as any, value);
+    (selectedObject as unknown as FabricTextObject).set(property, value);
     fabricRef.current?.renderAll();
   }, [selectedObject]);
 
@@ -275,7 +285,7 @@ export default function AdvancedCanvasEditor({
     if (!selectedObject) return;
 
     if (selectedObject.type === 'i-text') {
-      (selectedObject as any).set('fill', color);
+      (selectedObject as unknown as FabricTextObject).set('fill', color);
     } else {
       selectedObject.set('fill', color);
     }
@@ -512,7 +522,7 @@ export default function AdvancedCanvasEditor({
                   <Label>Fonte</Label>
                   <Input
                     type="number"
-                    value={(selectedObject as any).fontSize}
+                    value={(selectedObject as unknown as FabricTextObject).fontSize}
                     onChange={(e) => changeTextProperty('fontSize', parseInt(e.target.value))}
                     min={8}
                     max={200}
@@ -523,7 +533,7 @@ export default function AdvancedCanvasEditor({
                   <Label>Cor</Label>
                   <Input
                     type="color"
-                    value={(selectedObject as any).fill as string}
+                    value={(selectedObject as unknown as FabricTextObject).fill as string}
                     onChange={(e) => changeColor(e.target.value)}
                   />
                 </div>
@@ -533,7 +543,7 @@ export default function AdvancedCanvasEditor({
                     variant="outline"
                     size="sm"
                     onClick={() => changeTextProperty('fontWeight', 
-                      (selectedObject as any).fontWeight === 'bold' ? 'normal' : 'bold'
+                      (selectedObject as unknown as FabricTextObject).fontWeight === 'bold' ? 'normal' : 'bold'
                     )}
                   >
                     <Bold className="w-4 h-4" />
@@ -542,7 +552,7 @@ export default function AdvancedCanvasEditor({
                     variant="outline"
                     size="sm"
                     onClick={() => changeTextProperty('fontStyle',
-                      (selectedObject as any).fontStyle === 'italic' ? 'normal' : 'italic'
+                      (selectedObject as unknown as FabricTextObject).fontStyle === 'italic' ? 'normal' : 'italic'
                     )}
                   >
                     <Italic className="w-4 h-4" />
@@ -551,7 +561,7 @@ export default function AdvancedCanvasEditor({
                     variant="outline"
                     size="sm"
                     onClick={() => changeTextProperty('underline',
-                      !(selectedObject as any).underline
+                      !(selectedObject as unknown as FabricTextObject).underline
                     )}
                   >
                     <Underline className="w-4 h-4" />
@@ -591,7 +601,7 @@ export default function AdvancedCanvasEditor({
                   <Label>Cor de Preenchimento</Label>
                   <Input
                     type="color"
-                    value={selectedObject.fill as string}
+                    value={(selectedObject as unknown as FabricTextObject).fill as string}
                     onChange={(e) => changeColor(e.target.value)}
                   />
                 </div>

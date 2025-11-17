@@ -24,9 +24,9 @@ export interface SortConfig {
 
 interface AdvancedFiltersProps {
   filters: FilterConfig[]
-  onFilterChange: (filters: Record<string, any>) => void
+  onFilterChange: (filters: Record<string, unknown>) => void
   onSortChange?: (sort: SortConfig) => void
-  activeFilters?: Record<string, any>
+  activeFilters?: Record<string, unknown>
   sortOptions?: Array<{ value: string; label: string }>
 }
 
@@ -37,7 +37,7 @@ export function AdvancedFilters({
   activeFilters = {},
   sortOptions = []
 }: AdvancedFiltersProps) {
-  const [localFilters, setLocalFilters] = useState<Record<string, any>>(activeFilters)
+  const [localFilters, setLocalFilters] = useState<Record<string, unknown>>(activeFilters)
   const [sortField, setSortField] = useState('')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 

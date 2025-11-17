@@ -74,13 +74,13 @@ export async function GET(request: NextRequest) {
     const authorizedSlides = []
     
     for (const slide of slides || []) {
-      const upload = slide.pptx_uploads as any
+      const upload = slide.pptx_uploads as Record<string, unknown>
       
       // Buscar projeto para verificar permissões
       const { data: project } = await supabase
         .from('projects')
         .select('owner_id, collaborators, is_public')
-        .eq('id', upload.project_id)
+        .eq('id', String(upload.project_id))
         .single()
 
       if (project) {
@@ -141,9 +141,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const project = upload.projects as any
+    const project = upload.projects as Record<string, unknown>
     const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+               Array.isArray(project.collaborators) && (project.collaborators as unknown[]).includes(user.id)
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -270,7 +270,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const project = upload.projects as any
+    const project = upload.projects as Record<string, unknown>
     const hasPermission = project.owner_id === user.id || 
                          project.collaborators?.includes(user.id)
 
@@ -282,8 +282,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Atualizar ordem dos slides
-    const updates = slides.map((slide: any, index: number) => ({
-      id: slide.id,
+    const updates = slides.map((slide: Record<string, unknown>, index: number) => ({
+      id: String(slide.id),
       slide_number: index + 1
     }))
 

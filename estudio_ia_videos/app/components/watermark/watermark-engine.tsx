@@ -44,7 +44,7 @@ interface WatermarkConfig {
   backgroundOpacity: number
   borderRadius: number
   padding: number
-  blendMode: string
+  blendMode: React.CSSProperties['mixBlendMode']
   animation: {
     enabled: boolean
     type: 'fade' | 'slide' | 'pulse' | 'rotate'
@@ -101,7 +101,7 @@ const fontFamilies = [
   'Verdana', 'Courier New', 'Impact', 'Comic Sans MS'
 ]
 
-const blendModes = [
+const blendModes: WatermarkConfig['blendMode'][] = [
   'normal', 'multiply', 'screen', 'overlay', 'soft-light',
   'hard-light', 'color-dodge', 'color-burn', 'difference', 'exclusion'
 ]
@@ -220,7 +220,7 @@ export function WatermarkEngine({ onApply, previewMode = true, videoPreview }: W
       backgroundColor: `${config.backgroundColor}${Math.round(config.backgroundOpacity * 255).toString(16).padStart(2, '0')}`,
       padding: `${config.padding}px`,
       borderRadius: `${config.borderRadius}px`,
-      mixBlendMode: config.blendMode as any,
+      mixBlendMode: config.blendMode,
       cursor: isDragging ? 'grabbing' : 'grab',
       userSelect: 'none',
       pointerEvents: 'all',
@@ -496,7 +496,7 @@ export function WatermarkEngine({ onApply, previewMode = true, videoPreview }: W
 
                       <div>
                         <Label>Peso da Fonte</Label>
-                        <Select value={config.fontWeight} onValueChange={(value: any) => updateConfig({ fontWeight: value })}>
+                        <Select value={config.fontWeight} onValueChange={(value: string) => updateConfig({ fontWeight: value })}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -621,7 +621,7 @@ export function WatermarkEngine({ onApply, previewMode = true, videoPreview }: W
                           <Label className="text-xs">Tipo</Label>
                           <Select 
                             value={config.animation.type} 
-                            onValueChange={(value: any) => updateConfig({ 
+                            onValueChange={(value: string) => updateConfig({ 
                               animation: { ...config.animation, type: value }
                             })}
                           >

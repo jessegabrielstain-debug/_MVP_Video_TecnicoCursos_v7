@@ -39,7 +39,7 @@ export interface ContentGenerationRequest {
     templateId?: string;
     slideId?: string;
     previousContent?: string;
-    userPreferences?: Record<string, any>;
+    userPreferences?: Record<string, unknown>;
   };
 }
 
@@ -117,6 +117,64 @@ export interface ContentOptimization {
   };
 }
 
+export interface ContentOptimizationOptions {
+  type?: string;
+  goals?: string[];
+  constraints?: Record<string, unknown>;
+  optimizationType?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+export type OptimizableContentInput =
+  | string
+  | Record<string, unknown>
+  | Array<unknown>
+  | ContentGenerationResult
+  | ContentOptimization
+  | null;
+
+export type OptimizedContentResult =
+  | ContentOptimization
+  | Exclude<OptimizableContentInput, null>;
+
+const DEFAULT_OPTIMIZATION_TYPES = ['readability', 'engagement', 'seo', 'accessibility', 'compliance'] as const;
+
+const isContentGenerationResultPayload = (
+  value: OptimizableContentInput
+): value is ContentGenerationResult => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  return 'content' in value && 'metadata' in value && 'id' in value;
+};
+
+const normalizeOptimizableContent = (content: OptimizableContentInput) => {
+  if (content == null) {
+    return '';
+  }
+
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (Array.isArray(content)) {
+    return content;
+  }
+
+  if (isContentGenerationResultPayload(content)) {
+    const normalizedContent = {
+      ...content,
+      content: typeof content.content === 'string' ? content.content : '[binary-content]',
+      createdAt:
+        content.createdAt instanceof Date ? content.createdAt.toISOString() : content.createdAt,
+    };
+    return normalizedContent;
+  }
+
+  return JSON.parse(JSON.stringify(content));
+};
+
 export interface PersonalizationProfile {
   userId: string;
   preferences: {
@@ -147,6 +205,8 @@ export interface PersonalizationProfile {
   };
 }
 
+export type AIInsightData = Record<string, unknown>;
+
 export interface AIInsight {
   id: string;
   type: 'content_suggestion' | 'performance_optimization' | 'user_behavior' | 'trend_analysis' | 'compliance_alert';
@@ -154,7 +214,7 @@ export interface AIInsight {
   description: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
   category: string;
-  data: any;
+  data: AIInsightData;
   actionable: boolean;
   actions?: {
     id: string;
@@ -180,6 +240,14 @@ export interface AIUsageStats {
   popularFeatures: { feature: string; usage: number }[];
   userSatisfaction: number;
 }
+
+export type AutoCompleteContext = {
+  currentContent?: string;
+  contentType?: string;
+  targetAudience?: string;
+  objectives?: string[];
+  metadata?: Record<string, unknown>;
+} & Record<string, unknown>;
 
 export const useAdvancedAI = () => {
   const [models, setModels] = useState<AIModel[]>([]);
@@ -283,21 +351,25 @@ export const useAdvancedAI = () => {
 
   // Optimize content
   const optimizeContent = useCallback(async (
-    content: string, 
-    optimizationType: string[] = ['readability', 'engagement', 'seo', 'accessibility', 'compliance']
-  ): Promise<ContentOptimization | null> => {
+    content: OptimizableContentInput,
+    options: ContentOptimizationOptions = {}
+  ): Promise<OptimizedContentResult | null> => {
     try {
       setIsLoading(true);
       setError(null);
+
+      const { optimizationType = [...DEFAULT_OPTIMIZATION_TYPES], ...restOptions } = options;
+      const normalizedContent = normalizeOptimizableContent(content);
 
       const response = await fetch('/api/ai/optimize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          content, 
-          optimizationType 
+        body: JSON.stringify({
+          content: normalizedContent,
+          optimizationType,
+          ...restOptions,
         })
       });
 
@@ -306,7 +378,7 @@ export const useAdvancedAI = () => {
       }
 
       const result = await response.json();
-      return result;
+      return result as OptimizedContentResult;
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to optimize content');
@@ -526,7 +598,7 @@ export const useAdvancedAI = () => {
   // Auto-complete content
   const autoCompleteContent = useCallback(async (
     partialContent: string,
-    context?: any
+    context?: AutoCompleteContext
   ): Promise<string[]> => {
     try {
       const response = await fetch('/api/ai/autocomplete', {

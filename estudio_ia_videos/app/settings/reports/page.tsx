@@ -6,13 +6,14 @@
 
 'use client';
 
-import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Download, FileText, Table, Calendar, TrendingUp } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 type ReportType = 'analytics' | 'security' | 'audit_logs' | 'billing' | 'usage' | 'sso' | 'members';
 
@@ -69,14 +70,41 @@ const reportOptions: ReportOption[] = [
 ];
 
 export default function ReportsPage() {
-  const { data: session } = useSession() || {};
+  const supabase = useMemo(() => createClient(), []);
+  const [user, setUser] = useState<User | null>(null);
   const [selectedReport, setSelectedReport] = useState<ReportType>('analytics');
   const [format, setFormat] = useState<'pdf' | 'csv'>('pdf');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [generating, setGenerating] = useState(false);
 
-  const orgId = session?.user?.currentOrgId;
+  const orgId = user?.user_metadata?.currentOrgId;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (!isMounted) return;
+        setUser(data.user ?? null);
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error);
+      }
+    };
+
+    void loadUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+      listener?.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   const handleGenerateReport = async () => {
     if (!orgId || !startDate || !endDate) {
@@ -137,11 +165,11 @@ export default function ReportsPage() {
   };
 
   // Initialize dates on mount
-  useState(() => {
+  useEffect(() => {
     initializeDates();
-  });
+  }, []);
 
-  if (!session?.user) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Faça login para acessar o gerador de relatórios.</p>

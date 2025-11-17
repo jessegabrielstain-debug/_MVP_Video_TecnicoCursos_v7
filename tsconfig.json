@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -19,11 +15,9 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "estudio_ia_videos/app/*"
-      ]
+      "@/*": ["estudio_ia_videos/app/*"],
+      "~lib/*": ["lib/*"]
     },
-  "ignoreDeprecations": "6.0",
     "plugins": [
       {
         "name": "next"
@@ -32,21 +26,12 @@
   },
   "include": [
     "next-env.d.ts",
-  "estudio_ia_videos/app/app/**/*.ts",
-  "estudio_ia_videos/app/app/**/*.tsx",
-  "estudio_ia_videos/app/lib/**/*.ts",
-  "estudio_ia_videos/app/lib/**/*.tsx",
-  "estudio_ia_videos/app/types/**/*.ts",
-  "estudio_ia_videos/app/types/**/*.tsx",
+    "estudio_ia_videos/app/**/*.ts",
+    "estudio_ia_videos/app/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "scripts/**/*.ts",
     ".next/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "**/__tests__/**",
-    "estudio_ia_videos/src",
-    "estudio_ia_videos/tests",
-    "estudio_ia_videos/app/archive/legacy",
-    "app",
-    "app/**/*"
-  ]
+  "exclude": ["node_modules"]
 }

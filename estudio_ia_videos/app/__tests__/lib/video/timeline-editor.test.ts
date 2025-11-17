@@ -17,12 +17,16 @@ import { EventEmitter } from 'events';
 jest.mock('fluent-ffmpeg');
 jest.mock('fs/promises');
 
-const ffmpeg = require('fluent-ffmpeg');
+type MockedFfmpegModule = jest.Mock & {
+  ffprobe: jest.Mock;
+};
+
+const ffmpeg = require('fluent-ffmpeg') as MockedFfmpegModule;
 const fs = require('fs/promises');
 
 describe('TimelineEditor', () => {
   let editor: TimelineEditor;
-  let mockFfmpegInstance: any;
+  let mockFfmpegInstance: unknown;
 
   beforeEach(() => {
     editor = new TimelineEditor();
@@ -51,10 +55,10 @@ describe('TimelineEditor', () => {
       run: jest.fn()
     };
 
-    (ffmpeg as jest.Mock).mockReturnValue(mockFfmpegInstance);
+    ffmpeg.mockReturnValue(mockFfmpegInstance);
 
     // Mock ffprobe
-    (ffmpeg as any).ffprobe = jest.fn((filePath, callback) => {
+    ffmpeg.ffprobe = jest.fn((filePath, callback) => {
       callback(null, {
         format: { duration: 60 },
         streams: [

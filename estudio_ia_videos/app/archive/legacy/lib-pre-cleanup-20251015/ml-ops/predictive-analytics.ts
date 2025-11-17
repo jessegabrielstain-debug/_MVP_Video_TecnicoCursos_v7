@@ -36,7 +36,7 @@ interface MLModel {
 
 interface PredictionRequest {
   modelId: string;
-  input: Record<string, any>;
+  input: Record<string, unknown>;
   options?: {
     explainability?: boolean;
     confidence?: boolean;
@@ -68,7 +68,7 @@ interface ABTestConfig {
     id: string;
     name: string;
     traffic: number; // porcentagem
-    config: Record<string, any>;
+    config: Record<string, unknown>;
   }>;
   metrics: string[];
   duration: number; // dias
@@ -263,7 +263,7 @@ export class PredictiveAnalytics {
       name: string;
       type: MLModel['type'];
       trainingData: any[];
-      hyperparameters: Record<string, any>;
+      hyperparameters: Record<string, unknown>;
     }
   ): Promise<{
     modelId: string;
@@ -389,7 +389,7 @@ export class PredictiveAnalytics {
     return { test, results };
   }
 
-  private async executePrediction(model: MLModel, input: Record<string, any>): Promise<any> {
+  private async executePrediction(model: MLModel, input: Record<string, unknown>): Promise<any> {
     // Simular execução de modelo ML
     switch (model.type) {
       case 'classification':
@@ -415,7 +415,7 @@ export class PredictiveAnalytics {
     }
   }
 
-  private calculateFeatureImportance(input: Record<string, any>): Record<string, number> {
+  private calculateFeatureImportance(input: Record<string, unknown>): Record<string, number> {
     const features = Object.keys(input);
     const importance: Record<string, number> = {};
 

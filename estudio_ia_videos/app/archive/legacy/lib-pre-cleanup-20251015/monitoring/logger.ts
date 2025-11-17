@@ -19,7 +19,7 @@ export interface LogEntry {
   userId?: string
   sessionId?: string
   requestId?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   error?: {
     name: string
     message: string
@@ -69,22 +69,22 @@ class StructuredLogger {
   }
 
   // 🔍 DEBUG
-  debug(message: string, metadata?: Record<string, any>): void {
+  debug(message: string, metadata?: Record<string, unknown>): void {
     this.log(LogLevel.DEBUG, message, metadata)
   }
 
   // ℹ️ INFO
-  info(message: string, metadata?: Record<string, any>): void {
+  info(message: string, metadata?: Record<string, unknown>): void {
     this.log(LogLevel.INFO, message, metadata)
   }
 
   // ⚠️ WARN
-  warn(message: string, metadata?: Record<string, any>): void {
+  warn(message: string, metadata?: Record<string, unknown>): void {
     this.log(LogLevel.WARN, message, metadata)
   }
 
   // ❌ ERROR
-  error(message: string, error?: Error, metadata?: Record<string, any>): void {
+  error(message: string, error?: Error, metadata?: Record<string, unknown>): void {
     const errorData = error ? {
       name: error.name,
       message: error.message,
@@ -95,7 +95,7 @@ class StructuredLogger {
   }
 
   // 💀 FATAL
-  fatal(message: string, error?: Error, metadata?: Record<string, any>): void {
+  fatal(message: string, error?: Error, metadata?: Record<string, unknown>): void {
     const errorData = error ? {
       name: error.name,
       message: error.message,
@@ -109,7 +109,7 @@ class StructuredLogger {
   performance(
     message: string, 
     duration: number, 
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const performance = {
       duration,
@@ -123,7 +123,7 @@ class StructuredLogger {
   private log(
     level: LogLevel,
     message: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
     error?: { name: string; message: string; stack?: string },
     performance?: { duration: number; memory: number; cpu?: number }
   ): void {
@@ -253,12 +253,12 @@ export const logger = StructuredLogger.getInstance()
 
 // 🎯 CONVENIENCE FUNCTIONS
 export const log = {
-  debug: (message: string, metadata?: Record<string, any>) => logger.debug(message, metadata),
-  info: (message: string, metadata?: Record<string, any>) => logger.info(message, metadata),
-  warn: (message: string, metadata?: Record<string, any>) => logger.warn(message, metadata),
-  error: (message: string, error?: Error, metadata?: Record<string, any>) => logger.error(message, error, metadata),
-  fatal: (message: string, error?: Error, metadata?: Record<string, any>) => logger.fatal(message, error, metadata),
-  performance: (message: string, duration: number, metadata?: Record<string, any>) => logger.performance(message, duration, metadata)
+  debug: (message: string, metadata?: Record<string, unknown>) => logger.debug(message, metadata),
+  info: (message: string, metadata?: Record<string, unknown>) => logger.info(message, metadata),
+  warn: (message: string, metadata?: Record<string, unknown>) => logger.warn(message, metadata),
+  error: (message: string, error?: Error, metadata?: Record<string, unknown>) => logger.error(message, error, metadata),
+  fatal: (message: string, error?: Error, metadata?: Record<string, unknown>) => logger.fatal(message, error, metadata),
+  performance: (message: string, duration: number, metadata?: Record<string, unknown>) => logger.performance(message, duration, metadata)
 }
 
 export default logger

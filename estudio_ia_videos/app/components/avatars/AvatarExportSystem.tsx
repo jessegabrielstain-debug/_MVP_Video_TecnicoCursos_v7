@@ -113,6 +113,30 @@ interface AvatarExportSystemProps {
   onExportComplete?: (job: ExportJob) => void;
 }
 
+const PLATFORM_TARGETS = ['web', 'mobile', 'desktop', 'tv'] as const;
+type PlatformTarget = (typeof PLATFORM_TARGETS)[number];
+
+const VIDEO_FORMAT_OPTIONS = ['mp4', 'webm', 'avi', 'mov', 'gif'] as const;
+type VideoFormatOption = (typeof VIDEO_FORMAT_OPTIONS)[number];
+
+const VIDEO_RESOLUTION_OPTIONS = ['480p', '720p', '1080p', '1440p', '4k'] as const;
+type VideoResolutionOption = (typeof VIDEO_RESOLUTION_OPTIONS)[number];
+
+const VIDEO_FPS_OPTIONS = [24, 30, 60] as const;
+type VideoFpsOption = (typeof VIDEO_FPS_OPTIONS)[number];
+
+const VIDEO_CODEC_OPTIONS = ['h264', 'h265', 'vp9', 'av1'] as const;
+type VideoCodecOption = (typeof VIDEO_CODEC_OPTIONS)[number];
+
+const AUDIO_FORMAT_OPTIONS = ['aac', 'mp3', 'wav', 'ogg'] as const;
+type AudioFormatOption = (typeof AUDIO_FORMAT_OPTIONS)[number];
+
+const AUDIO_SAMPLE_RATE_OPTIONS = [44100, 48000, 96000] as const;
+type AudioSampleRateOption = (typeof AUDIO_SAMPLE_RATE_OPTIONS)[number];
+
+const RENDER_QUALITY_OPTIONS = ['draft', 'standard', 'high', 'ultra'] as const;
+type RenderQualityOption = (typeof RENDER_QUALITY_OPTIONS)[number];
+
 export default function AvatarExportSystem({ 
   avatarId, 
   avatarData,
@@ -215,6 +239,11 @@ export default function AvatarExportSystem({
     '1440p': { width: 2560, height: 1440, label: '1440p (2K)' },
     '4k': { width: 3840, height: 2160, label: '4K (Ultra HD)' }
   };
+
+  const resolutionEntries = VIDEO_RESOLUTION_OPTIONS.map((key) => ({
+    key,
+    value: resolutionSettings[key]
+  }));
 
   // Aplicar preset de plataforma
   const applyPlatformPreset = (platform: keyof typeof platformPresets) => {
@@ -569,14 +598,14 @@ export default function AvatarExportSystem({
               <div className="mt-4">
                 <Label>Otimizar para</Label>
                 <div className="grid grid-cols-4 gap-2 mt-2">
-                  {['web', 'mobile', 'desktop', 'tv'].map((target) => (
+                  {PLATFORM_TARGETS.map((target) => (
                     <Button
                       key={target}
                       variant={exportSettings.platform.optimizeFor === target ? "default" : "outline"}
                       size="sm"
                       onClick={() => setExportSettings(prev => ({
                         ...prev,
-                        platform: { ...prev.platform, optimizeFor: target as any }
+                        platform: { ...prev.platform, optimizeFor: target }
                       }))}
                     >
                       {target === 'web' && <Globe className="w-4 h-4 mr-1" />}
@@ -605,14 +634,14 @@ export default function AvatarExportSystem({
                 <div>
                   <Label>Formato</Label>
                   <div className="grid grid-cols-3 gap-2 mt-2">
-                    {['mp4', 'webm', 'avi', 'mov', 'gif'].map((format) => (
+                    {VIDEO_FORMAT_OPTIONS.map((format) => (
                       <Button
                         key={format}
                         variant={exportSettings.video.format === format ? "default" : "outline"}
                         size="sm"
                         onClick={() => setExportSettings(prev => ({
                           ...prev,
-                          video: { ...prev.video, format: format as any }
+                          video: { ...prev.video, format }
                         }))}
                       >
                         {format.toUpperCase()}
@@ -624,7 +653,7 @@ export default function AvatarExportSystem({
                 <div>
                   <Label>Resolução</Label>
                   <div className="space-y-2 mt-2">
-                    {Object.entries(resolutionSettings).map(([key, value]) => (
+                    {resolutionEntries.map(({ key, value }) => (
                       <Button
                         key={key}
                         variant={exportSettings.video.resolution === key ? "default" : "outline"}
@@ -632,7 +661,7 @@ export default function AvatarExportSystem({
                         className="w-full justify-start"
                         onClick={() => setExportSettings(prev => ({
                           ...prev,
-                          video: { ...prev.video, resolution: key as any }
+                          video: { ...prev.video, resolution: key }
                         }))}
                       >
                         {value.label}
@@ -646,14 +675,14 @@ export default function AvatarExportSystem({
                 <div>
                   <Label>FPS</Label>
                   <div className="grid grid-cols-3 gap-2 mt-2">
-                    {[24, 30, 60].map((fps) => (
+                    {VIDEO_FPS_OPTIONS.map((fps) => (
                       <Button
                         key={fps}
                         variant={exportSettings.video.fps === fps ? "default" : "outline"}
                         size="sm"
                         onClick={() => setExportSettings(prev => ({
                           ...prev,
-                          video: { ...prev.video, fps: fps as any }
+                          video: { ...prev.video, fps }
                         }))}
                       >
                         {fps}
@@ -696,14 +725,14 @@ export default function AvatarExportSystem({
               <div>
                 <Label>Codec</Label>
                 <div className="grid grid-cols-4 gap-2 mt-2">
-                  {['h264', 'h265', 'vp9', 'av1'].map((codec) => (
+                  {VIDEO_CODEC_OPTIONS.map((codec) => (
                     <Button
                       key={codec}
                       variant={exportSettings.video.codec === codec ? "default" : "outline"}
                       size="sm"
                       onClick={() => setExportSettings(prev => ({
                         ...prev,
-                        video: { ...prev.video, codec: codec as any }
+                        video: { ...prev.video, codec }
                       }))}
                     >
                       {codec.toUpperCase()}
@@ -756,14 +785,14 @@ export default function AvatarExportSystem({
                     <div>
                       <Label>Formato</Label>
                       <div className="grid grid-cols-2 gap-2 mt-2">
-                        {['aac', 'mp3', 'wav', 'ogg'].map((format) => (
+                        {AUDIO_FORMAT_OPTIONS.map((format) => (
                           <Button
                             key={format}
                             variant={exportSettings.audio.format === format ? "default" : "outline"}
                             size="sm"
                             onClick={() => setExportSettings(prev => ({
                               ...prev,
-                              audio: { ...prev.audio, format: format as any }
+                              audio: { ...prev.audio, format }
                             }))}
                           >
                             {format.toUpperCase()}
@@ -818,14 +847,14 @@ export default function AvatarExportSystem({
                     <div>
                       <Label>Sample Rate</Label>
                       <div className="grid grid-cols-3 gap-2 mt-2">
-                        {[44100, 48000, 96000].map((rate) => (
+                        {AUDIO_SAMPLE_RATE_OPTIONS.map((rate) => (
                           <Button
                             key={rate}
                             variant={exportSettings.audio.sampleRate === rate ? "default" : "outline"}
                             size="sm"
                             onClick={() => setExportSettings(prev => ({
                               ...prev,
-                              audio: { ...prev.audio, sampleRate: rate as any }
+                              audio: { ...prev.audio, sampleRate: rate }
                             }))}
                           >
                             {rate / 1000}k
@@ -852,14 +881,14 @@ export default function AvatarExportSystem({
               <div>
                 <Label>Qualidade</Label>
                 <div className="grid grid-cols-4 gap-2 mt-2">
-                  {['draft', 'standard', 'high', 'ultra'].map((quality) => (
+                  {RENDER_QUALITY_OPTIONS.map((quality) => (
                     <Button
                       key={quality}
                       variant={exportSettings.rendering.quality === quality ? "default" : "outline"}
                       size="sm"
                       onClick={() => setExportSettings(prev => ({
                         ...prev,
-                        rendering: { ...prev.rendering, quality: quality as any }
+                        rendering: { ...prev.rendering, quality }
                       }))}
                     >
                       {quality.charAt(0).toUpperCase() + quality.slice(1)}

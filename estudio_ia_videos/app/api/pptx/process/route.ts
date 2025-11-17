@@ -411,7 +411,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
-    const metadata = project.metadata as any
+    const metadata = project.metadata as Record<string, unknown> | null
 
     return NextResponse.json({
       slides: metadata?.slides || [],
@@ -455,7 +455,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
-    const metadata = project.metadata as any
+    const metadata = project.metadata as Record<string, unknown> | null
     const slides = metadata?.slides || []
     
     // Filtrar slides para regenerar TTS

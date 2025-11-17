@@ -71,6 +71,18 @@ interface AssetCategory {
   count: number
 }
 
+const SORT_OPTION_ITEMS = [
+  { value: 'name', label: 'Nome' },
+  { value: 'downloads', label: 'Downloads' },
+  { value: 'rating', label: 'Avaliação' },
+  { value: 'date', label: 'Data' }
+] as const
+
+type SortOption = typeof SORT_OPTION_ITEMS[number]['value']
+
+const isSortOption = (value: string): value is SortOption =>
+  SORT_OPTION_ITEMS.some((option) => option.value === value)
+
 const SAMPLE_ASSETS: Asset[] = [
   // Templates NR
   {
@@ -230,7 +242,7 @@ export default function EnhancedAssetLibrary({
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [sortBy, setSortBy] = useState<'name' | 'downloads' | 'rating' | 'date'>('name')
+  const [sortBy, setSortBy] = useState<SortOption>('name')
   const [showPremiumOnly, setShowPremiumOnly] = useState(false)
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const [assets, setAssets] = useState<Asset[]>(SAMPLE_ASSETS)
@@ -360,13 +372,19 @@ export default function EnhancedAssetLibrary({
 
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => {
+              const { value } = e.target
+              if (isSortOption(value)) {
+                setSortBy(value)
+              }
+            }}
             className="p-2 border rounded"
           >
-            <option value="name">Nome</option>
-            <option value="downloads">Downloads</option>
-            <option value="rating">Avaliação</option>
-            <option value="date">Data</option>
+            {SORT_OPTION_ITEMS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
 
           <Button

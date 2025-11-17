@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { parsePptxSlides } from './parser'
+import { parsePptxSlides, type ParsedPptxSlideSummary } from './parser'
 import type { Database, Json } from '../supabase/types'
 
 export type BootstrapSlidesResult = {
@@ -10,12 +10,12 @@ export type BootstrapSlidesResult = {
 
 const ASSETS_BUCKET = 'assets'
 
-function buildSlideContent(textContent: string, notes: string | null) {
+function buildSlideContent(textContent: string, notes: string | null): Json {
   return {
     type: 'pptx-extracted',
     body: textContent,
     notes,
-  }
+  } as Json
 }
 
 export async function bootstrapSlidesFromPptx(
@@ -35,7 +35,7 @@ export async function bootstrapSlidesFromPptx(
   }
 
   const arrayBuffer = await download.data.arrayBuffer()
-  const slides = await parsePptxSlides(arrayBuffer)
+  const slides: ParsedPptxSlideSummary[] = await parsePptxSlides(arrayBuffer)
 
   if (slides.length === 0) {
     return {
@@ -53,7 +53,8 @@ export async function bootstrapSlidesFromPptx(
     duration: null,
   }))
 
-  const { error: deleteError } = await (supabase.from('slides') as any)
+  const { error: deleteError } = await supabase
+    .from('slides')
     .delete()
     .eq('project_id', projectId)
   if (deleteError) {
@@ -64,7 +65,7 @@ export async function bootstrapSlidesFromPptx(
     }
   }
 
-  const { error: insertError } = await (supabase.from('slides') as any).insert(payload as any)
+  const { error: insertError } = await supabase.from('slides').insert(payload)
   if (insertError) {
     return {
       ok: false,
@@ -91,8 +92,9 @@ export async function bootstrapSlidesFromPptx(
     updated_at: new Date().toISOString(),
   }
 
-  const { error: updateError } = await (supabase.from('projects') as any)
-    .update(projectUpdate as any)
+  const { error: updateError } = await supabase
+    .from('projects')
+    .update(projectUpdate)
     .eq('id', projectId)
 
   if (updateError) {

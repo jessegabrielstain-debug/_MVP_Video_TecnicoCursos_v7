@@ -108,7 +108,7 @@ export interface PPTXAnimation {
   duration: number;
   delay?: number;
   easing?: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 export type PPTXAnimationType = 
@@ -210,7 +210,7 @@ export interface PPTXFontScheme {
 
 export interface PPTXEffectScheme {
   name: string;
-  effects: Record<string, any>;
+  effects: Record<string, unknown>;
 }
 
 export interface PPTXDocumentMetadata {
@@ -277,7 +277,7 @@ export type PPTXJobStatus =
 export interface PPTXJobResult {
   outputUrl?: string;
   thumbnails?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   warnings?: string[];
   stats?: PPTXProcessingStats;
 }
@@ -336,7 +336,7 @@ export interface PPTXTemplateVariable {
 
 export interface PPTXValidationRule {
   type: string;
-  params: Record<string, any>;
+  params: Record<string, unknown>;
   message: string;
 }
 
@@ -350,7 +350,7 @@ export interface PPTXTemplateRule {
 export interface PPTXTemplateAction {
   type: 'show' | 'hide' | 'replace' | 'style' | 'animate';
   target: string;
-  params: Record<string, any>;
+  params: Record<string, unknown>;
 }
 
 export interface PPTXTemplateMetadata {

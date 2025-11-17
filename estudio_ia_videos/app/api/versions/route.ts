@@ -12,6 +12,8 @@ import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth/auth-config'
 import { prisma } from '@/lib/db'
 
+
+const getUserId = (user: unknown): string => ((user as { id?: string }).id || '');
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authConfig)
@@ -38,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verifica permissão
-    if (project.userId !== (session.user as any).id) {
+    if (project.userId !== getUserId(session.user)) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
 
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
     const version = await prisma.projectVersion.create({
       data: {
         projectId,
-        userId: (session.user as any).id,
+        userId: getUserId(session.user),
         name,
         description,
         versionNumber: versionCount + 1,
@@ -70,6 +72,8 @@ export async function POST(req: NextRequest) {
   }
 }
 
+
+const getUserId = (user: unknown): string => ((user as { id?: string }).id || '');
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authConfig)

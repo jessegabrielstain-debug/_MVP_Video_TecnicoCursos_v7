@@ -15,9 +15,17 @@ jest.mock('fluent-ffmpeg');
 const mockFs = fs as jest.Mocked<typeof fs>;
 const mockFfmpeg = ffmpeg as jest.MockedFunction<typeof ffmpeg>;
 
+interface FfmpegInstance {
+  input: jest.Mock;
+  output: jest.Mock;
+  outputOptions: jest.Mock;
+  on: jest.Mock;
+  run: jest.Mock;
+}
+
 describe('SubtitleManager', () => {
   let manager: SubtitleManager;
-  let mockFfmpegInstance: any;
+  let mockFfmpegInstance: FfmpegInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -37,7 +45,8 @@ describe('SubtitleManager', () => {
     jest.spyOn(fs, 'access').mockImplementation(() => Promise.resolve(undefined));
     jest.spyOn(fs, 'readFile').mockImplementation(() => Promise.resolve(''));
     jest.spyOn(fs, 'writeFile').mockImplementation(() => Promise.resolve(undefined));
-    jest.spyOn(fs, 'stat').mockImplementation(() => Promise.resolve({ size: 1024 } as any));
+    interface Stats { size: number; }
+    jest.spyOn(fs, 'stat').mockImplementation(() => Promise.resolve({ size: 1024 } as unknown as import('fs').Stats));
     jest.spyOn(fs, 'unlink').mockImplementation(() => Promise.resolve(undefined));
   });
 
@@ -595,7 +604,8 @@ Second subtitle
     it('should throw error for unsupported format', async () => {
       await expect(
         manager.export({
-          format: 'invalid' as any,
+          // @ts-expect-error Testing invalid format handling
+          format: 'invalid',
           outputPath: './output.txt',
           trackId,
         })

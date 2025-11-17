@@ -84,10 +84,10 @@ type ActionCategory =
   | 'keyframe' | 'audio' | 'video' | 'project' | 'system';
 
 interface ActionData {
-  before: any;
-  after: any;
+  before: unknown;
+  after: unknown;
   target: ActionTarget;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
   affectedItems?: string[];
   dependencies?: string[];
 }
@@ -161,7 +161,7 @@ interface HistoryFilter {
 
 interface ActionPreview {
   action: TimelineAction;
-  previewData: any;
+  previewData: unknown;
   thumbnails: string[];
   description: string;
   warnings: string[];
@@ -722,7 +722,7 @@ export function UndoRedoSystem() {
 
   // Função para adicionar ação de exemplo (para demonstração)
   const addExampleAction = useCallback((type: ActionType) => {
-    const exampleActions: Record<ActionType, Partial<TimelineAction>> = {
+    const exampleActions: Partial<Record<ActionType, Omit<TimelineAction, 'id' | 'timestamp' | 'sessionId'>>> = {
       add_track: {
         type: 'add_track',
         description: 'Adicionar nova track de vídeo',
@@ -786,7 +786,7 @@ export function UndoRedoSystem() {
         },
         reversible: true
       }
-    } as any;
+    };
 
     const actionTemplate = exampleActions[type];
     if (actionTemplate) {

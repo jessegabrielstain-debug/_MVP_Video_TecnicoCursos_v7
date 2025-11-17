@@ -62,10 +62,17 @@ const DEFAULT_STYLE: SubtitleStyle = {
   secondaryColor: '#FFFFFF',
 }
 
+const TAB_VALUES = ['upload', 'style'] as const
+type TabValue = (typeof TAB_VALUES)[number]
+
+const tabValuesSet = new Set<string>(TAB_VALUES)
+
+const isTabValue = (value: string): value is TabValue => tabValuesSet.has(value)
+
 export function SubtitleSettings({ subtitle, onChange }: SubtitleSettingsProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string>('')
-  const [activeTab, setActiveTab] = useState<'upload' | 'style'>('upload')
+  const [activeTab, setActiveTab] = useState<TabValue>('upload')
 
   /**
    * Handle file upload
@@ -218,7 +225,14 @@ export function SubtitleSettings({ subtitle, onChange }: SubtitleSettingsProps) 
         </Card>
       ) : (
         // Subtitle configuration
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => {
+            if (isTabValue(value)) {
+              setActiveTab(value)
+            }
+          }}
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="upload">
               <FileText className="h-4 w-4 mr-2" />

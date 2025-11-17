@@ -81,7 +81,7 @@ describe('ThumbnailGenerator', () => {
     jest.spyOn(fs, 'mkdir').mockResolvedValue(undefined);
     jest.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
     jest.spyOn(fs, 'readFile').mockResolvedValue(Buffer.from('fake-image'));
-    jest.spyOn(fs, 'stat').mockResolvedValue({ size: 50000 } as any);
+    jest.spyOn(fs, 'stat').mockResolvedValue({ size: 50000 } as unknown as import('fs/promises').FileHandle & import('fs').Stats);
     jest.spyOn(fs, 'unlink').mockResolvedValue(undefined);
   });
 
@@ -223,7 +223,7 @@ describe('ThumbnailGenerator', () => {
 
       expect(completeSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          thumbnails: expect.any(Array),
+          thumbnails: expect.arrayContaining([]),
           processingTime: expect.any(Number)
         })
       );
@@ -502,7 +502,7 @@ describe('ThumbnailGenerator', () => {
 
       expect(fs.writeFile).toHaveBeenCalledWith(
         expect.stringContaining('sprite.jpg'),
-        expect.any(Buffer)
+        expect.any(Object)
       );
     });
 

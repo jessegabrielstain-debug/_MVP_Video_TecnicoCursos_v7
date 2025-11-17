@@ -1,6 +1,8 @@
+import { NextRequest } from 'next/server'
+import { PrismaClient } from '@prisma/client'
+import { DELETE, GET } from '@/app/api/projects/[projectId]/route'
+
 process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary'
-const { PrismaClient } = require('@prisma/client')
-const { DELETE, GET } = require('@/app/api/projects/[projectId]/route')
 
 const prisma = new PrismaClient()
 
@@ -48,7 +50,8 @@ describe('/api/projects/[projectId] DELETE', () => {
   })
 
   it('remove projeto e slides associados', async () => {
-    const response = await DELETE({} as any, { params: { projectId } })
+    const deleteRequest = new NextRequest(`http://localhost/api/projects/${projectId}`, { method: 'DELETE' })
+    const response = await DELETE(deleteRequest, { params: { projectId } })
     expect(response.status).toBe(200)
 
     const payload = await response.json()
@@ -57,7 +60,8 @@ describe('/api/projects/[projectId] DELETE', () => {
     const slidesCount = await prisma.slide.count({ where: { projectId } })
     expect(slidesCount).toBe(0)
 
-    const projectResponse = await GET({ url: `http://localhost/api/projects/${projectId}` } as any, {
+    const projectRequest = new NextRequest(`http://localhost/api/projects/${projectId}`)
+    const projectResponse = await GET(projectRequest, {
       params: { projectId }
     })
     expect(projectResponse.status).toBe(404)

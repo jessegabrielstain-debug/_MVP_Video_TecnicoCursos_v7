@@ -6,135 +6,98 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals'
 import fs from 'fs'
 import path from 'path'
-import { PPTXProcessor } from '../lib/pptx/pptx-processor'
-import { PPTXTextParser } from '../lib/pptx/parsers/text-parser'
-import { PPTXImageParser } from '../lib/pptx/parsers/image-parser'
-import { PPTXLayoutParser } from '../lib/pptx/parsers/layout-parser'
-import { S3StorageService } from '../lib/s3-storage'
+import { processPPTXFile, validatePPTXFile } from '@/lib/pptx-processor';
+import { extractTextFromSlide } from '@/lib/pptx/parsers/text-parser';
+import { PPTXImageParser } from '@/lib/pptx/parsers/image-parser';
+import { detectSlideLayout } from '@/lib/pptx/parsers/layout-parser';
+import type { ProgressStage, ProgressUpdate } from '@/lib/definitions';
+import { createFileObject, cleanupTestFiles } from './test-helpers';
 import JSZip from 'jszip'
 
 describe('PPTX Processing Real - Fase 1', () => {
   let testPptxBuffer: Buffer
+  let testPptxFile: File
   let testZip: JSZip
+  const projectId = 'test-project-pptx'
+  const testDir = path.resolve(__dirname, 'fixtures');
+  const testPptxPath = path.join(testDir, 'test-presentation-processing.pptx');
 
   beforeAll(async () => {
-    // Carregar arquivo PPTX de teste
-    const testPptxPath = path.join(__dirname, '..', '..', 'test-presentation.pptx')
-    
+    fs.mkdirSync(testDir, { recursive: true })
+    await createTestPPTXForProcessing(testPptxPath);
     if (!fs.existsSync(testPptxPath)) {
-      throw new Error(`Arquivo PPTX de teste não encontrado: ${testPptxPath}`)
+      throw new Error('Test PPTX file could not be created or read.');
     }
 
-    testPptxBuffer = fs.readFileSync(testPptxPath)
-    testZip = await JSZip.loadAsync(testPptxBuffer)
-  })
+    testPptxBuffer = fs.readFileSync(testPptxPath);
+    testZip = await JSZip.loadAsync(testPptxBuffer);
+    testPptxFile = await createFileObject(testPptxPath);
+  });
+
+  afterAll(() => {
+    cleanupTestFiles([testPptxPath]);
+  });
 
   describe('PPTXProcessor', () => {
-    it('deve validar arquivo PPTX corretamente', async () => {
-      const validation = await PPTXProcessor.validatePPTXFile(testPptxBuffer)
+    test('deve validar arquivo PPTX corretamente', async () => {
+      const file = await createFileObject(testPptxPath);
+      const validation = await validatePPTXFile(file);
       
-      expect(validation.isValid).toBe(true)
-      expect(validation.errors).toHaveLength(0)
+      expect(validation.valid).toBe(true);
+      expect(validation.error).toBeUndefined();
+    });
+
+    test('deve rejeitar arquivo inválido', async () => {
+      const invalidPath = path.join(__dirname, '..', 'fixtures', 'invalid.txt');
+      fs.writeFileSync(invalidPath, 'invalid content');
+      const file = await createFileObject(invalidPath);
+      const validation = await validatePPTXFile(file);
+
+      expect(validation.valid).toBe(false);
+      expect(validation.error).toBeDefined();
+      fs.unlinkSync(invalidPath);
+    });
+
+    test('deve processar PPTX completo com sucesso', async () => {
+      const result = await processPPTXFile(testPptxFile, projectId);
+
+      expect(result.success).toBe(true);
+      expect(result.metadata).toBeDefined();
+      expect(result.metadata?.slideCount).toBe(5);
+      expect(result.metadata?.title).toBe('Apresentação de Teste - PPTX Processing');
+      expect(result.metadata?.author).toBe('Sistema de Teste');
+      expect(result.slides).toHaveLength(5);
+    });
+
+    test('deve gerar timeline corretamente', async () => {
+      const result = await processPPTXFile(testPptxFile, projectId);
+
+      expect(result.success).toBe(true);
+      expect(result.thumbnails).toBeDefined();
+      expect(result.thumbnails?.length).toBe(5)
     })
 
-    it('deve rejeitar arquivo inválido', async () => {
-      const invalidBuffer = Buffer.from('invalid content')
-      const validation = await PPTXProcessor.validatePPTXFile(invalidBuffer)
-      
-      expect(validation.isValid).toBe(false)
-      expect(validation.errors.length).toBeGreaterThan(0)
-    })
-
-    it('deve processar PPTX completo com sucesso', async () => {
-      const result = await PPTXProcessor.processFile(
-        testPptxBuffer,
-        'test-project-123',
-        {
-          extractImages: false, // Desabilitar para teste rápido
-          extractVideos: false,
-          extractAudio: false,
-          generateThumbnails: false,
-          uploadToS3: false,
-          preserveAnimations: false,
-          extractNotes: true,
-          detectLayouts: true,
-          estimateDurations: true,
-          extractHyperlinks: true
-        }
-      )
+    test('deve calcular estatísticas corretamente', async () => {
+      const result = await processPPTXFile(testPptxFile, projectId, { defaultDuration: 6 });
 
       expect(result.success).toBe(true)
-      expect(result.metadata).toBeDefined()
-      expect(result.metadata.totalSlides).toBe(5)
-      expect(result.metadata.title).toBe('Apresentação de Teste - PPTX Processing')
-      expect(result.metadata.author).toBe('Sistema de Teste')
-      expect(result.slides).toHaveLength(5)
-      expect(result.extractionStats).toBeDefined()
-      expect(result.extractionStats.textBlocks).toBeGreaterThanOrEqual(0)
-    })
-
-    it('deve gerar timeline corretamente', async () => {
-      const result = await PPTXProcessor.processFile(
-        testPptxBuffer,
-        'test-project-timeline',
-        {
-          extractImages: false,
-          extractVideos: false,
-          extractAudio: false,
-          generateThumbnails: false,
-          uploadToS3: false,
-          preserveAnimations: false,
-          extractNotes: true,
-          detectLayouts: false,
-          estimateDurations: true,
-          extractHyperlinks: false
-        }
-      )
-
-      expect(result.success).toBe(true)
-      expect(result.timeline).toBeDefined()
-      expect(result.timeline.scenes).toHaveLength(5)
-      expect(result.timeline.totalDuration).toBeGreaterThan(0)
-    })
-
-    it('deve calcular estatísticas corretamente', async () => {
-      const result = await PPTXProcessor.processFile(
-        testPptxBuffer,
-        'test-project-stats',
-        {
-          extractImages: false,
-          extractVideos: false,
-          extractAudio: false,
-          generateThumbnails: false,
-          uploadToS3: false,
-          preserveAnimations: false,
-          extractNotes: true,
-          detectLayouts: true,
-          estimateDurations: false,
-          extractHyperlinks: false
-        }
-      )
-
-      expect(result.success).toBe(true)
-      expect(result.extractionStats.textBlocks).toBeGreaterThanOrEqual(0)
-      expect(result.extractionStats.images).toBeGreaterThanOrEqual(0)
-      expect(result.extractionStats.shapes).toBeGreaterThanOrEqual(0)
-      expect(result.processingTime).toBeGreaterThanOrEqual(0)
+      expect(result.slides).toBeDefined()
+      expect(result.slides?.every((slide) => slide.duration === 6)).toBe(true)
     })
   })
 
   describe('PPTXTextParser', () => {
     it('deve extrair texto do slide 1', async () => {
-      const textResult = await PPTXTextParser.extractSlideText(testZip, 1)
-      
+      const textResult = await extractTextFromSlide(testZip, 1)
+
       expect(textResult.success).toBe(true)
-      expect(textResult.plainText).toContain('Apresentação de Teste')
+      expect(textResult.plainText).toContain('Texto do slide 1')
       expect(textResult.wordCount).toBeGreaterThan(0)
       expect(textResult.characterCount).toBeGreaterThan(0)
     })
 
     it('deve extrair texto do slide 2 com bullets', async () => {
-      const textResult = await PPTXTextParser.extractSlideText(testZip, 2)
+      const textResult = await extractTextFromSlide(testZip, 2)
       
       expect(textResult.success).toBe(true)
       expect(textResult.plainText).toBeDefined()
@@ -143,7 +106,7 @@ describe('PPTX Processing Real - Fase 1', () => {
 
     it('deve extrair texto de todos os slides', async () => {
       for (let i = 1; i <= 5; i++) {
-        const textResult = await PPTXTextParser.extractSlideText(testZip, i)
+        const textResult = await extractTextFromSlide(testZip, i)
         
         expect(textResult.success).toBe(true)
         expect(textResult.plainText.length).toBeGreaterThan(0)
@@ -151,14 +114,14 @@ describe('PPTX Processing Real - Fase 1', () => {
     })
 
     it('deve retornar erro para slide inexistente', async () => {
-      const textResult = await PPTXTextParser.extractSlideText(testZip, 99)
+      const textResult = await extractTextFromSlide(testZip, 99)
       
       expect(textResult.success).toBe(false)
       expect(textResult.error).toContain('não encontrado')
     })
 
     it('deve extrair textboxes com formatação', async () => {
-      const textResult = await PPTXTextParser.extractSlideText(testZip, 1)
+      const textResult = await extractTextFromSlide(testZip, 1)
       
       expect(textResult.success).toBe(true)
       expect(Array.isArray(textResult.textBoxes)).toBe(true)
@@ -209,7 +172,7 @@ describe('PPTX Processing Real - Fase 1', () => {
 
   describe('PPTXLayoutParser', () => {
     it('deve detectar layout do slide 1', async () => {
-      const layoutResult = await PPTXLayoutParser.detectSlideLayout(testZip, 1)
+      const layoutResult = await detectSlideLayout(testZip, 1)
       
       expect(layoutResult.success).toBe(true)
       expect(layoutResult.layout).toBeDefined()
@@ -219,7 +182,7 @@ describe('PPTX Processing Real - Fase 1', () => {
 
     it('deve detectar layouts de todos os slides', async () => {
       for (let i = 1; i <= 5; i++) {
-        const layoutResult = await PPTXLayoutParser.detectSlideLayout(testZip, i)
+        const layoutResult = await detectSlideLayout(testZip, i)
         
         expect(layoutResult.success).toBe(true)
         expect(layoutResult.layout.name).toBeDefined()
@@ -227,7 +190,7 @@ describe('PPTX Processing Real - Fase 1', () => {
     })
 
     it('deve extrair elementos do slide', async () => {
-      const layoutResult = await PPTXLayoutParser.detectSlideLayout(testZip, 1)
+      const layoutResult = await detectSlideLayout(testZip, 1)
       
       expect(layoutResult.success).toBe(true)
       expect(layoutResult.elements).toBeDefined()
@@ -235,7 +198,7 @@ describe('PPTX Processing Real - Fase 1', () => {
     })
 
     it('deve retornar erro para slide inexistente', async () => {
-      const layoutResult = await PPTXLayoutParser.detectSlideLayout(testZip, 99)
+      const layoutResult = await detectSlideLayout(testZip, 99)
       
       expect(layoutResult.success).toBe(false)
       expect(layoutResult.error).toContain('não encontrado')
@@ -244,82 +207,32 @@ describe('PPTX Processing Real - Fase 1', () => {
 
   describe('Integração completa', () => {
     it('deve processar PPTX com todas as opções habilitadas', async () => {
-      const result = await PPTXProcessor.processFile(
-        testPptxBuffer,
-        'test-project-full',
-        {
-          extractImages: true,
-          extractVideos: true,
-          extractAudio: true,
-          generateThumbnails: true,
-          uploadToS3: false, // Desabilitar S3 para teste
-          preserveAnimations: true,
-          extractNotes: true,
-          detectLayouts: true,
-          estimateDurations: true,
-          extractHyperlinks: true,
-          maxImageSize: 1920,
-          imageQuality: 85
-        }
-      )
+      const result = await processPPTXFile(testPptxFile, projectId, {
+        defaultDuration: 4,
+        transition: { type: 'fade', duration: 0.5 },
+      });
 
       expect(result.success).toBe(true)
-      expect(result.metadata.totalSlides).toBe(5)
+      expect(result.metadata?.slideCount).toBe(5)
       expect(result.slides).toHaveLength(5)
-      expect(result.assets).toBeDefined()
-      expect(result.timeline).toBeDefined()
-      expect(result.extractionStats).toBeDefined()
-
-      // Verificar que cada slide tem dados
-      result.slides.forEach((slide, index) => {
-        expect(slide.slideNumber).toBe(index + 1)
-        expect(slide.layout).toBeDefined()
-        expect(slide.content).toBeDefined()
-      })
+      expect(result.thumbnails).toHaveLength(5)
     })
 
     it('deve manter consistência entre metadados e slides', async () => {
-      const result = await PPTXProcessor.processFile(
-        testPptxBuffer,
-        'test-project-consistency',
-        {
-          extractImages: false,
-          extractVideos: false,
-          extractAudio: false,
-          generateThumbnails: false,
-          uploadToS3: false,
-          preserveAnimations: false,
-          extractNotes: true,
-          detectLayouts: true,
-          estimateDurations: true,
-          extractHyperlinks: false
-        }
-      )
+      const result = await processPPTXFile(testPptxFile, projectId)
 
       expect(result.success).toBe(true)
-      expect(result.metadata.totalSlides).toBe(result.slides.length)
-      expect(result.timeline.scenes.length).toBe(result.slides.length)
+      expect(result.metadata?.slideCount).toBe(result.slides.length)
     })
 
     it('deve processar com callback de progresso', async () => {
-      const progressUpdates: string[] = []
+      const progressUpdates: ProgressStage[] = []
       
-      const result = await PPTXProcessor.processFile(
-        testPptxBuffer,
-        'test-project-progress',
-        {
-          extractImages: false,
-          extractVideos: false,
-          extractAudio: false,
-          generateThumbnails: false,
-          uploadToS3: false,
-          preserveAnimations: false,
-          extractNotes: true,
-          detectLayouts: true,
-          estimateDurations: true,
-          extractHyperlinks: false
-        },
-        (progress) => {
+      const result = await processPPTXFile(
+        testPptxFile,
+        projectId,
+        {},
+        (progress: ProgressUpdate) => {
           progressUpdates.push(progress.stage)
         }
       )
@@ -327,9 +240,72 @@ describe('PPTX Processing Real - Fase 1', () => {
       expect(result.success).toBe(true)
       expect(progressUpdates.length).toBeGreaterThan(0)
       expect(progressUpdates).toContain('initializing')
-      expect(progressUpdates).toContain('extracting-metadata')
+      expect(progressUpdates).toContain('parsing')
       expect(progressUpdates).toContain('processing-slides')
       expect(progressUpdates).toContain('finalizing')
     })
   })
+
+  // Helper function para criar um PPTX de teste para a suíte de processing
+  async function createTestPPTXForProcessing(filePath: string) {
+    const zip = new JSZip();
+    const slideCount = 5;
+
+    // --- Arquivos Estruturais ---
+    zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+    <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+    <Default Extension="xml" ContentType="application/xml"/>
+    <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
+    ${Array.from({ length: slideCount }, (_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('\n')}
+    <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+</Types>`);
+
+    zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
+    <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+</Relationships>`);
+
+    zip.file('docProps/core.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/">
+    <dc:title>Apresentação de Teste - PPTX Processing</dc:title>
+    <dc:creator>Sistema de Teste</dc:creator>
+    <dcterms:created>${new Date().toISOString()}</dcterms:created>
+</cp:coreProperties>`);
+
+    // --- Apresentação e Relações ---
+    zip.file('ppt/presentation.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+    <p:sldIdLst>
+        ${Array.from({ length: slideCount }, (_, i) => `<p:sldId id="${256 + i}" r:id="rId${i + 2}"/>`).join('\n')}
+    </p:sldIdLst>
+</p:presentation>`);
+
+    zip.file('ppt/_rels/presentation.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    ${Array.from({ length: slideCount }, (_, i) => `<Relationship Id="rId${i + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${i + 1}.xml"/>`).join('\n')}
+</Relationships>`);
+
+    // --- Slides ---
+    for (let i = 1; i <= slideCount; i++) {
+        zip.file(`ppt/slides/slide${i}.xml`, `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+    <p:cSld>
+        <p:spTree>
+            <p:sp>
+                <p:txBody>
+                    <a:p><a:r><a:t>Slide ${i} Title</a:t></a:r></a:p>
+                    <a:p><a:r><a:t>Content for slide ${i}.</a:t></a:r></a:p>
+                    ${i === 2 ? `<a:p><a:r><a:t>• Bullet point 1</a:t></a:r></a:p><a:p><a:r><a:t>• Bullet point 2</a:t></a:r></a:p>` : ''}
+                </p:txBody>
+            </p:sp>
+        </p:spTree>
+    </p:cSld>
+</p:sld>`);
+    }
+
+    const content = await zip.generateAsync({ type: 'nodebuffer' });
+    fs.writeFileSync(filePath, content);
+  }
 })

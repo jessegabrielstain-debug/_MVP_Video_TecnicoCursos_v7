@@ -141,6 +141,23 @@ interface ViewportSettings {
   overlays: string[]
 }
 
+const previewQualityOptions: PreviewSettings['quality'][] = ['low', 'medium', 'high', 'ultra']
+const previewResolutionOptions: PreviewSettings['resolution'][] = ['480p', '720p', '1080p', '4K']
+const previewFrameRateOptions: PreviewSettings['frameRate'][] = [24, 30, 60, 120]
+const aspectRatioOptions: ViewportSettings['aspectRatio'][] = ['16:9', '4:3', '21:9', '1:1', 'custom']
+
+const isPreviewQuality = (value: string): value is PreviewSettings['quality'] =>
+  previewQualityOptions.some((option) => option === value)
+
+const isPreviewResolution = (value: string): value is PreviewSettings['resolution'] =>
+  previewResolutionOptions.some((option) => option === value)
+
+const isPreviewFrameRate = (value: number): value is PreviewSettings['frameRate'] =>
+  previewFrameRateOptions.some((option) => option === value)
+
+const isAspectRatio = (value: string): value is ViewportSettings['aspectRatio'] =>
+  aspectRatioOptions.some((option) => option === value)
+
 // Real-time Preview Component
 export default function RealTimePreview() {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -714,10 +731,12 @@ export default function RealTimePreview() {
                     <Label className="text-xs">Qualidade</Label>
                     <select 
                       value={previewSettings.quality}
-                      onChange={(e) => setPreviewSettings(prev => ({ 
-                        ...prev, 
-                        quality: e.target.value as any 
-                      }))}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (isPreviewQuality(value)) {
+                          setPreviewSettings(prev => ({ ...prev, quality: value }))
+                        }
+                      }}
                       className="w-full mt-1 bg-gray-600 text-white text-sm rounded px-3 py-2"
                     >
                       <option value="low">Baixa</option>
@@ -731,10 +750,12 @@ export default function RealTimePreview() {
                     <Label className="text-xs">Resolução</Label>
                     <select 
                       value={previewSettings.resolution}
-                      onChange={(e) => setPreviewSettings(prev => ({ 
-                        ...prev, 
-                        resolution: e.target.value as any 
-                      }))}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (isPreviewResolution(value)) {
+                          setPreviewSettings(prev => ({ ...prev, resolution: value }))
+                        }
+                      }}
                       className="w-full mt-1 bg-gray-600 text-white text-sm rounded px-3 py-2"
                     >
                       <option value="480p">480p</option>
@@ -748,10 +769,12 @@ export default function RealTimePreview() {
                     <Label className="text-xs">Frame Rate</Label>
                     <select 
                       value={previewSettings.frameRate}
-                      onChange={(e) => setPreviewSettings(prev => ({ 
-                        ...prev, 
-                        frameRate: Number(e.target.value) as any 
-                      }))}
+                      onChange={(e) => {
+                        const value = Number(e.target.value)
+                        if (isPreviewFrameRate(value)) {
+                          setPreviewSettings(prev => ({ ...prev, frameRate: value }))
+                        }
+                      }}
                       className="w-full mt-1 bg-gray-600 text-white text-sm rounded px-3 py-2"
                     >
                       <option value={24}>24 fps</option>
@@ -814,10 +837,12 @@ export default function RealTimePreview() {
                     <Label className="text-xs">Aspect Ratio</Label>
                     <select 
                       value={viewportSettings.aspectRatio}
-                      onChange={(e) => setViewportSettings(prev => ({ 
-                        ...prev, 
-                        aspectRatio: e.target.value as any 
-                      }))}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (isAspectRatio(value)) {
+                          setViewportSettings(prev => ({ ...prev, aspectRatio: value }))
+                        }
+                      }}
                       className="w-full mt-1 bg-gray-600 text-white text-sm rounded px-3 py-2"
                     >
                       <option value="16:9">16:9</option>

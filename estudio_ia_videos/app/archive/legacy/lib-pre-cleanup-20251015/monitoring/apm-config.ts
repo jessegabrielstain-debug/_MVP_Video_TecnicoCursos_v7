@@ -35,7 +35,7 @@ export interface BusinessMetrics {
   userId?: string;
   projectId?: string;
   value?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Configuração do APM
@@ -100,7 +100,7 @@ export class APMConfig {
   }
 
   // Capturar eventos de negócio
-  captureBusinessEvent(event: string, metadata?: Record<string, any>): void {
+  captureBusinessEvent(event: string, metadata?: Record<string, unknown>): void {
     if (!this.isEnabled) return;
 
     const businessMetric: BusinessMetrics = {

@@ -15,13 +15,13 @@ import {
   MicOff,
   Play, 
   Pause, 
-  Stop,
+  Square,
   Download,
   RefreshCw,
   CheckCircle,
   AlertCircle,
   Clock,
-  Waveform,
+  Waves,
   Brain,
   Sparkles,
   FileAudio,
@@ -283,7 +283,7 @@ export default function FewShotCloning() {
                   <div key={sample.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-purple-100 rounded">
-                        <Waveform className="w-4 h-4 text-purple-600" />
+                        <Waves className="w-4 h-4 text-purple-600" />
                       </div>
                       <div>
                         <div className="font-medium text-sm">{sample.name}</div>

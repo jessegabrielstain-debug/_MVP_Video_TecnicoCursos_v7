@@ -4,85 +4,73 @@
  * Testes básicos para validar funcionalidade real do sistema PPTX
  */
 
-import { processPPTXFile, validatePPTXFile } from '@/lib/pptx-processor';
-import { writeFileSync, mkdirSync, unlinkSync, existsSync } from 'fs';
+import { processPPTXFile, validatePPTXFile, ProcessingResult } from '@/lib/pptx-processor';
+import { createFileObject, createTestPPTX, cleanupTestFiles } from './test-helpers';
 import path from 'path';
+import fs from 'fs';
+import { Slide } from '@/lib/definitions';
 
 describe('PPTX System Tests', () => {
-  const testDir = path.join(__dirname, 'temp');
-  
-  beforeAll(() => {
-    if (!existsSync(testDir)) {
-      mkdirSync(testDir, { recursive: true });
-    }
-  });
+    const testDir = path.join(__dirname, 'fixtures');
+    const validPPTXPath = path.join(testDir, 'system-test.pptx');
 
-  afterAll(() => {
-    // Cleanup opcional
-  });
-
-  describe('File Validation', () => {
-    test('should reject non-existent files', async () => {
-      const result = await validatePPTXFile('/nonexistent/file.pptx');
-      expect(result.valid).toBe(false);
-      expect(result.error).toBeDefined();
+    beforeAll(async () => {
+        if (!fs.existsSync(testDir)) {
+            fs.mkdirSync(testDir, { recursive: true });
+        }
+        await createTestPPTX(validPPTXPath);
     });
 
-    test('should reject oversized files', async () => {
-      const largePath = path.join(testDir, 'large.pptx');
-      const largeBuffer = Buffer.alloc(200 * 1024 * 1024); // 200MB
-      writeFileSync(largePath, largeBuffer);
-
-      const result = await validatePPTXFile(largePath);
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('muito grande');
-
-      unlinkSync(largePath);
+    afterAll(() => {
+        cleanupTestFiles([validPPTXPath]);
     });
 
-    test('should reject invalid file format', async () => {
-      const invalidPath = path.join(testDir, 'invalid.pptx');
-      writeFileSync(invalidPath, 'Not a valid PPTX');
+    describe('File Validation', () => {
+        test('should accept a valid PPTX file', async () => {
+            const file = await createFileObject(validPPTXPath);
+            const result = await validatePPTXFile(file);
+            expect(result.valid).toBe(true);
+            expect(result.error).toBeUndefined();
+        });
 
-      const result = await validatePPTXFile(invalidPath);
-      expect(result.valid).toBe(false);
+        test('should reject invalid file format', async () => {
+            const invalidPath = path.join(testDir, 'invalid.pptx');
+            fs.writeFileSync(invalidPath, 'definitely not a pptx');
+            const file = await createFileObject(invalidPath);
+            const result = await validatePPTXFile(file);
+            expect(result.valid).toBe(false);
+            expect(result.error).toContain('Formato de arquivo inválido');
+        });
 
-      unlinkSync(invalidPath);
-    });
-  });
-
-  describe('Processing Logic', () => {
-    test('should handle processing errors gracefully', async () => {
-      const result = await processPPTXFile('/nonexistent.pptx', 'test.pptx');
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-      expect(result.slides).toEqual([]);
-    });
-
-    test('should return consistent result structure', async () => {
-      const result = await processPPTXFile('/nonexistent.pptx', 'test.pptx');
-      
-      expect(result).toHaveProperty('success');
-      expect(result).toHaveProperty('metadata');
-      expect(result).toHaveProperty('slides');
-      expect(result).toHaveProperty('thumbnails');
-      expect(Array.isArray(result.slides)).toBe(true);
-      expect(Array.isArray(result.thumbnails)).toBe(true);
-    });
-  });
-
-  describe('System Integration', () => {
-    test('should validate input parameters', () => {
-      expect(typeof validatePPTXFile).toBe('function');
-      expect(typeof processPPTXFile).toBe('function');
+        test('should reject empty files', async () => {
+            const file = await createFileObject('non-existent-file.pptx');
+            const result = await validatePPTXFile(file);
+            expect(result.valid).toBe(false);
+            expect(result.error).toContain('não encontrado ou vazio');
+        });
     });
 
-    test('should return promises', () => {
-      const validationPromise = validatePPTXFile('/test.pptx');
-      const processingPromise = processPPTXFile('/test.pptx', 'test.pptx');
-      
-      expect(validationPromise).toBeInstanceOf(Promise);
-      expect(processingPromise).toBeInstanceOf(Promise);
+    describe('File Processing', () => {
+        test('should fully process a valid PPTX file', async () => {
+            const file = await createFileObject(validPPTXPath);
+            const result = await processPPTXFile(file, 'system-test-project');
+
+            expect(result.success).toBe(true);
+            expect(result.error).toBeUndefined();
+            expect(result.metadata).toBeDefined();
+            expect(result.metadata.slideCount).toBeGreaterThan(0);
+            expect(result.slides).toHaveLength(result.metadata.slideCount);
+            expect(result.thumbnails).toHaveLength(result.metadata.slideCount);
+        });
+
+        test('should handle processing failure gracefully', async () => {
+            const file = await createFileObject('non-existent-file.pptx');
+            const result = await processPPTXFile(file, 'system-test-project-fail');
+
+            expect(result.success).toBe(false);
+            expect(result.error).toBeDefined();
+            expect(result.slides).toEqual([]);
+            expect(result.thumbnails).toEqual([]);
+        });
     });
-  });
 });

@@ -80,7 +80,7 @@ export interface VideoProcessingRequest {
     generateStoryboard?: boolean;
     generateTranscription?: boolean;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProcessingResult {

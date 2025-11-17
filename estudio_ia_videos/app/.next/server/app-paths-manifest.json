@@ -1,10 +1,4 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/health/route": "app/api/health/route.js",
-  "/api/render/jobs/[jobId]/route": "app/api/render/jobs/[jobId]/route.js",
-  "/api/render/jobs/route": "app/api/render/jobs/route.js",
-  "/editor/page": "app/editor/page.js",
   "/page": "app/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
   "/upload/page": "app/upload/page.js"
 }

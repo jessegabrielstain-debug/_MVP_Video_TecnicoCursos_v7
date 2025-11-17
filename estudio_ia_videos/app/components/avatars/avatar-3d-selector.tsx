@@ -19,6 +19,7 @@ import {
   Settings2,
   Sparkles
 } from 'lucide-react'
+import Image from 'next/image'
 import { avatar3DHyperPipeline } from '../../lib/avatar-3d-pipeline'
 
 // Interface compatível com pipeline hiper-realista
@@ -36,7 +37,7 @@ interface Avatar3D {
     hairSystem: 'strand' | 'cards' | 'volumetric'
     lipSyncAccuracy: number
   }
-  appearance?: any // For backward compatibility
+  appearance?: Record<string, unknown> // For backward compatibility
   specializations?: string[]
   premium?: boolean
   model_quality?: string
@@ -50,12 +51,60 @@ interface AvatarCustomization {
   gesture_frequency?: 'baixa' | 'media' | 'alta'
   eye_contact_level?: 'direto' | 'natural' | 'ocasional'
 }
-import Image from 'next/image'
 
 interface Avatar3DSelectorProps {
   onAvatarSelect: (avatar: Avatar3D, customization?: AvatarCustomization) => void
   selectedAvatar?: Avatar3D
   contentType?: 'nr' | 'corporate' | 'general'
+}
+
+const POSE_STYLE_OPTIONS = ['dinamico', 'estatico', 'interativo'] as const
+type PoseStyleOption = typeof POSE_STYLE_OPTIONS[number]
+
+const isPoseStyleOption = (value: string): value is PoseStyleOption => {
+  return POSE_STYLE_OPTIONS.some(option => option === value)
+}
+
+const GESTURE_FREQUENCY_OPTIONS = ['baixa', 'media', 'alta'] as const
+type GestureFrequencyOption = typeof GESTURE_FREQUENCY_OPTIONS[number]
+
+const isGestureFrequencyOption = (value: string): value is GestureFrequencyOption => {
+  return GESTURE_FREQUENCY_OPTIONS.some(option => option === value)
+}
+
+const EYE_CONTACT_OPTIONS = ['direto', 'natural', 'ocasional'] as const
+type EyeContactOption = typeof EYE_CONTACT_OPTIONS[number]
+
+const isEyeContactOption = (value: string): value is EyeContactOption => {
+  return EYE_CONTACT_OPTIONS.some(option => option === value)
+}
+
+const intensityToSliderValue = (
+  intensity: AvatarCustomization['expression_intensity'] | undefined
+): 1 | 2 | 3 => {
+  if (intensity === 'suave') {
+    return 1
+  }
+
+  if (intensity === 'intenso') {
+    return 3
+  }
+
+  return 2
+}
+
+const sliderValueToIntensity = (
+  value: number
+): NonNullable<AvatarCustomization['expression_intensity']> => {
+  if (value <= 1) {
+    return 'suave'
+  }
+
+  if (value >= 3) {
+    return 'intenso'
+  }
+
+  return 'moderado'
 }
 
 export default function Avatar3DSelector({ onAvatarSelect, selectedAvatar, contentType = 'general' }: Avatar3DSelectorProps) {
@@ -71,7 +120,7 @@ export default function Avatar3DSelector({ onAvatarSelect, selectedAvatar, conte
     setAvatars(allAvatars)
     
     // Filtrar por categoria padrão
-    const categoryMap: Record<string, any> = {
+    const categoryMap: Record<string, string> = {
       'nr': 'safety',
       'corporate': 'business', 
       'general': 'business'
@@ -89,7 +138,7 @@ export default function Avatar3DSelector({ onAvatarSelect, selectedAvatar, conte
     switch (category) {
       case 'recommended':
         // Recomendar baseado no tipo de conteúdo
-        const categoryMap: Record<string, any> = {
+        const categoryMap: Record<string, unknown> = {
           'nr': 'safety',
           'corporate': 'business', 
           'general': 'business'
@@ -271,9 +320,17 @@ export default function Avatar3DSelector({ onAvatarSelect, selectedAvatar, conte
                 {/* Estilo de Pose */}
                 <div className="space-y-3">
                   <label className="text-sm font-medium">Estilo de Pose</label>
-                  <Select 
-                    value={customization?.pose_style || 'dinamico'} 
-                    onValueChange={(value) => setCustomization(prev => prev ? {...prev, pose_style: value as any} : null)}
+                  <Select
+                    value={customization?.pose_style || 'dinamico'}
+                    onValueChange={(value) =>
+                      setCustomization(prev => {
+                        if (!prev || !isPoseStyleOption(value)) {
+                          return prev
+                        }
+
+                        return { ...prev, pose_style: value }
+                      })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -292,13 +349,10 @@ export default function Avatar3DSelector({ onAvatarSelect, selectedAvatar, conte
                     Intensidade de Expressão: {customization?.expression_intensity || 'moderado'}
                   </label>
                   <Slider
-                    value={[
-                      customization?.expression_intensity === 'suave' ? 1 : 
-                      customization?.expression_intensity === 'intenso' ? 3 : 2
-                    ]}
+                    value={[intensityToSliderValue(customization?.expression_intensity)]}
                     onValueChange={(value) => {
-                      const intensity = value[0] === 1 ? 'suave' : value[0] === 3 ? 'intenso' : 'moderado'
-                      setCustomization(prev => prev ? {...prev, expression_intensity: intensity as any} : null)
+                      const nextValue = sliderValueToIntensity(value[0])
+                      setCustomization(prev => (prev ? { ...prev, expression_intensity: nextValue } : null))
                     }}
                     max={3}
                     min={1}
@@ -315,9 +369,17 @@ export default function Avatar3DSelector({ onAvatarSelect, selectedAvatar, conte
                 {/* Frequência de Gestos */}
                 <div className="space-y-3">
                   <label className="text-sm font-medium">Frequência de Gestos</label>
-                  <Select 
+                  <Select
                     value={customization?.gesture_frequency || 'media'}
-                    onValueChange={(value) => setCustomization(prev => prev ? {...prev, gesture_frequency: value as any} : null)}
+                    onValueChange={(value) =>
+                      setCustomization(prev => {
+                        if (!prev || !isGestureFrequencyOption(value)) {
+                          return prev
+                        }
+
+                        return { ...prev, gesture_frequency: value }
+                      })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -333,9 +395,17 @@ export default function Avatar3DSelector({ onAvatarSelect, selectedAvatar, conte
                 {/* Contato Visual */}
                 <div className="space-y-3">
                   <label className="text-sm font-medium">Nível de Contato Visual</label>
-                  <Select 
+                  <Select
                     value={customization?.eye_contact_level || 'natural'}
-                    onValueChange={(value) => setCustomization(prev => prev ? {...prev, eye_contact_level: value as any} : null)}
+                    onValueChange={(value) =>
+                      setCustomization(prev => {
+                        if (!prev || !isEyeContactOption(value)) {
+                          return prev
+                        }
+
+                        return { ...prev, eye_contact_level: value }
+                      })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />

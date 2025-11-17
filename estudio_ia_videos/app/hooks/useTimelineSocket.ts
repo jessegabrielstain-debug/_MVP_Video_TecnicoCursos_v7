@@ -7,12 +7,17 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { TimelineEvent } from '@/lib/websocket/timeline-websocket'
-import type {
+import {
   JoinProjectPayload,
   TrackLockedPayload,
+  TrackUnlockedPayload,
   CursorMovePayload,
   TimelineUpdatePayload,
-  NotificationPayload
+  NotificationPayload,
+  UserPresence,
+  ActiveUsersPayload,
+  UserJoinedPayload,
+  UserLeftPayload,
 } from '@/lib/websocket/timeline-websocket'
 
 export interface UseTimelineSocketOptions {
@@ -28,11 +33,11 @@ export interface UseTimelineSocketOptions {
 
 export interface TimelineSocketReturn {
   // Connection state
-  isConnected: boolean
-  error: Error | null
+  isConnected: boolean;
+  error: Error | null;
   
   // Active users
-  activeUsers: string[]
+  activeUsers: UserPresence[];
   
   // Actions
   connect: () => void
@@ -43,14 +48,14 @@ export interface TimelineSocketReturn {
   unlockTrack: (trackId: string) => void
   updateCursor: (trackId: string | undefined, position: { x: number; y: number; time: number }) => void
   updatePresence: (currentTrackId?: string) => void
-  broadcastTimelineUpdate: (version: number, changes: any) => void
+  broadcastTimelineUpdate: (version: number, changes: Record<string, unknown>) => void
   sendNotification: (notification: Omit<NotificationPayload, 'projectId'>) => void
   
   // Event listeners
-  onUserJoined: (callback: (data: any) => void) => void
-  onUserLeft: (callback: (data: any) => void) => void
+  onUserJoined: (callback: (data: UserJoinedPayload) => void) => void
+  onUserLeft: (callback: (data: UserLeftPayload) => void) => void
   onTrackLocked: (callback: (data: TrackLockedPayload) => void) => void
-  onTrackUnlocked: (callback: (data: any) => void) => void
+  onTrackUnlocked: (callback: (data: TrackUnlockedPayload) => void) => void
   onCursorMove: (callback: (data: CursorMovePayload) => void) => void
   onTimelineUpdated: (callback: (data: TimelineUpdatePayload) => void) => void
   onNotification: (callback: (data: NotificationPayload) => void) => void
@@ -69,10 +74,10 @@ export function useTimelineSocket({
   const socketRef = useRef<Socket | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-  const [activeUsers, setActiveUsers] = useState<string[]>([])
+  const [activeUsers, setActiveUsers] = useState<UserPresence[]>([])
   
   // Event listener refs para cleanup
-  const listenersRef = useRef<Map<string, Function[]>>(new Map())
+  const listenersRef = useRef<Map<string, Set<(payload: unknown) => void>>>(new Map())
 
   // Conectar ao WebSocket
   const connect = useCallback(() => {
@@ -121,19 +126,25 @@ export function useTimelineSocket({
     })
 
     // Active users list
-    socket.on(TimelineEvent.ACTIVE_USERS, ({ users }) => {
+    socket.on(TimelineEvent.ACTIVE_USERS, ({ users }: ActiveUsersPayload) => {
       console.log('[Timeline Socket] Active users:', users)
       setActiveUsers(users)
     })
 
     // User joined
-    socket.on(TimelineEvent.USER_JOINED, ({ userId: newUserId }) => {
-      setActiveUsers(prev => [...new Set([...prev, newUserId])])
+    socket.on(TimelineEvent.USER_JOINED, (payload: UserJoinedPayload) => {
+      setActiveUsers(prev => {
+        const existingUser = prev.find(u => u.userId === payload.userId);
+        if (existingUser) {
+          return prev.map(u => u.userId === payload.userId ? { ...u, ...payload } : u);
+        }
+        return [...prev, payload];
+      });
     })
 
     // User left
-    socket.on(TimelineEvent.USER_LEFT, ({ userId: leftUserId }) => {
-      setActiveUsers(prev => prev.filter(id => id !== leftUserId))
+    socket.on(TimelineEvent.USER_LEFT, ({ userId: leftUserId }: UserLeftPayload) => {
+      setActiveUsers(prev => prev.filter(u => u.userId !== leftUserId))
     })
 
     socketRef.current = socket
@@ -195,7 +206,7 @@ export function useTimelineSocket({
   }, [projectId])
 
   // Broadcast timeline update
-  const broadcastTimelineUpdate = useCallback((version: number, changes: any) => {
+  const broadcastTimelineUpdate = useCallback((version: number, changes: Record<string, unknown>) => {
     if (!socketRef.current?.connected) return
     
     socketRef.current.emit(TimelineEvent.TIMELINE_UPDATED, {
@@ -217,23 +228,29 @@ export function useTimelineSocket({
   }, [projectId])
 
   // Event listeners
-  const addEventListener = useCallback((event: string, callback: Function) => {
-    if (!socketRef.current) return
-    
-    socketRef.current.on(event, callback as any)
-    
-    // Armazenar para cleanup
-    if (!listenersRef.current.has(event)) {
-      listenersRef.current.set(event, [])
+  const addEventListener = useCallback(<T>(event: string, callback: (data: T) => void) => {
+    if (!socketRef.current) {
+      return
     }
-    listenersRef.current.get(event)!.push(callback)
+
+    const listener = (payload: unknown) => {
+      callback(payload as T)
+    }
+
+    socketRef.current.on(event, listener)
+
+    if (!listenersRef.current.has(event)) {
+      listenersRef.current.set(event, new Set())
+    }
+
+    listenersRef.current.get(event)!.add(listener)
   }, [])
 
-  const onUserJoined = useCallback((callback: (data: any) => void) => {
+  const onUserJoined = useCallback((callback: (data: UserJoinedPayload) => void) => {
     addEventListener(TimelineEvent.USER_JOINED, callback)
   }, [addEventListener])
 
-  const onUserLeft = useCallback((callback: (data: any) => void) => {
+  const onUserLeft = useCallback((callback: (data: UserLeftPayload) => void) => {
     addEventListener(TimelineEvent.USER_LEFT, callback)
   }, [addEventListener])
 
@@ -241,7 +258,7 @@ export function useTimelineSocket({
     addEventListener(TimelineEvent.TRACK_LOCKED, callback)
   }, [addEventListener])
 
-  const onTrackUnlocked = useCallback((callback: (data: any) => void) => {
+  const onTrackUnlocked = useCallback((callback: (data: TrackUnlockedPayload) => void) => {
     addEventListener(TimelineEvent.TRACK_UNLOCKED, callback)
   }, [addEventListener])
 
@@ -265,9 +282,9 @@ export function useTimelineSocket({
 
     return () => {
       // Cleanup listeners
-      listenersRef.current.forEach((callbacks, event) => {
-        callbacks.forEach(callback => {
-          socketRef.current?.off(event, callback as any)
+      listenersRef.current.forEach((handlers, event) => {
+        handlers.forEach(handler => {
+          socketRef.current?.off(event, handler)
         })
       })
       listenersRef.current.clear()

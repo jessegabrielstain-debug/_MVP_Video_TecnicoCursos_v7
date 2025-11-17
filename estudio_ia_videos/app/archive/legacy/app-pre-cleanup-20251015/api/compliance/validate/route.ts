@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 // Templates NR simplificados (em produção, viria de um banco de dados)
-const NR_TEMPLATES: Record<string, any> = {
+const NR_TEMPLATES: Record<string, unknown> = {
   'NR-12': {
     id: 'NR-12',
     title: 'Segurança no Trabalho em Máquinas e Equipamentos',

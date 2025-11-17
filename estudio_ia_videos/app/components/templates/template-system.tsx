@@ -217,6 +217,8 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
           onFilterChange={setFilter}
           onClearFilters={clearFilter}
           categoryStats={categoryStats}
+          sort={sort}
+          onSortChange={setSort}
         />
       )}
 

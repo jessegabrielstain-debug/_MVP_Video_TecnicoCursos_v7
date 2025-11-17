@@ -77,7 +77,7 @@ interface AuditLog {
   resource: string
   timestamp: string
   ipAddress: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 interface SystemStats {
@@ -100,6 +100,11 @@ type AdminTab = 'users' | 'rate-limits' | 'storage' | 'audit' | 'webhooks' | 'sy
 // ============================================================================
 // COMPONENTE PRINCIPAL
 // ============================================================================
+
+const USER_FILTER_OPTIONS = ['all', 'active', 'suspended', 'banned'] as const
+type UserFilterOption = (typeof USER_FILTER_OPTIONS)[number]
+const isUserFilterOption = (value: string): value is UserFilterOption =>
+  USER_FILTER_OPTIONS.includes(value as UserFilterOption)
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState<AdminTab>('users')
@@ -286,7 +291,7 @@ const TabButton: React.FC<{
 const UsersManager: React.FC = () => {
   const [users, setUsers] = useState<User[]>([])
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<'all' | 'active' | 'suspended' | 'banned'>('all')
+  const [filter, setFilter] = useState<UserFilterOption>('all')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -362,7 +367,13 @@ const UsersManager: React.FC = () => {
         </div>
         <select
           value={filter}
-          onChange={(e) => setFilter(e.target.value as any)}
+          onChange={(e) => {
+            const { value } = e.target
+            if (!isUserFilterOption(value)) {
+              return
+            }
+            setFilter(value)
+          }}
           className="px-4 py-2 border rounded-lg"
         >
           <option value="all">Todos</option>

@@ -8,6 +8,52 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
 
+// Types for Timeline structures
+interface Clip {
+  id: string;
+  startTime: number;
+  duration?: number;
+  effects?: Effect[];
+  [key: string]: unknown;
+}
+
+interface Effect {
+  type: string;
+  [key: string]: unknown;
+}
+
+interface Track {
+  id: string;
+  clips?: Clip[];
+  [key: string]: unknown;
+}
+
+interface BulkTargets {
+  trackIds?: string[];
+  clipIds?: string[];
+}
+
+interface BulkData {
+  timeOffset?: number;
+  targetTrackId?: string;
+  settings?: Record<string, unknown>;
+  effect?: Effect;
+}
+
+interface BulkResult {
+  deletedCount?: number;
+  remainingCount?: number;
+  tracksAffected?: number;
+  duplicatedCount?: number;
+  timeOffset?: number;
+  movedCount?: number;
+  targetTrackId?: string;
+  updatedCount?: number;
+  settings?: Record<string, unknown>;
+  affectedClips?: number;
+  effect?: string;
+}
+
 /**
  * POST - Execute bulk operations
  */
@@ -60,14 +106,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let result: any = {};
-    let updatedTracks = timeline.tracks as any[];
+    let result: BulkResult = {};
+    let updatedTracks = (timeline.tracks as unknown) as Track[];
 
     switch (operation) {
       case 'delete_tracks':
         // Delete multiple tracks
         const trackIdsToDelete = targets.trackIds || [];
-        updatedTracks = updatedTracks.filter((track: any) => 
+        updatedTracks = updatedTracks.filter((track: Track) => 
           !trackIdsToDelete.includes(track.id)
         );
         result = {
@@ -79,17 +125,18 @@ export async function POST(request: NextRequest) {
       case 'delete_clips':
         // Delete multiple clips
         const clipIdsToDelete = targets.clipIds || [];
-        updatedTracks = updatedTracks.map((track: any) => ({
+        updatedTracks = updatedTracks.map((track: Track) => ({
           ...track,
-          clips: track.clips?.filter((clip: any) => 
+          clips: track.clips?.filter((clip: Clip) => 
             !clipIdsToDelete.includes(clip.id)
           ) || [],
         }));
+        const originalTracks = (timeline.tracks as unknown) as Track[];
         result = {
           deletedCount: clipIdsToDelete.length,
-          tracksAffected: updatedTracks.filter((t: any) => 
-            t.clips?.length !== (timeline.tracks as any[])
-              .find((ot: any) => ot.id === t.id)?.clips?.length
+          tracksAffected: updatedTracks.filter((t: Track) => 
+            t.clips?.length !== originalTracks
+              .find((ot: Track) => ot.id === t.id)?.clips?.length
           ).length,
         };
         break;
@@ -99,9 +146,9 @@ export async function POST(request: NextRequest) {
         const clipIdsToDuplicate = targets.clipIds || [];
         const offset = data?.timeOffset || 5; // seconds
         
-        updatedTracks = updatedTracks.map((track: any) => {
-          const newClips: any[] = [];
-          track.clips?.forEach((clip: any) => {
+        updatedTracks = updatedTracks.map((track: Track) => {
+          const newClips: Clip[] = [];
+          track.clips?.forEach((clip: Clip) => {
             if (clipIdsToDuplicate.includes(clip.id)) {
               newClips.push({
                 ...clip,
@@ -134,9 +181,9 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const clipsToMove: any[] = [];
-        updatedTracks = updatedTracks.map((track: any) => {
-          const remainingClips = track.clips?.filter((clip: any) => {
+        const clipsToMove: Clip[] = [];
+        updatedTracks = updatedTracks.map((track: Track) => {
+          const remainingClips = track.clips?.filter((clip: Clip) => {
             if (clipIdsToMove.includes(clip.id)) {
               clipsToMove.push(clip);
               return false;
@@ -148,7 +195,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Add clips to target track
-        updatedTracks = updatedTracks.map((track: any) => {
+        updatedTracks = updatedTracks.map((track: Track) => {
           if (track.id === targetTrackId) {
             return {
               ...track,
@@ -169,7 +216,7 @@ export async function POST(request: NextRequest) {
         const trackIdsToUpdate = targets.trackIds || [];
         const settings = data?.settings || {};
         
-        updatedTracks = updatedTracks.map((track: any) => {
+        updatedTracks = updatedTracks.map((track: Track) => {
           if (trackIdsToUpdate.includes(track.id)) {
             return {
               ...track,
@@ -197,9 +244,9 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        updatedTracks = updatedTracks.map((track: any) => ({
+        updatedTracks = updatedTracks.map((track: Track) => ({
           ...track,
-          clips: track.clips?.map((clip: any) => {
+          clips: track.clips?.map((clip: Clip) => {
             if (clipIdsForEffect.includes(clip.id)) {
               return {
                 ...clip,
@@ -250,10 +297,11 @@ export async function POST(request: NextRequest) {
       message: `Operação ${operation} executada com sucesso`,
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erro em operação em lote:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
-      { success: false, message: 'Erro ao executar operação em lote', error: error.message },
+      { success: false, message: 'Erro ao executar operação em lote', error: errorMessage },
       { status: 500 }
     );
   }

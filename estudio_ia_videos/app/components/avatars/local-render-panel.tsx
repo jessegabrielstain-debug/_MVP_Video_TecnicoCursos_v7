@@ -6,7 +6,7 @@
 
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -16,7 +16,8 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Video, Sparkles, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { useSession } from 'next-auth/react'
+import { createClient } from '@/lib/supabase/client'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface RenderJob {
   jobId: string
@@ -28,13 +29,40 @@ interface RenderJob {
 }
 
 export default function LocalRenderPanel() {
-  const { data: session } = useSession()
+  const supabase = useMemo(() => createClient(), [])
+  const [user, setUser] = useState<SupabaseUser | null>(null)
   const [text, setText] = useState('')
   const [avatarId, setAvatarId] = useState('avatar_executivo')
   const [voiceId, setVoiceId] = useState('elevenlabs_pt_female')
   const [resolution, setResolution] = useState('HD')
   const [isRendering, setIsRendering] = useState(false)
   const [currentJob, setCurrentJob] = useState<RenderJob | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadSession = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        setUser(data.user ?? null)
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error)
+      }
+    }
+
+    void loadSession()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
 
   const avatars = [
     { id: 'avatar_executivo', name: 'Executivo Brasileiro', type: 'formal' },
@@ -55,7 +83,7 @@ export default function LocalRenderPanel() {
       return
     }
 
-    if (!session?.user?.id) {
+    if (!user?.id) {
       toast.error('Você precisa estar logado')
       return
     }
@@ -72,7 +100,7 @@ export default function LocalRenderPanel() {
           voiceId,
           resolution,
           fps: 30,
-          userId: session.user.id
+          userId: user.id
         })
       })
 

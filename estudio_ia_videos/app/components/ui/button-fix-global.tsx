@@ -90,9 +90,9 @@ export function GlobalButtonFix() {
         
         if (needsFix) {
           // Verificar se já tem onClick handler
-          const hasHandler = (button as any).onclick || 
-                            button.getAttribute('onclick') || 
-                            button.getAttribute('data-fixed')
+          const hasHandler = Boolean(button.onclick) || 
+                            button.hasAttribute('onclick') || 
+                            button.hasAttribute('data-fixed')
           
           if (!hasHandler) {
             button.addEventListener('click', (e) => {

@@ -46,7 +46,7 @@ interface SecurityEvent {
   location?: string
   riskLevel: 'low' | 'medium' | 'high'
   createdAt: Date
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
 }
 
 export default function SecurityDashboard() {

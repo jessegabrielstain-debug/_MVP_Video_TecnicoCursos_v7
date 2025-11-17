@@ -13,12 +13,14 @@ import monitoring from './monitoring';
 // TIPOS
 // ==========================================
 
+type LoggableBody = Record<string, unknown> | Array<unknown> | string | number | boolean | null;
+
 interface RequestLog {
   method: string;
   path: string;
   query: Record<string, string>;
   headers: Record<string, string>;
-  body?: any;
+  body?: LoggableBody;
   userId?: string;
   ip?: string;
   userAgent?: string;
@@ -64,15 +66,31 @@ function getUserId(request: NextRequest): string | undefined {
 /**
  * Sanitizar dados sensíveis
  */
-function sanitizeData(data: any): any {
-  if (!data) return data;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function sanitizeData(data: LoggableBody): LoggableBody {
+  if (Array.isArray(data)) {
+    return data.map((item) => (isRecord(item) || Array.isArray(item) ? sanitizeData(item as LoggableBody) : item));
+  }
+
+  if (!isRecord(data)) {
+    return data;
+  }
 
   const sensitive = ['password', 'token', 'secret', 'apiKey', 'creditCard'];
-  const sanitized = { ...data };
+  const sanitized: Record<string, unknown> = { ...data };
 
   for (const key of Object.keys(sanitized)) {
     if (sensitive.some((s) => key.toLowerCase().includes(s.toLowerCase()))) {
       sanitized[key] = '***REDACTED***';
+      continue;
+    }
+
+    const value = sanitized[key];
+    if (isRecord(value) || Array.isArray(value)) {
+      sanitized[key] = sanitizeData(value as LoggableBody);
     }
   }
 
@@ -94,7 +112,7 @@ function shouldLogBody(path: string): boolean {
 /**
  * Middleware de logging para APIs
  */
-export async function withLogging<T = any>(
+export async function withLogging<T = unknown>(
   request: NextRequest,
   handler: (request: NextRequest) => Promise<NextResponse<T>>
 ): Promise<NextResponse<T>> {
@@ -227,7 +245,7 @@ export async function withLogging<T = any>(
 /**
  * Wrapper para handlers de API com logging automático
  */
-export function withApiLogging<T = any>(
+export function withApiLogging<T = unknown>(
   handler: (request: NextRequest) => Promise<NextResponse<T>>
 ) {
   return async (request: NextRequest) => {
@@ -245,7 +263,7 @@ export function withApiLogging<T = any>(
 export async function withPerformanceTracking<T>(
   operationName: string,
   operation: () => Promise<T>,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<T> {
   const tracker = new monitoring.PerformanceTracker(operationName, metadata);
 

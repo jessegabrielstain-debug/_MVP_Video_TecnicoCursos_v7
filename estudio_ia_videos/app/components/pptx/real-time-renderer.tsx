@@ -199,7 +199,7 @@ export function RealTimeRenderer({ projectId, timeline, onRenderComplete, onRend
             <label className="text-sm font-medium">Qualidade do Vídeo</label>
             <Select 
               value={renderOptions.quality} 
-              onValueChange={(value: any) => setRenderOptions(prev => ({ ...prev, quality: value }))}
+              onValueChange={(value: string) => setRenderOptions(prev => ({ ...prev, quality: value }))}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -221,7 +221,7 @@ export function RealTimeRenderer({ projectId, timeline, onRenderComplete, onRend
             <label className="text-sm font-medium">Formato de Saída</label>
             <Select 
               value={renderOptions.format} 
-              onValueChange={(value: any) => setRenderOptions(prev => ({ ...prev, format: value }))}
+              onValueChange={(value: string) => setRenderOptions(prev => ({ ...prev, format: value }))}
             >
               <SelectTrigger>
                 <SelectValue />

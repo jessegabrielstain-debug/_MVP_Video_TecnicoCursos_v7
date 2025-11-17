@@ -167,7 +167,7 @@ export default function TimelineEditorCollaborative({
     throttledCursorUpdate(trackId, { x, y, time })
   }
 
-  const handleTimelineUpdate = (changes: any) => {
+  const handleTimelineUpdate = (changes: unknown) => {
     // Atualizar timeline localmente
     // await updateTimeline(changes)
     

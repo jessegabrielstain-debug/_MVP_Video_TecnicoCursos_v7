@@ -24,7 +24,7 @@ interface LogEvent {
   level: LogLevel
   type: EventType
   message: string
-  data?: Record<string, any>
+  data?: Record<string, unknown>
   duration?: number
   userId?: string
   sessionId?: string
@@ -117,7 +117,7 @@ interface Alert {
   title: string
   message: string
   category: 'performance' | 'error' | 'system' | 'security'
-  data?: Record<string, any>
+  data?: Record<string, unknown>
   resolved?: boolean
   resolvedAt?: Date
   actions?: string[]
@@ -314,7 +314,7 @@ export class MonitoringService {
   }
   
   // Criar alerta
-  private createAlert(level: Alert['level'], category: Alert['category'], title: string, message: string, data?: Record<string, any>): void {
+  private createAlert(level: Alert['level'], category: Alert['category'], title: string, message: string, data?: Record<string, unknown>): void {
     const alert: Alert = {
       id: this.generateId(),
       timestamp: new Date(),
@@ -336,7 +336,7 @@ export class MonitoringService {
   }
   
   // Método principal de log
-  log(level: LogLevel, type: EventType, message: string, data?: Record<string, any>, metadata?: LogEvent['metadata']): void {
+  log(level: LogLevel, type: EventType, message: string, data?: Record<string, unknown>, metadata?: LogEvent['metadata']): void {
     if (!this.shouldLog(level)) return
     
     const logEvent: LogEvent = {

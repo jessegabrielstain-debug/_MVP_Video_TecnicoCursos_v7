@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2025-11-13T12:58:32.852Z",
+  "results": [
+    {
+      "table": "users",
+      "anonAccessible": false,
+      "rowCountAnon": 0,
+      "rowCountService": 0,
+      "status": "ALERTA"
+    },
+    {
+      "table": "projects",
+      "anonAccessible": false,
+      "rowCountAnon": 0,
+      "rowCountService": 0,
+      "status": "ALERTA"
+    },
+    {
+      "table": "slides",
+      "anonAccessible": false,
+      "rowCountAnon": 0,
+      "rowCountService": 0,
+      "status": "ALERTA"
+    },
+    {
+      "table": "render_jobs",
+      "anonAccessible": false,
+      "rowCountAnon": 0,
+      "rowCountService": 0,
+      "status": "ALERTA"
+    },
+    {
+      "table": "analytics_events",
+      "anonAccessible": false,
+      "rowCountAnon": 0,
+      "rowCountService": 0,
+      "status": "ALERTA"
+    },
+    {
+      "table": "nr_courses",
+      "anonAccessible": false,
+      "rowCountAnon": 0,
+      "rowCountService": 0,
+      "status": "ALERTA"
+    },
+    {
+      "table": "nr_modules",
+      "anonAccessible": false,
+      "rowCountAnon": 0,
+      "rowCountService": 0,
+      "status": "ALERTA"
+    }
+  ]
+}

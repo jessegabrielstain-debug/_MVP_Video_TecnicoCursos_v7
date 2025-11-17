@@ -1,11 +1,16 @@
 
 'use client'
 
-import { signOut, useSession } from 'next-auth/react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Video, User, LogOut, Settings, Shield } from 'lucide-react'
+import Link from 'next/link'
+import { toast } from 'react-hot-toast'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { isAdminUser } from '@/lib/auth/admin-middleware'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import { Button } from '../ui/button'
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -13,22 +18,97 @@ import {
   DropdownMenuSeparator
 } from '../ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
-import Link from 'next/link'
 
 export default function DashboardHeader() {
-  const { data: session } = useSession() || {}
+  const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [displayName, setDisplayName] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
 
-  const handleSignOut = () => {
-    signOut()
-  }
+  const loadProfile = useCallback(
+    async (authUser: SupabaseUser | null) => {
+      if (!authUser) {
+        setDisplayName(null)
+        setAvatarUrl(null)
+        return
+      }
 
-  const userInitials = session?.user?.name
+      try {
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('full_name, avatar_url')
+          .eq('id', authUser.id)
+          .maybeSingle()
+
+        if (error) {
+          console.warn('Não foi possível carregar perfil do usuário:', error)
+        }
+
+        setDisplayName(profile?.full_name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
+        setAvatarUrl(profile?.avatar_url ?? authUser.user_metadata?.avatar_url ?? null)
+      } catch (error) {
+        console.error('Erro ao carregar perfil do usuário:', error)
+        setDisplayName(authUser.user_metadata?.name ?? authUser.email ?? null)
+        setAvatarUrl(authUser.user_metadata?.avatar_url ?? null)
+      }
+    },
+    [supabase]
+  )
+
+  useEffect(() => {
+    let isMounted = true
+
+    const init = async () => {
+      const { data } = await supabase.auth.getUser()
+      if (!isMounted) return
+      setUser(data.user ?? null)
+      await loadProfile(data.user ?? null)
+    }
+
+    void init()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      const authUser = session?.user ?? null
+      setUser(authUser)
+      void loadProfile(authUser)
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [loadProfile, supabase])
+
+  const handleSignOut = useCallback(async () => {
+    if (signingOut) return
+    try {
+      setSigningOut(true)
+      toast.success('Encerrando sessão...')
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        throw error
+      }
+      toast.success('Sessão finalizada')
+      router.replace('/login?reason=session_expired')
+      router.refresh()
+    } catch (error) {
+      console.error('Erro ao sair:', error)
+      toast.error('Não foi possível encerrar a sessão. Tente novamente.')
+    } finally {
+      setSigningOut(false)
+    }
+  }, [router, signingOut, supabase])
+
+  const userInitials = (displayName ?? user?.email ?? 'U')
     ?.split(' ')
     ?.map((word: string) => word[0])
     ?.join('')
     ?.toUpperCase() || 'U'
 
-  const isAdmin = isAdminUser(session?.user?.email)
+  const isAdmin = isAdminUser(user?.email)
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
@@ -43,9 +123,9 @@ export default function DashboardHeader() {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full" disabled={!user}>
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={session?.user?.image || ''} />
+                  <AvatarImage src={avatarUrl ?? undefined} />
                   <AvatarFallback className="bg-blue-600 text-white">
                     {userInitials}
                   </AvatarFallback>
@@ -55,9 +135,9 @@ export default function DashboardHeader() {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <div className="flex items-center justify-start gap-2 p-2">
                 <div className="flex flex-col space-y-1 leading-none">
-                  <p className="font-medium">{session?.user?.name}</p>
+                  <p className="font-medium">{displayName ?? 'Usuário'}</p>
                   <p className="w-[200px] truncate text-sm text-muted-foreground">
-                    {session?.user?.email}
+                    {user?.email ?? 'usuario@exemplo.com'}
                   </p>
                 </div>
               </div>
@@ -82,9 +162,9 @@ export default function DashboardHeader() {
                 </>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
+              <DropdownMenuItem onClick={handleSignOut} disabled={signingOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Sair</span>
+                <span>{signingOut ? 'Saindo...' : 'Sair'}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -30,7 +30,7 @@ interface ValidationRule {
 interface ValidationResult {
   passed: boolean;
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
   fix?: string;
 }
 
@@ -98,6 +98,21 @@ class EnvironmentValidator {
     };
 
     console.log(`${colors[level]}${icons[level]} ${message}${colors.reset}`);
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+      const maybeMessage = (error as { message?: unknown }).message;
+      if (typeof maybeMessage === 'string') {
+        return maybeMessage;
+      }
+    }
+
+    return 'Unknown error';
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -332,10 +347,10 @@ class EnvironmentValidator {
             passed: true,
             message: 'Conexão estabelecida com sucesso'
           };
-        } catch (error: any) {
+        } catch (error: unknown) {
           return {
             passed: false,
-            message: `Exceção: ${error.message}`,
+            message: `Exceção: ${this.getErrorMessage(error)}`,
             fix: 'Verifique sua conexão de internet e as credenciais'
           };
         }
@@ -437,14 +452,14 @@ class EnvironmentValidator {
         if (!result.passed && result.fix) {
           this.log(`   💡 Solução: ${result.fix}`, 'info');
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         results.push({
           passed: false,
-          message: `Erro ao validar: ${error.message}`,
+          message: `Erro ao validar: ${this.getErrorMessage(error)}`,
           rule: rule.name,
           required: rule.required
         });
-        this.log(`❌ Erro ao validar: ${error.message}`, 'error');
+        this.log(`❌ Erro ao validar: ${this.getErrorMessage(error)}`, 'error');
       }
     }
 

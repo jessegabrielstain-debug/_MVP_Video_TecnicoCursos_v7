@@ -22,7 +22,7 @@ export interface LogEntry {
   userId?: string;
   projectId?: string;
   requestId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   stack?: string;
 }
 
@@ -139,7 +139,7 @@ export function getLogstashClient(): LogstashClient {
 
 // Helper functions for structured logging
 export const logger = {
-  debug: (message: string, metadata?: Record<string, any>) =>
+  debug: (message: string, metadata?: Record<string, unknown>) =>
     getLogstashClient().log({
       level: 'debug',
       message,
@@ -147,7 +147,7 @@ export const logger = {
       metadata,
     }),
 
-  info: (message: string, metadata?: Record<string, any>) =>
+  info: (message: string, metadata?: Record<string, unknown>) =>
     getLogstashClient().log({
       level: 'info',
       message,
@@ -155,7 +155,7 @@ export const logger = {
       metadata,
     }),
 
-  warn: (message: string, metadata?: Record<string, any>) =>
+  warn: (message: string, metadata?: Record<string, unknown>) =>
     getLogstashClient().log({
       level: 'warn',
       message,
@@ -163,7 +163,7 @@ export const logger = {
       metadata,
     }),
 
-  error: (message: string, error?: Error, metadata?: Record<string, any>) =>
+  error: (message: string, error?: Error, metadata?: Record<string, unknown>) =>
     getLogstashClient().log({
       level: 'error',
       message,
@@ -172,7 +172,7 @@ export const logger = {
       stack: error?.stack,
     }),
 
-  fatal: (message: string, error?: Error, metadata?: Record<string, any>) =>
+  fatal: (message: string, error?: Error, metadata?: Record<string, unknown>) =>
     getLogstashClient().log({
       level: 'fatal',
       message,

@@ -41,11 +41,13 @@ CREATE TABLE IF NOT EXISTS public.slides (
 CREATE TABLE IF NOT EXISTS public.render_jobs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
-    status VARCHAR(50) DEFAULT 'pending',
+    status VARCHAR(50) DEFAULT 'queued',
     progress INTEGER DEFAULT 0,
     output_url TEXT,
     error_message TEXT,
     render_settings JSONB DEFAULT '{}'::jsonb,
+    attempts INTEGER DEFAULT 1,
+    duration_ms INTEGER,
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -95,7 +97,9 @@ ALTER TABLE IF EXISTS public.render_jobs
     ADD COLUMN IF NOT EXISTS project_id UUID,
     ADD COLUMN IF NOT EXISTS progress INTEGER DEFAULT 0,
     ADD COLUMN IF NOT EXISTS output_url TEXT,
-    ADD COLUMN IF NOT EXISTS render_settings JSONB DEFAULT '{}'::jsonb;
+    ADD COLUMN IF NOT EXISTS render_settings JSONB DEFAULT '{}'::jsonb,
+    ADD COLUMN IF NOT EXISTS attempts INTEGER DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS duration_ms INTEGER;
 
 ALTER TABLE IF EXISTS public.render_jobs
     ADD CONSTRAINT render_jobs_project_id_fkey

@@ -6,6 +6,16 @@ import { toast } from 'sonner';
 export type ExportFormat = 'csv' | 'json' | 'xlsx' | 'pdf' | 'xml';
 export type ExportDataType = 'events' | 'performance' | 'users' | 'projects' | 'alerts' | 'reports' | 'all';
 
+type ExportFilterValue = string | number | boolean | undefined;
+
+type ExportFilters = {
+  organizationId?: string;
+  userId?: string;
+  category?: string;
+  status?: string;
+  severity?: string;
+} & Record<string, ExportFilterValue>;
+
 interface ExportOptions {
   format: ExportFormat;
   dataType: ExportDataType;
@@ -13,13 +23,7 @@ interface ExportOptions {
     start: string;
     end: string;
   };
-  filters?: {
-    organizationId?: string;
-    userId?: string;
-    category?: string;
-    status?: string;
-    severity?: string;
-  };
+  filters?: ExportFilters;
   includeMetadata?: boolean;
   compression?: boolean;
   maxRecords?: number;
@@ -35,16 +39,33 @@ interface ExportResult {
   metadata: {
     exportedAt: Date;
     exportedBy: string;
-    filters: any;
+    filters?: ExportFilters;
     processingTime: number;
   };
+}
+
+interface ExportHistoryEntry extends ExportResult {
+  id?: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  downloadUrl?: string;
+  createdAt?: string;
+  completedAt?: string;
+}
+
+interface ExportApiResponse {
+  export: ExportResult;
+  downloadUrl?: string;
+}
+
+interface ExportHistoryResponse {
+  exports?: ExportHistoryEntry[];
 }
 
 interface UseDataExportReturn {
   isExporting: boolean;
   exportData: (options: ExportOptions) => Promise<ExportResult | null>;
   quickExport: (format: ExportFormat, dataType: ExportDataType, period?: string) => Promise<ExportResult | null>;
-  getExportHistory: () => Promise<any[]>;
+  getExportHistory: () => Promise<ExportHistoryEntry[]>;
   downloadFile: (url: string, filename: string) => Promise<void>;
 }
 
@@ -56,12 +77,12 @@ export function useDataExport(): UseDataExportReturn {
     
     try {
       // Definir valores padrão
-      const defaultOptions = {
+      const defaultOptions: ExportOptions = {
         dateRange: {
           start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           end: new Date().toISOString().split('T')[0]
         },
-        filters: {},
+        filters: {} as ExportFilters,
         includeMetadata: false,
         compression: false,
         maxRecords: 10000,
@@ -82,7 +103,10 @@ export function useDataExport(): UseDataExportReturn {
         throw new Error(error.details || 'Falha na exportação');
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as ExportApiResponse;
+      if (!result?.export) {
+        throw new Error('Resposta inválida do serviço de exportação');
+      }
       
       // Fazer download do arquivo
       const downloadUrl = new URL('/api/analytics/export', window.location.origin);
@@ -100,9 +124,9 @@ export function useDataExport(): UseDataExportReturn {
       }
 
       // Adicionar filtros à URL
-      Object.entries(defaultOptions.filters).forEach(([key, value]) => {
-        if (value) {
-          downloadUrl.searchParams.set(key, value);
+      Object.entries(defaultOptions.filters ?? {}).forEach(([key, value]) => {
+        if (value !== undefined) {
+          downloadUrl.searchParams.set(key, String(value));
         }
       });
 
@@ -112,9 +136,10 @@ export function useDataExport(): UseDataExportReturn {
       
       return result.export;
 
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Export error:', error);
-      toast.error(`Erro na exportação: ${error.message}`);
+      toast.error(`Erro na exportação: ${errorMessage}`);
       return null;
     } finally {
       setIsExporting(false);
@@ -157,7 +182,7 @@ export function useDataExport(): UseDataExportReturn {
     });
   }, [exportData]);
 
-  const getExportHistory = useCallback(async (): Promise<any[]> => {
+  const getExportHistory = useCallback(async (): Promise<ExportHistoryEntry[]> => {
     try {
       const response = await fetch('/api/analytics/export', {
         method: 'PUT'
@@ -167,11 +192,12 @@ export function useDataExport(): UseDataExportReturn {
         throw new Error('Falha ao carregar histórico');
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as ExportHistoryResponse;
       return data.exports || [];
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Error loading export history:', error);
-      toast.error(`Erro ao carregar histórico: ${error.message}`);
+      toast.error(`Erro ao carregar histórico: ${errorMessage}`);
       return [];
     }
   }, []);
@@ -199,9 +225,10 @@ export function useDataExport(): UseDataExportReturn {
       window.URL.revokeObjectURL(downloadUrl);
       document.body.removeChild(a);
       
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Download error:', error);
-      throw new Error(`Falha no download: ${error.message}`);
+      throw new Error(`Falha no download: ${errorMessage}`);
     }
   }, []);
 
@@ -243,9 +270,10 @@ export function useBatchExport() {
       
       toast.success(`${results.length} exportações concluídas!`);
       
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Batch export error:', error);
-      toast.error(`Erro na exportação em lote: ${error.message}`);
+      toast.error(`Erro na exportação em lote: ${errorMessage}`);
     } finally {
       setIsExporting(false);
       setProgress(0);

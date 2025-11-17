@@ -59,7 +59,7 @@ import {
 interface Keyframe {
   id: string;
   time: number;
-  value: any;
+  value: unknown;
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce' | 'elastic';
   interpolation: 'discrete' | 'linear' | 'bezier';
 }
@@ -69,7 +69,7 @@ interface AnimationProperty {
   name: string;
   type: 'number' | 'color' | 'position' | 'rotation' | 'scale' | 'opacity';
   keyframes: Keyframe[];
-  defaultValue: any;
+  defaultValue: unknown;
 }
 
 interface AdvancedTimelineElement {
@@ -126,6 +126,20 @@ interface AdvancedTimelineProject {
   selectedElements: string[];
   tracks: AdvancedTimelineTrack[];
 }
+
+const isAnimationProperty = (value: unknown): value is AnimationProperty => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<AnimationProperty>;
+
+  return (
+    typeof candidate?.id === 'string' &&
+    Array.isArray(candidate.keyframes) &&
+    'defaultValue' in candidate
+  );
+};
 
 // Easing functions for animations
 const EASING_FUNCTIONS = {
@@ -364,13 +378,29 @@ export default function AdvancedTimelineEditor() {
           
           // Navigate to the property using the path
           const pathParts = propertyPath.split('.');
-          let currentProp = element.properties as any;
-          
+          let currentProp: unknown = element.properties;
+
           for (let i = 0; i < pathParts.length - 1; i++) {
-            currentProp = currentProp[pathParts[i]];
+            if (typeof currentProp !== 'object' || currentProp === null) {
+              return element;
+            }
+
+            currentProp = (currentProp as Record<string, unknown>)[pathParts[i]];
           }
-          
-          const finalProp = currentProp[pathParts[pathParts.length - 1]] as AnimationProperty;
+
+          if (typeof currentProp !== 'object' || currentProp === null) {
+            return element;
+          }
+
+          const target = (currentProp as Record<string, unknown>)[
+            pathParts[pathParts.length - 1]
+          ];
+
+          if (!isAnimationProperty(target)) {
+            return element;
+          }
+
+          const finalProp = target;
           
           // Add keyframe if it doesn't exist at this time
           const existingKeyframe = finalProp.keyframes.find(kf => Math.abs(kf.time - time) < 0.1);
@@ -686,7 +716,7 @@ export default function AdvancedTimelineEditor() {
           </div>
 
           {/* Tabs for different views */}
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="flex-1 flex flex-col">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="flex-1 flex flex-col">
             <div className="bg-gray-800 border-b border-gray-700 px-4">
               <TabsList className="bg-gray-700">
                 <TabsTrigger value="timeline" className="flex items-center gap-2">

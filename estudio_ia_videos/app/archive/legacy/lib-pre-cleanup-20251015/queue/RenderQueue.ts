@@ -16,7 +16,7 @@ export interface RenderJob {
     sourceFile: string;
     outputFormat: string;
     quality: string;
-    settings: Record<string, any>;
+    settings: Record<string, unknown>;
   };
   progress: number;
   error?: string;

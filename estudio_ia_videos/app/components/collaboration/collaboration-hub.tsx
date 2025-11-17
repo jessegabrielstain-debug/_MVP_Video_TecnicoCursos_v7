@@ -35,6 +35,11 @@ import {
   ChevronDown
 } from 'lucide-react'
 
+type CollaborationTab = 'team' | 'comments' | 'versions' | 'share'
+const COLLAB_TABS = ['team', 'comments', 'versions', 'share'] as const
+const isCollaborationTab = (value: string): value is CollaborationTab =>
+  COLLAB_TABS.includes(value as CollaborationTab)
+
 interface TeamMember {
   id: string
   name: string
@@ -66,7 +71,7 @@ interface ProjectVersion {
 
 export default function CollaborationHub() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'team' | 'comments' | 'versions' | 'share'>('team')
+  const [activeTab, setActiveTab] = useState<CollaborationTab>('team')
   const [newComment, setNewComment] = useState('')
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [comments, setComments] = useState<ProjectComment[]>([])
@@ -314,7 +319,11 @@ export default function CollaborationHub() {
             key={tab.id}
             variant={activeTab === tab.id ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => {
+              if (isCollaborationTab(tab.id)) {
+                setActiveTab(tab.id)
+              }
+            }}
             className="gap-2"
           >
             <tab.icon className="h-4 w-4" />

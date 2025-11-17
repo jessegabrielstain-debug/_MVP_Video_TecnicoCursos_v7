@@ -312,11 +312,11 @@ export default function NRTemplatesEngine() {
     }
   }
 
-  const generateTemplate = async (nr: string, industry: string) => {
+  const generateTemplate = async (nr: NRTemplate['nr'], industry: string) => {
     // Simulate template generation
     const newTemplate: NRTemplate = {
       id: `${nr.toLowerCase()}-${Date.now()}`,
-      nr: nr as any,
+      nr,
       title: `Treinamento ${nr} - ${industry}`,
       description: `Template personalizado para ${industry} com foco em ${nr}`,
       duration: Math.floor(Math.random() * 30) + 20,

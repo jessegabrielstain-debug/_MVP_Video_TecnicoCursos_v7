@@ -6,6 +6,12 @@ import { motion } from 'framer-motion';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { toast } from 'sonner';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -24,11 +30,12 @@ import {
   ArrowLeft, Save, Download, Play, Pause, Square, SkipBack, SkipForward,
   ZoomIn, ZoomOut, Scissors, Copy, Trash2, Magnet, Minimize, Maximize,
   Video, Mic, Type, ImageIcon, FileVideo, Sparkles, Eye, EyeOff, Lock, Unlock,
-  Target, Clock, Clapperboard
+  Target, Clock, Clapperboard, Loader2, AlertTriangle
 } from 'lucide-react';
 
 // Hooks
 import { useTimelineRender } from '@/hooks/use-remotion-render';
+import { useEditorStore } from '@/lib/stores/editor-store'; // Import the new store
 
 interface TimelineTrack {
   id: string;
@@ -49,7 +56,7 @@ interface TimelineItem {
   start: number;
   duration: number;
   content: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
   selected?: boolean;
   keyframes?: Keyframe[];
   effects?: Effect[];
@@ -60,14 +67,14 @@ interface TimelineItem {
 interface Keyframe {
   id: string;
   time: number;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'cubic-bezier';
 }
 
 interface Effect {
   id: string;
   type: 'fade' | 'slide' | 'zoom' | 'rotate' | 'blur' | 'color';
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   enabled: boolean;
 }
 
@@ -90,95 +97,6 @@ const PIXELS_PER_SECOND = 50;
 const MAX_ZOOM = 10;
 const MIN_ZOOM = 0.1;
 const GRID_SNAP_THRESHOLD = 5;
-
-// Mock data
-const initialTracks: TimelineTrack[] = [
-  {
-    id: 'track-1',
-    type: 'video',
-    name: 'Vídeo Principal',
-    color: '#3b82f6',
-    visible: true,
-    locked: false,
-    volume: 100,
-    height: TRACK_HEIGHT,
-    items: [
-      {
-        id: 'item-1',
-        start: 0,
-        duration: 30,
-        content: 'Intro Video.mp4',
-        thumbnail: '/api/placeholder/120/60'
-      },
-      {
-        id: 'item-2',
-        start: 35,
-        duration: 45,
-        content: 'Main Content.mp4',
-        thumbnail: '/api/placeholder/120/60'
-      }
-    ]
-  },
-  {
-    id: 'track-2',
-    type: 'audio',
-    name: 'Narração',
-    color: '#10b981',
-    visible: true,
-    locked: false,
-    volume: 80,
-    height: TRACK_HEIGHT,
-    items: [
-      {
-        id: 'item-3',
-        start: 0,
-        duration: 75,
-        content: 'Narração IA.wav'
-      }
-    ]
-  },
-  {
-    id: 'track-3',
-    type: 'text',
-    name: 'Legendas',
-    color: '#f59e0b',
-    visible: true,
-    locked: false,
-    height: TRACK_HEIGHT,
-    items: [
-      {
-        id: 'item-4',
-        start: 5,
-        duration: 10,
-        content: 'Bem-vindos ao curso'
-      },
-      {
-        id: 'item-5',
-        start: 20,
-        duration: 15,
-        content: 'Normas de segurança'
-      }
-    ]
-  },
-  {
-    id: 'track-4',
-    type: 'pptx',
-    name: 'Slides PPTX',
-    color: '#8b5cf6',
-    visible: true,
-    locked: false,
-    height: TRACK_HEIGHT,
-    items: [
-      {
-        id: 'item-6',
-        start: 10,
-        duration: 20,
-        content: 'Apresentação NR-35.pptx',
-        thumbnail: '/api/placeholder/120/60'
-      }
-    ]
-  }
-];
 
 // Timeline Item Component
 const TimelineItemComponent: React.FC<{
@@ -333,12 +251,19 @@ const Playhead: React.FC<{
 };
 
 export default function TimelineEditor() {
-  const [timelineState, setTimelineState] = useState<TimelineState>({
+  // Replace local state with Zustand store
+  const { 
+    slides, 
+    generateTTS, 
+    setSlides, // Assuming you add this to your store to initialize it
+  } = useEditorStore();
+
+  // Local UI state can remain
+  const [timelineState, setTimelineState] = useState<Omit<TimelineState, 'tracks'>>({
     currentTime: 0,
-    duration: 120,
+    duration: 120, // This should probably be calculated from slides
     playing: false,
     zoom: 1,
-    tracks: initialTracks,
     selectedItems: [],
     playbackSpeed: 1,
     snapToGrid: true,
@@ -346,11 +271,46 @@ export default function TimelineEditor() {
     previewQuality: 'medium'
   });
 
+  // Adapt slides from store to tracks format
+  const tracks = slides.map(slide => ({
+    id: `track-${slide.id}`,
+    type: 'pptx' as const, // Or determine from slide data
+    name: slide.title || `Slide ${slide.order_index}`,
+    color: '#8b5cf6',
+    visible: true,
+    locked: false,
+    height: TRACK_HEIGHT,
+    items: [{
+      id: slide.id,
+      start: (slide.order_index || 0) * 10, // Example: 10 seconds per slide
+      duration: slide.duration || 10,
+      content: slide.content || '',
+      properties: { ...slide.visualSettings, ttsState: slide.ttsState, audioUrl: slide.audioUrl },
+      thumbnail: slide.visualSettings.backgroundImageUrl || '/api/placeholder/120/60'
+    }]
+  }));
+  
   const [showPreview, setShowPreview] = useState(true);
   const timelineRef = useRef<HTMLDivElement>(null);
 
   // Remotion rendering hook
   const { renderVideo, isRendering, progress, result, error, reset } = useTimelineRender();
+
+  // Initialize store with some data if it's empty
+  useEffect(() => {
+    if (useEditorStore.getState().slides.length === 0) {
+      // This is where you would fetch initial project data
+      // For now, we can use a simplified version of the old mock data
+      const initialSlides = [
+        { id: 'item-1', order_index: 0, title: 'Intro Slide', content: 'Bem-vindo ao nosso vídeo de treinamento.', duration: 10, ttsState: 'idle', visualSettings: {} },
+        { id: 'item-2', order_index: 1, title: 'Conteúdo Principal', content: 'Nesta seção, vamos cobrir os pontos mais importantes.', duration: 15, ttsState: 'idle', visualSettings: {} },
+        { id: 'item-3', order_index: 2, title: 'Conclusão', content: 'Obrigado por assistir.', duration: 5, ttsState: 'idle', visualSettings: {} },
+      ];
+      // @ts-ignore
+      setSlides(initialSlides); 
+    }
+  }, [setSlides]);
+
 
   // Handle video rendering
   const handleRenderVideo = useCallback(async () => {
@@ -362,7 +322,7 @@ export default function TimelineEditor() {
         fps: 30,
         width: 1920,
         height: 1080,
-        tracks: timelineState.tracks.map(track => ({
+        tracks: tracks.map(track => ({ // Use the derived tracks
           id: track.id,
           type: track.type,
           name: track.name,
@@ -389,7 +349,7 @@ export default function TimelineEditor() {
       console.error('Erro na renderização:', err);
       toast.error('Erro ao renderizar vídeo');
     }
-  }, [timelineState, renderVideo, result]);
+  }, [timelineState, renderVideo, result, tracks]); // Add tracks to dependency array
 
   // Playback controls
   const handlePlay = useCallback(() => {
@@ -425,23 +385,15 @@ export default function TimelineEditor() {
     }));
   }, []);
 
-  // Track controls
+  // Track controls (These might need to be adapted to modify the store's state)
   const handleToggleTrackVisibility = useCallback((trackId: string) => {
-    setTimelineState(prev => ({
-      ...prev,
-      tracks: prev.tracks.map(track =>
-        track.id === trackId ? { ...track, visible: !track.visible } : track
-      )
-    }));
+    // This logic will need to be moved to the store
+    console.log("Toggling visibility for", trackId);
   }, []);
 
   const handleToggleTrackLock = useCallback((trackId: string) => {
-    setTimelineState(prev => ({
-      ...prev,
-      tracks: prev.tracks.map(track =>
-        track.id === trackId ? { ...track, locked: !track.locked } : track
-      )
-    }));
+    // This logic will need to be moved to the store
+    console.log("Toggling lock for", trackId);
   }, []);
 
   // Item selection
@@ -456,25 +408,11 @@ export default function TimelineEditor() {
     }));
   }, []);
 
-  // Add new track
+  // Add new track (This will now add a new slide to the store)
   const handleAddTrack = useCallback((type: TimelineTrack['type']) => {
-    const newTrack: TimelineTrack = {
-      id: `track-${Date.now()}`,
-      type,
-      name: `Nova ${type}`,
-      color: '#6b7280',
-      visible: true,
-      locked: false,
-      height: TRACK_HEIGHT,
-      items: []
-    };
-
-    setTimelineState(prev => ({
-      ...prev,
-      tracks: [...prev.tracks, newTrack]
-    }));
-
-    toast.success(`Nova track ${type} adicionada`);
+    // This logic will need to be moved to the store
+    console.log("Adding new track of type", type);
+    toast.success(`Função de adicionar slide pendente.`);
   }, []);
 
   // Keyboard shortcuts
@@ -774,7 +712,7 @@ export default function TimelineEditor() {
                   onSeek={handleSeek}
                 />
                 
-                {timelineState.tracks.map((track) => (
+                {tracks.map((track) => (
                   <TrackComponent
                     key={track.id}
                     track={track}
@@ -804,22 +742,68 @@ export default function TimelineEditor() {
                   <div>
                     <Label className="text-sm font-medium">Item Selecionado</Label>
                     <div className="space-y-3 mt-2">
-                      <div>
-                        <Label className="text-xs">Posição</Label>
-                        <Input type="number" placeholder="0" className="mt-1" />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Duração</Label>
-                        <Input type="number" placeholder="10" className="mt-1" />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Opacidade</Label>
-                        <Slider defaultValue={[100]} max={100} step={1} className="mt-1" />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Volume</Label>
-                        <Slider defaultValue={[80]} max={100} step={1} className="mt-1" />
-                      </div>
+                      {(() => {
+                        const selectedId = timelineState.selectedItems[0];
+                        const selectedSlide = slides.find(s => s.id === selectedId);
+                        if (!selectedSlide) return null;
+
+                        return (
+                          <>
+                            <div>
+                              <Label className="text-xs">Posição</Label>
+                              <Input type="number" defaultValue={selectedSlide.order_index * 10} placeholder="0" className="mt-1" />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Duração</Label>
+                              <Input type="number" defaultValue={selectedSlide.duration} placeholder="10" className="mt-1" />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Opacidade</Label>
+                              <Slider defaultValue={[100]} max={100} step={1} className="mt-1" />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Volume</Label>
+                              <Slider defaultValue={[80]} max={100} step={1} className="mt-1" />
+                            </div>
+                            <Separator />
+                            <div>
+                              <Label className="text-sm font-medium">Narração (TTS)</Label>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => generateTTS(selectedSlide.id, selectedSlide.content)}
+                                  disabled={selectedSlide.ttsState === 'generating'}
+                                >
+                                  {selectedSlide.ttsState === 'generating' ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <Mic className="w-4 h-4 mr-2" />
+                                  )}
+                                  Gerar Áudio
+                                </Button>
+                                {selectedSlide.ttsState === 'success' && selectedSlide.audioUrl && (
+                                  <Button size="sm" variant="ghost" onClick={() => new Audio(selectedSlide.audioUrl).play()}>
+                                    <Play className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                {selectedSlide.ttsState === 'error' && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Erro ao gerar áudio.</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 ) : (

@@ -50,7 +50,7 @@ export interface AnalyticsEventData {
   errorMessage?: string;
   
   // Metadata flexível
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UserBehaviorMetrics {

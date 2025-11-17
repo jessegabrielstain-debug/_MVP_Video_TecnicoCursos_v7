@@ -10,7 +10,7 @@ import React, { useMemo, useCallback, useRef } from 'react'
 
 interface CacheItem {
   key: string
-  data: any
+  data: unknown
   timestamp: number
   hitCount: number
 }
@@ -41,7 +41,7 @@ export class PerformanceCache {
     this.config = { ...DEFAULT_CONFIG, ...config }
   }
 
-  get(key: string): any {
+  get(key: string): unknown {
     const item = this.cache.get(key)
     
     if (!item) {
@@ -61,7 +61,7 @@ export class PerformanceCache {
     return item.data
   }
 
-  set(key: string, data: any): void {
+  set(key: string, data: unknown): void {
     // Remove oldest items if cache is full
     if (this.cache.size >= this.config.maxSize) {
       const oldestKey = this.findOldestKey()
@@ -147,7 +147,7 @@ export function useCanvasCache(config?: Partial<PerformanceCacheConfig>) {
     return memoizedCache.get(key)
   }, [memoizedCache])
 
-  const cacheSet = useCallback((key: string, data: any) => {
+  const cacheSet = useCallback((key: string, data: unknown) => {
     memoizedCache.set(key, data)
   }, [memoizedCache])
 
@@ -175,7 +175,7 @@ export function useCanvasCache(config?: Partial<PerformanceCacheConfig>) {
 }
 
 // Canvas-specific cache hooks
-export function useMemoizedCanvas(key: string, computeFn: () => any, deps: any[]) {
+export function useMemoizedCanvas(key: string, computeFn: () => unknown, deps: unknown[]) {
   const cache = useCanvasCache()
   
   return useMemo(() => {
@@ -195,7 +195,7 @@ export function useThrottledCanvasUpdate(fn: Function, delay: number = 16) {
   const lastCall = useRef<number>(0)
   const timeoutRef = useRef<NodeJS.Timeout>()
   
-  return useCallback((...args: any[]) => {
+  return useCallback((...args: unknown[]) => {
     const now = Date.now()
     
     if (now - lastCall.current >= delay) {

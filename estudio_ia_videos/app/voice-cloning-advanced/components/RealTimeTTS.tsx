@@ -12,13 +12,13 @@ import { Slider } from '@/components/ui/slider'
 import { 
   Play, 
   Pause, 
-  Stop, 
+  Square, 
   Volume2, 
   Download,
   Mic,
   MicOff,
   Settings,
-  Waveform,
+  Waves,
   Clock,
   FileAudio,
   Zap,
@@ -391,7 +391,7 @@ export default function RealTimeTTS() {
                         onClick={stopAudio}
                         variant="outline"
                       >
-                        <Stop className="w-4 h-4 mr-2" />
+                        <Square className="w-4 h-4 mr-2" />
                         Parar
                       </Button>
                       
@@ -407,7 +407,7 @@ export default function RealTimeTTS() {
 
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <Waveform className="w-4 h-4 text-purple-600" />
+                      <Waves className="w-4 h-4 text-purple-600" />
                       <span className="text-sm font-medium">Forma de Onda</span>
                     </div>
                     <div className="h-16 bg-gradient-to-r from-purple-200 via-purple-400 to-purple-200 rounded flex items-end justify-center gap-1 p-2">

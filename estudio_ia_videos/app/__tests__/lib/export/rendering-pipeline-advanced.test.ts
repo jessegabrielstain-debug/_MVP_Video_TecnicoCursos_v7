@@ -6,6 +6,18 @@
 
 import { RenderingPipeline, PipelineState } from '@/lib/export/rendering-pipeline'
 
+type RenderingPipelineInternals = RenderingPipeline & {
+  state: PipelineState
+  pausedAt?: number
+  calculateETA: (stage: string, progress: number, totalStages: number, elapsedMs: number) => number
+  calculateAverageStageTime: () => number
+  checkPauseOrCancel: () => Promise<boolean>
+}
+
+const withInternals = (instance: RenderingPipeline): RenderingPipelineInternals => {
+  return instance as unknown as RenderingPipelineInternals
+}
+
 describe('RenderingPipeline - State Management (Sprint 51)', () => {
   let pipeline: RenderingPipeline
 
@@ -22,7 +34,7 @@ describe('RenderingPipeline - State Management (Sprint 51)', () => {
   describe('Pause Control', () => {
     test('should change state to PAUSED when pause() is called on RUNNING pipeline', () => {
       // Set to RUNNING first
-      ;(pipeline as any).state = PipelineState.RUNNING
+      withInternals(pipeline).state = PipelineState.RUNNING
       
       pipeline.pause()
       expect(pipeline.getState()).toBe(PipelineState.PAUSED)
@@ -36,7 +48,7 @@ describe('RenderingPipeline - State Management (Sprint 51)', () => {
     })
 
     test('should allow multiple pause() calls on RUNNING pipeline', () => {
-      ;(pipeline as any).state = PipelineState.RUNNING
+      withInternals(pipeline).state = PipelineState.RUNNING
       
       pipeline.pause()
       expect(pipeline.getState()).toBe(PipelineState.PAUSED)
@@ -49,8 +61,9 @@ describe('RenderingPipeline - State Management (Sprint 51)', () => {
   describe('Resume Control', () => {
     test('should resume from PAUSED state', () => {
       // Set to PAUSED first
-      ;(pipeline as any).state = PipelineState.PAUSED
-      ;(pipeline as any).pausedAt = Date.now()
+      const internals = withInternals(pipeline)
+      internals.state = PipelineState.PAUSED
+      internals.pausedAt = Date.now()
       
       pipeline.resume()
       expect(pipeline.getState()).toBe(PipelineState.RUNNING)
@@ -65,14 +78,14 @@ describe('RenderingPipeline - State Management (Sprint 51)', () => {
 
   describe('Cancel Control', () => {
     test('should change state to CANCELLED when cancel() is called on RUNNING pipeline', () => {
-      ;(pipeline as any).state = PipelineState.RUNNING
+      withInternals(pipeline).state = PipelineState.RUNNING
       
       pipeline.cancel()
       expect(pipeline.getState()).toBe(PipelineState.CANCELLED)
     })
 
     test('should allow cancel from PAUSED', () => {
-      ;(pipeline as any).state = PipelineState.PAUSED
+      withInternals(pipeline).state = PipelineState.PAUSED
       
       pipeline.cancel()
       expect(pipeline.getState()).toBe(PipelineState.CANCELLED)
@@ -87,7 +100,8 @@ describe('RenderingPipeline - State Management (Sprint 51)', () => {
 
   describe('State Transitions', () => {
     test('should transition RUNNING → PAUSED → RUNNING → CANCELLED', () => {
-      ;(pipeline as any).state = PipelineState.RUNNING
+      const internals = withInternals(pipeline)
+      internals.state = PipelineState.RUNNING
       expect(pipeline.getState()).toBe(PipelineState.RUNNING)
       
       pipeline.pause()
@@ -101,7 +115,7 @@ describe('RenderingPipeline - State Management (Sprint 51)', () => {
     })
 
     test('should transition PAUSED → CANCELLED directly', () => {
-      ;(pipeline as any).state = PipelineState.PAUSED
+      withInternals(pipeline).state = PipelineState.PAUSED
       
       pipeline.cancel()
       expect(pipeline.getState()).toBe(PipelineState.CANCELLED)
@@ -112,10 +126,10 @@ describe('RenderingPipeline - State Management (Sprint 51)', () => {
     test('should return current state', () => {
       expect(pipeline.getState()).toBe(PipelineState.IDLE)
       
-      ;(pipeline as any).state = PipelineState.RUNNING
+      withInternals(pipeline).state = PipelineState.RUNNING
       expect(pipeline.getState()).toBe(PipelineState.RUNNING)
       
-      ;(pipeline as any).state = PipelineState.PAUSED
+      withInternals(pipeline).state = PipelineState.PAUSED
       expect(pipeline.getState()).toBe(PipelineState.PAUSED)
     })
   })
@@ -130,17 +144,17 @@ describe('RenderingPipeline - ETA Calculation (Sprint 51)', () => {
 
   describe('calculateETA Method', () => {
     test('should have calculateETA method', () => {
-      expect(typeof (pipeline as any).calculateETA).toBe('function')
+      expect(typeof withInternals(pipeline).calculateETA).toBe('function')
     })
 
     test('should return number when called with valid arguments', () => {
-      const eta = (pipeline as any).calculateETA('audio_processing', 0.5, 4, 0)
+      const eta = withInternals(pipeline).calculateETA('audio_processing', 0.5, 4, 0)
       expect(typeof eta).toBe('number')
       expect(eta).toBeGreaterThanOrEqual(0)
     })
 
     test('should calculate ETA based on current progress', () => {
-      const eta = (pipeline as any).calculateETA('audio_processing', 0.75, 4, 0)
+      const eta = withInternals(pipeline).calculateETA('audio_processing', 0.75, 4, 0)
       expect(typeof eta).toBe('number')
       expect(eta).toBeGreaterThanOrEqual(0)
     })
@@ -148,11 +162,11 @@ describe('RenderingPipeline - ETA Calculation (Sprint 51)', () => {
 
   describe('calculateAverageStageTime Method', () => {
     test('should have calculateAverageStageTime method', () => {
-      expect(typeof (pipeline as any).calculateAverageStageTime).toBe('function')
+      expect(typeof withInternals(pipeline).calculateAverageStageTime).toBe('function')
     })
 
     test('should return number when called', () => {
-      const avgTime = (pipeline as any).calculateAverageStageTime()
+      const avgTime = withInternals(pipeline).calculateAverageStageTime()
       expect(typeof avgTime).toBe('number')
       expect(avgTime).toBeGreaterThanOrEqual(0)
     })
@@ -167,30 +181,33 @@ describe('RenderingPipeline - checkPauseOrCancel Method (Sprint 51)', () => {
   })
 
   test('should have checkPauseOrCancel method', () => {
-    expect(typeof (pipeline as any).checkPauseOrCancel).toBe('function')
+    expect(typeof withInternals(pipeline).checkPauseOrCancel).toBe('function')
   })
 
   test('should return true when state is RUNNING', async () => {
-    ;(pipeline as any).state = PipelineState.RUNNING
-    const result = await (pipeline as any).checkPauseOrCancel()
+    const internals = withInternals(pipeline)
+    internals.state = PipelineState.RUNNING
+    const result = await internals.checkPauseOrCancel()
     expect(result).toBe(true)
   })
 
   test('should return false when state is CANCELLED', async () => {
-    ;(pipeline as any).state = PipelineState.CANCELLED
-    const result = await (pipeline as any).checkPauseOrCancel()
+    const internals = withInternals(pipeline)
+    internals.state = PipelineState.CANCELLED
+    const result = await internals.checkPauseOrCancel()
     expect(result).toBe(false)
   })
 
   test('should wait while PAUSED and return true when resumed', async () => {
-    ;(pipeline as any).state = PipelineState.PAUSED
+    const internals = withInternals(pipeline)
+    internals.state = PipelineState.PAUSED
     
     // Resume after short delay
     setTimeout(() => {
-      ;(pipeline as any).state = PipelineState.RUNNING
+      internals.state = PipelineState.RUNNING
     }, 100)
     
-    const result = await (pipeline as any).checkPauseOrCancel()
+    const result = await internals.checkPauseOrCancel()
     expect(result).toBe(true)
   }, 500)
 })

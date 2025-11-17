@@ -34,6 +34,13 @@ interface MotionElement {
   locked: boolean;
 }
 
+type MotionNumericProperty = Extract<
+  {
+    [K in keyof MotionElement]: MotionElement[K] extends number ? K : never
+  }[keyof MotionElement],
+  string
+>
+
 interface MotionAnimation {
   type: 'bounce' | 'slide' | 'fade' | 'rotate' | 'scale' | 'pulse' | 'wave' | 'spiral';
   duration: number;
@@ -41,10 +48,13 @@ interface MotionAnimation {
   repeat: number;
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce' | 'elastic';
   direction: 'normal' | 'reverse' | 'alternate';
-  properties: {
-    [key: string]: { from: number; to: number };
-  };
+  properties: Partial<Record<MotionNumericProperty, { from: number; to: number }>>;
 }
+
+const animationTypeOptions: MotionAnimation['type'][] = ['bounce', 'slide', 'fade', 'rotate', 'scale', 'pulse', 'wave', 'spiral']
+
+const isAnimationType = (value: string): value is MotionAnimation['type'] =>
+  animationTypeOptions.some((option) => option === value)
 
 interface ParticleSystem {
   id: string;
@@ -291,10 +301,12 @@ const MotionGraphicsAIEngine = () => {
 
     // Calculate animated properties
     const animatedElement = { ...element };
-    
-    Object.entries(animation.properties).forEach(([property, range]) => {
+
+    (Object.keys(animation.properties) as MotionNumericProperty[]).forEach((property) => {
+      const range = animation.properties[property];
+      if (!range) return;
       const value = range.from + (range.to - range.from) * easedProgress;
-      (animatedElement as any)[property] = value;
+      animatedElement[property] = value;
     });
 
     return animatedElement;
@@ -552,7 +564,7 @@ const MotionGraphicsAIEngine = () => {
 
         {/* Controls Panel */}
         <div className="w-96 bg-gray-850 border-l border-gray-700">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="h-full flex flex-col">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="h-full flex flex-col">
             <TabsList className="w-full">
               <TabsTrigger value="elements" className="flex-1 text-xs">Elements</TabsTrigger>
               <TabsTrigger value="particles" className="flex-1 text-xs">Particles</TabsTrigger>
@@ -672,11 +684,13 @@ const MotionGraphicsAIEngine = () => {
                         <label className="text-xs">Animation Type</label>
                         <Select
                           value={selectedElementData.animation.type}
-                          onValueChange={(value) => 
-                            updateElement(selectedElement, { 
-                              animation: { ...selectedElementData.animation, type: value as any }
-                            })
-                          }
+                          onValueChange={(value) => {
+                            if (isAnimationType(value)) {
+                              updateElement(selectedElement, {
+                                animation: { ...selectedElementData.animation, type: value }
+                              })
+                            }
+                          }}
                         >
                           <SelectTrigger>
                             <SelectValue />

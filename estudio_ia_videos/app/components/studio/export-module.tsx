@@ -75,7 +75,7 @@ interface ExportJob {
   progress: number
   url?: string
   error?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 interface ShareSettings {
@@ -485,7 +485,7 @@ export default function ExportModule({
             <Label>Visibilidade</Label>
             <Select 
               value={shareSettings.visibility} 
-              onValueChange={(value: any) => setShareSettings(prev => ({ ...prev, visibility: value }))}
+              onValueChange={(value: string) => setShareSettings(prev => ({ ...prev, visibility: value }))}
             >
               <SelectTrigger className="mt-2">
                 <SelectValue />

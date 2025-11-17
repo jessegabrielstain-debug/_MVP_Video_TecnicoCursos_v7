@@ -34,8 +34,8 @@ const PPTXTest: React.FC = () => {
   const [jobs, setJobs] = useState<PPTXProcessingJob[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
-  const [generationData, setGenerationData] = useState<any>({});
-  const [preview, setPreview] = useState<any>(null);
+  const [generationData, setGenerationData] = useState<unknown>({});
+  const [preview, setPreview] = useState<unknown>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 

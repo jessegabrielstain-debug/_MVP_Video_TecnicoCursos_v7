@@ -69,8 +69,8 @@ export default function UnifiedControlPanel({ projectId }: { projectId?: string 
   const [activeTab, setActiveTab] = useState('overview')
 
   // Estados específicos
-  const [pptxStatus, setPptxStatus] = useState<any>(null)
-  const [ttsStatus, setTtsStatus] = useState<any>(null)
+  const [pptxStatus, setPptxStatus] = useState<unknown>(null)
+  const [ttsStatus, setTtsStatus] = useState<unknown>(null)
   const [exportJob, setExportJob] = useState<ExportJob | null>(null)
   const [availableVoices, setAvailableVoices] = useState<TTSVoice[]>([])
 

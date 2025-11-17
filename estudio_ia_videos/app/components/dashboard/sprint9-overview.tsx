@@ -34,8 +34,8 @@ import {
 import Link from 'next/link';
 
 export default function Sprint9Overview() {
-  const [systemHealth, setSystemHealth] = useState<any>(null);
-  const [realtimeMetrics, setRealtimeMetrics] = useState<any>(null);
+  const [systemHealth, setSystemHealth] = useState<unknown>(null);
+  const [realtimeMetrics, setRealtimeMetrics] = useState<unknown>(null);
 
   const getBadgeVariant = (color: string) => {
     const variants = {

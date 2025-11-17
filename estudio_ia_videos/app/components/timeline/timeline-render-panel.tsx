@@ -41,7 +41,7 @@ interface TimelineRenderPanelProps {
   timelineId: string;
   projectName: string;
   duration: number;
-  clips: any[];
+  clips: unknown[];
 }
 
 export function TimelineRenderPanel({
@@ -137,7 +137,7 @@ export function TimelineRenderPanel({
                 <Label>Resolução</Label>
                 <Select
                   value={settings.resolution}
-                  onValueChange={(value: any) => setSettings({ ...settings, resolution: value })}
+                  onValueChange={(value: string) => setSettings({ ...settings, resolution: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -171,7 +171,7 @@ export function TimelineRenderPanel({
                 <Label>Formato</Label>
                 <Select
                   value={settings.format}
-                  onValueChange={(value: any) => setSettings({ ...settings, format: value })}
+                  onValueChange={(value: string) => setSettings({ ...settings, format: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -188,7 +188,7 @@ export function TimelineRenderPanel({
                 <Label>Qualidade</Label>
                 <Select
                   value={settings.quality}
-                  onValueChange={(value: any) => setSettings({ ...settings, quality: value })}
+                  onValueChange={(value: string) => setSettings({ ...settings, quality: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />

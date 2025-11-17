@@ -4,6 +4,26 @@ import { authOptions } from '@/lib/auth';
 import { withAnalytics } from '@/lib/analytics/middleware';
 import { DataExporter, ExportFormat, ExportDataType } from '@/lib/analytics/data-exporter';
 
+// Type-safe helper extraindo organizationId
+const getOrgId = (user: unknown): string | undefined => {
+  const u = user as { currentOrgId?: string; organizationId?: string };
+  return u.currentOrgId || u.organizationId || undefined;
+};
+
+// Type-safe helper verificando admin
+const isAdmin = (user: unknown): boolean => {
+  return ((user as { isAdmin?: boolean }).isAdmin) === true;
+};
+// Type-safe helper extraindo organizationId
+const getOrgId = (user: unknown): string | undefined => {
+  const u = user as { currentOrgId?: string; organizationId?: string };
+  return u.currentOrgId || u.organizationId || undefined;
+};
+
+// Type-safe helper verificando admin
+const isAdmin = (user: unknown): boolean => {
+  return ((user as { isAdmin?: boolean }).isAdmin) === true;
+};
 export async function GET(request: NextRequest) {
   return withAnalytics(async (req: NextRequest) => {
     const session = await getServerSession(authOptions);
@@ -195,7 +215,7 @@ export async function POST(request: NextRequest) {
         },
         filters: {
           ...filters,
-          organizationId: filters.organizationId || (session.user as any).organizationId
+          organizationId: filters.organizationId || getOrgId(session.user)
         },
         includeMetadata,
         compression,
@@ -247,7 +267,7 @@ export async function PUT(request: NextRequest) {
 
     try {
       const { searchParams } = new URL(req.url);
-      const organizationId = searchParams.get('organizationId') || (session.user as any).organizationId;
+      const organizationId = searchParams.get('organizationId') || getOrgId(session.user);
 
       const exporter = new DataExporter();
       const history = await exporter.getExportHistory(session.user.id, organizationId);

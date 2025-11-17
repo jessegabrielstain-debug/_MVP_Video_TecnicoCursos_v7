@@ -1,3 +1,6 @@
+-- Índices para render_jobs (video jobs API)
+CREATE INDEX IF NOT EXISTS idx_render_jobs_user_created_at ON render_jobs(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_render_jobs_status ON render_jobs(status);
 -- ============================================
 -- FASE 2: CRIAÇÃO DE ÍNDICES E TRIGGERS
 -- ============================================

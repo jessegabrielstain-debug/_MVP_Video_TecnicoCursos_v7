@@ -3,11 +3,10 @@
 'use client'
 
 /**
- * 🚨 DASHBOARD ULTRA SIMPLIFICADO - Sem hooks complexos, sem loops
- */
+* 🚨 DASHBOARD ULTRA SIMPLIFICADO - Sem hooks complexos, sem loops
+*/
 
-import { useState } from 'react'
-import { signOut, useSession } from 'next-auth/react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
@@ -46,6 +45,8 @@ import {
   Eye,
   Zap
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 const MOCK_PROJECTS = [
   {
@@ -142,8 +143,36 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function DashboardSimplified() {
-  const { data: session } = useSession() || {}
+  const supabase = useMemo(() => createClient(), [])
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
   const [activeFilter, setActiveFilter] = useState('all')
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadSession = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        setUser(data.user ?? null)
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error)
+      }
+    }
+
+    void loadSession()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
   
   const filteredProjects = MOCK_PROJECTS.filter(project => 
     activeFilter === 'all' || project.status === activeFilter
@@ -160,6 +189,24 @@ export default function DashboardSimplified() {
     // Simple navigation without complex routing
     window.location.href = `/project/${projectId}`
   }
+
+  const handleSignOut = async () => {
+    if (signingOut) return
+    try {
+      setSigningOut(true)
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        throw error
+      }
+      window.location.href = '/login?reason=session_expired'
+    } catch (error) {
+      console.error('Erro ao encerrar sessão:', error)
+    } finally {
+      setSigningOut(false)
+    }
+  }
+
+  const displayName = user?.user_metadata?.name ?? user?.email ?? 'Usuário'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800">
@@ -187,22 +234,23 @@ export default function DashboardSimplified() {
                 Ultra Safe Mode
               </div>
               
-              {session?.user && (
+              {user && (
                 <div className="flex items-center gap-3">
                   <div className="text-right hidden sm:block">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {session.user.name || session.user.email}
+                      {displayName}
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">Usuário</p>
                   </div>
                   <Button
-                    onClick={() => signOut()}
+                    onClick={handleSignOut}
                     variant="outline"
                     size="sm"
                     className="gap-2"
+                    disabled={signingOut}
                   >
                     <LogOut className="h-4 w-4" />
-                    Sair
+                    {signingOut ? 'Saindo...' : 'Sair'}
                   </Button>
                 </div>
               )}

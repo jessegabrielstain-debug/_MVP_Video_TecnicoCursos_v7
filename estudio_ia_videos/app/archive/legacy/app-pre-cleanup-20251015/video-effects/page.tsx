@@ -22,7 +22,7 @@ interface EffectConfig {
   type: 'particle' | 'transition' | 'filter' | 'motion'
   enabled: boolean
   intensity: number
-  params: Record<string, any>
+  params: Record<string, unknown>
 }
 
 interface VideoEffect {

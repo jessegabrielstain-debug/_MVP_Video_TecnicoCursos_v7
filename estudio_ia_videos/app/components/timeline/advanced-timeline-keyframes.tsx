@@ -36,9 +36,9 @@ import {
 
 interface AdvancedTimelineKeyframesProps {
   projectId?: string
-  initialData?: any
-  onSave?: (timelineData: any) => void
-  onRender?: (timelineData: any) => void
+  initialData?: unknown
+  onSave?: (timelineData: unknown) => void
+  onRender?: (timelineData: unknown) => void
 }
 
 export default function AdvancedTimelineKeyframes({

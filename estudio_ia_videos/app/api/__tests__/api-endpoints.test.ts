@@ -8,9 +8,9 @@ import { POST as generateSpeechPOST, GET as generateSpeechGET } from '../avatars
 import { GET as monitoringGET, POST as monitoringPOST } from '../monitoring/route'
 
 // Mock dos serviços
-jest.mock('../../lib/unified-avatar-pipeline')
-jest.mock('../../lib/enhanced-tts-service')
-jest.mock('../../lib/monitoring-service')
+jest.mock('../../lib/avatar-3d-pipeline')
+jest.mock('../../lib/tts/tts-service')
+jest.mock('../../lib/services/monitoring-service')
 
 describe('API Endpoints Tests', () => {
   describe('/api/avatars/generate-speech', () => {

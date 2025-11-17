@@ -590,7 +590,7 @@ export default function PPTXTemplateLibrary({
         </div>
         
         <div className="flex items-center space-x-2">
-          <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+          <Select value={sortBy} onValueChange={(value: string) => setSortBy(value)}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
@@ -668,7 +668,7 @@ export default function PPTXTemplateLibrary({
               
               <div>
                 <Label className="text-xs">Duração</Label>
-                <Select value={filters.duration} onValueChange={(value: any) => setFilters(prev => ({ ...prev, duration: value }))}>
+                <Select value={filters.duration} onValueChange={(value: string) => setFilters(prev => ({ ...prev, duration: value }))}>
                   <SelectTrigger className="h-8">
                     <SelectValue />
                   </SelectTrigger>

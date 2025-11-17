@@ -1,0 +1,30 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "lib/validation/**/*.ts",
+    "lib/services/**/*.ts",
+    "lib/handlers/**/*.ts",
+  "lib/api/**/*.ts",
+    "estudio_ia_videos/app/api/v1/video-jobs/route.ts",
+    "estudio_ia_videos/app/api/v1/video-jobs/cancel/route.ts",
+    "estudio_ia_videos/app/api/v1/video-jobs/progress/route.ts",
+    "estudio_ia_videos/app/api/v1/video-jobs/requeue/route.ts"
+  ],
+  "files": [
+    "estudio_ia_videos/app/api/v1/video-jobs/[id]/route.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/__tests__/**",
+    "estudio_ia_videos/app/archive/**",
+    "estudio_ia_videos/app/api/**",
+    "!estudio_ia_videos/app/api/v1/video-jobs/route.ts",
+    "lib/utils.ts",
+    "lib/websocket/**",
+    "lib/hooks/**",
+    "scripts/**",
+    "app",
+    "app/**/*"
+  ]
+}

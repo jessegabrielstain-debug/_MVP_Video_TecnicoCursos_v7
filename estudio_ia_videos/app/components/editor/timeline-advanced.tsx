@@ -161,7 +161,7 @@ export const TimelineAdvanced: React.FC<TimelineAdvancedProps> = ({
 
     setDragState({
       isDragging: true,
-      dragType: type as any,
+      dragType: type as 'layer' | 'clip' | 'effect' | 'marker',
       dragData: data,
       startX,
       startTime,

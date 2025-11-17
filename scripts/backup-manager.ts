@@ -19,13 +19,14 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
-import { createClient } from '@supabase/supabase-js';
-import { createGzip } from 'zlib';
-import { pipeline } from 'stream/promises';
-import { createReadStream, createWriteStream } from 'fs';
+
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+import { logger } from './logger';
+import { Database } from '../lib/database.types';
 
 interface BackupResult {
   id: string;
@@ -44,17 +45,21 @@ interface BackupFile {
   type: string;
 }
 
-interface RestoreOptions {
-  backupId: string;
-  restoreDatabase: boolean;
-  restoreStorage: boolean;
-  restoreConfig: boolean;
+interface BackupMetadata {
+  id: string;
+  timestamp: string;
+  type: 'full' | 'db' | 'storage';
+  files: number;
+  size: number;
+  tables?: number;
+  buckets?: number;
+  configs?: number;
 }
 
 class BackupManager {
   private projectRoot: string;
   private backupDir: string;
-  private supabase: any;
+  private supabase: SupabaseClient<Database, 'public'>;
   private envVars: Map<string, string> = new Map();
   private maxBackups: number = 10;
 
@@ -62,7 +67,7 @@ class BackupManager {
     this.projectRoot = path.join(process.cwd(), '..');
     this.backupDir = path.join(this.projectRoot, 'backups');
     this.loadEnv();
-    this.initSupabase();
+    this.supabase = this.initSupabase();
     this.ensureBackupDir();
   }
 
@@ -87,12 +92,13 @@ class BackupManager {
     }
   }
 
-  private initSupabase() {
+  private initSupabase(): SupabaseClient<Database, 'public'> {
     const url = this.envVars.get('NEXT_PUBLIC_SUPABASE_URL');
     const key = this.envVars.get('SUPABASE_SERVICE_ROLE_KEY');
     if (url && key) {
-      this.supabase = createClient(url, key);
+      return createClient<Database, 'public'>(url, key);
     }
+    throw new Error('Supabase URL ou Service Role Key não encontrados no .env');
   }
 
   private ensureBackupDir() {
@@ -141,7 +147,7 @@ class BackupManager {
         fs.mkdirSync(path.dirname(filepath), { recursive: true });
         
         // Salvar dados
-        const content = JSON.stringify(data || [], null, 2);
+        const content = JSON.stringify(data ?? [], null, 2);
         fs.writeFileSync(filepath, content);
 
         const stats = fs.statSync(filepath);
@@ -157,8 +163,8 @@ class BackupManager {
 
       this.log(`   ✅ ${files.length} tabelas exportadas`, 'success');
       return files;
-    } catch (error: any) {
-      this.log(`   ❌ Erro: ${error.message}`, 'error');
+    } catch (error: unknown) {
+      this.log(`   ❌ Erro: ${(error as Error).message}`, 'error');
       return files;
     }
   }
@@ -211,8 +217,8 @@ class BackupManager {
 
       this.log(`   ✅ ${buckets.length} buckets catalogados`, 'success');
       return files;
-    } catch (error: any) {
-      this.log(`   ❌ Erro: ${error.message}`, 'error');
+    } catch (error: unknown) {
+      this.log(`   ❌ Erro: ${(error as Error).message}`, 'error');
       return files;
     }
   }
@@ -221,7 +227,7 @@ class BackupManager {
   // BACKUP DE CONFIGURAÇÕES
   // ═══════════════════════════════════════════════════════════════════════
 
-  async backupConfig(backupId: string): Promise<BackupFile[]> {
+  backupConfig(backupId: string): BackupFile[] {
     this.log('\n💾 Criando backup de configurações...', 'info');
 
     const files: BackupFile[] = [];
@@ -300,8 +306,8 @@ class BackupManager {
 
       this.log(`   ✅ ${files.length} arquivos de configuração salvos`, 'success');
       return files;
-    } catch (error: any) {
-      this.log(`   ❌ Erro: ${error.message}`, 'error');
+    } catch (error: unknown) {
+      this.log(`   ❌ Erro: ${(error as Error).message}`, 'error');
       return files;
     }
   }
@@ -310,7 +316,7 @@ class BackupManager {
   // COMPRESSÃO
   // ═══════════════════════════════════════════════════════════════════════
 
-  async compressBackup(backupId: string): Promise<string> {
+  compressBackup(backupId: string): string {
     this.log('\n🗜️  Comprimindo backup...', 'info');
 
     try {
@@ -336,8 +342,8 @@ class BackupManager {
       this.log(`   ✅ Backup comprimido: ${(stats.size / 1024 / 1024).toFixed(2)} MB`, 'success');
       
       return archivePath;
-    } catch (error: any) {
-      this.log(`   ⚠️  Compressão falhou: ${error.message}`, 'warning');
+    } catch (error: unknown) {
+      this.log(`   ⚠️  Compressão falhou: ${(error as Error).message}`, 'warning');
       return '';
     }
   }
@@ -346,7 +352,7 @@ class BackupManager {
   // ROTAÇÃO DE BACKUPS
   // ═══════════════════════════════════════════════════════════════════════
 
-  async rotateBackups(): Promise<void> {
+  rotateBackups(): void {
     this.log('\n🔄 Rotacionando backups...', 'info');
 
     try {
@@ -383,8 +389,8 @@ class BackupManager {
 
       this.log(`   ✅ ${toRemove.length} backups antigos removidos`, 'success');
       this.log(`   ✅ ${this.maxBackups} backups mais recentes mantidos`, 'success');
-    } catch (error: any) {
-      this.log(`   ❌ Erro na rotação: ${error.message}`, 'error');
+    } catch (error: unknown) {
+      this.log(`   ❌ Erro na rotação: ${(error as Error).message}`, 'error');
     }
   }
 
@@ -413,7 +419,7 @@ class BackupManager {
     allFiles.push(...storageFiles);
 
     // 3. Backup de configurações
-    const configFiles = await this.backupConfig(backupId);
+    const configFiles = this.backupConfig(backupId);
     allFiles.push(...configFiles);
 
     // 4. Criar metadata
@@ -432,10 +438,10 @@ class BackupManager {
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
 
     // 5. Comprimir
-    const archivePath = await this.compressBackup(backupId);
+    const archivePath = this.compressBackup(backupId);
 
     // 6. Rotacionar backups antigos
-    await this.rotateBackups();
+    this.rotateBackups();
 
     // 7. Calcular checksum (simplificado)
     const checksum = this.calculateChecksum(allFiles);
@@ -503,57 +509,248 @@ class BackupManager {
   // LISTAR BACKUPS
   // ═══════════════════════════════════════════════════════════════════════
 
-  async listBackups(): Promise<void> {
-    this.log('\n📋 Backups disponíveis:\n', 'info');
+  public listBackups(): BackupMetadata[] {
+    const backupDirs = fs.readdirSync(this.backupDir).filter(f =>
+      fs.statSync(path.join(this.backupDir, f)).isDirectory()
+    );
 
-    try {
-      const backups = fs.readdirSync(this.backupDir)
-        .filter(name => name.startsWith('backup-') || name.includes('backup'))
-        .map(name => {
-          const fullPath = path.join(this.backupDir, name);
-          const stats = fs.statSync(fullPath);
-          
-          // Tentar ler metadata
-          let metadata = null;
-          if (stats.isDirectory()) {
-            const metadataPath = path.join(fullPath, 'metadata.json');
-            if (fs.existsSync(metadataPath)) {
-              metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
-            }
+    const backups: BackupMetadata[] = [];
+    for (const dir of backupDirs) {
+      const metadataPath = path.join(this.backupDir, dir, 'metadata.json');
+      if (fs.existsSync(metadataPath)) {
+        try {
+          const content = fs.readFileSync(metadataPath, 'utf-8');
+          const metadata = JSON.parse(content) as unknown;
+
+          if (this.isBackupMetadata(metadata)) {
+            backups.push(metadata);
+          } else {
+            logger.warn('BackupManager', `Metadata inválida em ${metadataPath}. Ignorando.`);
           }
+        } catch (error: unknown) {
+          logger.error('BackupManager', `Erro ao ler metadata de ${dir}: ${(error as Error).message}`);
+        }
+      }
+    }
 
-          return {
-            name,
-            path: fullPath,
-            size: stats.size,
-            mtime: stats.mtime,
-            isDir: stats.isDirectory(),
-            metadata
-          };
-        })
-        .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+    return backups.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
 
-      if (backups.length === 0) {
-        this.log('   Nenhum backup encontrado.', 'warning');
-        return;
+  private isBackupMetadata(obj: unknown): obj is BackupMetadata {
+    if (typeof obj !== 'object' || obj === null) {
+      return false;
+    }
+    const md = obj as Record<string, unknown>;
+    return (
+      typeof md.id === 'string' &&
+      typeof md.timestamp === 'string' &&
+      (md.type === 'full' || md.type === 'db' || md.type === 'storage') &&
+      typeof md.files === 'number' &&
+      typeof md.size === 'number'
+    );
+  }
+
+  public getBackupDetails(backupId: string): BackupMetadata | null {
+    const metadataPath = path.join(this.backupDir, backupId, 'metadata.json');
+    if (fs.existsSync(metadataPath)) {
+      try {
+        const content = fs.readFileSync(metadataPath, 'utf-8');
+        const metadata = JSON.parse(content) as unknown;
+
+        if (this.isBackupMetadata(metadata)) {
+          return metadata;
+        } else {
+          logger.warn('BackupManager', `Metadata inválida em ${metadataPath}. Ignorando.`);
+        }
+      } catch (error: unknown) {
+        logger.error('BackupManager', `Erro ao ler metadata de ${backupId}: ${(error as Error).message}`);
+      }
+    }
+    return null;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // RESTAURAÇÃO
+  // ═══════════════════════════════════════════════════════════════════════
+
+  async restore(backupId: string): Promise<void> {
+    this.log(`\n🔄 Restaurando backup ${backupId}...`, 'info');
+
+    const backupPath = path.join(this.backupDir, backupId);
+    if (!fs.existsSync(backupPath)) {
+      this.log('   ❌ Backup não encontrado', 'error');
+      return;
+    }
+
+    // Ler metadata
+    const metadata = this.getBackupDetails(backupId);
+    if (!metadata) {
+      this.log('   ❌ Metadata inválida ou não encontrada', 'error');
+      return;
+    }
+
+    // 1. Restaurar database
+    if (metadata.tables && metadata.tables > 0) {
+      this.log('   📂 Restaurando tabelas do database...', 'info');
+
+      for (const table of ['users', 'courses', 'modules', 'lessons', 'progress', 'videos', 'templates']) {
+        this.log(`     ↳ ${table}...`, 'info');
+
+        const filePath = path.join(backupPath, 'database', `${table}.json`);
+        if (fs.existsSync(filePath)) {
+          try {
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const data = JSON.parse(content) as unknown[];
+
+            // Limpar dados antigos
+            await this.supabase.from(table).delete().neq('id', 0);
+
+            // Inserir dados novos
+            if(Array.isArray(data)) {
+              for (const row of data) {
+                  await this.supabase.from(table).insert(row);
+              }
+            }
+
+            this.log(`       ✅ ${table} restaurado`, 'success');
+          } catch (error: unknown) {
+            this.log(`       ❌ Erro ao restaurar ${table}: ${(error as Error).message}`, 'error');
+          }
+        } else {
+          this.log(`       ⚠️  Arquivo ${table}.json não encontrado`, 'warning');
+        }
+      }
+    }
+
+    // 2. Restaurar arquivos de storage
+    if (metadata.buckets && metadata.buckets > 0) {
+      this.log('   📦 Restaurando arquivos de storage...', 'info');
+
+      for (const bucket of ['videos', 'avatars', 'thumbnails', 'assets']) {
+        this.log(`     ↳ ${bucket}...`, 'info');
+
+        const manifestPath = path.join(backupPath, 'storage', bucket, 'manifest.json');
+        if (fs.existsSync(manifestPath)) {
+          try {
+            const content = fs.readFileSync(manifestPath, 'utf-8');
+            const filesList = JSON.parse(content) as { name: string }[];
+
+            if(Array.isArray(filesList)) {
+              for (const file of filesList) {
+                  const filePath = path.join(backupPath, 'storage', bucket, file.name);
+                  
+                  // Fazer upload para o Supabase Storage
+                  const { error } = await this.supabase
+                    .storage
+                    .from(bucket)
+                    .upload(file.name, fs.createReadStream(filePath), {
+                      cacheControl: '3600',
+                      upsert: true
+                    });
+      
+                  if (error) {
+                    this.log(`       ❌ Erro ao restaurar ${file.name}: ${error.message}`, 'error');
+                  } else {
+                    this.log(`       ✅ ${file.name} restaurado`, 'success');
+                  }
+                }
+            }
+          } catch (error: unknown) {
+            this.log(`       ❌ Erro ao ler manifest.json de ${bucket}: ${(error as Error).message}`, 'error');
+          }
+        } else {
+          this.log(`       ⚠️  Manifest.json não encontrado para o bucket ${bucket}`, 'warning');
+        }
+      }
+    }
+
+    // 3. Restaurar configurações
+    this.log('   ⚙️ Restaurando configurações...', 'info');
+
+    const configDir = path.join(backupPath, 'config');
+    if (fs.existsSync(configDir)) {
+      // Restaurar .env
+      const envBackupPath = path.join(configDir, 'env.backup');
+      if (fs.existsSync(envBackupPath)) {
+        const envContent = fs.readFileSync(envBackupPath, 'utf-8');
+        
+        // Restaurar valores sensíveis
+        const restoredEnv = envContent
+          .split('\n')
+          .map(line => {
+            if (line.includes('SECRET') || line.includes('KEY') || line.includes('PASSWORD')) {
+              const [key] = line.split('=');
+              return `${key}=${process.env[key] ?? ''}`;
+            }
+            return line;
+          })
+          .join('\n');
+
+        fs.writeFileSync(path.join(this.projectRoot, '.env'), restoredEnv);
+        this.log('     ✅ .env restaurado', 'success');
       }
 
-      backups.forEach((backup, i) => {
-        this.log(`${i + 1}. ${backup.name}`, 'info');
-        this.log(`   Data: ${backup.mtime.toLocaleString('pt-BR')}`, 'info');
-        
-        if (backup.isDir && backup.metadata) {
-          this.log(`   Arquivos: ${backup.metadata.files}`, 'info');
-          this.log(`   Tamanho: ${(backup.metadata.size / 1024 / 1024).toFixed(2)} MB`, 'info');
-        } else if (!backup.isDir) {
-          this.log(`   Tamanho: ${(backup.size / 1024 / 1024).toFixed(2)} MB (comprimido)`, 'info');
+      // Restaurar SQL schemas
+      const sqlFiles = ['database-schema.sql', 'database-rls-policies.sql'];
+      for (const sqlFile of sqlFiles) {
+        const sqlPath = path.join(configDir, sqlFile);
+        if (fs.existsSync(sqlPath)) {
+          const sqlContent = fs.readFileSync(sqlPath, 'utf-8');
+          
+          // Executar script SQL
+          await this.supabase.rpc('execute_sql', { sql: sqlContent });
+          this.log(`     ✅ ${sqlFile} restaurado`, 'success');
         }
-        this.log('', 'info');
-      });
+      }
 
-      this.log(`Total: ${backups.length} backup(s)`, 'success');
-    } catch (error: any) {
-      this.log(`❌ Erro ao listar backups: ${error.message}`, 'error');
+      // Restaurar package.json (scripts)
+      const packagePath = path.join(configDir, 'package.json');
+      if (fs.existsSync(packagePath)) {
+        const packageContent = fs.readFileSync(packagePath, 'utf-8');
+        fs.writeFileSync(path.join(process.cwd(), 'package.json'), packageContent);
+        this.log('     ✅ package.json restaurado', 'success');
+      }
+    }
+
+    this.log('✅ Restauração concluída!', 'success');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // EXECUÇÃO
+  // ═══════════════════════════════════════════════════════════════════════
+
+  displayBackups() {
+    const backups = this.listBackups();
+    
+    if (backups.length === 0) {
+      this.log('Nenhum backup encontrado.', 'info');
+      return;
+    }
+
+    console.log('\n📋 Backups disponíveis:\n');
+    console.table(backups.map(b => ({
+      'ID': b.id,
+      'Timestamp': b.timestamp,
+      'Tipo': b.type,
+      'Arquivos': b.files,
+      'Tamanho (MB)': (b.size / 1024 / 1024).toFixed(2)
+    })));
+
+    this.log(`\nTotal: ${backups.length} backup(s)`, 'success');
+  }
+
+  async run() {
+    const args = process.argv.slice(2);
+    const command = args[0];
+
+    if (command === 'list') {
+      this.displayBackups();
+    } else if (command === 'restore' && args[1]) {
+      await this.restore(args[1]);
+    }
+    else {
+      const result = await this.createFullBackup();
+      this.printReport(result);
     }
   }
 }
@@ -564,16 +761,14 @@ class BackupManager {
 
 async function main() {
   const manager = new BackupManager();
-  
-  const args = process.argv.slice(2);
-  const command = args[0];
-
-  if (command === 'list') {
-    await manager.listBackups();
-  } else {
-    const result = await manager.createFullBackup();
-    manager.printReport(result);
-  }
+  await manager.run();
 }
 
-main().catch(console.error);
+main().catch(error => {
+    if(error instanceof Error) {
+      logger.error('BackupManager', `Erro fatal no BackupManager: ${error.message}`, error);
+    } else {
+      logger.error('BackupManager', `Erro fatal desconhecido no BackupManager: ${String(error)}`);
+    }
+    process.exit(1);
+});

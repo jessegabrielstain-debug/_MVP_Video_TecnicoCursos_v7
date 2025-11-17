@@ -278,7 +278,7 @@ export function AnimakerCanvasEditor({
         height: element.position.height
       },
       elementId,
-      handle: handle as any
+      handle: handle as 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'e' | 'w'
     })
   }
 

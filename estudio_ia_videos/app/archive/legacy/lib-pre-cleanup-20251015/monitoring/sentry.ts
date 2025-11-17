@@ -68,7 +68,7 @@ export function initSentry() {
 /**
  * Capturar erro com contexto
  */
-export function captureError(error: Error, context?: Record<string, any>) {
+export function captureError(error: Error, context?: Record<string, unknown>) {
   if (context) {
     Sentry.setContext('custom', context)
   }
@@ -85,7 +85,7 @@ export function captureMessage(message: string, level: 'info' | 'warning' | 'err
 /**
  * Adicionar breadcrumb
  */
-export function addBreadcrumb(message: string, data?: Record<string, any>) {
+export function addBreadcrumb(message: string, data?: Record<string, unknown>) {
   Sentry.addBreadcrumb({
     message,
     data,

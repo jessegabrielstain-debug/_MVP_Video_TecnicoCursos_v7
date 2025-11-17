@@ -3,11 +3,24 @@
  * Comprehensive notification system with real-time updates and user preferences
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useSession } from 'next-auth/react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import useSWR from 'swr'
 import { useWebSocket } from './useWebSocket'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
+
+interface NotificationLoadingState {
+  notifications: boolean
+  preferences: boolean
+  combined: boolean
+}
+
+interface NotificationErrorState {
+  notifications: Error | undefined
+  preferences: Error | undefined
+  combined: boolean
+}
 
 // Types for notifications
 export interface Notification {
@@ -23,7 +36,7 @@ export interface Notification {
   expires_at?: string
   user_id: string
   project_id?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   actions?: NotificationAction[]
 }
 
@@ -101,8 +114,34 @@ const fetcher = async (url: string) => {
 }
 
 export function useNotifications(filters: NotificationFilters = {}) {
-  const { data: session } = useSession()
+  const supabase = useMemo(() => createClient(), [])
+  const [user, setUser] = useState<User | null>(null)
   const [isConnected, setIsConnected] = useState(false)
+  useEffect(() => {
+    let isMounted = true
+
+    const loadUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        setUser(data.user ?? null)
+      } catch (error) {
+        console.error('[Notifications] Falha ao carregar usuário:', error)
+      }
+    }
+
+    void loadUser()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
   const [realTimeNotifications, setRealTimeNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const notificationQueue = useRef<Notification[]>([])
@@ -127,7 +166,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
     mutate: refreshNotifications,
     isLoading: notificationsLoading 
   } = useSWR<{ success: boolean; data: Notification[]; stats: NotificationStats }>(
-    session ? `/api/notifications?${queryParams}` : null,
+    user ? `/api/notifications?${queryParams}` : null,
     fetcher,
     {
       refreshInterval: 30000, // Refresh every 30 seconds
@@ -148,7 +187,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
     mutate: refreshPreferences,
     isLoading: preferencesLoading 
   } = useSWR<{ success: boolean; data: NotificationPreferences }>(
-    session ? '/api/notifications/preferences' : null,
+    user ? '/api/notifications/preferences' : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -166,11 +205,13 @@ export function useNotifications(filters: NotificationFilters = {}) {
       console.log('🔔 Notifications WebSocket connected')
       setIsConnected(true)
       // Subscribe to user's notifications
-      sendMessage({
-        type: 'subscribe',
-        channel: 'notifications',
-        userId: session?.user?.id
-      })
+      if (user?.id) {
+        sendMessage({
+          type: 'subscribe',
+          channel: 'notifications',
+          userId: user.id
+        })
+      }
     },
     onClose: () => {
       console.log('🔔 Notifications WebSocket disconnected')
@@ -496,6 +537,18 @@ export function useNotifications(filters: NotificationFilters = {}) {
     return false
   }, [])
 
+  const loadingState: NotificationLoadingState = {
+    notifications: notificationsLoading,
+    preferences: preferencesLoading,
+    combined: notificationsLoading || preferencesLoading
+  }
+
+  const errorState: NotificationErrorState = {
+    notifications: notificationsError,
+    preferences: preferencesError,
+    combined: !!(notificationsError || preferencesError)
+  }
+
   return {
     // Data
     notifications: notificationsData?.data || [],
@@ -505,18 +558,10 @@ export function useNotifications(filters: NotificationFilters = {}) {
     unreadCount,
     
     // Loading states
-    isLoading: {
-      notifications: notificationsLoading,
-      preferences: preferencesLoading,
-      any: notificationsLoading || preferencesLoading
-    },
+    isLoading: loadingState,
     
     // Error states
-    errors: {
-      notifications: notificationsError,
-      preferences: preferencesError,
-      any: !!(notificationsError || preferencesError)
-    },
+    errors: errorState,
     
     // Connection status
     isConnected: isConnected && wsConnected,

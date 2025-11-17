@@ -6,8 +6,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Download, Search, Filter, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { createClient } from '@/lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 interface AuditLog {
   id: string;
@@ -30,7 +31,8 @@ interface AuditLog {
 }
 
 export default function AuditLogsPage() {
-  const { data: session } = useSession() || {};
+  const supabase = useMemo(() => createClient(), []);
+  const [user, setUser] = useState<User | null>(null);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -44,7 +46,33 @@ export default function AuditLogsPage() {
   const [page, setPage] = useState(0);
   const [limit] = useState(50);
 
-  const orgId = session?.user?.currentOrgId;
+  const orgId = user?.user_metadata?.currentOrgId;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (!isMounted) return;
+        setUser(data.user ?? null);
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error);
+      }
+    };
+
+    void loadUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+      listener?.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -138,7 +166,7 @@ export default function AuditLogsPage() {
     return true;
   });
 
-  if (!session?.user) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Faça login para acessar os logs de auditoria.</p>

@@ -143,13 +143,18 @@ describe('E2E: Render Queue Real', () => {
       })
 
       // ASSERT
-      expect(job).toBeDefined()
-      expect(job?.settings).toBeDefined()
+      expect(job).toBeDefined();
+      expect(job?.settings).toBeDefined();
       
-      const settings = job?.settings as any
-      expect(settings.quality).toMatch(/^(low|medium|high)$/)
-      expect(settings.resolution).toMatch(/^\d{3,4}x\d{3,4}$/)
-      expect(settings.codec).toMatch(/^(h264|h265|vp9|av1)$/)
+      interface RenderSettings {
+        quality: string;
+        resolution: string;
+        codec: string;
+      }
+      const settings = job?.settings as unknown as RenderSettings;
+      expect(settings.quality).toMatch(/^(low|medium|high)$/);
+      expect(settings.resolution).toMatch(/^\d{3,4}x\d{3,4}$/);
+      expect(settings.codec).toMatch(/^(h264|h265|vp9|av1)$/);
       
       console.log('✅ Configurações de renderização validadas')
     }, 10000)
@@ -282,12 +287,12 @@ describe('E2E: Render Queue Real', () => {
             userId: 'test-user-id',
             status: 'pending',
             settings: {
-              quality: 'invalid' as any, // Qualidade inválida
+              quality: 'invalid' as unknown, // Qualidade inválida
               resolution: 'invalid',
               codec: 'invalid'
             }
           }
-        })
+        });
         
         // Se chegou aqui, o job foi criado (Prisma permite JSON genérico)
         // Em produção, a validação seria feita no worker

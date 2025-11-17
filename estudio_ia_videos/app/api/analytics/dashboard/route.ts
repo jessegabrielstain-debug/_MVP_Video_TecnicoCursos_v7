@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
+import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { prisma } from '@/lib/db';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
 
@@ -25,7 +26,7 @@ async function getHandler(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const period = searchParams.get('period') || '7d';
-    const organizationId = searchParams.get('organizationId') || (session.user as any)?.currentOrgId;
+    const organizationId = searchParams.get('organizationId') || getOrgId(session.user);
 
     // Calcular data de início baseada no período
     const startDate = new Date();
@@ -47,6 +48,16 @@ async function getHandler(req: NextRequest) {
       createdAt: { gte: startDate },
       ...(organizationId && { organizationId })
     };
+
+    // Utilitários locais para acessar metadados e normalizar números
+    const getMetaString = (meta: unknown, key: string): string | undefined => {
+      if (meta && typeof meta === 'object' && key in (meta as Record<string, unknown>)) {
+        const v = (meta as Record<string, unknown>)[key];
+        return typeof v === 'string' ? v : v != null ? String(v) : undefined;
+      }
+      return undefined;
+    };
+    const toNumber = (v: unknown): number => (typeof v === 'number' ? v : Number(v ?? 0));
 
     // Buscar dados em paralelo para otimizar performance
     const [
@@ -189,9 +200,9 @@ async function getHandler(req: NextRequest) {
       _count: { id: true }
     });
 
-    // ✅ REAL - Dados de performance de endpoints (via metadata)
-    // Cast groupBy to any to bypass TS type constraints with JSON path usage
-    const endpointPerformance = await (prisma.analyticsEvent.groupBy as any)({
+      // ✅ REAL - Dados de performance de endpoints (via metadata)
+      // Usar cast via unknown para manter tipagem sem any
+      const endpointPerformance = await (prisma.analyticsEvent.groupBy as unknown as typeof prisma.analyticsEvent.groupBy)({
       by: ['metadata'],
       where: {
         ...whereClause,
@@ -215,13 +226,13 @@ async function getHandler(req: NextRequest) {
     });
 
     const slowestEndpoints = endpointPerformance.map(item => ({
-      endpoint: (item.metadata as any)?.endpoint || 'Unknown',
-      avgTime: Math.round(item._avg.duration || 0),
-      calls: item._count.id
+        endpoint: getMetaString((item as { metadata: unknown }).metadata, 'endpoint') || 'Unknown',
+        avgTime: Math.round(toNumber((item as { _avg: { duration: unknown } })._avg.duration)),
+        calls: (item as { _count: { id: number } })._count.id
     }));
 
-    // ✅ REAL - Dados de comportamento do usuário (via metadata)
-    const pageViews = await (prisma.analyticsEvent.groupBy as any)({
+      // ✅ REAL - Dados de comportamento do usuário (via metadata)
+      const pageViews = await (prisma.analyticsEvent.groupBy as unknown as typeof prisma.analyticsEvent.groupBy)({
       by: ['metadata'],
       where: {
         ...whereClause,
@@ -245,13 +256,13 @@ async function getHandler(req: NextRequest) {
     });
 
     const topPages = pageViews.map(item => ({
-      page: (item.metadata as any)?.page || 'Unknown',
-      views: item._count.id,
-      avgTimeOnPage: Math.round(item._avg.duration || 0)
+        page: getMetaString((item as { metadata: unknown }).metadata, 'page') || 'Unknown',
+        views: (item as { _count: { id: number } })._count.id,
+        avgTimeOnPage: Math.round(toNumber((item as { _avg: { duration: unknown } })._avg.duration))
     }));
 
-    // ✅ REAL - Estatísticas de dispositivos (via metadata)
-    const deviceData = await (prisma.analyticsEvent.groupBy as any)({
+      // ✅ REAL - Estatísticas de dispositivos (via metadata)
+      const deviceData = await (prisma.analyticsEvent.groupBy as unknown as typeof prisma.analyticsEvent.groupBy)({
       by: ['metadata'],
       where: {
         ...whereClause,
@@ -270,12 +281,12 @@ async function getHandler(req: NextRequest) {
     });
 
     const deviceTypes = deviceData.map(item => ({
-      type: (item.metadata as any)?.deviceType || 'Unknown',
-      count: item._count.id
+        type: getMetaString((item as { metadata: unknown }).metadata, 'deviceType') || 'Unknown',
+        count: (item as { _count: { id: number } })._count.id
     }));
 
-    // ✅ REAL - Estatísticas de navegadores (via metadata)
-    const browserData = await (prisma.analyticsEvent.groupBy as any)({
+      // ✅ REAL - Estatísticas de navegadores (via metadata)
+      const browserData = await (prisma.analyticsEvent.groupBy as unknown as typeof prisma.analyticsEvent.groupBy)({
       by: ['metadata'],
       where: {
         ...whereClause,
@@ -295,8 +306,8 @@ async function getHandler(req: NextRequest) {
     });
 
     const browserStats = browserData.map(item => ({
-      browser: (item.metadata as any)?.browser || 'Unknown',
-      count: item._count.id
+        browser: getMetaString((item as { metadata: unknown }).metadata, 'browser') || 'Unknown',
+        count: (item as { _count: { id: number } })._count.id
     }));
 
     // Montar resposta
@@ -313,8 +324,8 @@ async function getHandler(req: NextRequest) {
       },
       eventsByCategory: processedEventsByCategory,
       eventsByAction: processedEventsByAction,
-      timelineData: (timelineData as any[]).map(item => ({
-        date: item.date,
+      timelineData: (timelineData as unknown as Array<Record<string, unknown>>).map(item => ({
+        date: String(item.date),
         events: Number(item.events),
         errors: Number(item.errors),
         users: Number(item.users)
@@ -335,13 +346,13 @@ async function getHandler(req: NextRequest) {
 
     return NextResponse.json(dashboardData);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics Dashboard] Error:', error);
-    
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
         error: 'Internal server error',
-        message: error.message
+        message
       },
       { status: 500 }
     );

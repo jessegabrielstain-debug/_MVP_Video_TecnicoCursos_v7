@@ -2,16 +2,21 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+export interface CursorPosition {
+  x: number;
+  y: number;
+}
+
+export type SerializedProjectState = Record<string, unknown>;
+export type ChangeSnapshot = Record<string, unknown> | null;
+
 export interface CollaborationUser {
   id: string;
   name: string;
   email: string;
   avatar?: string;
   color: string;
-  cursor?: {
-    x: number;
-    y: number;
-  };
+  cursor?: CursorPosition;
   isOnline: boolean;
   lastSeen: Date;
   role: 'owner' | 'editor' | 'viewer' | 'reviewer';
@@ -55,7 +60,7 @@ export interface ProjectVersion {
   description?: string;
   timestamp: Date;
   userId: string;
-  data: any;
+  data: SerializedProjectState;
   changes: VersionChange[];
   parentVersionId?: string;
   isMerged: boolean;
@@ -67,8 +72,8 @@ export interface VersionChange {
   type: 'add' | 'update' | 'delete' | 'move';
   elementId: string;
   elementType: string;
-  before?: any;
-  after?: any;
+  before?: ChangeSnapshot;
+  after?: ChangeSnapshot;
   timestamp: Date;
   userId: string;
 }
@@ -89,7 +94,7 @@ export interface ActivityNotification {
   message: string;
   timestamp: Date;
   read: boolean;
-  data?: any;
+  data?: Record<string, unknown>;
   priority: 'low' | 'medium' | 'high';
 }
 
@@ -126,6 +131,42 @@ export interface CollaborationStats {
   lastActivity: Date;
   collaborationScore: number;
 }
+
+export interface GenericCollaborationMessage {
+  type: string;
+  [key: string]: unknown;
+}
+
+export type CollaborationInboundMessage =
+  | { type: 'user_joined'; user: CollaborationUser }
+  | { type: 'user_left'; userId: string }
+  | { type: 'cursor_update'; userId: string; cursor: CursorPosition }
+  | { type: 'comment_added'; comment: Comment }
+  | { type: 'comment_updated'; comment: Comment }
+  | { type: 'version_created'; version: ProjectVersion }
+  | { type: 'notification'; notification: ActivityNotification }
+  | { type: 'element_changed'; change?: VersionChange }
+  | { type: 'pong' }
+  | GenericCollaborationMessage;
+
+export type CollaborationOutboundMessage =
+  | { type: 'join_session'; user: CollaborationUser }
+  | { type: 'leave_session'; userId: string }
+  | { type: 'cursor_update'; userId: string; cursor: CursorPosition }
+  | { type: 'comment_added'; comment: Comment }
+  | { type: 'comment_updated'; comment: Comment }
+  | { type: 'version_created'; version: ProjectVersion }
+  | { type: 'notification'; notification: ActivityNotification }
+  | { type: 'element_changed'; change: VersionChange }
+  | GenericCollaborationMessage;
+
+const isCollaborationInboundMessage = (value: unknown): value is CollaborationInboundMessage => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  return 'type' in value && typeof (value as { type?: unknown }).type === 'string';
+};
 
 export const useRealTimeCollaboration = (projectId: string) => {
   const [session, setSession] = useState<CollaborationSession | null>(null);
@@ -185,7 +226,11 @@ export const useRealTimeCollaboration = (projectId: string) => {
       wsRef.current.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          handleWebSocketMessage(message);
+          if (isCollaborationInboundMessage(message)) {
+            handleWebSocketMessage(message);
+          } else {
+            console.warn('Ignoring malformed collaboration message', message);
+          }
         } catch (err) {
           console.error('Failed to parse WebSocket message:', err);
         }
@@ -217,7 +262,7 @@ export const useRealTimeCollaboration = (projectId: string) => {
   }, [projectId]);
 
   // Handle WebSocket messages
-  const handleWebSocketMessage = useCallback((message: any) => {
+  const handleWebSocketMessage = useCallback((message: CollaborationInboundMessage) => {
     switch (message.type) {
       case 'user_joined':
         setSession(prev => prev ? {
@@ -294,7 +339,7 @@ export const useRealTimeCollaboration = (projectId: string) => {
   }, []);
 
   // Send WebSocket message
-  const sendMessage = useCallback((message: any) => {
+  const sendMessage = useCallback((message: CollaborationOutboundMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     }
@@ -355,7 +400,7 @@ export const useRealTimeCollaboration = (projectId: string) => {
     }
   }, [currentUser, projectId, sendMessage]);
 
-  const updateCursor = useCallback((position: { x: number; y: number }) => {
+  const updateCursor = useCallback((position: CursorPosition) => {
     if (currentUser) {
       sendMessage({
         type: 'cursor_update',

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     // Aplicar filtros
     if (category && category !== 'all') {
-      const categoryMap: Record<string, any> = {
+      const categoryMap: Record<string, unknown> = {
         'business': 'business',
         'industrial': 'safety',
         'healthcare': 'healthcare',
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (gender && gender !== 'all') {
-      const genderMap: Record<string, any> = {
+      const genderMap: Record<string, unknown> = {
         'male': 'male',
         'female': 'female', 
         'neutral': 'unisex'

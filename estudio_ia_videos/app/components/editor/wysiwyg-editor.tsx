@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useAdvancedEditor } from '@/hooks/useAdvancedEditor';
+import type { EditorLayer, Timeline, EditorViewport } from '@/hooks/useAdvancedEditor';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -60,11 +61,19 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+export type ExportFormat = 'json' | 'video' | 'scorm';
+
+export interface WysiwygProjectSnapshot {
+  layers: EditorLayer[];
+  timeline: Timeline;
+  viewport: EditorViewport;
+}
+
 interface WYSIWYGEditorProps {
   projectId?: string;
-  initialData?: any;
-  onSave?: (data: any) => void;
-  onExport?: (format: string) => void;
+  initialData?: WysiwygProjectSnapshot;
+  onSave?: (data: WysiwygProjectSnapshot) => void;
+  onExport?: (format: ExportFormat) => void;
   className?: string;
 }
 
@@ -149,7 +158,7 @@ export const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
   }, [editor]);
 
   const handleSave = useCallback(() => {
-    const projectData = {
+    const projectData: WysiwygProjectSnapshot = {
       layers: editor.layers,
       timeline: editor.timeline,
       viewport: editor.viewport,
@@ -157,9 +166,9 @@ export const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
     onSave?.(projectData);
   }, [editor, onSave]);
 
-  const handleExport = useCallback(async (format: string) => {
+  const handleExport = useCallback(async (format: ExportFormat) => {
     try {
-      const blob = await editor.exportProject(format as any);
+      const blob = await editor.exportProject(format);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

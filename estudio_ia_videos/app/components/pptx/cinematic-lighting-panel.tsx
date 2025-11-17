@@ -53,6 +53,14 @@ interface LightingSetup {
   hdri: string
 }
 
+type LightGroup = 'keyLight' | 'fillLight' | 'rimLight' | 'ambient'
+type LightingPresetName = 'corporate' | 'safety' | 'medical' | 'cinematic'
+type PresetOption = 'custom' | LightingPresetName
+
+const PRESET_OPTIONS: readonly PresetOption[] = ['custom', 'corporate', 'safety', 'medical', 'cinematic']
+const isPresetOption = (value: string): value is PresetOption =>
+  PRESET_OPTIONS.includes(value as PresetOption)
+
 interface Props {
   onLightingChange?: (setup: LightingSetup) => void
   sceneType?: 'corporate' | 'safety' | 'medical' | 'educational'
@@ -87,10 +95,14 @@ export function CinematicLightingPanel({ onLightingChange, sceneType = 'corporat
     hdri: 'studio_lighting_4k'
   })
 
-  const [selectedPreset, setSelectedPreset] = useState('custom')
+  const [selectedPreset, setSelectedPreset] = useState<PresetOption>('custom')
 
   // Presets de iluminação cinematográfica
-  const lightingPresets = {
+  const lightingPresets: Record<LightingPresetName, {
+    name: string
+    description: string
+    setup: LightingSetup
+  }> = {
     corporate: {
       name: 'Corporativo Premium',
       description: 'Iluminação profissional para ambiente empresarial',
@@ -141,10 +153,13 @@ export function CinematicLightingPanel({ onLightingChange, sceneType = 'corporat
     }
   }
 
-  const handlePresetChange = (presetName: string) => {
-    if (presetName === 'custom') return
-    
-    const preset = lightingPresets[presetName as keyof typeof lightingPresets]
+  const handlePresetChange = (presetName: PresetOption) => {
+    if (presetName === 'custom') {
+      setSelectedPreset('custom')
+      return
+    }
+
+    const preset = lightingPresets[presetName]
     if (preset) {
       setLighting(preset.setup)
       setSelectedPreset(presetName)
@@ -153,24 +168,47 @@ export function CinematicLightingPanel({ onLightingChange, sceneType = 'corporat
     }
   }
 
-  const updateLightParameter = (
-    lightType: keyof LightingSetup,
-    parameter: string,
-    value: any
+  const applyLightingUpdate = (updater: (current: LightingSetup) => LightingSetup | null) => {
+    let didUpdate = false
+    setLighting((current) => {
+      const updated = updater(current)
+      if (!updated) {
+        return current
+      }
+      didUpdate = true
+      onLightingChange?.(updated)
+      return updated
+    })
+    if (didUpdate) {
+      setSelectedPreset('custom')
+    }
+  }
+
+  const updateLightParameter = <L extends LightGroup, P extends keyof LightingSetup[L]>(
+    lightType: L,
+    parameter: P,
+    value: LightingSetup[L][P]
   ) => {
-    const currentLight = lighting[lightType]
-    if (typeof currentLight === 'object' && currentLight !== null) {
-      const newLighting = {
-        ...lighting,
+    applyLightingUpdate((current) => {
+      const segment = current[lightType]
+      if (typeof segment !== 'object' || segment === null) {
+        return null
+      }
+      return {
+        ...current,
         [lightType]: {
-          ...(currentLight as any),
+          ...segment,
           [parameter]: value
         }
       }
-      setLighting(newLighting)
-      onLightingChange?.(newLighting)
-      setSelectedPreset('custom')
-    }
+    })
+  }
+
+  const handleHdriChange = (value: LightingSetup['hdri']) => {
+    applyLightingUpdate((current) => ({
+      ...current,
+      hdri: value
+    }))
   }
 
   return (
@@ -189,7 +227,15 @@ export function CinematicLightingPanel({ onLightingChange, sceneType = 'corporat
         {/* Preset Selector */}
         <div className="space-y-3">
           <label className="text-sm font-medium">Presets de Iluminação</label>
-          <Select value={selectedPreset} onValueChange={handlePresetChange}>
+          <Select
+            value={selectedPreset}
+            onValueChange={(value) => {
+              if (!isPresetOption(value)) {
+                return
+              }
+              handlePresetChange(value)
+            }}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -263,7 +309,7 @@ export function CinematicLightingPanel({ onLightingChange, sceneType = 'corporat
           <label className="text-sm font-medium">Ambiente HDRI</label>
           <Select 
             value={lighting.hdri} 
-            onValueChange={(value) => updateLightParameter('environment', 'hdri', value)}
+            onValueChange={handleHdriChange}
           >
             <SelectTrigger>
               <SelectValue />

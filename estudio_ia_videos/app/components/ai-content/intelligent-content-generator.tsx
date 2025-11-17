@@ -312,7 +312,7 @@ Espaços confinados são ambientes com aberturas limitadas de entrada e saída, 
                 {/* Content Type */}
                 <div className="space-y-2">
                   <Label>Tipo de Conteúdo</Label>
-                  <Select value={options.type} onValueChange={(value: any) => setOptions({...options, type: value})}>
+                  <Select value={options.type} onValueChange={(value: string) => setOptions({...options, type: value})}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

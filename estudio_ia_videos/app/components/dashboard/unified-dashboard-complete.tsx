@@ -13,8 +13,7 @@
  * Fluxo Completo: Importar → Editar → Renderizar → Exportar → Salvar
  */
 
-import React, { useState, useEffect, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 import { cn } from '@/lib/utils'
@@ -56,6 +55,8 @@ import {
   PlayCircle,
   StopCircle
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 // Interfaces
 interface Project {
@@ -173,14 +174,16 @@ function useUnifiedWorkflow() {
 
 // Componente principal
 export default function UnifiedDashboard() {
-  const { data: session } = useSession()
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
   const { workflows, loading, createProject, updateProject, getWorkflow } = useUnifiedWorkflow()
 
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [activeTab, setActiveTab] = useState('projects')
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
 
   // Estados para criação de projeto
   const [newProject, setNewProject] = useState({
@@ -205,10 +208,39 @@ export default function UnifiedDashboard() {
 
   // Carregar projetos
   useEffect(() => {
-    if (session?.user?.id) {
-      loadProjects()
+    let isMounted = true
+    const loadSession = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        setUser(data.user ?? null)
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error)
+      } finally {
+        if (isMounted) {
+          setAuthLoading(false)
+        }
+      }
     }
-  }, [session])
+
+    void loadSession()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    if (user?.id) {
+      void loadProjects()
+    }
+  }, [user])
 
   const loadProjects = async () => {
     try {
@@ -323,7 +355,15 @@ export default function UnifiedDashboard() {
     )
   }
 
-  if (!session) {
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="w-96">
@@ -332,7 +372,7 @@ export default function UnifiedDashboard() {
             <CardDescription>Faça login para acessar o Estúdio IA de Vídeos</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => router.push('/auth/signin')} className="w-full">
+            <Button onClick={() => router.push('/login')} className="w-full">
               Fazer Login
             </Button>
           </CardContent>
@@ -712,7 +752,7 @@ export default function UnifiedDashboard() {
               <label className="text-sm font-medium">Tipo de Projeto</label>
               <Select 
                 value={newProject.type} 
-                onValueChange={(value: any) => setNewProject(prev => ({ ...prev, type: value }))}
+                onValueChange={(value: string) => setNewProject(prev => ({ ...prev, type: value }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -730,7 +770,7 @@ export default function UnifiedDashboard() {
               <label className="text-sm font-medium">Fonte</label>
               <Select 
                 value={newProject.source.type} 
-                onValueChange={(value: any) => setNewProject(prev => ({ 
+                onValueChange={(value: string) => setNewProject(prev => ({ 
                   ...prev, 
                   source: { ...prev.source, type: value } 
                 }))}

@@ -1,5 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+interface StoredPerformanceMetrics
+  extends Omit<PerformanceMetrics, 'timestamp'> {
+  timestamp: string;
+}
+
+type PerformanceWithMemory = Performance & {
+  memory?: {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+  };
+};
+
 export interface PerformanceMetrics {
   // System metrics
   cpuUsage: number;
@@ -131,12 +143,37 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
     try {
       const saved = localStorage.getItem('performance_metrics');
       if (saved) {
-        const parsed = JSON.parse(saved);
-        const metricsWithDates = parsed.map((metric: any) => ({
-          ...metric,
-          timestamp: new Date(metric.timestamp)
-        }));
-        setHistoricalMetrics(metricsWithDates);
+        const parsed = JSON.parse(saved) as unknown;
+        if (Array.isArray(parsed)) {
+          const metricsWithDates: PerformanceMetrics[] = parsed.map(entry => {
+            const metric = entry as Partial<StoredPerformanceMetrics>;
+            const timestamp = metric?.timestamp ? new Date(metric.timestamp) : new Date();
+
+            const built: PerformanceMetrics = {
+              cpuUsage: metric?.cpuUsage ?? 0,
+              memoryUsage: metric?.memoryUsage ?? 0,
+              diskUsage: metric?.diskUsage ?? 0,
+              networkLatency: metric?.networkLatency ?? 0,
+              renderTime: metric?.renderTime ?? 0,
+              loadTime: metric?.loadTime ?? 0,
+              interactionDelay: metric?.interactionDelay ?? 0,
+              errorRate: metric?.errorRate ?? 0,
+              firstContentfulPaint: metric?.firstContentfulPaint ?? 0,
+              largestContentfulPaint: metric?.largestContentfulPaint ?? 0,
+              cumulativeLayoutShift: metric?.cumulativeLayoutShift ?? 0,
+              firstInputDelay: metric?.firstInputDelay ?? 0,
+              templateRenderTime: metric?.templateRenderTime ?? 0,
+              avatarLoadTime: metric?.avatarLoadTime ?? 0,
+              apiResponseTime: metric?.apiResponseTime ?? 0,
+              cacheHitRate: metric?.cacheHitRate ?? 0,
+              timestamp,
+            };
+
+            return built;
+          });
+
+          setHistoricalMetrics(metricsWithDates);
+        }
       }
     } catch (err) {
       console.error('Error loading performance data:', err);
@@ -147,7 +184,15 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
     try {
       const saved = localStorage.getItem('performance_thresholds');
       if (saved) {
-        setThresholds(JSON.parse(saved));
+        const parsed = JSON.parse(saved) as Partial<PerformanceThresholds>;
+        setThresholds(prev => ({
+          cpuUsage: parsed.cpuUsage ?? prev.cpuUsage,
+          memoryUsage: parsed.memoryUsage ?? prev.memoryUsage,
+          renderTime: parsed.renderTime ?? prev.renderTime,
+          loadTime: parsed.loadTime ?? prev.loadTime,
+          errorRate: parsed.errorRate ?? prev.errorRate,
+          networkLatency: parsed.networkLatency ?? prev.networkLatency,
+        }));
       }
     } catch (err) {
       console.error('Error loading thresholds:', err);
@@ -196,9 +241,12 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
   };
 
   const getMemoryUsage = (): number => {
-    if (typeof window !== 'undefined' && 'performance' in window && 'memory' in performance) {
-      const memory = (performance as any).memory;
-      return (memory.usedJSHeapSize / memory.totalJSHeapSize) * 100;
+    if (typeof window !== 'undefined' && 'performance' in window) {
+      const performanceWithMemory = performance as PerformanceWithMemory;
+      const memory = performanceWithMemory.memory;
+      if (memory && memory.totalJSHeapSize > 0) {
+        return (memory.usedJSHeapSize / memory.totalJSHeapSize) * 100;
+      }
     }
     return Math.random() * 50 + 20; // Fallback simulation
   };

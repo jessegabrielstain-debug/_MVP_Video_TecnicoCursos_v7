@@ -300,7 +300,7 @@ export class BackupSystem {
     const filename = `redis_manual_${backupId}.json`;
     const filepath = path.join(this.backupDir, filename);
 
-    const data: Record<string, any> = {};
+    const data: Record<string, unknown> = {};
 
     // Scan todas as keys
     const stream = this.redis.scanStream({ count: 100 });

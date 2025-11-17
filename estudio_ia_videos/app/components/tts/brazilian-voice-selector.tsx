@@ -27,9 +27,15 @@ interface BrazilianVoiceSelectorProps {
   targetAudience?: string
 }
 
+const voiceEmotions = ['neutro', 'animado', 'serio', 'preocupado'] as const
+type VoiceEmotion = typeof voiceEmotions[number]
+
+const isVoiceEmotion = (value: string): value is VoiceEmotion =>
+  voiceEmotions.some((emotion) => emotion === value)
+
 interface VoiceSettings {
   speed: number
-  emotion: 'neutro' | 'animado' | 'serio' | 'preocupado'
+  emotion: VoiceEmotion
   regional_expressions: boolean
   emphasis_level: number
 }
@@ -285,7 +291,11 @@ export default function BrazilianVoiceSelector({
               <label className="text-sm font-medium">Emoção</label>
               <Select 
                 value={voiceSettings.emotion}
-                onValueChange={(value) => setVoiceSettings(prev => ({ ...prev, emotion: value as any }))}
+                onValueChange={(value) => {
+                  if (isVoiceEmotion(value)) {
+                    setVoiceSettings(prev => ({ ...prev, emotion: value }))
+                  }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />

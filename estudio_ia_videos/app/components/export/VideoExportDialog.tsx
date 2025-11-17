@@ -13,6 +13,7 @@ import {
   ExportQuality,
   ExportSettings,
   ExportPhase,
+  TimelineData,
 } from '@/types/export.types'
 import { useExportSocket } from '@/hooks/useExportSocket'
 import { WatermarkSettings } from './WatermarkSettings'
@@ -37,7 +38,7 @@ interface VideoExportDialogProps {
   userId: string
   projectId: string
   timelineId: string
-  timelineData?: any
+  timelineData?: TimelineData
   onClose?: () => void
 }
 
@@ -67,7 +68,8 @@ export function VideoExportDialog({
   const [watermark, setWatermark] = useState<WatermarkConfig | null>(null)
   const [videoFilters, setVideoFilters] = useState<VideoFilterConfig[]>([])
   const [audioEnhancements, setAudioEnhancements] = useState<AudioEnhancementConfig[]>([])
-  const [subtitle, setSubtitle] = useState<any>(null)
+  interface SubtitleConfig { language: string; url: string; }
+  const [subtitle, setSubtitle] = useState<SubtitleConfig | null>(null)
 
   // State
   const [isExporting, setIsExporting] = useState(false)

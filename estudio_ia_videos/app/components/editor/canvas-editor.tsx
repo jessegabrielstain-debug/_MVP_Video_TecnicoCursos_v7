@@ -117,7 +117,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
     }), [slide, selectedElements, clipboard, onElementSelect])
 
     // Handlers de mouse
-    const handleMouseDown = useCallback((e: React.MouseEvent, elementId: string) => {
+    const handleMouseDown = useCallback((e: React.MouseEvent<HTMLElement>, elementId: string) => {
       e.stopPropagation()
       
       const rect = canvasRef.current?.getBoundingClientRect()
@@ -390,7 +390,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                   cursor: 'nw-resize',
                   pointerEvents: 'auto'
                 }}
-                onMouseDown={(e) => handleMouseDown(e as any, element.id)}
+                onMouseDown={(e) => handleMouseDown(e, element.id)}
               />
               <div
                 data-handle="ne"
@@ -404,7 +404,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                   cursor: 'ne-resize',
                   pointerEvents: 'auto'
                 }}
-                onMouseDown={(e) => handleMouseDown(e as any, element.id)}
+                onMouseDown={(e) => handleMouseDown(e, element.id)}
               />
               <div
                 data-handle="sw"
@@ -418,7 +418,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                   cursor: 'sw-resize',
                   pointerEvents: 'auto'
                 }}
-                onMouseDown={(e) => handleMouseDown(e as any, element.id)}
+                onMouseDown={(e) => handleMouseDown(e, element.id)}
               />
               <div
                 data-handle="se"
@@ -432,7 +432,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                   cursor: 'se-resize',
                   pointerEvents: 'auto'
                 }}
-                onMouseDown={(e) => handleMouseDown(e as any, element.id)}
+                onMouseDown={(e) => handleMouseDown(e, element.id)}
               />
             </div>
           )}

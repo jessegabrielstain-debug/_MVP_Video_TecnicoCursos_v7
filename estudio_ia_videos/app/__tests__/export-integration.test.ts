@@ -322,13 +322,14 @@ describe('Export System Integration Tests', () => {
 
         queue.on('job:start', async (startedJob) => {
           try {
-            await renderer.renderVideo(startedJob, () => {})
-          } catch (error: any) {
+            await renderer.renderVideo(startedJob, () => {});
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'FFmpeg encoding failed';
             queue.updateJobStatus(startedJob.id, ExportStatus.FAILED, {
-              error: error.message,
-            })
+              error: errorMessage,
+            });
           }
-        })
+        });
 
         queue['processNextJob']()
       })
@@ -399,11 +400,17 @@ describe('Export System Integration Tests', () => {
     })
 
     it('should determine correct content type', () => {
-      expect((storage as any).getContentType('video.mp4')).toBe('video/mp4')
-      expect((storage as any).getContentType('video.webm')).toBe('video/webm')
-      expect((storage as any).getContentType('video.mov')).toBe('video/quicktime')
-      expect((storage as any).getContentType('unknown.xyz')).toBe('application/octet-stream')
-    })
+      // Test private method via interface extension
+      interface StorageWithContentType {
+        getContentType(filename: string): string;
+      }
+      const storageWithMethod = storage as unknown as StorageWithContentType;
+      
+      expect(storageWithMethod.getContentType('video.mp4')).toBe('video/mp4');
+      expect(storageWithMethod.getContentType('video.webm')).toBe('video/webm');
+      expect(storageWithMethod.getContentType('video.mov')).toBe('video/quicktime');
+      expect(storageWithMethod.getContentType('unknown.xyz')).toBe('application/octet-stream');
+    });
   })
 
   describe('Queue Statistics', () => {
@@ -499,7 +506,16 @@ describe('Export System Integration Tests', () => {
       const job = queue.addJob('user-1', 'project-1', 'timeline-1', settings, mockTimelineData)
 
       // Capturar eventos emitidos
-      const emittedEvents: Array<{ event: string; data: any }> = []
+      interface EmittedEvent {
+        event: string;
+        data: {
+          jobId: string;
+          progress: number;
+          currentPhase?: string;
+          message?: string;
+        };
+      }
+      const emittedEvents: EmittedEvent[] = [];
 
       queue.on('job:progress', (updatedJob) => {
         // Simular emissão WebSocket

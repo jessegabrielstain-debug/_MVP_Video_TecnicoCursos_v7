@@ -109,7 +109,7 @@ interface TemplateProject {
   id: string;
   templateId: string;
   name: string;
-  customizations: Record<string, any>;
+  customizations: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
   status: 'draft' | 'processing' | 'completed';

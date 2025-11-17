@@ -411,7 +411,7 @@ const AudioSyncIASystem = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="h-full flex flex-col">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="h-full flex flex-col">
           <TabsList className="w-full">
             <TabsTrigger value="tracks" className="flex-1">Audio Tracks</TabsTrigger>
             <TabsTrigger value="analysis" className="flex-1">IA Analysis</TabsTrigger>

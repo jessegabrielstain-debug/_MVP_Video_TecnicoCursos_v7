@@ -14,7 +14,7 @@ export interface EditorElement {
   opacity: number;
   visible: boolean;
   locked: boolean;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   animations: ElementAnimation[];
 }
 
@@ -122,7 +122,7 @@ export interface ElementAnimation {
   direction?: 'left' | 'right' | 'up' | 'down';
   repeat: number;
   yoyo: boolean;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 export interface EditorLayer {
@@ -148,7 +148,7 @@ export interface Keyframe {
   id: string;
   time: number;
   elementId: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   easing: string;
 }
 
@@ -258,7 +258,7 @@ export interface EditorTool {
   shortcut?: string;
   category: 'basic' | 'media' | 'shapes' | 'text' | 'effects';
   description: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
 }
 
 export interface EditorPanel {

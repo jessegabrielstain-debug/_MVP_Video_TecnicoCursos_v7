@@ -916,7 +916,7 @@ export function ZoomNavigationControls() {
                       <Label className="text-sm">Easing</Label>
                       <Select 
                         value={navigationState.easing} 
-                        onValueChange={(value: any) => setNavigationState(prev => ({ ...prev, easing: value }))}
+                        onValueChange={(value: string) => setNavigationState(prev => ({ ...prev, easing: value }))}
                       >
                         <SelectTrigger className="bg-gray-600 border-gray-500 mt-1">
                           <SelectValue />
@@ -1025,7 +1025,7 @@ export function ZoomNavigationControls() {
                       <Label className="text-sm">Tipo de Grade</Label>
                       <Select 
                         value={gridSettings.type} 
-                        onValueChange={(value: any) => setGridSettings(prev => ({ ...prev, type: value }))}
+                        onValueChange={(value: string) => setGridSettings(prev => ({ ...prev, type: value }))}
                       >
                         <SelectTrigger className="bg-gray-600 border-gray-500 mt-1">
                           <SelectValue />
@@ -1126,7 +1126,7 @@ export function ZoomNavigationControls() {
                       <Label className="text-sm">Unidade</Label>
                       <Select 
                         value={rulerSettings.unit} 
-                        onValueChange={(value: any) => setRulerSettings(prev => ({ ...prev, unit: value }))}
+                        onValueChange={(value: string) => setRulerSettings(prev => ({ ...prev, unit: value }))}
                       >
                         <SelectTrigger className="bg-gray-600 border-gray-500 mt-1">
                           <SelectValue />
@@ -1144,7 +1144,7 @@ export function ZoomNavigationControls() {
                       <Label className="text-sm">Posição</Label>
                       <Select 
                         value={rulerSettings.position} 
-                        onValueChange={(value: any) => setRulerSettings(prev => ({ ...prev, position: value }))}
+                        onValueChange={(value: string) => setRulerSettings(prev => ({ ...prev, position: value }))}
                       >
                         <SelectTrigger className="bg-gray-600 border-gray-500 mt-1">
                           <SelectValue />

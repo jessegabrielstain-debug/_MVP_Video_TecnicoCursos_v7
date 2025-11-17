@@ -78,7 +78,7 @@ export interface ChartConfig {
 export interface MetricPoint {
   timestamp: Date;
   value: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface MetricSeries {
@@ -276,7 +276,7 @@ export class RealTimeMonitoringSystem extends EventEmitter {
     value: number,
     unit: string = '',
     type: MetricSeries['type'] = 'gauge',
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const point: MetricPoint = {
       timestamp: new Date(),

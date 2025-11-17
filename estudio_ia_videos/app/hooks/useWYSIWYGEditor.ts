@@ -57,7 +57,7 @@ export interface Interaction {
   type: 'click' | 'hover' | 'doubleClick' | 'drag';
   action: 'navigate' | 'animate' | 'showElement' | 'hideElement' | 'playAudio' | 'showQuiz';
   target?: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
 }
 
 export interface Layer {
@@ -235,6 +235,15 @@ export const useWYSIWYGEditor = (): UseWYSIWYGEditorReturn => {
   const nextAnimationId = useRef(1);
   const nextKeyframeId = useRef(1);
 
+  type SerializedEditorElement = EditorElement & {
+    createdAt: string | Date;
+    updatedAt: string | Date;
+  };
+
+  type SerializedEditorSnapshot = EditorSnapshot & {
+    timestamp: string | Date;
+  };
+
   // Load saved state on mount
   useEffect(() => {
     loadEditorState();
@@ -253,12 +262,12 @@ export const useWYSIWYGEditor = (): UseWYSIWYGEditorReturn => {
         // Convert date strings back to Date objects
         const processedState = {
           ...parsed,
-          elements: parsed.elements.map((el: any) => ({
+          elements: parsed.elements.map((el: SerializedEditorElement) => ({
             ...el,
             createdAt: new Date(el.createdAt),
             updatedAt: new Date(el.updatedAt)
           })),
-          history: parsed.history.map((snapshot: any) => ({
+          history: parsed.history.map((snapshot: SerializedEditorSnapshot) => ({
             ...snapshot,
             timestamp: new Date(snapshot.timestamp)
           }))

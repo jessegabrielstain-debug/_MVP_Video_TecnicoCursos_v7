@@ -8,7 +8,7 @@
 
 import React, { useState } from 'react'
 import { EnhancedPPTXUploaderV2 } from '@/components/pptx/enhanced-pptx-uploader-v2'
-import { AnimakerEditorV2 } from '@/components/editor/animaker-editor-v2'
+import { AnimakerEditorV2, type AnimakerProjectSnapshot } from '@/components/editor/animaker-editor-v2'
 import { UnifiedParseResult } from '@/lib/types-unified-v2'
 
 type EditorState = 'upload' | 'editor' | 'export'
@@ -43,7 +43,7 @@ export default function EditorAnimakerPageV2() {
     setCurrentState('upload')
   }
 
-  const handleSaveProject = (data: any) => {
+  const handleSaveProject = (data: AnimakerProjectSnapshot) => {
     console.log('💾 Salvando projeto v2:', data)
     // TODO: Salvar no banco de dados ou localStorage
   }

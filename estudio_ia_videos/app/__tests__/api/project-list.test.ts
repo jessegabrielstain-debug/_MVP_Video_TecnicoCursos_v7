@@ -61,7 +61,7 @@ describe('/api/projects', () => {
   })
 
   it('lista projetos recentes com estatísticas básicas', async () => {
-    const request = { url: 'http://localhost/api/projects' } as any
+    const request = { url: 'http://localhost/api/projects' } as NextRequest
     const response = await GET(request)
 
     expect(response.status).toBe(200)
@@ -78,7 +78,7 @@ describe('/api/projects', () => {
   })
 
   it('respeita o parâmetro de limite', async () => {
-    const request = { url: 'http://localhost/api/projects?limit=2' } as any
+    const request = { url: 'http://localhost/api/projects?limit=2' } as NextRequest
     const response = await GET(request)
 
     expect(response.status).toBe(200)

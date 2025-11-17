@@ -49,11 +49,11 @@ import {
 import VoiceUploadAnalyzer from './VoiceUploadAnalyzer'
 import VoiceModelTrainer from './VoiceModelTrainer'
 import RealTimeTTSEngine from './RealTimeTTSEngine'
-import VoiceLibraryProfessional from './VoiceLibraryProfessional'
-import VoiceControlsAdvanced from './VoiceControlsAdvanced'
-import FewShotCloningSystem from './FewShotCloningSystem'
-import AudioExportStudio from './AudioExportStudio'
-import VoicePresetsManager from './VoicePresetsManager'
+import { VoiceLibraryProfessional } from './VoiceLibraryProfessional'
+import { VoiceControlsAdvanced } from './VoiceControlsAdvanced'
+import { FewShotCloningSystem } from './FewShotCloningSystem'
+import { AudioExportStudio } from './AudioExportStudio'
+import { VoicePresetsManager } from './VoicePresetsManager'
 
 interface VoiceModel {
   id: string

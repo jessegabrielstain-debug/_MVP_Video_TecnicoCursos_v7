@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
+import { getOrgId } from '@/lib/auth/session-helpers';
 import { prisma } from '@/lib/db';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
-
 /**
  * GET /api/analytics/realtime
  * Retorna métricas em tempo real do sistema
@@ -24,7 +24,7 @@ async function getHandler(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const window = searchParams.get('window') || '15m';
-    const organizationId = (session.user as any)?.currentOrgId;
+    const organizationId = getOrgId(session.user);
 
     // Calcular janela de tempo
     const now = new Date();
@@ -160,8 +160,8 @@ async function getHandler(req: NextRequest) {
     const errorRate = totalEvents > 0 ? (errorEvents / totalEvents * 100).toFixed(2) : '0';
 
     // Processar dados de timeline
-    const timeline = (eventsByMinute as any[]).map(item => ({
-      time: item.minute,
+    const timeline = (eventsByMinute as unknown as Array<Record<string, unknown>>).map(item => ({
+      time: String(item.minute),
       events: Number(item.events),
       errors: Number(item.errors)
     }));
@@ -255,7 +255,7 @@ async function getHandler(req: NextRequest) {
         }
       },
       timeline,
-      topCategories: topCategories.map((item: any) => ({
+      topCategories: topCategories.map((item) => ({
         category: item.category,
         count: item._count.id,
         percentage: totalEvents > 0 ? ((item._count.id / totalEvents) * 100).toFixed(1) : '0'
@@ -277,13 +277,13 @@ async function getHandler(req: NextRequest) {
 
     return NextResponse.json(realtimeData);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics Realtime] Error:', error);
-    
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
         error: 'Failed to fetch realtime metrics',
-        message: error.message
+        message
       },
       { status: 500 }
     );
@@ -314,25 +314,25 @@ async function postHandler(req: NextRequest) {
     }
 
     const userId = session?.user?.id || null;
-    const organizationId = (session?.user as any)?.currentOrgId || null;
+    const organizationId = session?.user ? getOrgId(session.user) : null;
 
     // Processar eventos em lote
-    const processedEvents = events.map((event: any) => ({
+    const processedEvents = (events as unknown as Array<Record<string, unknown>>).map((event) => ({
       organizationId,
-      userId: event.userId || userId,
-      category: event.category || 'realtime',
-      action: event.action || 'event',
-      label: event.label,
-      duration: event.duration,
-      fileSize: event.fileSize,
-      value: event.value,
-      status: event.status || 'success',
-      errorCode: event.errorCode,
-      errorMessage: event.errorMessage,
+      userId: (event.userId as string) || userId,
+      category: (event.category as string) || 'realtime',
+      action: (event.action as string) || 'event',
+      label: event.label as string | null | undefined,
+      duration: event.duration as number | null | undefined,
+      fileSize: event.fileSize as number | null | undefined,
+      value: event.value as number | null | undefined,
+      status: (event.status as string) || 'success',
+      errorCode: event.errorCode as string | null | undefined,
+      errorMessage: event.errorMessage as string | null | undefined,
       metadata: {
         source,
         originalTimestamp: timestamp,
-        ...event.metadata
+        ...(event.metadata as Record<string, unknown> | undefined)
       }
     }));
 
@@ -347,13 +347,13 @@ async function postHandler(req: NextRequest) {
       message: 'Realtime events processed'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics Realtime POST] Error:', error);
-    
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
         error: 'Failed to process realtime events',
-        message: error.message
+        message
       },
       { status: 500 }
     );

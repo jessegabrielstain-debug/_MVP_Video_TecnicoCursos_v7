@@ -4,7 +4,7 @@
  * Testes para serviço de Text-to-Speech com fallback
  */
 
-import { synthesizeToFile, listVoices } from '@/lib/tts-service';
+import { synthesizeToFile, listVoices } from '@/lib/tts/tts-service';
 
 describe('TTS Service Tests', () => {
   describe('Basic Functionality', () => {
@@ -50,13 +50,13 @@ describe('TTS Service Tests', () => {
   });
 
   describe('Voice Management', () => {
-    test('should list available voices', () => {
-      const voices = listVoices();
+    test('should list available voices', async () => {
+      const voices = await listVoices();
       
       expect(Array.isArray(voices)).toBe(true);
       expect(voices.length).toBeGreaterThan(0);
       
-      voices.forEach(voice => {
+      voices.forEach((voice: any) => {
         expect(voice).toHaveProperty('name');
         expect(voice).toHaveProperty('language');
       });
@@ -84,7 +84,7 @@ describe('TTS Service Tests', () => {
         synthesizeToFile({ text: 'Texto 3' })
       ]);
 
-      const urls = results.map(r => r.fileUrl);
+      const urls = results.map((r: { fileUrl: string }) => r.fileUrl);
       const uniqueUrls = [...new Set(urls)];
       
       expect(uniqueUrls.length).toBe(3);

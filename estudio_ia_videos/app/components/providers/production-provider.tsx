@@ -33,6 +33,68 @@ export default function ProductionProvider({
       // 🚨 EMERGENCY: Enhanced WebSocket blocking
       if (typeof WebSocket !== 'undefined') {
         const originalWebSocket = WebSocket;
+        class BlockedWebSocket extends EventTarget implements WebSocket {
+          binaryType: BinaryType = 'blob';
+          readonly bufferedAmount = 0;
+          readonly extensions = '';
+          readonly protocol = '';
+          readonly url: string;
+          onclose: ((this: WebSocket, ev: CloseEvent) => unknown) | null = null;
+          onerror: ((this: WebSocket, ev: Event) => unknown) | null = null;
+          onmessage: ((this: WebSocket, ev: MessageEvent) => unknown) | null = null;
+          onopen: ((this: WebSocket, ev: Event) => unknown) | null = null;
+          readonly readyState = WebSocket.CLOSED;
+
+          constructor(targetUrl: string) {
+            super();
+            this.url = targetUrl;
+          }
+
+          get CONNECTING(): number {
+            return WebSocket.CONNECTING;
+          }
+
+          get OPEN(): number {
+            return WebSocket.OPEN;
+          }
+
+          get CLOSING(): number {
+            return WebSocket.CLOSING;
+          }
+
+          get CLOSED(): number {
+            return WebSocket.CLOSED;
+          }
+
+          close(_code?: number, _reason?: string): void {
+            // noop
+          }
+
+          send(_data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
+            // noop
+          }
+
+          addEventListener<T extends keyof WebSocketEventMap>(
+            type: T,
+            listener: (this: WebSocket, ev: WebSocketEventMap[T]) => unknown,
+            options?: boolean | AddEventListenerOptions
+          ): void {
+            super.addEventListener(type, listener as EventListener, options);
+          }
+
+          removeEventListener<T extends keyof WebSocketEventMap>(
+            type: T,
+            listener: (this: WebSocket, ev: WebSocketEventMap[T]) => unknown,
+            options?: boolean | EventListenerOptions
+          ): void {
+            super.removeEventListener(type, listener as EventListener, options);
+          }
+
+          dispatchEvent(event: Event): boolean {
+            return super.dispatchEvent(event);
+          }
+        }
+
         window.WebSocket = class extends originalWebSocket {
           constructor(url: string | URL, protocols?: string | string[]) {
             const urlStr = url.toString();
@@ -41,20 +103,7 @@ export default function ProductionProvider({
             if (urlStr.includes('webpack-hmr') || urlStr.includes('_next/webpack-hmr') || urlStr.includes('preview.abacusai.app')) {
               console.log('🚨 EMERGENCY: WebSocket HMR blocked');
               
-              // Create dummy connection that fails silently
-              const dummyWs = {
-                addEventListener: () => {},
-                removeEventListener: () => {},
-                send: () => {},
-                close: () => {},
-                readyState: WebSocket.CLOSED,
-                CONNECTING: WebSocket.CONNECTING,
-                OPEN: WebSocket.OPEN,
-                CLOSING: WebSocket.CLOSING,
-                CLOSED: WebSocket.CLOSED
-              };
-              
-              return dummyWs as any;
+              return new BlockedWebSocket(urlStr);
             }
             
             super(url, protocols);

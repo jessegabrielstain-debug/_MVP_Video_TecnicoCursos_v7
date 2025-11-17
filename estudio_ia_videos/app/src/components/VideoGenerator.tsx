@@ -665,7 +665,7 @@ export default function VideoGenerator() {
                       <Label>Resolução</Label>
                       <Select 
                         value={settings.resolution} 
-                        onValueChange={(value: any) => setSettings(prev => ({ ...prev, resolution: value }))}
+                        onValueChange={(value: string) => setSettings(prev => ({ ...prev, resolution: value as VideoSettings['resolution'] }))}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -682,7 +682,7 @@ export default function VideoGenerator() {
                       <Label>FPS</Label>
                       <Select 
                         value={settings.fps.toString()} 
-                        onValueChange={(value) => setSettings(prev => ({ ...prev, fps: parseInt(value) as any }))}
+                        onValueChange={(value) => setSettings(prev => ({ ...prev, fps: parseInt(value) as VideoSettings['fps'] }))}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -723,7 +723,7 @@ export default function VideoGenerator() {
                     <Label>Qualidade</Label>
                     <Select 
                       value={settings.quality} 
-                      onValueChange={(value: any) => setSettings(prev => ({ ...prev, quality: value }))}
+                      onValueChange={(value: string) => setSettings(prev => ({ ...prev, quality: value as VideoSettings['quality'] }))}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -814,7 +814,7 @@ export default function VideoGenerator() {
                   <Label>Resolução Padrão</Label>
                   <Select 
                     value={settings.resolution} 
-                    onValueChange={(value: any) => setSettings(prev => ({ ...prev, resolution: value }))}
+                    onValueChange={(value: string) => setSettings(prev => ({ ...prev, resolution: value as VideoSettings['resolution'] }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -831,7 +831,7 @@ export default function VideoGenerator() {
                   <Label>Qualidade Padrão</Label>
                   <Select 
                     value={settings.quality} 
-                    onValueChange={(value: any) => setSettings(prev => ({ ...prev, quality: value }))}
+                    onValueChange={(value: string) => setSettings(prev => ({ ...prev, quality: value as VideoSettings['quality'] }))}
                   >
                     <SelectTrigger>
                       <SelectValue />

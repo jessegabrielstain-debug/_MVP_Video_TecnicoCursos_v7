@@ -8,13 +8,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { X, Filter } from 'lucide-react';
-import { TemplateFilter, NRCategory } from '@/types/templates';
+import { TemplateFilter, NRCategory, TemplateSort } from '@/types/templates';
 
 interface TemplateFiltersProps {
   filter: TemplateFilter;
   onFilterChange: (filter: Partial<TemplateFilter>) => void;
   onClearFilters: () => void;
   categoryStats: Record<NRCategory, number>;
+  sort: TemplateSort;
+  onSortChange: (sort: TemplateSort) => void;
 }
 
 export const TemplateFilters: React.FC<TemplateFiltersProps> = ({
@@ -22,6 +24,8 @@ export const TemplateFilters: React.FC<TemplateFiltersProps> = ({
   onFilterChange,
   onClearFilters,
   categoryStats,
+  sort,
+  onSortChange,
 }) => {
   const nrCategories: NRCategory[] = [
     'NR-01', 'NR-02', 'NR-03', 'NR-04', 'NR-05',
@@ -39,6 +43,25 @@ export const TemplateFilters: React.FC<TemplateFiltersProps> = ({
     'Emergência', 'Prevenção', 'Inspeção', 'Manutenção',
     'Operação', 'Compliance', 'Auditoria', 'Certificação'
   ];
+
+  const sortFieldOptions: Array<{ value: TemplateSort['field']; label: string }> = [
+    { value: 'name', label: 'Nome' },
+    { value: 'createdAt', label: 'Data de Criação' },
+    { value: 'updatedAt', label: 'Última Atualização' },
+    { value: 'rating', label: 'Avaliação' },
+    { value: 'downloads', label: 'Downloads' },
+    { value: 'usage', label: 'Uso' },
+  ];
+  const sortFieldValues = sortFieldOptions.map(option => option.value);
+  const sortDirectionOptions: TemplateSort['direction'][] = ['asc', 'desc'];
+
+  const isSortField = (value: string): value is TemplateSort['field'] => {
+    return sortFieldValues.includes(value as TemplateSort['field']);
+  };
+
+  const isSortDirection = (value: string): value is TemplateSort['direction'] => {
+    return sortDirectionOptions.includes(value as TemplateSort['direction']);
+  };
 
   const handleCategoryChange = (category: NRCategory, checked: boolean) => {
     const currentCategories = filter.category || [];
@@ -104,8 +127,8 @@ export const TemplateFilters: React.FC<TemplateFiltersProps> = ({
                   <Checkbox
                     id={`category-${category}`}
                     checked={filter.category?.includes(category) || false}
-                    onCheckedChange={(checked) => 
-                      handleCategoryChange(category, checked as boolean)
+                    onCheckedChange={(checked) =>
+                      handleCategoryChange(category, checked === true)
                     }
                   />
                   <label
@@ -161,9 +184,9 @@ export const TemplateFilters: React.FC<TemplateFiltersProps> = ({
                 <Checkbox
                   id="favorites"
                   checked={filter.isFavorite === true}
-                  onCheckedChange={(checked) => 
-                    onFilterChange({ 
-                      isFavorite: checked ? true : undefined 
+                  onCheckedChange={(checked) =>
+                    onFilterChange({
+                      isFavorite: checked === true ? true : undefined,
                     })
                   }
                 />
@@ -175,9 +198,9 @@ export const TemplateFilters: React.FC<TemplateFiltersProps> = ({
                 <Checkbox
                   id="custom"
                   checked={filter.isCustom === true}
-                  onCheckedChange={(checked) => 
-                    onFilterChange({ 
-                      isCustom: checked ? true : undefined 
+                  onCheckedChange={(checked) =>
+                    onFilterChange({
+                      isCustom: checked === true ? true : undefined,
                     })
                   }
                 />
@@ -191,19 +214,22 @@ export const TemplateFilters: React.FC<TemplateFiltersProps> = ({
           <div>
             <h4 className="font-medium text-gray-900 mb-3">Ordenar Por</h4>
             <Select
-              value={filter.sortBy || 'name'}
-              onValueChange={(value) => 
-                onFilterChange({ sortBy: value as any })
-              }
+              value={sort.field}
+              onValueChange={(value) => {
+                if (isSortField(value)) {
+                  onSortChange({ field: value, direction: sort.direction });
+                }
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="name">Nome</SelectItem>
-                <SelectItem value="date">Data de Atualização</SelectItem>
-                <SelectItem value="rating">Avaliação</SelectItem>
-                <SelectItem value="downloads">Downloads</SelectItem>
+                {sortFieldOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -211,10 +237,12 @@ export const TemplateFilters: React.FC<TemplateFiltersProps> = ({
           <div>
             <h4 className="font-medium text-gray-900 mb-3">Ordem</h4>
             <Select
-              value={filter.sortOrder || 'asc'}
-              onValueChange={(value) => 
-                onFilterChange({ sortOrder: value as any })
-              }
+              value={sort.direction}
+              onValueChange={(value) => {
+                if (isSortDirection(value)) {
+                  onSortChange({ field: sort.field, direction: value });
+                }
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione..." />

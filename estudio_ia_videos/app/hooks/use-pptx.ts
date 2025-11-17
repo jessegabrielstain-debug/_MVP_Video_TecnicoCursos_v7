@@ -11,8 +11,15 @@ import {
   PPTXProcessingJob,
   PPTXJobStatus,
   PPTXProcessingSettings,
-  PPTXToVideoSettings
+  PPTXToVideoSettings,
+  PPTXTemplate
 } from '../types/pptx-types';
+
+export type PPTXGenerationPayload = Record<string, unknown>;
+
+export type PPTXGenerationOptions = Record<string, unknown>;
+
+export type PPTXDocumentPreview = Record<string, unknown>;
 
 interface UsePPTXReturn {
   // Estado
@@ -28,7 +35,7 @@ interface UsePPTXReturn {
   
   // Ações principais
   uploadPPTX: (file: File, settings?: PPTXProcessingSettings) => Promise<string>;
-  generatePPTX: (type: string, data: any, options?: any) => Promise<Blob>;
+  generatePPTX: (type: string, data: PPTXGenerationPayload, options?: PPTXGenerationOptions) => Promise<Blob>;
   
   // Gerenciamento de jobs
   getJobStatus: (jobId: string) => Promise<PPTXProcessingJob | null>;
@@ -37,13 +44,13 @@ interface UsePPTXReturn {
   
   // Documentos
   loadDocument: (documentId: string) => Promise<PPTXDocument | null>;
-  getDocumentPreview: (jobId: string) => Promise<any>;
+  getDocumentPreview: (jobId: string) => Promise<PPTXDocumentPreview | null>;
   
   // Conversão para vídeo
   convertToVideo: (documentId: string, settings: PPTXToVideoSettings) => Promise<string>;
   
   // Templates
-  getAvailableTemplates: () => Promise<any[]>;
+  getAvailableTemplates: () => Promise<PPTXTemplate[]>;
   
   // Utilitários
   clearError: () => void;
@@ -153,8 +160,8 @@ export function usePPTX(): UsePPTXReturn {
    */
   const generatePPTX = useCallback(async (
     type: string,
-    data: any,
-    options: any = {}
+    data: PPTXGenerationPayload,
+    options: PPTXGenerationOptions = {}
   ): Promise<Blob> => {
     try {
       setIsGenerating(true);
@@ -325,13 +332,13 @@ export function usePPTX(): UsePPTXReturn {
   /**
    * Obter preview do documento
    */
-  const getDocumentPreview = useCallback(async (jobId: string): Promise<any> => {
+  const getDocumentPreview = useCallback(async (jobId: string): Promise<PPTXDocumentPreview | null> => {
     try {
       const response = await fetch(`/api/pptx?action=preview&jobId=${jobId}`);
       if (!response.ok) return null;
 
       const result = await response.json();
-      return result.preview;
+      return (result.preview ?? null) as PPTXDocumentPreview | null;
     } catch (err) {
       console.error('[usePPTX] Error getting preview:', err);
       return null;
@@ -375,13 +382,13 @@ export function usePPTX(): UsePPTXReturn {
   /**
    * Obter templates disponíveis
    */
-  const getAvailableTemplates = useCallback(async (): Promise<any[]> => {
+  const getAvailableTemplates = useCallback(async (): Promise<PPTXTemplate[]> => {
     try {
       const response = await fetch('/api/pptx/generate');
       if (!response.ok) return [];
 
       const result = await response.json();
-      return result.templates || [];
+      return Array.isArray(result.templates) ? (result.templates as PPTXTemplate[]) : [];
     } catch (err) {
       console.error('[usePPTX] Error getting templates:', err);
       return [];

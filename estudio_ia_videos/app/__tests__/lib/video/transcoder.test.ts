@@ -31,7 +31,7 @@ jest.mock('fluent-ffmpeg', () => {
     videoFilters: jest.fn().mockReturnThis(),
     format: jest.fn().mockReturnThis(),
     output: jest.fn().mockReturnThis(),
-    on: jest.fn(function(event: string, callback: any) {
+    on: jest.fn(function(event: string, callback: (data?: {frames: number; currentFps: number; currentKbps: number; timemark: string}) => void) {
       if (event === 'end') {
         setTimeout(() => callback(), 10);
       }

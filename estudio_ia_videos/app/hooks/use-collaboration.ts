@@ -20,11 +20,25 @@ export interface Comment {
   timestamp: string;
   status: 'pending' | 'resolved';
   replies: Comment[];
-  reactions: any[];
+  reactions: CommentReaction[];
   mentions: string[];
   isPrivate: boolean;
   position?: { x: number; y: number; elementId?: string };
 }
+
+export interface CommentReaction {
+  id: string;
+  type: string;
+  userId: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+export type SerializedProjectSnapshot = Record<string, unknown>;
+
+export type SerializedCanvasSnapshot = Record<string, unknown>;
+
+export type SerializedCollaborationSettings = Record<string, unknown>;
 
 export interface ProjectVersion {
   id: string;
@@ -41,9 +55,9 @@ export interface ProjectVersion {
   isCurrent: boolean;
   isActive: boolean;
   fileSize?: number;
-  projectData?: any;
-  canvasData?: any;
-  settings?: any;
+  projectData?: SerializedProjectSnapshot;
+  canvasData?: SerializedCanvasSnapshot;
+  settings?: SerializedCollaborationSettings;
 }
 
 export function useCollaboration(projectId: string) {
@@ -174,7 +188,11 @@ export function useCollaboration(projectId: string) {
   };
 
   // Criar nova versão
-  const createVersion = async (name: string, description?: string, projectData?: any) => {
+  const createVersion = async (
+    name: string,
+    description?: string,
+    projectData?: SerializedProjectSnapshot
+  ) => {
     try {
       const response = await fetch('/api/collaboration/versions', {
         method: 'POST',

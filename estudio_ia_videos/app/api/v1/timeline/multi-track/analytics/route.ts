@@ -8,6 +8,120 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
 
+// Types for analytics data structures
+interface Track {
+  type: string;
+  clips?: Clip[];
+  keyframes?: unknown[];
+  effects?: unknown[];
+}
+
+interface Clip {
+  startTime: number;
+  duration: number;
+  effects?: unknown[];
+}
+
+interface Timeline {
+  id: string;
+  version: number;
+  totalDuration: number;
+  tracks: Track[];
+  settings?: TimelineSettings;
+  updatedAt: Date;
+}
+
+interface TimelineSettings {
+  quality?: '4k' | 'hd' | 'sd';
+  [key: string]: unknown;
+}
+
+interface TimelineSnapshot {
+  id: string;
+  timelineId: string;
+  version: number;
+  createdAt: Date;
+  createdBy: string;
+}
+
+interface TrackDistribution {
+  [trackType: string]: number;
+}
+
+interface AnalyticsSummary {
+  overview: {
+    version: number;
+    totalDuration: number;
+    tracksCount: number;
+    clipsCount: number;
+    keyframesCount: number;
+    snapshotsCount: number;
+  };
+  trackDistribution: TrackDistribution;
+  averages: {
+    clipsPerTrack: number;
+    keyframesPerTrack: number;
+  };
+  settings: TimelineSettings;
+  lastUpdated: Date;
+}
+
+interface UsageStats {
+  totalEdits: number;
+  uniqueEditors: number;
+  currentVersion: number;
+  averageEditInterval: number;
+  editHistory: Array<{
+    version: number;
+    timestamp: Date;
+    changeSize: number;
+  }>;
+  firstEdit?: Date;
+  lastEdit?: Date;
+}
+
+interface PerformanceMetrics {
+  complexity: {
+    score: number;
+    level: string;
+    totalElements: number;
+    breakdown: {
+      tracks: number;
+      clips: number;
+      keyframes: number;
+      effects: number;
+    };
+  };
+  performance: {
+    averageClipDuration: number;
+    overlapDetected: boolean;
+    overlapCount: number;
+    estimatedRenderTime: string;
+  };
+  optimization: {
+    suggestions: string[];
+  };
+}
+
+interface EditingPatterns {
+  editingSessions: {
+    total: number;
+    hourlyDistribution: Record<number, number>;
+    dailyDistribution: Record<number, number>;
+    peakActivity: {
+      hour: string;
+      day: string;
+    };
+  };
+  patterns: {
+    averageSessionLength: string;
+    preferredTools: string;
+    commonOperations: string;
+  };
+}
+
+type AnalyticsData = AnalyticsSummary | UsageStats | PerformanceMetrics | EditingPatterns | Record<string, never>;
+
 /**
  * GET - Get analytics for timeline
  */
@@ -58,11 +172,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let analytics: any = {};
+    let analytics: AnalyticsData = {};
 
     switch (type) {
       case 'summary':
-        analytics = await getTimelineSummary(timeline, projectId);
+        analytics = await getTimelineSummary(timeline as unknown as Timeline, projectId);
         break;
 
       case 'usage':
@@ -70,7 +184,7 @@ export async function GET(request: NextRequest) {
         break;
 
       case 'performance':
-        analytics = await getPerformanceMetrics(timeline);
+        analytics = await getPerformanceMetrics(timeline as unknown as Timeline);
         break;
 
       case 'editing_patterns':
@@ -89,10 +203,11 @@ export async function GET(request: NextRequest) {
       data: analytics,
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erro ao gerar analytics:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
-      { success: false, message: 'Erro ao gerar analytics', error: error.message },
+      { success: false, message: 'Erro ao gerar analytics', error: errorMessage },
       { status: 500 }
     );
   }
@@ -101,22 +216,22 @@ export async function GET(request: NextRequest) {
 /**
  * Timeline Summary Analytics
  */
-async function getTimelineSummary(timeline: any, projectId: string) {
+async function getTimelineSummary(timeline: Timeline, projectId: string): Promise<AnalyticsSummary> {
   const tracks = timeline.tracks || [];
   
   // Calculate basic metrics
-  const totalClips = tracks.reduce((sum: number, track: any) => 
+  const totalClips = tracks.reduce((sum: number, track: Track) => 
     sum + (track.clips?.length || 0), 0
   );
 
-  const trackTypes = tracks.reduce((acc: any, track: any) => {
+  const trackTypes = tracks.reduce((acc: TrackDistribution, track: Track) => {
     acc[track.type] = (acc[track.type] || 0) + 1;
     return acc;
-  }, {});
+  }, {} as TrackDistribution);
 
   const avgClipsPerTrack = tracks.length > 0 ? totalClips / tracks.length : 0;
 
-  const totalKeyframes = tracks.reduce((sum: number, track: any) => 
+  const totalKeyframes = tracks.reduce((sum: number, track: Track) => 
     sum + (track.keyframes?.length || 0), 0
   );
 
@@ -149,24 +264,30 @@ async function getTimelineSummary(timeline: any, projectId: string) {
 /**
  * Usage Statistics
  */
-async function getUsageStats(projectId: string) {
+async function getUsageStats(projectId: string): Promise<UsageStats> {
   // Get timeline history
   const timeline = await prisma.timeline.findUnique({
     where: { projectId },
   });
 
   if (!timeline) {
-    return {};
+    return {
+      totalEdits: 0,
+      uniqueEditors: 0,
+      currentVersion: 0,
+      averageEditInterval: 0,
+      editHistory: [],
+    };
   }
 
   const snapshots = await prisma.timelineSnapshot.findMany({
     where: { timelineId: timeline.id },
     orderBy: { createdAt: 'desc' },
     take: 50,
-  });
+  }) as TimelineSnapshot[];
 
   // Calculate edit frequency
-  const editTimes = snapshots.map((s: any) => s.createdAt.getTime());
+  const editTimes = snapshots.map((s: TimelineSnapshot) => s.createdAt.getTime());
   const intervals = editTimes.slice(1).map((time: number, i: number) => 
     editTimes[i] - time
   );
@@ -176,10 +297,10 @@ async function getUsageStats(projectId: string) {
     : 0;
 
   // Get unique editors
-  const uniqueEditors = new Set(snapshots.map((s: any) => s.createdBy));
+  const uniqueEditors = new Set(snapshots.map((s: TimelineSnapshot) => s.createdBy));
 
   // Calculate version growth
-  const versionChanges = snapshots.map((s: any, i: number) => ({
+  const versionChanges = snapshots.map((s: TimelineSnapshot, i: number) => ({
     version: s.version,
     timestamp: s.createdAt,
     changeSize: i < snapshots.length - 1 
@@ -190,7 +311,7 @@ async function getUsageStats(projectId: string) {
   return {
     totalEdits: snapshots.length,
     uniqueEditors: uniqueEditors.size,
-    currentVersion: timeline.version,
+    currentVersion: timeline.version as number,
     averageEditInterval: Math.round(avgEditInterval / 1000 / 60), // minutes
     editHistory: versionChanges.slice(0, 10),
     firstEdit: snapshots[snapshots.length - 1]?.createdAt,
@@ -201,11 +322,11 @@ async function getUsageStats(projectId: string) {
 /**
  * Performance Metrics
  */
-async function getPerformanceMetrics(timeline: any) {
+async function getPerformanceMetrics(timeline: Timeline): Promise<PerformanceMetrics> {
   const tracks = timeline.tracks || [];
   
   // Calculate complexity score
-  const totalElements = tracks.reduce((sum: number, track: any) => 
+  const totalElements = tracks.reduce((sum: number, track: Track) => 
     sum + (track.clips?.length || 0) + (track.keyframes?.length || 0) + (track.effects?.length || 0), 
     0
   );
@@ -217,16 +338,16 @@ async function getPerformanceMetrics(timeline: any) {
   else complexityScore = 4; // Very High
 
   // Analyze clip durations
-  const allClips = tracks.flatMap((track: any) => track.clips || []);
-  const clipDurations = allClips.map((clip: any) => clip.duration || 0);
+  const allClips = tracks.flatMap((track: Track) => track.clips || []);
+  const clipDurations = allClips.map((clip: Clip) => clip.duration || 0);
   const avgClipDuration = clipDurations.length > 0
     ? clipDurations.reduce((sum: number, dur: number) => sum + dur, 0) / clipDurations.length
     : 0;
 
   // Check for overlaps (performance issue)
   let overlapCount = 0;
-  tracks.forEach((track: any) => {
-    const clips = (track.clips || []).sort((a: any, b: any) => a.startTime - b.startTime);
+  tracks.forEach((track: Track) => {
+    const clips = (track.clips || []).sort((a: Clip, b: Clip) => a.startTime - b.startTime);
     for (let i = 0; i < clips.length - 1; i++) {
       const current = clips[i];
       const next = clips[i + 1];
@@ -243,6 +364,10 @@ async function getPerformanceMetrics(timeline: any) {
     (timeline.settings?.quality === '4k' ? 3 : timeline.settings?.quality === 'hd' ? 2 : 1)
   );
 
+  const effectsCount = tracks.reduce((sum: number, t: Track) => 
+    sum + (t.clips?.reduce((s: number, c: Clip) => s + (c.effects?.length || 0), 0) || 0), 0
+  );
+
   return {
     complexity: {
       score: complexityScore,
@@ -251,10 +376,8 @@ async function getPerformanceMetrics(timeline: any) {
       breakdown: {
         tracks: tracks.length,
         clips: allClips.length,
-        keyframes: tracks.reduce((sum: number, t: any) => sum + (t.keyframes?.length || 0), 0),
-        effects: tracks.reduce((sum: number, t: any) => 
-          sum + (t.clips?.reduce((s: number, c: any) => s + (c.effects?.length || 0), 0) || 0), 0
-        ),
+        keyframes: tracks.reduce((sum: number, t: Track) => sum + (t.keyframes?.length || 0), 0),
+        effects: effectsCount,
       },
     },
     performance: {
@@ -268,7 +391,7 @@ async function getPerformanceMetrics(timeline: any) {
         overlapCount > 0 ? 'Resolver sobreposições de clips para melhor performance' : null,
         totalElements > 200 ? 'Considerar dividir em múltiplas timelines' : null,
         allClips.length > 100 ? 'Agrupar clips similares para melhor organização' : null,
-      ].filter(Boolean),
+      ].filter((suggestion): suggestion is string => suggestion !== null),
     },
   };
 }
@@ -276,26 +399,41 @@ async function getPerformanceMetrics(timeline: any) {
 /**
  * Editing Patterns Analysis
  */
-async function getEditingPatterns(projectId: string) {
+async function getEditingPatterns(projectId: string): Promise<EditingPatterns> {
   const timeline = await prisma.timeline.findUnique({
     where: { projectId },
   });
 
   if (!timeline) {
-    return {};
+    return {
+      editingSessions: {
+        total: 0,
+        hourlyDistribution: {},
+        dailyDistribution: {},
+        peakActivity: {
+          hour: 'N/A',
+          day: 'N/A',
+        },
+      },
+      patterns: {
+        averageSessionLength: 'N/A',
+        preferredTools: 'N/A',
+        commonOperations: 'N/A',
+      },
+    };
   }
 
   const snapshots = await prisma.timelineSnapshot.findMany({
     where: { timelineId: timeline.id },
     orderBy: { createdAt: 'asc' },
     take: 100,
-  });
+  }) as TimelineSnapshot[];
 
   // Analyze editing patterns
-  const hourlyDistribution: any = {};
-  const dailyDistribution: any = {};
+  const hourlyDistribution: Record<number, number> = {};
+  const dailyDistribution: Record<number, number> = {};
 
-  snapshots.forEach((snapshot: any) => {
+  snapshots.forEach((snapshot: TimelineSnapshot) => {
     const date = new Date(snapshot.createdAt);
     const hour = date.getHours();
     const day = date.getDay();
@@ -305,11 +443,11 @@ async function getEditingPatterns(projectId: string) {
   });
 
   // Find most active periods
-  const peakHour = Object.entries(hourlyDistribution)
-    .sort(([, a]: any, [, b]: any) => b - a)[0];
+  const peakHourEntry = Object.entries(hourlyDistribution)
+    .sort(([, a], [, b]) => b - a)[0];
 
-  const peakDay = Object.entries(dailyDistribution)
-    .sort(([, a]: any, [, b]: any) => b - a)[0];
+  const peakDayEntry = Object.entries(dailyDistribution)
+    .sort(([, a], [, b]) => b - a)[0];
 
   const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -319,8 +457,8 @@ async function getEditingPatterns(projectId: string) {
       hourlyDistribution,
       dailyDistribution,
       peakActivity: {
-        hour: peakHour ? `${peakHour[0]}:00` : 'N/A',
-        day: peakDay ? dayNames[parseInt(peakDay[0])] : 'N/A',
+        hour: peakHourEntry ? `${peakHourEntry[0]}:00` : 'N/A',
+        day: peakDayEntry ? dayNames[parseInt(peakDayEntry[0])] : 'N/A',
       },
     },
     patterns: {

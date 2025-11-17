@@ -97,7 +97,7 @@ export default function CertificationCenter() {
   const [verificationInput, setVerificationInput] = useState('')
   const [verificationResult, setVerificationResult] = useState<CertificateVerification | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
-  const [issuanceProgress, setIssuanceProgress] = useState<any>(null)
+  const [issuanceProgress, setIssuanceProgress] = useState<unknown>(null)
   const [selectedTemplate, setSelectedTemplate] = useState('')
 
   useEffect(() => {

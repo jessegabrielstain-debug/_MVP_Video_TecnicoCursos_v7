@@ -22,7 +22,7 @@ export interface ProjectVersion {
   changes_summary: string
   created_by: string
   created_at: string
-  metadata?: any
+  metadata?: ProjectMetadata
 }
 
 export interface ProjectCollaborator {
@@ -44,7 +44,7 @@ export interface ProjectMetadata {
   actual_duration?: number
   complexity_score?: number
   resources_used?: string[]
-  custom_fields?: Record<string, any>
+  custom_fields?: Record<string, unknown>
   ai_insights?: {
     suggestions: string[]
     optimization_tips: string[]
@@ -67,15 +67,19 @@ export interface Project {
   is_public: boolean
   thumbnail_url?: string
   file_size?: number
-  render_settings?: any
+  render_settings?: ProjectRenderSettings
   collaboration_enabled: boolean
   last_accessed_at?: string
   
   // Relations
   versions?: ProjectVersion[]
   collaborators?: ProjectCollaborator[]
-  analytics?: any
+  analytics?: ProjectAnalytics
 }
+
+export type ProjectRenderSettings = Record<string, unknown>
+
+export type ProjectAnalytics = Record<string, unknown>
 
 export interface ProjectsResponse {
   projects: Project[]
@@ -109,7 +113,7 @@ export interface CreateProjectData {
   is_template?: boolean
   is_public?: boolean
   collaboration_enabled?: boolean
-  render_settings?: any
+  render_settings?: ProjectRenderSettings
 }
 
 export interface UpdateProjectData {
@@ -120,7 +124,7 @@ export interface UpdateProjectData {
   is_template?: boolean
   is_public?: boolean
   collaboration_enabled?: boolean
-  render_settings?: any
+  render_settings?: ProjectRenderSettings
   thumbnail_url?: string
 }
 
@@ -598,7 +602,7 @@ async function generateNextVersion(projectId: string): Promise<string> {
   return `${major}.${minor}.${patch + 1}`
 }
 
-function generateChangesSummary(original: any, updates: UpdateProjectData): string {
+function generateChangesSummary(original: Project, updates: UpdateProjectData): string {
   const changes: string[] = []
   
   if (updates.name && updates.name !== original.name) {

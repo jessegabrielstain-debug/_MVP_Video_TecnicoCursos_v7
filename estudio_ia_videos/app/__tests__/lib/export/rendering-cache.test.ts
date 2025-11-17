@@ -9,6 +9,10 @@ import { ExportFormat, ExportResolution, ExportQuality } from '../../../types/ex
 import type { ExportSettings } from '../../../types/export.types'
 
 describe('RenderingCache - Intelligent Caching', () => {
+  type RenderingCacheWithPrivate = RenderingCache & {
+    hashObject: (value: unknown) => string
+  }
+
   describe('Cache Key Generation', () => {
     it('deve gerar cache key a partir de input e settings', async () => {
       const cache = new RenderingCache()
@@ -52,8 +56,8 @@ describe('RenderingCache - Intelligent Caching', () => {
       }
 
       // Same settings should generate same hash
-      const hash1 = (cache as any).hashObject(settings1)
-      const hash2 = (cache as any).hashObject(settings2)
+      const hash1 = (cache as unknown as RenderingCacheWithPrivate).hashObject(settings1)
+      const hash2 = (cache as unknown as RenderingCacheWithPrivate).hashObject(settings2)
 
       expect(hash1).toBe(hash2)
     })
@@ -75,8 +79,8 @@ describe('RenderingCache - Intelligent Caching', () => {
         fps: 24,
       }
 
-      const hash1 = (cache as any).hashObject(settings1)
-      const hash2 = (cache as any).hashObject(settings2)
+      const hash1 = (cache as unknown as RenderingCacheWithPrivate).hashObject(settings1)
+      const hash2 = (cache as unknown as RenderingCacheWithPrivate).hashObject(settings2)
 
       expect(hash1).not.toBe(hash2)
     })
@@ -144,8 +148,8 @@ describe('RenderingCache - Intelligent Caching', () => {
       const obj1 = { a: 1, b: 2, c: 3 }
       const obj2 = { c: 3, a: 1, b: 2 } // Different order
 
-      const hash1 = (cache as any).hashObject(obj1)
-      const hash2 = (cache as any).hashObject(obj2)
+      const hash1 = (cache as unknown as RenderingCacheWithPrivate).hashObject(obj1)
+      const hash2 = (cache as unknown as RenderingCacheWithPrivate).hashObject(obj2)
 
       expect(hash1).toBe(hash2)
     })
@@ -156,8 +160,8 @@ describe('RenderingCache - Intelligent Caching', () => {
       const obj1 = { a: 1, b: 2 }
       const obj2 = { a: 1, b: 3 }
 
-      const hash1 = (cache as any).hashObject(obj1)
-      const hash2 = (cache as any).hashObject(obj2)
+      const hash1 = (cache as unknown as RenderingCacheWithPrivate).hashObject(obj1)
+      const hash2 = (cache as unknown as RenderingCacheWithPrivate).hashObject(obj2)
 
       expect(hash1).not.toBe(hash2)
     })
@@ -166,7 +170,7 @@ describe('RenderingCache - Intelligent Caching', () => {
       const cache = new RenderingCache()
 
       const obj = { test: 'data' }
-      const hash = (cache as any).hashObject(obj)
+      const hash = (cache as unknown as RenderingCacheWithPrivate).hashObject(obj)
 
       expect(hash).toMatch(/^[a-f0-9]{32}$/)
       expect(hash.length).toBe(32)

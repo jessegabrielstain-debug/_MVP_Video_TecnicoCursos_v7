@@ -57,10 +57,27 @@ export default function LMSIntegration() {
     max_time_allowed: 120
   })
   
-  const [selectedProject, setSelectedProject] = useState<any>(null)
+  interface Project {
+    id: string;
+    title: string;
+    description: string;
+    duration_minutes: number;
+    scenes: number;
+    quiz_questions?: unknown[];
+    completion_rate?: number;
+    last_updated?: string;
+  }
+  
+  interface SCORMPackage {
+    id: string;
+    manifest: unknown;
+    resources: unknown[];
+  }
+  
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null)
-  const [scormPackage, setSCORMPackage] = useState<any>(null)
-  const [projects, setProjects] = useState<any[]>([])
+  const [scormPackage, setSCORMPackage] = useState<SCORMPackage | null>(null)
+  const [projects, setProjects] = useState<Project[]>([])
   const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
@@ -259,9 +276,9 @@ export default function LMSIntegration() {
                 {/* Tipo de LMS */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Tipo de LMS</label>
-                  <Select 
+                  <Select
                     value={lmsConfig.lms_type}
-                    onValueChange={(value) => setLMSConfig(prev => ({...prev, lms_type: value as any}))}
+                    onValueChange={(value) => setLMSConfig(prev => ({...prev, lms_type: value as LMSConfig['lms_type']}))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -279,9 +296,9 @@ export default function LMSIntegration() {
                 {/* Versão SCORM */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Versão SCORM</label>
-                  <Select 
+                  <Select
                     value={lmsConfig.scorm_version}
-                    onValueChange={(value) => setLMSConfig(prev => ({...prev, scorm_version: value as any}))}
+                    onValueChange={(value) => setLMSConfig(prev => ({...prev, scorm_version: value as LMSConfig['scorm_version']}))}
                   >
                     <SelectTrigger>
                       <SelectValue />

@@ -3,6 +3,57 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAdvancedAI } from './useAdvancedAI';
 import { useRealTimeCollaboration } from './useRealTimeCollaboration';
+import type { OptimizableContentInput } from './useAdvancedAI';
+import type { SerializedProjectState } from './useRealTimeCollaboration';
+
+export type ComplianceAnalyzableContent =
+  | ComplianceProjectData
+  | ComplianceChangeSet
+  | OptimizableContentInput;
+
+export interface ComplianceProjectData {
+  id?: string;
+  state?: SerializedProjectState;
+  metadata?: Record<string, unknown>;
+  content?: OptimizableContentInput;
+  assets?: Record<string, unknown>;
+  summary?: string;
+  [key: string]: unknown;
+}
+
+export interface ComplianceChangeEvent {
+  id?: string;
+  elementId?: string;
+  layerId?: string;
+  type: 'element' | 'layer' | 'timeline' | 'metadata' | 'asset';
+  payload: Record<string, unknown>;
+  occurredAt?: Date;
+}
+
+export interface ComplianceChangeSet {
+  projectId?: string;
+  changes: ComplianceChangeEvent[];
+  summary?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ComplianceReportComparison {
+  reportA: ComplianceReport | null;
+  reportB: ComplianceReport | null;
+  differences: ComplianceViolation[];
+  summary: {
+    improved: number;
+    regressed: number;
+    unchanged: number;
+  };
+}
+
+export interface ComplianceTrendOverview {
+  timeframe: 'week' | 'month' | 'quarter';
+  scoreTrend: Array<{ date: Date; score: number }>;
+  violationHeatmap: Record<string, number>;
+  topImprovementAreas: string[];
+}
 
 // Interfaces para Compliance
 export interface ComplianceRule {
@@ -13,7 +64,7 @@ export interface ComplianceRule {
   description: string;
   severity: 'critical' | 'high' | 'medium' | 'low';
   autoFixable: boolean;
-  checkFunction: (content: any) => ComplianceViolation[];
+  checkFunction: (content: ComplianceAnalyzableContent) => ComplianceViolation[];
   suggestedFix?: string;
   references: string[];
 }
@@ -95,19 +146,19 @@ export interface UseComplianceAnalyzerReturn {
   rules: ComplianceRule[];
   
   // Análise
-  analyzeProject: (projectData: any) => Promise<ComplianceReport>;
-  analyzeContent: (content: any) => Promise<ComplianceViolation[]>;
-  analyzeRealTime: (changes: any) => Promise<ComplianceViolation[]>;
+  analyzeProject: (projectData: ComplianceProjectData) => Promise<ComplianceReport>;
+  analyzeContent: (content: ComplianceAnalyzableContent) => Promise<ComplianceViolation[]>;
+  analyzeRealTime: (changes: ComplianceChangeSet) => Promise<ComplianceViolation[]>;
   
   // Correções
-  autoFixViolations: (violations: ComplianceViolation[]) => Promise<any>;
+  autoFixViolations: (violations: ComplianceViolation[]) => Promise<Record<string, boolean>>;
   applyFix: (violationId: string) => Promise<boolean>;
   getSuggestedFixes: (violation: ComplianceViolation) => Promise<string[]>;
   
   // Relatórios
   generateReport: (projectId: string) => Promise<ComplianceReport>;
   exportReport: (format: 'pdf' | 'json' | 'csv') => Promise<Blob>;
-  compareReports: (reportA: string, reportB: string) => Promise<any>;
+  compareReports: (reportA: string, reportB: string) => Promise<ComplianceReportComparison>;
   
   // Monitoramento
   startMonitoring: (config: Partial<ComplianceMonitoring>) => void;
@@ -122,10 +173,10 @@ export interface UseComplianceAnalyzerReturn {
   
   // Histórico
   getComplianceHistory: (projectId: string) => Promise<ComplianceHistory>;
-  getTrends: (timeframe: 'week' | 'month' | 'quarter') => Promise<any>;
+  getTrends: (timeframe: 'week' | 'month' | 'quarter') => Promise<ComplianceTrendOverview>;
   
   // Recomendações
-  getRecommendations: (projectData: any) => Promise<ComplianceRecommendation[]>;
+  getRecommendations: (projectData: ComplianceProjectData) => Promise<ComplianceRecommendation[]>;
   implementRecommendation: (recommendationId: string) => Promise<boolean>;
   
   // Integração
@@ -159,7 +210,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
   });
   const [rules, setRules] = useState<ComplianceRule[]>([]);
 
-  const { generateContent, analyzeContent: aiAnalyzeContent } = useAdvancedAI();
+  const { generateContent } = useAdvancedAI();
   const { broadcastUpdate } = useRealTimeCollaboration();
   const monitoringInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -217,7 +268,9 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     setRules(defaultRules);
   }, []);
 
-  const analyzeProject = useCallback(async (projectData: any): Promise<ComplianceReport> => {
+  const analyzeProject = useCallback(async (
+    projectData: ComplianceProjectData
+  ): Promise<ComplianceReport> => {
     setIsAnalyzing(true);
     
     try {
@@ -247,7 +300,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
       const recommendations = await getRecommendations(projectData);
 
       // Calcular compliance por NR
-      const nrStandardsCompliance = calculateNRCompliance(violations, passedRules);
+      const nrStandardsCompliance = calculateNRCompliance(violations);
 
       const report: ComplianceReport = {
         id: `report-${Date.now()}`,
@@ -294,7 +347,9 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     }
   }, [rules, broadcastUpdate]);
 
-  const analyzeContent = useCallback(async (content: any): Promise<ComplianceViolation[]> => {
+  const analyzeContent = useCallback(async (
+    content: ComplianceAnalyzableContent
+  ): Promise<ComplianceViolation[]> => {
     const violations: ComplianceViolation[] = [];
 
     for (const rule of rules) {
@@ -309,7 +364,9 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     return violations;
   }, [rules]);
 
-  const analyzeRealTime = useCallback(async (changes: any): Promise<ComplianceViolation[]> => {
+  const analyzeRealTime = useCallback(async (
+    changes: ComplianceChangeSet
+  ): Promise<ComplianceViolation[]> => {
     if (!monitoring.realTimeAnalysis) return [];
 
     // Análise rápida apenas das mudanças
@@ -331,9 +388,11 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     return violations;
   }, [rules, monitoring.realTimeAnalysis]);
 
-  const autoFixViolations = useCallback(async (violations: ComplianceViolation[]): Promise<any> => {
+  const autoFixViolations = useCallback(async (
+    violations: ComplianceViolation[]
+  ): Promise<Record<string, boolean>> => {
     const fixableViolations = violations.filter(v => v.autoFixable);
-    const fixes: any = {};
+    const fixes: Record<string, boolean> = {};
 
     for (const violation of fixableViolations) {
       try {
@@ -349,7 +408,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     }
 
     return fixes;
-  }, []);
+  }, [applyFix]);
 
   const applyFix = useCallback(async (violationId: string): Promise<boolean> => {
     // Implementar lógica de correção específica
@@ -459,7 +518,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     return calculateComplianceScore(safetyViolations);
   }, [rules, calculateComplianceScore]);
 
-  const calculateNRCompliance = useCallback((violations: ComplianceViolation[], passedRules: string[]): Record<string, number> => {
+  const calculateNRCompliance = useCallback((violations: ComplianceViolation[]): Record<string, number> => {
     const nrStandards: Record<string, number> = {};
 
     rules.forEach(rule => {
@@ -494,8 +553,9 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     }, 0);
   }, []);
 
-  const getRecommendations = useCallback(async (projectData: any): Promise<ComplianceRecommendation[]> => {
-    // Gerar recomendações baseadas em IA e regras
+  const getRecommendations = useCallback(async (
+    projectData: ComplianceProjectData
+  ): Promise<ComplianceRecommendation[]> => {
     const recommendations: ComplianceRecommendation[] = [
       {
         id: 'rec-1',
@@ -509,6 +569,20 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
         expectedBenefit: 'Melhor experiência para usuários com deficiência visual',
       },
     ];
+
+    if (projectData.summary) {
+      recommendations.push({
+        id: 'rec-2',
+        type: 'optimization',
+        title: 'Atualizar sumário de segurança',
+        description: 'Revise o sumário para incluir referências atualizadas das NR aplicáveis.',
+        impact: 'high',
+        effort: 'medium',
+        category: 'Segurança',
+        implementation: 'Alinhar o sumário com as últimas revisões das normas regulatórias.',
+        expectedBenefit: 'Garante conformidade documental e reduz riscos operacionais.',
+      });
+    }
 
     return recommendations;
   }, []);
@@ -524,6 +598,139 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     ]);
 
     return [headers, ...rows].map(row => row.join(',')).join('\n');
+  }, []);
+
+  const compareReports = useCallback(async (
+    reportAId: string,
+    reportBId: string
+  ): Promise<ComplianceReportComparison> => {
+    const reportA = history.reports.find(report => report.id === reportAId) ?? null;
+    const reportB = history.reports.find(report => report.id === reportBId) ?? null;
+
+    const differences: ComplianceViolation[] = [];
+
+    if (reportA && reportB) {
+      const reportAViolations = new Map(reportA.violations.map(v => [v.id, v]));
+      reportB.violations.forEach(violation => {
+        if (!reportAViolations.has(violation.id)) {
+          differences.push(violation);
+        }
+      });
+    }
+
+    const summary = {
+      improved:
+        reportA && reportB
+          ? Math.max(reportA.summary.total - reportB.summary.total, 0)
+          : 0,
+      regressed:
+        reportA && reportB
+          ? Math.max(reportB.summary.total - reportA.summary.total, 0)
+          : 0,
+      unchanged:
+        reportA && reportB
+          ? Math.min(reportA.summary.total, reportB.summary.total)
+          : 0,
+    };
+
+    return {
+      reportA,
+      reportB,
+      differences,
+      summary,
+    };
+  }, [history.reports]);
+
+  const getComplianceHistory = useCallback(async (_projectId: string): Promise<ComplianceHistory> => {
+    return history;
+  }, [history]);
+
+  const getTrends = useCallback(async (
+    timeframe: 'week' | 'month' | 'quarter'
+  ): Promise<ComplianceTrendOverview> => {
+    const timeframeDays: Record<typeof timeframe, number> = {
+      week: 7,
+      month: 30,
+      quarter: 90,
+    } as const;
+
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - timeframeDays[timeframe]);
+
+    const scoreTrend = history.trends.scoreHistory
+      .filter(entry => entry.date >= start)
+      .map(entry => ({ date: new Date(entry.date), score: entry.score }));
+
+    const violationHeatmap: Record<string, number> = {};
+    history.reports.forEach(report => {
+      if (report.timestamp >= start) {
+        report.violations.forEach(violation => {
+          violationHeatmap[violation.ruleId] = (violationHeatmap[violation.ruleId] ?? 0) + 1;
+        });
+      }
+    });
+
+    const topImprovementAreas = Object.entries(violationHeatmap)
+      .sort(([, countA], [, countB]) => countB - countA)
+      .slice(0, 5)
+      .map(([ruleId]) => ruleId);
+
+    return {
+      timeframe,
+      scoreTrend,
+      violationHeatmap,
+      topImprovementAreas,
+    };
+  }, [history]);
+
+  const implementRecommendation = useCallback(async (recommendationId: string): Promise<boolean> => {
+    console.info('Implementação pendente para recomendação:', recommendationId);
+    return true;
+  }, []);
+
+  const syncWithNRDatabase = useCallback(async (): Promise<void> => {
+    // Placeholder para integração futura com base oficial
+  }, []);
+
+  const validateAgainstStandards = useCallback(async (
+    standards: string[]
+  ): Promise<ComplianceReport> => {
+    if (!currentReport) {
+      throw new Error('Nenhum relatório disponível para validação');
+    }
+
+    const updatedCompliance = { ...currentReport.nrStandardsCompliance };
+    standards.forEach(standard => {
+      if (!(standard in updatedCompliance)) {
+        updatedCompliance[standard] = 0;
+      }
+    });
+
+    return {
+      ...currentReport,
+      nrStandardsCompliance: updatedCompliance,
+    };
+  }, [currentReport]);
+
+  const updateMonitoringConfig = useCallback((config: Partial<ComplianceMonitoring>) => {
+    setMonitoring(prev => ({ ...prev, ...config }));
+  }, []);
+
+  const addCustomRule = useCallback((rule: Omit<ComplianceRule, 'id'>) => {
+    setRules(prev => [...prev, { ...rule, id: `custom-${Date.now()}` }]);
+  }, []);
+
+  const updateRule = useCallback((ruleId: string, updates: Partial<ComplianceRule>) => {
+    setRules(prev => prev.map(r => (r.id === ruleId ? { ...r, ...updates } : r)));
+  }, []);
+
+  const disableRule = useCallback((ruleId: string) => {
+    setRules(prev => prev.filter(r => r.id !== ruleId));
+  }, []);
+
+  const enableRule = useCallback((_ruleId: string) => {
+    // Implementação futura
   }, []);
 
   // Cleanup
@@ -556,32 +763,30 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     // Relatórios
     generateReport,
     exportReport,
-    compareReports: async () => ({}), // Implementar
+    compareReports,
     
     // Monitoramento
     startMonitoring,
     stopMonitoring,
-    updateMonitoringConfig: (config) => setMonitoring(prev => ({ ...prev, ...config })),
+    updateMonitoringConfig,
     
     // Regras
-    addCustomRule: (rule) => setRules(prev => [...prev, { ...rule, id: `custom-${Date.now()}` }]),
-    updateRule: (ruleId, updates) => setRules(prev => 
-      prev.map(r => r.id === ruleId ? { ...r, ...updates } : r)
-    ),
-    disableRule: (ruleId) => setRules(prev => prev.filter(r => r.id !== ruleId)),
-    enableRule: (ruleId) => {}, // Implementar
+    addCustomRule,
+    updateRule,
+    disableRule,
+    enableRule,
     
     // Histórico
-    getComplianceHistory: async () => history,
-    getTrends: async () => ({}), // Implementar
+    getComplianceHistory,
+    getTrends,
     
     // Recomendações
     getRecommendations,
-    implementRecommendation: async () => true, // Implementar
+    implementRecommendation,
     
     // Integração
-    syncWithNRDatabase: async () => {}, // Implementar
-    validateAgainstStandards: async () => currentReport!, // Implementar
+    syncWithNRDatabase,
+    validateAgainstStandards,
     
     // Utilitários
     calculateComplianceScore,

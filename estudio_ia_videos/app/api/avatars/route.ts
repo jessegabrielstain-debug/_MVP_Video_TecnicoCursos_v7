@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
 
     // Filtrar apenas avatares que o usuário tem permissão para ver
     const authorizedAvatars = (avatars || []).filter(avatar => {
-      const project = avatar.projects as any
+      const project = avatar.projects as Record<string, unknown>
       return project.owner_id === user.id || 
              project.collaborators?.includes(user.id) ||
              project.is_public

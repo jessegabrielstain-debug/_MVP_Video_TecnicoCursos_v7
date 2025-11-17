@@ -17,7 +17,7 @@ interface ErrorLog {
     message: string;
     stack?: string;
   };
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   userId?: string;
   sessionId: string;
   url: string;

@@ -255,22 +255,25 @@ async function generateSafetyPresentation(generator: PPTXGenerator, data: any): 
     ]
   };
 
-  return await generator.generateFromData(safetyData as any);
+  return await generator.generateFromData(safetyData as Record<string, unknown>);
 }
 
 /**
  * Gerar slides rápidos
  */
-async function generateQuickSlides(generator: PPTXGenerator, data: any): Promise<Buffer> {
+async function generateQuickSlides(generator: PPTXGenerator, data: Record<string, unknown>): Promise<Buffer> {
   const quickData = {
-    title: data.title || 'Apresentação Rápida',
-    slides: data.slides.map((slide: any, index: number) => ({
-      type: slide.type || 'content',
-      title: slide.title || `Slide ${index + 1}`,
-      content: slide.content || '',
-      image: slide.image,
-      notes: slide.notes
-    }))
+    title: (data.title as string) || 'Apresentação Rápida',
+    slides: Array.isArray(data.slides) ? data.slides.map((slide: unknown, index: number) => {
+      const s = slide as Record<string, unknown>;
+      return {
+        type: (s.type as string) || 'content',
+        title: (s.title as string) || `Slide ${index + 1}`,
+        content: (s.content as string) || '',
+        image: s.image as string | undefined,
+        notes: s.notes as string | undefined
+      };
+    }) : []
   };
 
   return await generator.generateFromData(quickData);

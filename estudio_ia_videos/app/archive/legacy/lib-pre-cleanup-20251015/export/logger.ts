@@ -33,7 +33,7 @@ export interface LogContext {
   progress?: number
   file?: string
   error?: any
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 /**

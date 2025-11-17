@@ -7,7 +7,6 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -56,7 +55,6 @@ export default function AppShell({
   sidebarCollapsed: initialCollapsed = false,
   maxWidth = 'full'
 }: AppShellProps) {
-  const { data: session } = useSession() || {}
   const pathname = usePathname()
   
   // Estado do layout

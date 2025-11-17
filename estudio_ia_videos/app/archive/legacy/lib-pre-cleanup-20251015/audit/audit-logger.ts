@@ -48,7 +48,7 @@ export interface AuditLogEntry {
   resourceType?: string;
   resourceId?: string;
   resourceName?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
   success: boolean;
@@ -254,7 +254,7 @@ export const auditLog = {
       success: true,
     }),
 
-  projectUpdate: (userId: string, projectId: string, changes: Record<string, any>) =>
+  projectUpdate: (userId: string, projectId: string, changes: Record<string, unknown>) =>
     AuditLogger.log({
       action: 'project.update',
       userId,

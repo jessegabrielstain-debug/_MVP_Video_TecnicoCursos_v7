@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         nrType,
         score: result.score,
         passed: result.passed,
-        report: result.report as any,
+        report: result.report as unknown,
         validatedAt: result.timestamp,
         validatedBy: session.user.id
       }

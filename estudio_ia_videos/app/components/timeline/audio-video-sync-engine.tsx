@@ -87,12 +87,37 @@ interface TimingControl {
   syncReference: 'internal' | 'genlock' | 'wordclock' | 'ltc'
 }
 
+const masterClockOptions: TimingControl['masterClock'][] = ['system', 'audio', 'video', 'external']
+const sampleRateOptions: TimingControl['sampleRate'][] = [44100, 48000, 96000, 192000]
+const frameRateOptions: TimingControl['frameRate'][] = [23.976, 24, 25, 29.97, 30, 50, 59.94, 60]
+const timecodeFormatOptions: TimingControl['timecodeFormat'][] = ['drop-frame', 'non-drop-frame', 'pal', 'film']
+const syncReferenceOptions: TimingControl['syncReference'][] = ['internal', 'genlock', 'wordclock', 'ltc']
+const syncModeOptions: SyncConfiguration['mode'][] = ['automatic', 'manual', 'hybrid']
+
+const isMasterClock = (value: string): value is TimingControl['masterClock'] =>
+  masterClockOptions.some((option) => option === value)
+
+const isSampleRate = (value: number): value is TimingControl['sampleRate'] =>
+  sampleRateOptions.some((option) => option === value)
+
+const isFrameRate = (value: number): value is TimingControl['frameRate'] =>
+  frameRateOptions.some((option) => option === value)
+
+const isTimecodeFormat = (value: string): value is TimingControl['timecodeFormat'] =>
+  timecodeFormatOptions.some((option) => option === value)
+
+const isSyncReference = (value: string): value is TimingControl['syncReference'] =>
+  syncReferenceOptions.some((option) => option === value)
+
+const isSyncMode = (value: string): value is SyncConfiguration['mode'] =>
+  syncModeOptions.some((option) => option === value)
+
 interface SyncEvent {
   id: string
   timestamp: number
   type: 'drift_detected' | 'correction_applied' | 'buffer_underrun' | 'frame_drop' | 'sync_lost' | 'sync_restored'
   severity: 'info' | 'warning' | 'error' | 'critical'
-  details: Record<string, any>
+  details: Record<string, unknown>
   resolved: boolean
 }
 
@@ -566,10 +591,12 @@ export default function AudioVideoSyncEngine() {
                       <Label className="text-xs">Master Clock</Label>
                       <select 
                         value={timingControl.masterClock}
-                        onChange={(e) => setTimingControl(prev => ({ 
-                          ...prev, 
-                          masterClock: e.target.value as any 
-                        }))}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          if (isMasterClock(value)) {
+                            setTimingControl(prev => ({ ...prev, masterClock: value }))
+                          }
+                        }}
                         className="w-full mt-1 bg-gray-700 text-white text-sm rounded px-3 py-2"
                       >
                         <option value="system">System Clock</option>
@@ -583,10 +610,12 @@ export default function AudioVideoSyncEngine() {
                       <Label className="text-xs">Sample Rate</Label>
                       <select 
                         value={timingControl.sampleRate}
-                        onChange={(e) => setTimingControl(prev => ({ 
-                          ...prev, 
-                          sampleRate: Number(e.target.value) as any 
-                        }))}
+                        onChange={(e) => {
+                          const value = Number(e.target.value)
+                          if (isSampleRate(value)) {
+                            setTimingControl(prev => ({ ...prev, sampleRate: value }))
+                          }
+                        }}
                         className="w-full mt-1 bg-gray-700 text-white text-sm rounded px-3 py-2"
                       >
                         <option value={44100}>44.1 kHz</option>
@@ -600,10 +629,12 @@ export default function AudioVideoSyncEngine() {
                       <Label className="text-xs">Frame Rate</Label>
                       <select 
                         value={timingControl.frameRate}
-                        onChange={(e) => setTimingControl(prev => ({ 
-                          ...prev, 
-                          frameRate: Number(e.target.value) as any 
-                        }))}
+                        onChange={(e) => {
+                          const value = Number(e.target.value)
+                          if (isFrameRate(value)) {
+                            setTimingControl(prev => ({ ...prev, frameRate: value }))
+                          }
+                        }}
                         className="w-full mt-1 bg-gray-700 text-white text-sm rounded px-3 py-2"
                       >
                         <option value={23.976}>23.976 fps</option>
@@ -626,10 +657,12 @@ export default function AudioVideoSyncEngine() {
                       <Label className="text-xs">Timecode Format</Label>
                       <select 
                         value={timingControl.timecodeFormat}
-                        onChange={(e) => setTimingControl(prev => ({ 
-                          ...prev, 
-                          timecodeFormat: e.target.value as any 
-                        }))}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          if (isTimecodeFormat(value)) {
+                            setTimingControl(prev => ({ ...prev, timecodeFormat: value }))
+                          }
+                        }}
                         className="w-full mt-1 bg-gray-700 text-white text-sm rounded px-3 py-2"
                       >
                         <option value="drop-frame">Drop Frame</option>
@@ -643,10 +676,12 @@ export default function AudioVideoSyncEngine() {
                       <Label className="text-xs">Sync Reference</Label>
                       <select 
                         value={timingControl.syncReference}
-                        onChange={(e) => setTimingControl(prev => ({ 
-                          ...prev, 
-                          syncReference: e.target.value as any 
-                        }))}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          if (isSyncReference(value)) {
+                            setTimingControl(prev => ({ ...prev, syncReference: value }))
+                          }
+                        }}
                         className="w-full mt-1 bg-gray-700 text-white text-sm rounded px-3 py-2"
                       >
                         <option value="internal">Internal</option>
@@ -709,10 +744,12 @@ export default function AudioVideoSyncEngine() {
                       <Label className="text-xs">Modo de Sincronização</Label>
                       <select 
                         value={syncConfig.mode}
-                        onChange={(e) => setSyncConfig(prev => ({ 
-                          ...prev, 
-                          mode: e.target.value as any 
-                        }))}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          if (isSyncMode(value)) {
+                            setSyncConfig(prev => ({ ...prev, mode: value }))
+                          }
+                        }}
                         className="w-full mt-1 bg-gray-700 text-white text-sm rounded px-3 py-2"
                       >
                         <option value="automatic">Automático</option>

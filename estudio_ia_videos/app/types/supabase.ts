@@ -1,3 +1,6 @@
+// JSON field types
+type JsonObject = Record<string, unknown>;
+
 export type Database = {
   public: {
     Tables: {
@@ -10,7 +13,7 @@ export type Database = {
           role: 'user' | 'admin' | 'enterprise'
           credits: number
           subscription_tier: 'free' | 'pro' | 'enterprise'
-          metadata: any
+          metadata: JsonObject | null
           created_at: string
           updated_at: string
         }
@@ -22,7 +25,7 @@ export type Database = {
           role?: 'user' | 'admin' | 'enterprise'
           credits?: number
           subscription_tier?: 'free' | 'pro' | 'enterprise'
-          metadata?: any
+          metadata?: JsonObject | null
           created_at?: string
           updated_at?: string
         }
@@ -34,7 +37,7 @@ export type Database = {
           role?: 'user' | 'admin' | 'enterprise'
           credits?: number
           subscription_tier?: 'free' | 'pro' | 'enterprise'
-          metadata?: any
+          metadata?: JsonObject | null
           created_at?: string
           updated_at?: string
         }
@@ -51,7 +54,7 @@ export type Database = {
           size: number
           type: string
           file_type: string | null
-          metadata: any
+          metadata: JsonObject | null
           created_at: string
         }
         Insert: {
@@ -65,7 +68,7 @@ export type Database = {
           size: number
           type: string
           file_type?: string | null
-          metadata?: any
+          metadata?: JsonObject | null
           created_at?: string
         }
         Update: {
@@ -79,7 +82,7 @@ export type Database = {
           size?: number
           type?: string
           file_type?: string | null
-          metadata?: any
+          metadata?: JsonObject | null
           created_at?: string
         }
       }
@@ -90,7 +93,7 @@ export type Database = {
           name: string
           description: string | null
           status: 'draft' | 'processing' | 'ready' | 'rendering' | 'completed' | 'failed'
-          metadata: any
+          metadata: JsonObject | null
           created_at: string
           updated_at: string
         }
@@ -100,7 +103,7 @@ export type Database = {
           name: string
           description?: string | null
           status?: 'draft' | 'processing' | 'ready' | 'rendering' | 'completed' | 'failed'
-          metadata?: any
+          metadata?: JsonObject | null
           created_at?: string
           updated_at?: string
         }
@@ -110,7 +113,7 @@ export type Database = {
           name?: string
           description?: string | null
           status?: 'draft' | 'processing' | 'ready' | 'rendering' | 'completed' | 'failed'
-          metadata?: any
+          metadata?: JsonObject | null
           created_at?: string
           updated_at?: string
         }
@@ -127,7 +130,7 @@ export type Database = {
           duration: number
           audio_url: string | null
           video_url: string | null
-          metadata: any
+          metadata: JsonObject | null
           created_at: string
           updated_at: string
         }
@@ -142,7 +145,7 @@ export type Database = {
           duration?: number
           audio_url?: string | null
           video_url?: string | null
-          metadata?: any
+          metadata?: JsonObject | null
           created_at?: string
           updated_at?: string
         }
@@ -157,7 +160,7 @@ export type Database = {
           duration?: number
           audio_url?: string | null
           video_url?: string | null
-          metadata?: any
+          metadata?: JsonObject | null
           created_at?: string
           updated_at?: string
         }
@@ -171,7 +174,7 @@ export type Database = {
           progress: number
           output_url: string | null
           error_message: string | null
-          render_settings: any
+          render_settings: JsonObject | null
           started_at: string | null
           completed_at: string | null
           created_at: string
@@ -185,7 +188,7 @@ export type Database = {
           progress?: number
           output_url?: string | null
           error_message?: string | null
-          render_settings?: any
+          render_settings?: JsonObject | null
           started_at?: string | null
           completed_at?: string | null
           created_at?: string
@@ -199,7 +202,7 @@ export type Database = {
           progress?: number
           output_url?: string | null
           error_message?: string | null
-          render_settings?: any
+          render_settings?: JsonObject | null
           started_at?: string | null
           completed_at?: string | null
           created_at?: string
@@ -211,21 +214,21 @@ export type Database = {
           id: string
           user_id: string | null
           event_type: string
-          event_data: any
+          event_data: JsonObject | null
           created_at: string
         }
         Insert: {
           id?: string
           user_id?: string | null
           event_type: string
-          event_data?: any
+          event_data?: JsonObject | null
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string | null
           event_type?: string
-          event_data?: any
+          event_data?: JsonObject | null
           created_at?: string
         }
       }
@@ -251,7 +254,7 @@ export type Database = {
           name: string
           description: string | null
           status: string
-          metadata: any
+          metadata: JsonObject | null
           created_at: string
           updated_at: string
           user_email: string

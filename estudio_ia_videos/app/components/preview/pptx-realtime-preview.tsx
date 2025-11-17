@@ -78,6 +78,26 @@ interface RealTimePreviewProps {
   onExport?: (settings: PreviewSettings) => void
 }
 
+const RESOLUTION_OPTIONS = ['1920x1080', '1280x720', '854x480'] as const
+type ResolutionOption = (typeof RESOLUTION_OPTIONS)[number]
+
+const QUALITY_OPTIONS = ['high', 'medium', 'low'] as const
+type QualityOption = (typeof QUALITY_OPTIONS)[number]
+
+const AVATAR_POSITIONS = ['bottom-right', 'bottom-left', 'center', 'full-screen'] as const
+type AvatarPositionOption = (typeof AVATAR_POSITIONS)[number]
+
+const TRANSITION_OPTIONS = ['fade', 'slide', 'zoom', 'dissolve'] as const
+type TransitionOption = (typeof TRANSITION_OPTIONS)[number]
+
+const createOptionGuard = <T extends readonly string[]>(options: T) =>
+  (value: string): value is T[number] => options.includes(value as T[number])
+
+const isResolutionOption = createOptionGuard(RESOLUTION_OPTIONS)
+const isQualityOption = createOptionGuard(QUALITY_OPTIONS)
+const isAvatarPositionOption = createOptionGuard(AVATAR_POSITIONS)
+const isTransitionOption = createOptionGuard(TRANSITION_OPTIONS)
+
 interface RenderProgress {
   stage: 'preparing' | 'rendering' | 'audio' | 'encoding' | 'complete' | 'error'
   progress: number
@@ -607,10 +627,17 @@ export default function PPTXRealTimePreview({
                 <select 
                   className="w-full mt-1 p-2 border rounded text-sm"
                   value={previewSettings.resolution}
-                  onChange={(e) => setPreviewSettings(prev => ({ 
-                    ...prev, 
-                    resolution: e.target.value as any 
-                  }))}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (!isResolutionOption(value)) {
+                      return
+                    }
+
+                    setPreviewSettings(prev => ({
+                      ...prev,
+                      resolution: value
+                    }))
+                  }}
                 >
                   <option value="1920x1080">1920x1080 (Full HD)</option>
                   <option value="1280x720">1280x720 (HD)</option>
@@ -623,10 +650,17 @@ export default function PPTXRealTimePreview({
                 <select 
                   className="w-full mt-1 p-2 border rounded text-sm"
                   value={previewSettings.quality}
-                  onChange={(e) => setPreviewSettings(prev => ({ 
-                    ...prev, 
-                    quality: e.target.value as any 
-                  }))}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (!isQualityOption(value)) {
+                      return
+                    }
+
+                    setPreviewSettings(prev => ({
+                      ...prev,
+                      quality: value
+                    }))
+                  }}
                 >
                   <option value="high">Alta</option>
                   <option value="medium">Média</option>
@@ -662,10 +696,17 @@ export default function PPTXRealTimePreview({
                   <select 
                     className="w-full mt-1 p-2 border rounded text-sm"
                     value={previewSettings.avatarPosition}
-                    onChange={(e) => setPreviewSettings(prev => ({ 
-                      ...prev, 
-                      avatarPosition: e.target.value as any 
-                    }))}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (!isAvatarPositionOption(value)) {
+                        return
+                      }
+
+                      setPreviewSettings(prev => ({
+                        ...prev,
+                        avatarPosition: value
+                      }))
+                    }}
                   >
                     <option value="bottom-right">Canto Inferior Direito</option>
                     <option value="bottom-left">Canto Inferior Esquerdo</option>
@@ -680,10 +721,17 @@ export default function PPTXRealTimePreview({
                 <select 
                   className="w-full mt-1 p-2 border rounded text-sm"
                   value={previewSettings.transition}
-                  onChange={(e) => setPreviewSettings(prev => ({ 
-                    ...prev, 
-                    transition: e.target.value as any 
-                  }))}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (!isTransitionOption(value)) {
+                      return
+                    }
+
+                    setPreviewSettings(prev => ({
+                      ...prev,
+                      transition: value
+                    }))
+                  }}
                 >
                   <option value="fade">Fade</option>
                   <option value="slide">Slide</option>

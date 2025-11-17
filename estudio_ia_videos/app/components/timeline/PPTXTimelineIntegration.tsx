@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 interface PPTXTimelineIntegrationProps {
-  pptxData?: any;
+  pptxData?: unknown;
   onTimelineCreated?: (projectId: string) => void;
 }
 
@@ -32,7 +32,7 @@ export function PPTXTimelineIntegration({
 }: PPTXTimelineIntegrationProps) {
   const timeline = useTimeline();
   const [processingStep, setProcessingStep] = useState<'idle' | 'analyzing' | 'creating' | 'complete'>('idle');
-  const [uploadedPPTX, setUploadedPPTX] = useState<any>(null);
+  const [uploadedPPTX, setUploadedPPTX] = useState<unknown>(null);
 
   const handleCreateTimeline = useCallback(async () => {
     const dataToUse = pptxData || uploadedPPTX;
@@ -68,9 +68,9 @@ export function PPTXTimelineIntegration({
     }
   }, [pptxData, uploadedPPTX, timeline, onTimelineCreated]);
 
-  const handlePPTXUpload = useCallback((data: any) => {
+  const handlePPTXUpload = useCallback((data: unknown) => {
     setUploadedPPTX(data);
-    toast.success(`PPTX carregado: ${data.fileName}`);
+    toast.success(`PPTX carregado: ${(data as { fileName?: string }).fileName}`);
   }, []);
 
   const handleOpenTimelineEditor = useCallback(() => {

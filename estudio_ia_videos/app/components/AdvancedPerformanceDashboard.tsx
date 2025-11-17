@@ -146,19 +146,12 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onAcknowledge }) => {
     }
   };
 
-  const getAlertColor = () => {
-    switch (alert.type) {
-      case 'critical':
-        return 'destructive';
-      case 'warning':
-        return 'default';
-      default:
-        return 'default';
-    }
+  const getAlertVariant = (): 'default' | 'destructive' => {
+    return alert.type === 'critical' ? 'destructive' : 'default';
   };
 
   return (
-    <Alert variant={getAlertColor() as any} className="mb-2">
+    <Alert variant={getAlertVariant()} className="mb-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           {getAlertIcon()}

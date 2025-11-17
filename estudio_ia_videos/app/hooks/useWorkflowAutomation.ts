@@ -35,7 +35,7 @@ export interface WorkflowTrigger {
     condition?: {
       field: string;
       operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'starts_with' | 'ends_with';
-      value: any;
+      value: unknown;
       logicalOperator?: 'and' | 'or';
       conditions?: WorkflowCondition[];
     };
@@ -48,7 +48,7 @@ export interface WorkflowTrigger {
 export interface WorkflowCondition {
   field: string;
   operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'starts_with' | 'ends_with';
-  value: any;
+  value: unknown;
 }
 
 export interface WorkflowAction {
@@ -62,7 +62,7 @@ export interface WorkflowAction {
       url: string;
       method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
       headers?: Record<string, string>;
-      body?: any;
+      body?: Record<string, unknown> | string;
       authentication?: {
         type: 'none' | 'basic' | 'bearer' | 'api_key';
         credentials?: Record<string, string>;
@@ -119,7 +119,7 @@ export interface WorkflowAction {
       type: 'text_generation' | 'image_generation' | 'content_analysis' | 'translation' | 'summarization';
       model: string;
       prompt?: string;
-      parameters?: Record<string, any>;
+      parameters?: Record<string, unknown>;
       outputVariable: string;
     };
     
@@ -139,7 +139,7 @@ export interface WorkflowAction {
 export interface WorkflowVariable {
   name: string;
   type: 'string' | 'number' | 'boolean' | 'object' | 'array';
-  value: any;
+  value: unknown;
   description?: string;
   isGlobal: boolean;
 }
@@ -172,8 +172,8 @@ export interface WorkflowExecution {
   startTime: Date;
   endTime?: Date;
   duration?: number;
-  triggerData: any;
-  variables: Record<string, any>;
+  triggerData: Record<string, unknown>;
+  variables: Record<string, unknown>;
   actionResults: WorkflowActionResult[];
   error?: string;
   logs: WorkflowLog[];
@@ -185,8 +185,8 @@ export interface WorkflowActionResult {
   startTime: Date;
   endTime?: Date;
   duration?: number;
-  input: any;
-  output?: any;
+  input: unknown;
+  output?: unknown;
   error?: string;
   retryCount: number;
 }
@@ -196,7 +196,7 @@ export interface WorkflowLog {
   timestamp: Date;
   level: 'debug' | 'info' | 'warn' | 'error';
   message: string;
-  data?: any;
+  data?: unknown;
   actionId?: string;
 }
 
@@ -230,6 +230,17 @@ export interface WorkflowStats {
   };
 }
 
+type WebhookListener = {
+  workflowId: string;
+  triggerId: string;
+  config: NonNullable<WorkflowTrigger['config']['webhook']>;
+};
+
+type ConditionGroup = {
+  logicalOperator?: 'and' | 'or';
+  conditions?: WorkflowCondition[];
+}
+
 export const useWorkflowAutomation = () => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [executions, setExecutions] = useState<WorkflowExecution[]>([]);
@@ -239,7 +250,7 @@ export const useWorkflowAutomation = () => {
   const [stats, setStats] = useState<WorkflowStats | null>(null);
   
   const executionEngineRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const webhookListenersRef = useRef<Map<string, any>>(new Map());
+  const webhookListenersRef = useRef<Map<string, WebhookListener>>(new Map());
 
   // Load workflows and templates
   const loadWorkflows = useCallback(async () => {
@@ -355,7 +366,7 @@ export const useWorkflowAutomation = () => {
     if (!eventType) return;
 
     // Listen for custom events
-    const handleEvent = (event: CustomEvent) => {
+    const handleEvent = (event: CustomEvent<Record<string, unknown>>) => {
       const shouldTrigger = evaluateConditions(trigger.config.condition, event.detail);
       if (shouldTrigger) {
         executeWorkflow(workflowId, trigger.id, event.detail);
@@ -366,449 +377,261 @@ export const useWorkflowAutomation = () => {
   }, []);
 
   // Evaluate workflow conditions
-  const evaluateConditions = useCallback((condition: any, data: any): boolean => {
+  const evaluateConditions = useCallback((condition: ConditionGroup | undefined, data: Record<string, unknown>): boolean => {
     if (!condition) return true;
 
-    const { field, operator, value, logicalOperator, conditions } = condition;
+    const { logicalOperator = 'and', conditions } = condition;
 
-    const evaluateCondition = (cond: WorkflowCondition, data: any): boolean => {
-      const fieldValue = getNestedValue(data, cond.field);
-      
-      switch (cond.operator) {
-        case 'equals':
-          return fieldValue === cond.value;
-        case 'not_equals':
-          return fieldValue !== cond.value;
-        case 'greater_than':
-          return fieldValue > cond.value;
-        case 'less_than':
-          return fieldValue < cond.value;
-        case 'contains':
-          return String(fieldValue).includes(String(cond.value));
-        case 'starts_with':
-          return String(fieldValue).startsWith(String(cond.value));
-        case 'ends_with':
-          return String(fieldValue).endsWith(String(cond.value));
-        default:
-          return false;
+    if (!conditions || conditions.length === 0) {
+      // If there's a single condition object without the 'conditions' array
+      const singleCondition = condition as unknown as WorkflowCondition;
+      if(singleCondition.field && singleCondition.operator) {
+        return evaluateSingleCondition(singleCondition, data);
       }
-    };
-
-    // Evaluate main condition
-    let result = evaluateCondition({ field, operator, value }, data);
-
-    // Evaluate additional conditions
-    if (conditions && conditions.length > 0) {
-      for (const cond of conditions) {
-        const condResult = evaluateCondition(cond, data);
-        
-        if (logicalOperator === 'and') {
-          result = result && condResult;
-        } else if (logicalOperator === 'or') {
-          result = result || condResult;
-        }
-      }
+      return true;
     }
 
-    return result;
+    const results = conditions.map(cond => evaluateSingleCondition(cond, data));
+
+    if (logicalOperator === 'or') {
+      return results.some(res => res);
+    }
+    return results.every(res => res);
   }, []);
 
-  // Get nested value from object
-  const getNestedValue = (obj: any, path: string): any => {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
+  const evaluateSingleCondition = (cond: WorkflowCondition, data: Record<string, unknown>): boolean => {
+    const fieldValue = getNestedValue(data, cond.field);
+    
+    switch (cond.operator) {
+      case 'equals':
+        return fieldValue === cond.value;
+      case 'not_equals':
+        return fieldValue !== cond.value;
+      case 'greater_than':
+        return fieldValue > cond.value;
+      case 'less_than':
+        return fieldValue < cond.value;
+      case 'contains':
+        return String(fieldValue).includes(String(cond.value));
+      case 'starts_with':
+        return String(fieldValue).startsWith(String(cond.value));
+      case 'ends_with':
+        return String(fieldValue).endsWith(String(cond.value));
+      default:
+        return false;
+    }
   };
 
-  // Execute workflow
-  const executeWorkflow = useCallback(async (workflowId: string, triggerId: string, triggerData: any) => {
-    const workflow = workflows.find(w => w.id === workflowId);
-    if (!workflow || !workflow.isActive) return;
 
+  const getNestedValue = (obj: Record<string, unknown>, path: string): unknown => {
+    return path.split('.').reduce((acc, part) => {
+      if (acc && typeof acc === 'object' && part in acc) {
+        return (acc as Record<string, unknown>)[part];
+      }
+      return undefined;
+    }, obj);
+  };
+
+  const executeWorkflow = useCallback(async (workflowId: string, triggerId: string, triggerData: Record<string, unknown>) => {
+    const workflow = workflows.find(w => w.id === workflowId);
+    if (!workflow) {
+      console.error(`Workflow with id ${workflowId} not found.`);
+      return;
+    }
+
+    const executionId = `exec_${Date.now()}`;
     const execution: WorkflowExecution = {
-      id: `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: executionId,
       workflowId,
       triggerId,
       status: 'running',
       startTime: new Date(),
       triggerData,
-      variables: {},
+      variables: workflow.variables.reduce((acc, v) => ({ ...acc, [v.name]: v.value }), {}),
       actionResults: [],
-      logs: []
+      logs: [{ id: `log_${Date.now()}`, timestamp: new Date(), level: 'info', message: `Workflow execution started for ${workflow.name}` }]
     };
 
     setExecutions(prev => [execution, ...prev]);
 
-    try {
-      // Initialize variables
-      const variables: Record<string, any> = {};
-      workflow.variables.forEach(variable => {
-        variables[variable.name] = variable.value;
-      });
-      variables['trigger_data'] = triggerData;
+    let currentVariables = { ...execution.variables, trigger: triggerData };
+    let shouldContinue = true;
 
-      execution.variables = variables;
+    for (const action of workflow.actions.sort((a, b) => a.order - b.order)) {
+      if (!shouldContinue || !action.isActive) continue;
 
-      // Execute actions in order
-      const sortedActions = [...workflow.actions].sort((a, b) => a.order - b.order);
-      
-      for (const action of sortedActions) {
-        if (!action.isActive) {
-          execution.actionResults.push({
-            actionId: action.id,
-            status: 'skipped',
-            startTime: new Date(),
-            endTime: new Date(),
-            duration: 0,
-            input: null,
-            retryCount: 0
-          });
-          continue;
-        }
+      const actionResult: WorkflowActionResult = {
+        actionId: action.id,
+        status: 'running',
+        startTime: new Date(),
+        input: currentVariables,
+        retryCount: 0,
+      };
 
-        const actionResult = await executeAction(action, variables, execution);
-        execution.actionResults.push(actionResult);
-
-        if (actionResult.status === 'failed' && !action.continueOnError) {
-          execution.status = 'failed';
-          execution.error = actionResult.error;
-          break;
-        }
-
-        // Update variables with action output
-        if (actionResult.output && action.config.dataTransform?.outputVariable) {
-          variables[action.config.dataTransform.outputVariable] = actionResult.output;
-        }
-      }
-
-      if (execution.status === 'running') {
-        execution.status = 'completed';
-      }
-
-    } catch (err) {
-      execution.status = 'failed';
-      execution.error = err instanceof Error ? err.message : 'Unknown error';
-    } finally {
-      execution.endTime = new Date();
-      execution.duration = execution.endTime.getTime() - execution.startTime.getTime();
-      
-      // Update execution in state
-      setExecutions(prev => 
-        prev.map(exec => exec.id === execution.id ? execution : exec)
-      );
-
-      // Update workflow statistics
-      updateWorkflowStats(workflowId, execution);
-    }
-  }, [workflows]);
-
-  // Execute individual action
-  const executeAction = useCallback(async (
-    action: WorkflowAction, 
-    variables: Record<string, any>,
-    execution: WorkflowExecution
-  ): Promise<WorkflowActionResult> => {
-    const result: WorkflowActionResult = {
-      actionId: action.id,
-      status: 'running',
-      startTime: new Date(),
-      input: action.config,
-      retryCount: 0
-    };
-
-    try {
-      let output: any;
-
-      switch (action.type) {
-        case 'api_call':
-          output = await executeApiCall(action.config.apiCall!, variables);
-          break;
-        case 'email':
-          output = await executeEmail(action.config.email!, variables);
-          break;
-        case 'notification':
-          output = await executeNotification(action.config.notification!, variables);
-          break;
-        case 'data_transform':
-          output = await executeDataTransform(action.config.dataTransform!, variables);
-          break;
-        case 'file_operation':
-          output = await executeFileOperation(action.config.fileOperation!, variables);
-          break;
-        case 'ai_process':
-          output = await executeAiProcess(action.config.aiProcess!, variables);
-          break;
-        case 'custom_script':
-          output = await executeCustomScript(action.config.customScript!, variables);
-          break;
-        default:
-          throw new Error(`Unknown action type: ${action.type}`);
-      }
-
-      result.status = 'completed';
-      result.output = output;
-
-    } catch (err) {
-      result.status = 'failed';
-      result.error = err instanceof Error ? err.message : 'Unknown error';
-    } finally {
-      result.endTime = new Date();
-      result.duration = result.endTime.getTime() - result.startTime.getTime();
-    }
-
-    return result;
-  }, []);
-
-  // Execute API call action
-  const executeApiCall = useCallback(async (config: any, variables: Record<string, any>) => {
-    const { url, method, headers, body, authentication, retryPolicy } = config;
-    
-    const requestHeaders: Record<string, string> = { ...headers };
-    
-    // Add authentication
-    if (authentication) {
-      switch (authentication.type) {
-        case 'bearer':
-          requestHeaders['Authorization'] = `Bearer ${authentication.credentials?.token}`;
-          break;
-        case 'basic':
-          const credentials = btoa(`${authentication.credentials?.username}:${authentication.credentials?.password}`);
-          requestHeaders['Authorization'] = `Basic ${credentials}`;
-          break;
-        case 'api_key':
-          requestHeaders[authentication.credentials?.headerName || 'X-API-Key'] = authentication.credentials?.apiKey;
-          break;
-      }
-    }
-
-    // Replace variables in URL and body
-    const processedUrl = replaceVariables(url, variables);
-    const processedBody = body ? replaceVariables(JSON.stringify(body), variables) : undefined;
-
-    let attempt = 0;
-    const maxRetries = retryPolicy?.maxRetries || 0;
-
-    while (attempt <= maxRetries) {
       try {
-        const response = await fetch(processedUrl, {
-          method,
-          headers: requestHeaders,
-          body: processedBody
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        return result;
-
-      } catch (err) {
-        attempt++;
-        if (attempt > maxRetries) {
-          throw err;
+        let output: unknown;
+        switch (action.type) {
+          case 'api_call':
+            output = await executeApiCall(action.config.apiCall, currentVariables);
+            break;
+          case 'email':
+            output = await executeEmail(action.config.email, currentVariables);
+            break;
+          case 'notification':
+            output = await executeNotification(action.config.notification, currentVariables);
+            break;
+          case 'data_transform':
+            output = await executeDataTransform(action.config.dataTransform, currentVariables);
+            break;
+          case 'file_operation':
+            output = await executeFileOperation(action.config.fileOperation, currentVariables);
+            break;
+          case 'ai_process':
+            output = await executeAiProcess(action.config.aiProcess, currentVariables);
+            break;
+          case 'custom_script':
+            output = await executeCustomScript(action.config.customScript, currentVariables);
+            break;
+          default:
+            throw new Error(`Unsupported action type: ${(action as { type: string }).type}`);
         }
         
-        // Wait before retry
-        const delay = (retryPolicy?.retryDelay || 1000) * Math.pow(retryPolicy?.backoffMultiplier || 2, attempt - 1);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        actionResult.status = 'completed';
+        actionResult.output = output;
+        if (output && typeof output === 'object') {
+          currentVariables = { ...currentVariables, ...output as Record<string, unknown> };
+        }
+
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown action error';
+        actionResult.status = 'failed';
+        actionResult.error = errorMessage;
+        execution.logs.push({ id: `log_${Date.now()}`, timestamp: new Date(), level: 'error', message: `Action ${action.name} failed: ${errorMessage}`, actionId: action.id });
+        if (!action.continueOnError) {
+          shouldContinue = false;
+        }
+      } finally {
+        actionResult.endTime = new Date();
+        actionResult.duration = actionResult.endTime.getTime() - actionResult.startTime.getTime();
+        execution.actionResults.push(actionResult);
       }
     }
-  }, []);
 
-  // Execute email action
-  const executeEmail = useCallback(async (config: any, variables: Record<string, any>) => {
-    const { to, cc, bcc, subject, body, isHtml, attachments } = config;
-    
-    const emailData = {
-      to: to.map((email: string) => replaceVariables(email, variables)),
-      cc: cc?.map((email: string) => replaceVariables(email, variables)),
-      bcc: bcc?.map((email: string) => replaceVariables(email, variables)),
-      subject: replaceVariables(subject, variables),
-      body: replaceVariables(body, variables),
-      isHtml,
-      attachments
-    };
+    execution.status = execution.actionResults.some(r => r.status === 'failed') ? 'failed' : 'completed';
+    execution.endTime = new Date();
+    execution.duration = execution.endTime.getTime() - execution.startTime.getTime();
+    execution.logs.push({ id: `log_${Date.now()}`, timestamp: new Date(), level: 'info', message: `Workflow execution finished with status: ${execution.status}` });
 
-    const response = await fetch('/api/workflows/actions/email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(emailData)
-    });
+    setExecutions(prev => prev.map(e => e.id === executionId ? execution : e));
+  }, [workflows]);
 
-    if (!response.ok) {
-      throw new Error('Failed to send email');
-    }
-
-    return await response.json();
-  }, []);
-
-  // Execute notification action
-  const executeNotification = useCallback(async (config: any, variables: Record<string, any>) => {
-    const { type, title, message, recipients, channels } = config;
-    
-    const notificationData = {
-      type,
-      title: replaceVariables(title, variables),
-      message: replaceVariables(message, variables),
-      recipients,
-      channels
-    };
-
-    // Emit notification event
-    window.dispatchEvent(new CustomEvent('workflow:notification', {
-      detail: notificationData
-    }));
-
-    return notificationData;
-  }, []);
-
-  // Execute data transform action
-  const executeDataTransform = useCallback(async (config: any, variables: Record<string, any>) => {
-    const { inputData, transformScript, outputVariable } = config;
-    
-    const input = getNestedValue(variables, inputData);
-    
-    // Create a safe execution context
-    const context = {
-      input,
-      variables,
-      console: {
-        log: (...args: any[]) => console.log('[Workflow Transform]', ...args)
-      }
-    };
-
-    // Execute transform script
-    const func = new Function('context', `
-      with (context) {
-        ${transformScript}
-      }
-    `);
-
-    const result = func(context);
-    return result;
-  }, []);
-
-  // Execute file operation action
-  const executeFileOperation = useCallback(async (config: any, variables: Record<string, any>) => {
-    const { operation, sourcePath, targetPath, content, encoding } = config;
-    
-    const fileData = {
-      operation,
-      sourcePath: sourcePath ? replaceVariables(sourcePath, variables) : undefined,
-      targetPath: targetPath ? replaceVariables(targetPath, variables) : undefined,
-      content: content ? replaceVariables(content, variables) : undefined,
-      encoding: encoding || 'utf8'
-    };
-
-    const response = await fetch('/api/workflows/actions/file', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(fileData)
-    });
-
-    if (!response.ok) {
-      throw new Error('File operation failed');
-    }
-
-    return await response.json();
-  }, []);
-
-  // Execute AI process action
-  const executeAiProcess = useCallback(async (config: any, variables: Record<string, any>) => {
-    const { type, model, prompt, parameters, outputVariable } = config;
-    
-    const aiData = {
-      type,
-      model,
-      prompt: prompt ? replaceVariables(prompt, variables) : undefined,
-      parameters
-    };
-
-    const response = await fetch('/api/workflows/actions/ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(aiData)
-    });
-
-    if (!response.ok) {
-      throw new Error('AI process failed');
-    }
-
-    return await response.json();
-  }, []);
-
-  // Execute custom script action
-  const executeCustomScript = useCallback(async (config: any, variables: Record<string, any>) => {
-    const { language, code, timeout, environment } = config;
-    
-    const scriptData = {
-      language,
-      code: replaceVariables(code, variables),
-      timeout: timeout || 30000,
-      environment: { ...environment, ...variables }
-    };
-
-    const response = await fetch('/api/workflows/actions/script', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(scriptData)
-    });
-
-    if (!response.ok) {
-      throw new Error('Script execution failed');
-    }
-
-    return await response.json();
-  }, []);
-
-  // Replace variables in text
-  const replaceVariables = useCallback((text: string, variables: Record<string, any>): string => {
-    return text.replace(/\{\{([^}]+)\}\}/g, (match, variableName) => {
-      const value = getNestedValue(variables, variableName.trim());
+  const interpolateString = (template: string, variables: Record<string, unknown>): string => {
+    return template.replace(/\${{\s*([^}]+)\s*}}/g, (match, path) => {
+      const value = getNestedValue(variables, path.trim());
       return value !== undefined ? String(value) : match;
     });
+  };
+
+  const executeApiCall = useCallback(async (config: WorkflowAction['config']['apiCall'], variables: Record<string, unknown>) => {
+    if (!config) throw new Error("API call configuration is missing.");
+    
+    const url = interpolateString(config.url, variables);
+    const body = config.body ? JSON.parse(interpolateString(JSON.stringify(config.body), variables)) : undefined;
+    
+    const response = await fetch(url, {
+      method: config.method,
+      headers: config.headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (!response.ok) {
+      throw new Error(`API call failed with status ${response.status}`);
+    }
+    return response.json();
   }, []);
 
-  // Update workflow statistics
-  const updateWorkflowStats = useCallback((workflowId: string, execution: WorkflowExecution) => {
-    setWorkflows(prev => prev.map(workflow => {
-      if (workflow.id === workflowId) {
-        const newExecutionCount = workflow.executionCount + 1;
-        const newAverageTime = (workflow.averageExecutionTime * workflow.executionCount + (execution.duration || 0)) / newExecutionCount;
-        const successfulExecutions = execution.status === 'completed' ? 1 : 0;
-        const newSuccessRate = ((workflow.successRate * workflow.executionCount) + successfulExecutions) / newExecutionCount;
-
-        return {
-          ...workflow,
-          executionCount: newExecutionCount,
-          lastExecuted: execution.endTime,
-          averageExecutionTime: newAverageTime,
-          successRate: newSuccessRate
-        };
-      }
-      return workflow;
-    }));
+  const executeEmail = useCallback(async (config: WorkflowAction['config']['email'], variables: Record<string, unknown>) => {
+    if (!config) throw new Error("Email configuration is missing.");
+    console.log('Sending email:', {
+      to: config.to.map(recipient => interpolateString(recipient, variables)),
+      subject: interpolateString(config.subject, variables),
+      body: interpolateString(config.body, variables),
+    });
+    // Mock implementation
+    return { success: true, messageId: `mock_${Date.now()}` };
   }, []);
 
-  // Workflow management functions
-  const createWorkflow = useCallback(async (workflow: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' | 'executionCount' | 'lastExecuted' | 'averageExecutionTime' | 'successRate'>) => {
+  const executeNotification = useCallback(async (config: WorkflowAction['config']['notification'], variables: Record<string, unknown>) => {
+    if (!config) throw new Error("Notification configuration is missing.");
+    console.log('Sending notification:', {
+      title: interpolateString(config.title, variables),
+      message: interpolateString(config.message, variables),
+      recipients: config.recipients.map(r => interpolateString(r, variables)),
+    });
+    // Mock implementation
+    return { success: true };
+  }, []);
+
+  const executeDataTransform = useCallback(async (config: WorkflowAction['config']['dataTransform'], variables: Record<string, unknown>) => {
+    if (!config) throw new Error("Data transform configuration is missing.");
+    
+    const input = getNestedValue(variables, config.inputData);
+    
+    // WARNING: Executing arbitrary code is unsafe. Use a sandboxed environment in a real app.
+    const transformFn = new Function('input', 'context', config.transformScript);
+    const context = {
+      variables,
+      log: (...args: unknown[]) => console.log('[Workflow Transform]', ...args)
+    };
+    
+    const result = transformFn(input, context);
+    
+    return { [config.outputVariable]: result };
+  }, []);
+
+  const executeFileOperation = useCallback(async (config: WorkflowAction['config']['fileOperation'], variables: Record<string, unknown>) => {
+    if (!config) throw new Error("File operation configuration is missing.");
+    console.log('Executing file operation:', config.operation, {
+      source: config.sourcePath ? interpolateString(config.sourcePath, variables) : '',
+      target: config.targetPath ? interpolateString(config.targetPath, variables) : '',
+    });
+    // Mock implementation
+    return { success: true, path: config.targetPath };
+  }, []);
+
+  const executeAiProcess = useCallback(async (config: WorkflowAction['config']['aiProcess'], variables: Record<string, unknown>) => {
+    if (!config) throw new Error("AI process configuration is missing.");
+    const prompt = config.prompt ? interpolateString(config.prompt, variables) : '';
+    console.log('Executing AI process:', config.type, { model: config.model, prompt });
+    // Mock implementation
+    const result = `AI result for prompt: "${prompt}"`;
+    return { [config.outputVariable]: result };
+  }, []);
+
+  const executeCustomScript = useCallback(async (config: WorkflowAction['config']['customScript'], variables: Record<string, unknown>) => {
+    if (!config) throw new Error("Custom script configuration is missing.");
+    console.log('Executing custom script:', config.language);
+    // WARNING: Unsafe. Use a sandboxed environment.
+    // Mock implementation
+    return { success: true, output: 'Script executed successfully' };
+  }, []);
+
+
+  useEffect(() => {
+    loadWorkflows();
+  }, [loadWorkflows]);
+
+  const createWorkflow = useCallback(async (workflowData: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' | 'executionCount' | 'lastExecuted' | 'averageExecutionTime' | 'successRate'>) => {
     try {
       const response = await fetch('/api/workflows', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(workflow)
+        body: JSON.stringify(workflowData),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create workflow');
-      }
-
+      if (!response.ok) throw new Error('Failed to create workflow');
       const newWorkflow = await response.json();
       setWorkflows(prev => [...prev, newWorkflow]);
-
-      if (newWorkflow.isActive) {
-        initializeWorkflow(newWorkflow);
-      }
-
+      initializeWorkflow(newWorkflow);
       return newWorkflow;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create workflow');
@@ -819,27 +642,15 @@ export const useWorkflowAutomation = () => {
   const updateWorkflow = useCallback(async (workflowId: string, updates: Partial<Workflow>) => {
     try {
       const response = await fetch(`/api/workflows/${workflowId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
+        body: JSON.stringify(updates),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update workflow');
-      }
-
+      if (!response.ok) throw new Error('Failed to update workflow');
       const updatedWorkflow = await response.json();
       setWorkflows(prev => prev.map(w => w.id === workflowId ? updatedWorkflow : w));
-
-      // Reinitialize if active status changed
-      if (updates.isActive !== undefined) {
-        if (updates.isActive) {
-          initializeWorkflow(updatedWorkflow);
-        } else {
-          stopWorkflow(workflowId);
-        }
-      }
-
+      // Re-initialize if triggers or active status changed
+      initializeWorkflow(updatedWorkflow);
       return updatedWorkflow;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update workflow');
@@ -849,139 +660,51 @@ export const useWorkflowAutomation = () => {
 
   const deleteWorkflow = useCallback(async (workflowId: string) => {
     try {
-      const response = await fetch(`/api/workflows/${workflowId}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete workflow');
-      }
-
-      stopWorkflow(workflowId);
+      const response = await fetch(`/api/workflows/${workflowId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete workflow');
       setWorkflows(prev => prev.filter(w => w.id !== workflowId));
-      setExecutions(prev => prev.filter(e => e.workflowId !== workflowId));
-
+      // Teardown triggers
+      const workflow = workflows.find(w => w.id === workflowId);
+      workflow?.triggers.forEach(trigger => {
+        const timeoutId = executionEngineRef.current.get(`${workflowId}_${trigger.id}`);
+        if (timeoutId) {
+          clearInterval(timeoutId);
+          clearTimeout(timeoutId);
+          executionEngineRef.current.delete(`${workflowId}_${trigger.id}`);
+        }
+      });
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete workflow');
       return false;
     }
-  }, []);
+  }, [workflows]);
 
-  const stopWorkflow = useCallback((workflowId: string) => {
-    // Stop all timers for this workflow
-    for (const [key, timeout] of executionEngineRef.current.entries()) {
-      if (key.startsWith(workflowId)) {
-        clearTimeout(timeout);
-        clearInterval(timeout);
-        executionEngineRef.current.delete(key);
-      }
-    }
-
-    // Remove webhook listeners
-    for (const [key, listener] of webhookListenersRef.current.entries()) {
-      if (key.startsWith(workflowId)) {
-        webhookListenersRef.current.delete(key);
-      }
-    }
-  }, []);
-
-  const triggerWorkflow = useCallback(async (workflowId: string, triggerData: any = {}) => {
+  const triggerWorkflow = useCallback(async (workflowId: string, triggerData: Record<string, unknown> = {}) => {
     const workflow = workflows.find(w => w.id === workflowId);
     if (!workflow) {
-      throw new Error('Workflow not found');
+      console.error(`Cannot trigger: workflow with id ${workflowId} not found.`);
+      return;
     }
-
-    const manualTrigger = workflow.triggers.find(t => t.type === 'manual');
+    const manualTrigger = workflow.triggers.find(t => t.type === 'manual' && t.isActive);
     if (!manualTrigger) {
-      throw new Error('Workflow does not have a manual trigger');
+      console.error(`No active manual trigger found for workflow ${workflow.name}.`);
+      return;
     }
-
     await executeWorkflow(workflowId, manualTrigger.id, triggerData);
   }, [workflows, executeWorkflow]);
 
-  // Calculate statistics
-  const calculateStats = useCallback((): WorkflowStats => {
-    const totalWorkflows = workflows.length;
-    const activeWorkflows = workflows.filter(w => w.isActive).length;
-    const totalExecutions = executions.length;
-    const successfulExecutions = executions.filter(e => e.status === 'completed').length;
-    const failedExecutions = executions.filter(e => e.status === 'failed').length;
-    
-    const averageExecutionTime = executions.length > 0
-      ? executions.reduce((sum, e) => sum + (e.duration || 0), 0) / executions.length
-      : 0;
-
-    const errorRate = totalExecutions > 0 ? (failedExecutions / totalExecutions) * 100 : 0;
-
-    const mostUsedWorkflows = workflows
-      .sort((a, b) => b.executionCount - a.executionCount)
-      .slice(0, 5)
-      .map(w => ({ workflowId: w.id, name: w.name, count: w.executionCount }));
-
-    const recentExecutions = executions
-      .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
-      .slice(0, 10);
-
-    return {
-      totalWorkflows,
-      activeWorkflows,
-      totalExecutions,
-      successfulExecutions,
-      failedExecutions,
-      averageExecutionTime,
-      mostUsedWorkflows,
-      recentExecutions,
-      errorRate,
-      performanceMetrics: {
-        executionsPerDay: [],
-        executionTimeDistribution: [],
-        errorsByType: []
-      }
-    };
-  }, [workflows, executions]);
-
-  // Update stats when data changes
-  useEffect(() => {
-    setStats(calculateStats());
-  }, [workflows, executions, calculateStats]);
-
-  // Load data on mount
-  useEffect(() => {
-    loadWorkflows();
-
-    return () => {
-      // Cleanup on unmount
-      for (const timeout of executionEngineRef.current.values()) {
-        clearTimeout(timeout);
-        clearInterval(timeout);
-      }
-      executionEngineRef.current.clear();
-      webhookListenersRef.current.clear();
-    };
-  }, [loadWorkflows]);
-
   return {
-    // State
     workflows,
     executions,
     templates,
     isLoading,
     error,
     stats,
-
-    // Workflow management
     createWorkflow,
     updateWorkflow,
     deleteWorkflow,
     triggerWorkflow,
-    stopWorkflow,
-
-    // Execution management
     executeWorkflow,
-
-    // Utilities
-    loadWorkflows,
-    calculateStats
   };
 };

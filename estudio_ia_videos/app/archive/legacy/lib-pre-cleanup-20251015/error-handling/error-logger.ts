@@ -10,7 +10,7 @@ export interface ErrorLog {
   level: 'error' | 'warn' | 'info' | 'debug';
   message: string;
   error?: Error;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   userId?: string;
   sessionId: string;
   url: string;
@@ -23,7 +23,7 @@ interface ErrorContext {
   component?: string;
   action?: string;
   userId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   [key: string]: any; // Permite propriedades adicionais
 }
 

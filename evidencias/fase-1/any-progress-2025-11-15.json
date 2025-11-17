@@ -1,0 +1,323 @@
+{
+  "timestamp": "2025-11-15T23:59:00.000Z",
+  "baseline": {
+    "date": "2025-01-13",
+    "anyCount": 4734,
+    "tsNoCheckCount": 37
+  },
+  "current": {
+    "anyCount": 3706,
+    "tsNoCheckCount": 34,
+    "lastUpdate": "2025-11-16T00:30:00.000Z"
+  },
+  "reduction": {
+    "anyReduced": 1028,
+    "tsNoCheckReduced": 3,
+    "percentAnyReduction": 21.71,
+    "percentTsNoCheckReduction": 8.11
+  },
+  "completedFiles": [
+    {
+      "file": "lib/validation/schemas.ts",
+      "anyRemoved": 0,
+      "status": "created_with_types",
+      "date": "2025-11-14"
+    },
+    {
+      "file": "lib/services/redis-service.ts",
+      "anyRemoved": 0,
+      "status": "created_with_types",
+      "date": "2025-11-14"
+    },
+    {
+      "file": "lib/services/bullmq-service.ts",
+      "anyRemoved": 2,
+      "status": "refactored",
+      "date": "2025-11-14"
+    },
+    {
+      "file": "lib/services/logger-service.ts",
+      "anyRemoved": 8,
+      "status": "refactored",
+      "date": "2025-11-14"
+    },
+    {
+      "file": "lib/services/monitoring-service.ts",
+      "anyRemoved": 2,
+      "status": "refactored",
+      "date": "2025-11-14"
+    },
+    {
+      "file": "api/v1/timeline/multi-track/analytics/route.ts",
+      "anyRemoved": 23,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "Track, Clip, Timeline, TimelineSettings, TimelineSnapshot, AnalyticsSummary, UsageStats, PerformanceMetrics, EditingPatterns, AnalyticsData"
+    },
+    {
+      "file": "api/unified/route.ts",
+      "anyRemoved": 20,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "StepData, WorkflowStepStatus, z.unknown() substituindo z.any()"
+    },
+    {
+      "file": "api/v1/timeline/multi-track/bulk/route.ts",
+      "anyRemoved": 19,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "Track, Clip, Effect, BulkTargets, BulkData, BulkResult"
+    },
+    {
+      "file": "api/v1/timeline/multi-track/route.ts",
+      "anyRemoved": 16,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "Track, Keyframe, ExportSettings, TimelineSettings, Analytics"
+    },
+    {
+      "file": "types/supabase.ts",
+      "anyRemoved": 19,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "JsonObject type (Record<string, unknown>)"
+    },
+    {
+      "file": "__tests__/api.timeline.advanced.test.ts",
+      "anyRemoved": 11,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "RequestInit, RequestBody interfaces para test helpers"
+    },
+    {
+      "file": "__tests__/websocket.test.ts",
+      "anyRemoved": 1,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "HttpServer type import"
+    },
+    {
+      "file": "__tests__/api.video.export-real.test.ts",
+      "anyRemoved": 3,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "makeRequest helper typed"
+    },
+    {
+      "file": "__tests__/api.video.export-history.test.ts",
+      "anyRemoved": 2,
+      "tsNoCheckRemoved": 1,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "Removido @ts-nocheck, makeRequest typed"
+    },
+    {
+      "file": "__tests__/websocket.integration.test.ts",
+      "anyRemoved": 5,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "LockEventData, TimelineUpdateData interfaces"
+    },
+    {
+      "file": "__tests__/export-integration.test.ts",
+      "anyRemoved": 6,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "Type guards, StorageWithContentType, EmittedEvent interfaces"
+    },
+    {
+      "file": "__tests__/e2e/compliance-nr.e2e.test.ts",
+      "anyRemoved": 5,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "Type guards para error handling, unknown assertions"
+    },
+    {
+      "file": "__tests__/e2e/render-queue.e2e.test.ts",
+      "anyRemoved": 2,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "RenderSettings interface"
+    },
+    {
+      "file": "__tests__/lib/audio/audio-mixer.test.ts",
+      "anyRemoved": 2,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "FfmpegInstance, FfprobeData interfaces"
+    },
+    {
+      "file": "__tests__/lib/audio/advanced-processor.test.ts",
+      "anyRemoved": 1,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "expect.stringContaining"
+    },
+    {
+      "file": "__tests__/lib/video/subtitle-manager.test.ts",
+      "anyRemoved": 5,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "FfmpegInstance interface, tuple types, unknown assertions"
+    },
+    {
+      "file": "__tests__/lib/video/transcription-service.test.ts",
+      "anyRemoved": 9,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "this: unknown, expect.stringContaining/arrayContaining"
+    },
+    {
+      "file": "__tests__/lib/video/transcoder.test.ts",
+      "anyRemoved": 2,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "Tipar callback progress data"
+    },
+    {
+      "file": "__tests__/lib/video/validator.test.ts",
+      "anyRemoved": 1,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "ProbeDataOverrides interface"
+    },
+    {
+      "file": "__tests__/lib/video/template-library-complete.test.ts",
+      "anyRemoved": 2,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "FavoriteEventData interfaces"
+    },
+    {
+      "file": "__tests__/lib/video/video-effects.test.ts",
+      "anyRemoved": 18,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "Tuple types [string, ...unknown[]] via PowerShell regex"
+    },
+    {
+      "file": "__tests__/lib/video/optimization-engine.test.ts",
+      "anyRemoved": 3,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "ProgressData interface, expect.stringContaining"
+    },
+    {
+      "file": "__tests__/lib/video/scene-detector.test.ts",
+      "anyRemoved": 4,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "expect.stringContaining/arrayContaining"
+    },
+    {
+      "file": "__tests__/lib/video/thumbnail-generator.test.ts",
+      "anyRemoved": 4,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "fs.Stats type, expect.arrayContaining"
+    },
+    {
+      "file": "src/components/VideoGenerator.tsx",
+      "anyRemoved": 5,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "VideoSettings union types para resolution, fps, quality"
+    },
+    {
+      "file": "src/components/MetricsDashboard.tsx",
+      "anyRemoved": 1,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "HistoricalDataPoint interface"
+    },
+    {
+      "file": "components/avatars/avatar-3d-selector.tsx",
+      "anyRemoved": 6,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "Record<string, unknown>, AvatarCustomization union types"
+    },
+    {
+      "file": "components/export/VideoExportDialog.tsx",
+      "anyRemoved": 2,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "TimelineData, SubtitleConfig interfaces"
+    },
+    {
+      "file": "components/lms/lms-integration.tsx",
+      "anyRemoved": 5,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "Project, SCORMPackage interfaces, LMSConfig union types"
+    },
+    {
+      "file": "components/nr-template-library.tsx",
+      "anyRemoved": 1,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "NRStats interface"
+    },
+    {
+      "file": "components/AvatarLibrary.tsx + 6 outros",
+      "anyRemoved": 10,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "PowerShell regex: value: any -> value: string em Selects"
+    },
+    {
+      "file": "hooks/useWYSIWYGEditor.ts",
+      "anyRemoved": 3,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "Record<string, unknown>, type guards para parsed elements"
+    },
+    {
+      "file": "hooks/useWebSocket.ts",
+      "anyRemoved": 10,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "unknown data types, RenderProgress, Notification interfaces"
+    },
+    {
+      "file": "hooks/useTimeline.ts",
+      "anyRemoved": 4,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "PPTXData interface com type guards"
+    },
+    {
+      "file": "hooks/useWebSocketClient.ts",
+      "anyRemoved": 3,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "unknown message types"
+    },
+    {
+      "file": "hooks/use-error-recovery.ts",
+      "anyRemoved": 1,
+      "status": "fully_typed",
+      "date": "2025-11-15",
+      "notes": "as unknown substituindo as any"
+    }
+  ],
+  "sprint1Progress": {
+    "target": "P0: API Core files",
+    "completed": 5,
+    "anyRemoved": 97,
+    "status": "✅ COMPLETO"
+  },
+  "sprint2Progress": {
+    "target": "P1: Tests + Components + Hooks",
+    "completed": 19,
+    "anyRemoved": 86,
+    "tsNoCheckRemoved": 1,
+    "status": "🔄 EM ANDAMENTO (19 test files completos, iniciando components)"
+  },
+  "nextTargets": [
+    "Sprint 2: Continuar __tests__/** (websocket, export, e2e files)",
+    "Sprint 2: components/** (React props/events)",
+    "Sprint 2: hooks/** (custom hooks)",
+    "Sprint 3: Archive cleanup (avaliar deleção archive/legacy/**)"
+  ]
+}

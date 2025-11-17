@@ -40,7 +40,7 @@ export default function VoiceCloningStudio() {
   const [transcripts, setTranscripts] = useState<string[]>([])
   const [analysis, setAnalysis] = useState<VoiceCloneAnalysis | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [trainingProgress, setTrainingProgress] = useState<any>(null)
+  const [trainingProgress, setTrainingProgress] = useState<unknown>(null)
   const [testText, setTestText] = useState('Olá! Esta é uma demonstração da minha voz clonada. Como você está hoje?')
   const [synthesizedAudio, setSynthesizedAudio] = useState<string | null>(null)
 

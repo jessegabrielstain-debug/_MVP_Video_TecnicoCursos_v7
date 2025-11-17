@@ -46,9 +46,14 @@ interface DashboardPrototypeProps {
   onOpenProject?: (project: Project) => void
 }
 
+const PROJECT_FILTER_OPTIONS = ['all', 'draft', 'ready'] as const
+type ProjectFilterOption = (typeof PROJECT_FILTER_OPTIONS)[number]
+const isProjectFilterOption = (value: string): value is ProjectFilterOption =>
+  PROJECT_FILTER_OPTIONS.includes(value as ProjectFilterOption)
+
 export function DashboardPrototype({ onCreateProject, onOpenProject }: DashboardPrototypeProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'ready'>('all')
+  const [filterStatus, setFilterStatus] = useState<ProjectFilterOption>('all')
   
   const mockProjects: Project[] = [
     {
@@ -303,7 +308,13 @@ export function DashboardPrototype({ onCreateProject, onOpenProject }: Dashboard
               
               <select 
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
+                onChange={(e) => {
+                  const { value } = e.target
+                  if (!isProjectFilterOption(value)) {
+                    return
+                  }
+                  setFilterStatus(value)
+                }}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">Todos</option>

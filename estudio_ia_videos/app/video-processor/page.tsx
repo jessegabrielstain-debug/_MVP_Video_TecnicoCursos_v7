@@ -8,7 +8,7 @@ export default function VideoProcessorPage() {
   return (
     <div className="min-h-screen bg-background">
       <VideoProcessorStudio
-        onVideoProcessed={(blob, filename) => {
+        onVideoProcessed={(blob: Blob, filename: string) => {
           console.log('Vídeo processado:', filename, blob.size, 'bytes');
         }}
       />

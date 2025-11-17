@@ -1,11 +1,14 @@
 import { promises as fs } from 'fs'
 import path from 'path'
+import { NextRequest } from 'next/server'
+import { PrismaClient } from '@prisma/client'
+import { POST } from '@/app/api/pptx/upload/route'
+
 process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary'
-const { PrismaClient } = require('@prisma/client')
+
 jest.mock('next-auth', () => ({
   getServerSession: jest.fn().mockResolvedValue(null)
 }))
-const { POST } = require('@/app/api/pptx/upload/route')
 
 const FIXTURE_PATH = path.join(process.cwd(), 'test-presentation.pptx')
 
@@ -30,10 +33,11 @@ describe('/api/pptx/upload', () => {
     }
 
     const request = {
-      formData: async () => fakeFormData
-    } as any
+      formData: async () => fakeFormData,
+      headers: new Headers({ 'content-type': 'multipart/form-data' })
+    }
 
-    const response = await POST(request as any)
+    const response = await POST(request as unknown as NextRequest)
     const payload = await response.json()
 
     expect(response.status).toBe(200)

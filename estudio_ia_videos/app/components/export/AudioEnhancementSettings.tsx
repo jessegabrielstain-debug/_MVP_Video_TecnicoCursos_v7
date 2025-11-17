@@ -33,11 +33,18 @@ interface AudioEnhancementSettingsProps {
   onChange: (enhancements: AudioEnhancementConfig[]) => void
 }
 
+const TAB_VALUES = ['presets', 'custom'] as const
+type TabValue = (typeof TAB_VALUES)[number]
+
+const tabValuesSet = new Set<string>(TAB_VALUES)
+
+const isTabValue = (value: string): value is TabValue => tabValuesSet.has(value)
+
 export function AudioEnhancementSettings({
   enhancements,
   onChange,
 }: AudioEnhancementSettingsProps) {
-  const [activeTab, setActiveTab] = useState<'presets' | 'custom'>('presets')
+  const [activeTab, setActiveTab] = useState<TabValue>('presets')
 
   /**
    * Apply preset
@@ -95,7 +102,14 @@ export function AudioEnhancementSettings({
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          if (isTabValue(value)) {
+            setActiveTab(value)
+          }
+        }}
+      >
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="presets">
             <Sparkles className="h-4 w-4 mr-2" />

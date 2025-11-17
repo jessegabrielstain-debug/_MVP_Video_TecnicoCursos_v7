@@ -1,6 +1,8 @@
+import { NextRequest } from 'next/server'
+import { Prisma, PrismaClient } from '@prisma/client'
+import { GET } from '@/app/api/projects/[projectId]/route'
+
 process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary'
-const { PrismaClient } = require('@prisma/client')
-const { GET } = require('@/app/api/projects/[projectId]/route')
 
 const prisma = new PrismaClient()
 
@@ -19,6 +21,11 @@ describe('/api/projects/[projectId]', () => {
     })
     userId = user.id
 
+    const pptxMetadata: Prisma.InputJsonValue = {
+      title: 'Project Details API Test',
+      author: 'Test Suite'
+    }
+
     const project = await prisma.project.create({
       data: {
         name: 'Project Details API Test',
@@ -26,10 +33,7 @@ describe('/api/projects/[projectId]', () => {
         userId,
         originalFileName: 'details-test.pptx',
         totalSlides: 2,
-        pptxMetadata: {
-          title: 'Project Details API Test',
-          author: 'Test Suite'
-        } as any,
+        pptxMetadata,
         slides: {
           create: [
             {
@@ -69,7 +73,7 @@ describe('/api/projects/[projectId]', () => {
   })
 
   it('retorna detalhes do projeto com timeline e slides', async () => {
-    const request = { url: `http://localhost/api/projects/${projectId}` } as any
+    const request = new NextRequest(`http://localhost/api/projects/${projectId}`)
 
     const response = await GET(request, { params: { projectId } })
     expect(response.status).toBe(200)
@@ -84,7 +88,7 @@ describe('/api/projects/[projectId]', () => {
 
   it('retorna 404 para projetos inexistentes', async () => {
     const fakeId = 'non-existing-project-id'
-    const request = { url: `http://localhost/api/projects/${fakeId}` } as any
+    const request = new NextRequest(`http://localhost/api/projects/${fakeId}`)
 
     const response = await GET(request, { params: { projectId: fakeId } })
     expect(response.status).toBe(404)

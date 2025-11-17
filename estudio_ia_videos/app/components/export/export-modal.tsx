@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Download, Settings, Video, Image, Music, FileText } from 'lucide-react';
+import { X, Download, Settings, Video, Image, Music, type LucideIcon } from 'lucide-react';
 import { useRendering } from '../../hooks/use-rendering';
 import { useTimeline } from '../../hooks/use-timeline';
 import { ExportSettings, QUALITY_PRESETS } from '../../lib/types/remotion-types';
@@ -53,7 +53,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
     }
   };
 
-  const formatOptions = [
+  const formatOptions: Array<{ value: ExportSettings['format']; label: string; icon: LucideIcon }> = [
     { value: 'mp4', label: 'MP4 Video', icon: Video },
     { value: 'webm', label: 'WebM Video', icon: Video },
     { value: 'gif', label: 'GIF Animation', icon: Image },
@@ -61,10 +61,45 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
     { value: 'wav', label: 'WAV Audio', icon: Music }
   ];
 
-  const qualityOptions = Array.from({ length: 10 }, (_, i) => ({
-    value: (i + 1) as ExportSettings['quality'],
-    label: `Qualidade ${i + 1}${i === 9 ? ' (Máxima)' : i === 0 ? ' (Mínima)' : ''}`
+  const QUALITY_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+  const qualityOptions = QUALITY_VALUES.map((value, index) => ({
+    value,
+    label: `Qualidade ${value}${index === QUALITY_VALUES.length - 1 ? ' (Máxima)' : index === 0 ? ' (Mínima)' : ''}`
   }));
+
+  const codecOptions: Array<{ value: NonNullable<ExportSettings['codec']>; label: string }> = [
+    { value: 'h264', label: 'H.264' },
+    { value: 'h265', label: 'H.265' },
+    { value: 'vp8', label: 'VP8' },
+    { value: 'vp9', label: 'VP9' }
+  ];
+
+  const codecValues = codecOptions.map(option => option.value);
+
+  const isQualityValue = (value: number): value is ExportSettings['quality'] => {
+    return QUALITY_VALUES.includes(value as (typeof QUALITY_VALUES)[number]);
+  };
+
+  const isCodecValue = (value: string): value is NonNullable<ExportSettings['codec']> => {
+    return codecValues.includes(value as NonNullable<ExportSettings['codec']>);
+  };
+
+  const handleFormatSelect = (format: ExportSettings['format']) => {
+    setSettings(prev => ({ ...prev, format }));
+  };
+
+  const handleQualityChange = (value: string) => {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && isQualityValue(parsed)) {
+      setSettings(prev => ({ ...prev, quality: parsed }));
+    }
+  };
+
+  const handleCodecChange = (value: string) => {
+    if (isCodecValue(value)) {
+      setSettings(prev => ({ ...prev, codec: value }));
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -114,7 +149,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                 {formatOptions.map((format) => (
                   <button
                     key={format.value}
-                    onClick={() => setSettings(prev => ({ ...prev, format: format.value as any }))}
+                    onClick={() => handleFormatSelect(format.value)}
                     className={`p-3 rounded-lg border-2 transition-all ${
                       settings.format === format.value
                         ? 'border-blue-500 bg-blue-500/10'
@@ -165,11 +200,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">Qualidade</label>
                   <select
-                    value={settings.quality}
-                    onChange={(e) => setSettings(prev => ({ 
-                      ...prev, 
-                      quality: parseInt(e.target.value) as any 
-                    }))}
+                    value={String(settings.quality)}
+                    onChange={(e) => handleQualityChange(e.target.value)}
                     className="w-full p-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
                   >
                     {qualityOptions.map(option => (
@@ -185,16 +217,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                   <label className="block text-xs text-gray-400 mb-1">Codec</label>
                   <select
                     value={settings.codec}
-                    onChange={(e) => setSettings(prev => ({ 
-                      ...prev, 
-                      codec: e.target.value as any 
-                    }))}
+                    onChange={(e) => handleCodecChange(e.target.value)}
                     className="w-full p-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
                   >
-                    <option value="h264">H.264</option>
-                    <option value="h265">H.265</option>
-                    <option value="vp8">VP8</option>
-                    <option value="vp9">VP9</option>
+                    {codecOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

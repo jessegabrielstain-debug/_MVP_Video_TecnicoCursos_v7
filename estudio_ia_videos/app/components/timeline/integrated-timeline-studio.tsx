@@ -1,59 +1,165 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Play, 
-  Pause, 
-  Square, 
-  Settings, 
-  Layers, 
-  Zap, 
-  Timer, 
-  Download, 
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Play,
+  Pause,
+  Square,
+  Layers,
+  Timer,
+  Download,
   Save,
   Eye,
-  EyeOff,
-  Volume2,
-  VolumeX,
   Maximize2,
   Navigation,
   Target,
   Sparkles,
   Clock,
-  FileVideo,
   AudioLines,
-  Grid3X3,
   RotateCcw,
-  Bookmark,
   TrendingUp,
   Activity,
   Cpu,
   HardDrive,
   Wifi,
   AlertCircle,
-  CheckCircle,
-  Info
+  CheckCircle
 } from 'lucide-react';
-
-// Importar todos os componentes da timeline profissional
-import MultiTrackManager from './multi-track-manager';
-import AudioVideoSyncEngine from './audio-video-sync-engine';
-import RealTimePreview from './real-time-preview';
-import TimelineExportEngine from './timeline-export-engine';
-import { KeyframeAnimationSystem } from './keyframe-animation-system';
-import { SpeedTimingControls } from './speed-timing-controls';
-import { EffectsTransitionsLibrary } from './effects-transitions-library';
-import { UndoRedoSystem } from './undo-redo-system';
-import { ZoomNavigationControls } from './zoom-navigation-controls';
+import { useSearchParams } from 'next/navigation';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 
+// Importar todos os componentes da timeline profissional
+import AudioVideoSyncEngine from './audio-video-sync-engine';
+import { EffectsTransitionsLibrary } from './effects-transitions-library';
+import { KeyframeAnimationSystem } from './keyframe-animation-system';
+import MultiTrackManager from './multi-track-manager';
+import RealTimePreview from './real-time-preview';
+import { SpeedTimingControls } from './speed-timing-controls';
+import TimelineExportEngine from './timeline-export-engine';
+import { UndoRedoSystem } from './undo-redo-system';
+import { ZoomNavigationControls } from './zoom-navigation-controls';
+
 // Interfaces para o estúdio integrado
+interface TimelineItem {
+  id: string
+  start: number
+  duration: number
+  content: string
+  properties?: Record<string, unknown>
+  selected?: boolean
+  keyframes?: Array<{ id: string; time: number; value: number; easing?: string }>
+  effects?: Array<{ id: string; type: string; intensity?: number }>
+  locked?: boolean
+  fadeIn?: number
+  fadeOut?: number
+  speed?: number
+  reversed?: boolean
+  muted?: boolean
+  volume?: number
+  [key: string]: unknown
+}
+
+interface TimelineTrackMetadata {
+  created: string
+  modified: string
+  duration: number
+  itemCount: number
+  size?: number
+  format?: string
+  [key: string]: unknown
+}
+
+interface TimelineTrack {
+  id: string
+  type: 'video' | 'audio' | 'text' | 'image' | 'effect' | 'group'
+  name: string
+  color: string
+  items: TimelineItem[]
+  visible: boolean
+  locked: boolean
+  collapsed: boolean
+  height: number
+  order: number
+  parentGroup?: string
+  effects?: Array<{ id: string; type: string; [key: string]: unknown }>
+  metadata: TimelineTrackMetadata
+  [key: string]: unknown
+}
+
+interface ExportJobMetadata {
+  duration?: number
+  size?: number
+  resolution?: string
+  format?: string
+  thumbnails?: string[]
+  codec?: string
+  fps?: number
+  bitrateKbps?: number
+  sizeBytes?: number
+}
+
+interface ExportJobDetails {
+  id: string
+  status: ExportJobStatus
+  progress?: number
+  outputUrl?: string | null
+  error?: string | null
+  createdAt?: string
+  updatedAt?: string
+  startedAt?: string
+  completedAt?: string
+  metadata?: ExportJobMetadata
+}
+
+interface ExportHistoryEntry extends ExportJobDetails {
+  progress: number
+}
+
+interface ExportHistoryPage {
+  offset: number
+  limit: number
+  total: number
+  hasNext: boolean
+}
+
+interface ExportHistoryResponse {
+  success: boolean
+  history?: unknown
+  page?: Partial<ExportHistoryPage>
+  error?: string
+}
+
+interface ExportJobResponse {
+  success: boolean
+  job?: unknown
+  jobId?: string
+  error?: string
+}
+
+interface TimelineSaveResponse {
+  success: boolean
+  message?: string
+  error?: string
+}
+
+interface LoadTimelineResponse {
+  success: boolean
+  data?: {
+    tracks?: unknown
+    totalDuration?: number
+    settings?: RemoteTimelineSettings
+    projectName?: string
+    updatedAt?: string
+  }
+  message?: string
+}
+
 interface StudioState {
   activeModule: string;
   projectName: string;
@@ -62,7 +168,7 @@ interface StudioState {
   currentTime: number;
   duration: number;
   zoom: number;
-  tracks: any[];
+  tracks: TimelineTrack[];
   selectedItems: string[];
   previewQuality: 'low' | 'medium' | 'high' | 'ultra';
   renderInProgress: boolean;
@@ -80,15 +186,161 @@ interface PerformanceMetrics {
   trackCount: number;
 }
 
+type StudioModuleRenderer = (state: StudioState) => React.ReactNode
+
 interface ModuleConfig {
   id: string;
   name: string;
   description: string;
   icon: React.ReactNode;
-  component: React.ComponentType<any>;
+  render: StudioModuleRenderer;
   enabled: boolean;
   shortcut?: string;
 }
+
+const JOB_STATUSES = ['idle', 'queued', 'processing', 'completed', 'error', 'cancelled'] as const
+type ExportJobStatus = (typeof JOB_STATUSES)[number]
+const jobStatusSet = new Set<string>(JOB_STATUSES)
+
+const isExportJobStatus = (value: string): value is ExportJobStatus => jobStatusSet.has(value)
+
+const isTimelineTrackArray = (value: unknown): value is TimelineTrack[] =>
+  Array.isArray(value) &&
+  value.every(
+    (track) =>
+      track !== null &&
+      typeof track === 'object' &&
+      'id' in track &&
+      typeof (track as { id?: unknown }).id === 'string' &&
+      'items' in track &&
+      Array.isArray((track as { items?: unknown }).items)
+  )
+
+const isExportHistoryEntryArray = (value: unknown): value is ExportHistoryEntry[] =>
+  Array.isArray(value) &&
+  value.every((entry) => entry && typeof entry === 'object' && 'id' in entry && 'progress' in entry)
+
+const parseExportJobStatus = (value: unknown, fallback: ExportJobStatus = 'processing'): ExportJobStatus =>
+  typeof value === 'string' && isExportJobStatus(value) ? value : fallback
+
+const parseExportJobDetails = (value: unknown): ExportJobDetails | null => {
+  if (!value || typeof value !== 'object') return null
+  const { id, status } = value as { id?: unknown; status?: unknown }
+  if (typeof id !== 'string') return null
+  return {
+    id,
+    status: parseExportJobStatus(status ?? 'processing'),
+    progress: typeof (value as { progress?: unknown }).progress === 'number' ? (value as { progress: number }).progress : undefined,
+    outputUrl: typeof (value as { outputUrl?: unknown }).outputUrl === 'string'
+      ? (value as { outputUrl: string }).outputUrl
+      : null,
+    error: typeof (value as { error?: unknown }).error === 'string' ? (value as { error: string }).error : null,
+    createdAt: typeof (value as { createdAt?: unknown }).createdAt === 'string'
+      ? (value as { createdAt: string }).createdAt
+      : undefined,
+    updatedAt: typeof (value as { updatedAt?: unknown }).updatedAt === 'string'
+      ? (value as { updatedAt: string }).updatedAt
+      : undefined,
+    startedAt: typeof (value as { startedAt?: unknown }).startedAt === 'string'
+      ? (value as { startedAt: string }).startedAt
+      : undefined,
+    completedAt: typeof (value as { completedAt?: unknown }).completedAt === 'string'
+      ? (value as { completedAt: string }).completedAt
+      : undefined,
+    metadata: (value as { metadata?: ExportJobMetadata }).metadata,
+  }
+}
+
+const parseExportHistoryPage = (value: Partial<ExportHistoryPage> | undefined, fallback?: ExportHistoryPage): ExportHistoryPage => ({
+  offset: typeof value?.offset === 'number' ? value.offset : fallback?.offset ?? 0,
+  limit: typeof value?.limit === 'number' ? value.limit : fallback?.limit ?? 10,
+  total: typeof value?.total === 'number' ? value.total : fallback?.total ?? 0,
+  hasNext: typeof value?.hasNext === 'boolean' ? value.hasNext : fallback?.hasNext ?? false
+})
+
+const parseExportHistory = (value: unknown): ExportHistoryEntry[] => {
+  if (!value) return []
+  if (isExportHistoryEntryArray(value)) {
+    return value.map((entry) => ({
+      ...entry,
+      status: parseExportJobStatus(entry.status),
+      progress: typeof entry.progress === 'number' ? entry.progress : 0,
+      outputUrl: typeof entry.outputUrl === 'string' ? entry.outputUrl : null,
+      error: typeof entry.error === 'string' ? entry.error : null
+    }))
+  }
+  return []
+}
+
+const EXPORT_PROFILES = ['balance', 'quality', 'small'] as const;
+type ExportProfile = (typeof EXPORT_PROFILES)[number];
+
+const exportProfileSet = new Set<string>(EXPORT_PROFILES);
+
+const isExportProfile = (value: string): value is ExportProfile =>
+  exportProfileSet.has(value);
+
+const QUALITY_OPTIONS = ['sd', 'hd', 'fhd', '4k'] as const;
+type QualityOption = (typeof QUALITY_OPTIONS)[number];
+
+const qualityOptionsSet = new Set<string>(QUALITY_OPTIONS);
+
+const isQualityOption = (value: string): value is QualityOption =>
+  qualityOptionsSet.has(value);
+
+const HISTORY_STATUSES = ['all', 'queued', 'processing', 'completed', 'error'] as const;
+type HistoryStatus = (typeof HISTORY_STATUSES)[number];
+
+const historyStatusSet = new Set<string>(HISTORY_STATUSES);
+
+const isHistoryStatus = (value: string): value is HistoryStatus =>
+  historyStatusSet.has(value);
+
+const TIMELINE_FORMATS = ['mp4', 'webm', 'mov'] as const;
+type TimelineFormat = (typeof TIMELINE_FORMATS)[number];
+
+const timelineFormatSet = new Set<string>(TIMELINE_FORMATS);
+
+const isTimelineFormat = (value: string): value is TimelineFormat =>
+  timelineFormatSet.has(value);
+
+const TIMELINE_RESOLUTIONS = ['1280x720', '1920x1080', '3840x2160'] as const;
+type TimelineResolution = (typeof TIMELINE_RESOLUTIONS)[number];
+
+const timelineResolutionSet = new Set<string>(TIMELINE_RESOLUTIONS);
+
+const isTimelineResolution = (value: string): value is TimelineResolution =>
+  timelineResolutionSet.has(value);
+
+const TIMELINE_FPS_VALUES = [24, 30, 60] as const;
+type TimelineFps = (typeof TIMELINE_FPS_VALUES)[number];
+
+const timelineFpsSet = new Set<number>(TIMELINE_FPS_VALUES);
+
+const isTimelineFps = (value: number): value is TimelineFps =>
+  timelineFpsSet.has(value);
+
+interface TimelineSettings {
+  fps: TimelineFps;
+  resolution: TimelineResolution;
+  format: TimelineFormat;
+  quality: QualityOption;
+  snapToGrid: boolean;
+  autoSave: boolean;
+  zoom: number;
+}
+
+type RemoteTimelineSettings = Partial<TimelineSettings>;
+
+const TIMELINE_DEFAULT_SETTINGS: TimelineSettings = {
+  fps: 30,
+  resolution: '1920x1080',
+  format: 'mp4',
+  quality: 'hd',
+  snapToGrid: true,
+  autoSave: true,
+  zoom: 10,
+};
 
 // Configuração dos módulos
 const TIMELINE_MODULES: ModuleConfig[] = [
@@ -97,7 +349,7 @@ const TIMELINE_MODULES: ModuleConfig[] = [
     name: 'Multi-Track',
     description: 'Gerenciamento de múltiplas faixas com sincronização',
     icon: <Layers className="w-4 h-4" />,
-    component: MultiTrackManager,
+    render: () => <MultiTrackManager />,
     enabled: true,
     shortcut: 'Ctrl+1'
   },
@@ -105,8 +357,8 @@ const TIMELINE_MODULES: ModuleConfig[] = [
     id: 'sync',
     name: 'Audio/Video Sync',
     description: 'Sincronização precisa de áudio e vídeo',
-  icon: <AudioLines className="w-4 h-4" />,
-    component: AudioVideoSyncEngine,
+    icon: <AudioLines className="w-4 h-4" />,
+    render: () => <AudioVideoSyncEngine />,
     enabled: true,
     shortcut: 'Ctrl+2'
   },
@@ -115,7 +367,7 @@ const TIMELINE_MODULES: ModuleConfig[] = [
     name: 'Preview Real-Time',
     description: 'Preview em tempo real com scrubbing',
     icon: <Eye className="w-4 h-4" />,
-    component: RealTimePreview,
+    render: () => <RealTimePreview />,
     enabled: true,
     shortcut: 'Ctrl+3'
   },
@@ -124,7 +376,7 @@ const TIMELINE_MODULES: ModuleConfig[] = [
     name: 'Export Engine',
     description: 'Exportação avançada com múltiplos formatos',
     icon: <Download className="w-4 h-4" />,
-    component: TimelineExportEngine,
+    render: () => <TimelineExportEngine />,
     enabled: true,
     shortcut: 'Ctrl+4'
   },
@@ -133,7 +385,7 @@ const TIMELINE_MODULES: ModuleConfig[] = [
     name: 'Keyframes',
     description: 'Sistema de animação com keyframes',
     icon: <Target className="w-4 h-4" />,
-    component: KeyframeAnimationSystem,
+    render: () => <KeyframeAnimationSystem />,
     enabled: true,
     shortcut: 'Ctrl+5'
   },
@@ -142,7 +394,7 @@ const TIMELINE_MODULES: ModuleConfig[] = [
     name: 'Speed & Timing',
     description: 'Controles de velocidade e timing precisos',
     icon: <Timer className="w-4 h-4" />,
-    component: SpeedTimingControls,
+    render: () => <SpeedTimingControls />,
     enabled: true,
     shortcut: 'Ctrl+6'
   },
@@ -151,7 +403,7 @@ const TIMELINE_MODULES: ModuleConfig[] = [
     name: 'Effects Library',
     description: 'Biblioteca de efeitos e transições',
     icon: <Sparkles className="w-4 h-4" />,
-    component: EffectsTransitionsLibrary,
+    render: () => <EffectsTransitionsLibrary />,
     enabled: true,
     shortcut: 'Ctrl+7'
   },
@@ -160,7 +412,7 @@ const TIMELINE_MODULES: ModuleConfig[] = [
     name: 'Undo/Redo',
     description: 'Sistema avançado de histórico',
     icon: <RotateCcw className="w-4 h-4" />,
-    component: UndoRedoSystem,
+    render: () => <UndoRedoSystem />,
     enabled: true,
     shortcut: 'Ctrl+8'
   },
@@ -169,7 +421,7 @@ const TIMELINE_MODULES: ModuleConfig[] = [
     name: 'Zoom & Navigation',
     description: 'Controles de zoom e navegação',
     icon: <Navigation className="w-4 h-4" />,
-    component: ZoomNavigationControls,
+    render: () => <ZoomNavigationControls />,
     enabled: true,
     shortcut: 'Ctrl+9'
   }
@@ -212,8 +464,7 @@ export function IntegratedTimelineStudio() {
   useEffect(() => {
     const pid = searchParams?.get('projectId') || '';
     if (pid) setProjectId(pid);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
   // Carregar timeline do backend
   const handleLoadTimeline = useCallback(async () => {
@@ -222,15 +473,15 @@ export function IntegratedTimelineStudio() {
       return;
     }
     try {
-      const res = await fetch(`/api/v1/timeline/multi-track?projectId=${encodeURIComponent(projectId)}`);
-      const json = await res.json();
+      const res = await fetch(`/api/v1/timeline/multi-track?projectId=${encodeURIComponent(projectId)}`)
+      const json = (await res.json()) as LoadTimelineResponse
       if (!res.ok || !json?.success || !json?.data) {
-        throw new Error(json?.message || 'Falha ao carregar timeline');
+        throw new Error(json?.message || 'Falha ao carregar timeline')
       }
-      const { tracks, totalDuration, settings, projectName } = json.data;
+      const { tracks, totalDuration, settings, projectName } = json.data
       setStudioState(prev => ({
         ...prev,
-        tracks: Array.isArray(tracks) ? tracks : [],
+        tracks: isTimelineTrackArray(tracks) ? tracks : prev.tracks,
         duration: typeof totalDuration === 'number' ? totalDuration : prev.duration,
         lastSaved: new Date(json.data.updatedAt || Date.now()),
         projectName: projectName || prev.projectName,
@@ -238,9 +489,19 @@ export function IntegratedTimelineStudio() {
       if (settings) {
         setSettings(prev => ({
           ...prev,
-          fps: settings.fps ?? prev.fps,
-          resolution: settings.resolution ?? prev.resolution,
-          format: settings.format ?? prev.format,
+          fps: isTimelineFps(Number(settings.fps)) ? (Number(settings.fps) as TimelineFps) : prev.fps,
+          resolution:
+            typeof settings.resolution === 'string' && isTimelineResolution(settings.resolution)
+              ? settings.resolution
+              : prev.resolution,
+          format:
+            typeof settings.format === 'string' && isTimelineFormat(settings.format)
+              ? settings.format
+              : prev.format,
+          quality:
+            typeof settings.quality === 'string' && isQualityOption(settings.quality)
+              ? settings.quality
+              : prev.quality,
           snapToGrid: settings.snapToGrid ?? prev.snapToGrid,
           autoSave: settings.autoSave ?? prev.autoSave,
           zoom: settings.zoom ?? prev.zoom,
@@ -248,36 +509,29 @@ export function IntegratedTimelineStudio() {
         if (typeof settings.autoSave === 'boolean') setAutoSave(settings.autoSave);
       }
       toast.success('Timeline carregada');
-    } catch (err: any) {
-      toast.error(`Erro ao carregar: ${err.message || err}`);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      toast.error(`Erro ao carregar: ${error.message}`);
     }
   }, [projectId]);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportJobId, setExportJobId] = useState<string | null>(null);
   const [exportProgress, setExportProgress] = useState<number>(0);
-  const [exportStatus, setExportStatus] = useState<string>('idle');
+  const [exportStatus, setExportStatus] = useState<ExportJobStatus>('idle');
   const [exportOutputUrl, setExportOutputUrl] = useState<string | null>(null);
-  const [exportMetadata, setExportMetadata] = useState<any | null>(null);
-  const [exportHistory, setExportHistory] = useState<Array<{id:string;status:string;progress:number;outputUrl?:string|null;error?:string|null;createdAt?:string;updatedAt?:string}>>([]);
+  const [exportMetadata, setExportMetadata] = useState<ExportJobMetadata | null>(null);
+  const [exportHistory, setExportHistory] = useState<ExportHistoryEntry[]>([]);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
-  const [historyStatus, setHistoryStatus] = useState<'all'|'queued'|'processing'|'completed'|'error'>('all');
-  const [historyPage, setHistoryPage] = useState({ offset: 0, limit: 10, total: 0, hasNext: false });
+  const [historyStatus, setHistoryStatus] = useState<HistoryStatus>('all');
+  const [historyPage, setHistoryPage] = useState<ExportHistoryPage>({ offset: 0, limit: 10, total: 0, hasNext: false });
   const [showJobModal, setShowJobModal] = useState(false);
   const [jobModalLoading, setJobModalLoading] = useState(false);
-  const [jobDetails, setJobDetails] = useState<any | null>(null);
-  const [selectedProfile, setSelectedProfile] = useState<'balance'|'quality'|'small'>('balance');
+  const [jobDetails, setJobDetails] = useState<ExportJobDetails | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<ExportProfile>('balance');
 
   // Settings (persistidos com a timeline)
-  const [settings, setSettings] = useState({
-    fps: 30,
-    resolution: '1920x1080',
-    format: 'mp4',
-    quality: 'hd' as 'sd' | 'hd' | 'fhd' | '4k',
-    snapToGrid: true,
-    autoSave: true,
-    zoom: 10,
-  });
+  const [settings, setSettings] = useState<TimelineSettings>(TIMELINE_DEFAULT_SETTINGS);
 
   // Codec sugerido e validação preventiva
   const suggestCodec = useCallback(() => {
@@ -289,12 +543,9 @@ export function IntegratedTimelineStudio() {
   }, [settings.format, settings.quality]);
 
   const isCombinationValid = useCallback(() => {
-    const validFormats = ['mp4','webm','mov'];
-    const validQualities = ['sd','hd','fhd','4k'];
-    const validFps = [24,30,60];
-    if (!validFormats.includes(settings.format)) return false;
-    if (!validQualities.includes(settings.quality)) return false;
-    if (!validFps.includes(settings.fps)) return false;
+    if (!isTimelineFormat(settings.format)) return false;
+    if (!isQualityOption(settings.quality)) return false;
+    if (!isTimelineFps(settings.fps)) return false;
     // Se chegamos aqui, haverá um codec sugerido compatível pelo backend
     return true;
   }, [settings.format, settings.quality, settings.fps]);
@@ -302,18 +553,18 @@ export function IntegratedTimelineStudio() {
   const loadExportHistory = useCallback(async () => {
     if (!projectId) return;
     try {
-      const qs = new URLSearchParams();
-      qs.set('projectId', projectId);
-      if (historyStatus !== 'all') qs.set('status', historyStatus);
-      qs.set('limit', String(historyPage.limit));
-      qs.set('offset', String(historyPage.offset));
-      const res = await fetch(`/api/v1/video/export-real?${qs.toString()}`);
-      const json = await res.json();
+      const qs = new URLSearchParams()
+      qs.set('projectId', projectId)
+      if (historyStatus !== 'all') qs.set('status', historyStatus)
+      qs.set('limit', String(historyPage.limit))
+      qs.set('offset', String(historyPage.offset))
+      const res = await fetch(`/api/v1/video/export-real?${qs.toString()}`)
+      const json = (await res.json()) as ExportHistoryResponse
       if (res.ok && json?.success) {
-        if (Array.isArray(json.history)) setExportHistory(json.history);
-        if (json.page) setHistoryPage((p) => ({ ...p, total: json.page.total, hasNext: !!json.page.hasNext }));
+        setExportHistory(parseExportHistory(json.history))
+        if (json.page) setHistoryPage(prev => parseExportHistoryPage(json.page, prev))
       }
-    } catch (e) {
+    } catch {
       // silencioso
     }
   }, [projectId, historyStatus, historyPage.offset, historyPage.limit]);
@@ -323,21 +574,22 @@ export function IntegratedTimelineStudio() {
       setShowJobModal(true);
       setJobModalLoading(true);
       setJobDetails(null);
-      const res = await fetch(`/api/v1/video/export-real?jobId=${encodeURIComponent(jobId)}`);
-      const json = await res.json();
-      if (res.ok && json?.success && json?.job) {
-        setJobDetails(json.job);
+      const res = await fetch(`/api/v1/video/export-real?jobId=${encodeURIComponent(jobId)}`)
+      const json = (await res.json()) as ExportJobResponse
+      if (res.ok && json?.success) {
+        setJobDetails(parseExportJobDetails(json.job));
       } else {
-        toast.error(json?.error || 'Não foi possível carregar detalhes do job');
+        toast.error(json?.error || 'Não foi possível carregar detalhes do job')
       }
-    } catch (e: any) {
-      toast.error(e?.message || 'Falha ao carregar detalhes');
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      toast.error(error.message || 'Falha ao carregar detalhes');
     } finally {
       setJobModalLoading(false);
     }
   }, []);
 
-  const applyProfile = useCallback((profile: 'balance'|'quality'|'small') => {
+  const applyProfile = useCallback((profile: ExportProfile) => {
     setSelectedProfile(profile);
     if (profile === 'balance') {
       setSettings(prev => ({ ...prev, format: 'mp4', quality: 'hd', fps: 30 }));
@@ -403,14 +655,15 @@ export function IntegratedTimelineStudio() {
           exportSettings: settings
         })
       });
-      const json = await res.json();
+      const json = (await res.json()) as TimelineSaveResponse;
       if (!res.ok || !json?.success) {
-        throw new Error(json?.message || 'Falha ao salvar timeline');
+        throw new Error(json?.message || json?.error || 'Falha ao salvar timeline');
       }
       toast.success('Timeline salva com sucesso');
       setStudioState(prev => ({ ...prev, lastSaved: new Date() }));
-    } catch (err: any) {
-      toast.error(`Erro ao salvar: ${err.message || err}`);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      toast.error(`Erro ao salvar: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -432,19 +685,20 @@ export function IntegratedTimelineStudio() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectId, options: { format: settings.format || 'mp4', quality: settings.quality || 'hd', fps: settings.fps || 30, codec } })
-      });
-      const json = await res.json();
+      })
+      const json = (await res.json()) as ExportJobResponse
       if (!res.ok || !json?.success || !json?.jobId) {
-        throw new Error(json?.error || 'Falha ao iniciar export');
+        throw new Error(json?.error || 'Falha ao iniciar export')
       }
-      setExportJobId(json.jobId);
+      setExportJobId(json.jobId)
       toast.success('Exportação iniciada');
       // Atualiza histórico após iniciar
-      loadExportHistory();
-    } catch (err: any) {
+      await loadExportHistory();
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
       setIsExporting(false);
       setExportStatus('error');
-      toast.error(`Erro ao exportar: ${err.message || err}`);
+      toast.error(`Erro ao exportar: ${error.message}`);
     }
   }, [projectId, settings, suggestCodec, loadExportHistory]);
 
@@ -452,7 +706,7 @@ export function IntegratedTimelineStudio() {
     if (!exportJobId) return;
     try {
       const res = await fetch(`/api/v1/video/export-real?jobId=${encodeURIComponent(exportJobId)}`, { method: 'DELETE' });
-      const json = await res.json();
+      const json = (await res.json()) as ExportJobResponse;
       if (!res.ok || !json?.success) throw new Error(json?.error || 'Falha ao cancelar exportação');
       setIsExporting(false);
       setExportStatus('idle');
@@ -460,8 +714,9 @@ export function IntegratedTimelineStudio() {
       setExportOutputUrl(null);
       setExportJobId(null);
       toast.success('Exportação cancelada');
-    } catch (e: any) {
-      toast.error(`Erro ao cancelar: ${e.message || e}`);
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      toast.error(`Erro ao cancelar: ${error.message}`);
     }
   }, [exportJobId]);
 
@@ -469,46 +724,63 @@ export function IntegratedTimelineStudio() {
   useEffect(() => {
     if (!exportJobId) return;
     let mounted = true;
-    const interval = setInterval(async () => {
+    let interval: NodeJS.Timeout | null = null;
+
+    const checkJobStatus = async () => {
       try {
         const res = await fetch(`/api/v1/video/export-real?jobId=${exportJobId}`);
-        const json = await res.json();
+        const json = (await res.json()) as ExportJobResponse;
         if (!mounted) return;
-        if (res.ok && json?.success && json?.job) {
-          setExportProgress(json.job.progress ?? 0);
-          setExportStatus(json.job.status ?? 'processing');
-          if (json.job.status === 'completed' || json.job.status === 'error') {
-            clearInterval(interval);
+        if (res.ok && json?.success) {
+          const job = parseExportJobDetails(json.job);
+          if (!job) {
+            if (interval) clearInterval(interval);
             setIsExporting(false);
-            if (json.job.status === 'completed') {
-              setExportOutputUrl(json.job.outputUrl || null);
-              setExportMetadata(json.job.metadata || null);
+            setExportStatus('error');
+            toast.error('Job de exportação indisponível');
+            return;
+          }
+          setExportProgress(job.progress ?? 0);
+          setExportStatus(job.status ?? 'processing');
+          if (job.status === 'completed' || job.status === 'error') {
+            if (interval) clearInterval(interval);
+            setIsExporting(false);
+            if (job.status === 'completed') {
+              setExportOutputUrl(job.outputUrl || null);
+              setExportMetadata(job.metadata || null);
               toast.success('Exportação concluída!');
-              // Atualiza histórico ao concluir
-              loadExportHistory();
+              await loadExportHistory();
             } else {
-              toast.error(json.job.error || 'Falha na exportação');
+              toast.error(job.error || 'Falha na exportação');
             }
           }
         } else if (!res.ok) {
-          clearInterval(interval);
+          if (interval) clearInterval(interval);
           setIsExporting(false);
           setExportStatus('error');
         }
-      } catch (e) {
-        clearInterval(interval);
+      } catch {
+        if (interval) clearInterval(interval);
         setIsExporting(false);
         setExportStatus('error');
       }
+    };
+
+    interval = setInterval(() => {
+      void checkJobStatus();
     }, 1500);
+    void checkJobStatus();
+
     return () => {
       mounted = false;
-      clearInterval(interval);
+      if (interval) {
+        clearInterval(interval);
+      }
     };
   }, [exportJobId, loadExportHistory]);
 
   // Carregar histórico quando projectId mudar ou ao abrir painel
-  useEffect(() => { loadExportHistory(); }, [loadExportHistory]);
+  useEffect(() => { void loadExportHistory(); }, [loadExportHistory]);
 
   // Carregar timeline do backend deve hidratar settings e autosave
   useEffect(() => {
@@ -550,10 +822,10 @@ export function IntegratedTimelineStudio() {
     const interval = setInterval(() => {
       if (projectId) {
         // Persistência real quando há projectId
-        handleSaveTimeline();
+        void handleSaveTimeline();
       } else {
         // Fallback para simulado
-        saveProject();
+        void saveProject();
       }
     }, 30000); // Auto-save a cada 30 segundos
 
@@ -566,8 +838,7 @@ export function IntegratedTimelineStudio() {
   }, [autoSave]);
   useEffect(() => {
     if (settings.autoSave !== autoSave) setAutoSave(settings.autoSave);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.autoSave]);
+  }, [settings.autoSave, autoSave]);
 
   // Performance monitoring
   useEffect(() => {
@@ -595,7 +866,7 @@ export function IntegratedTimelineStudio() {
         switch (e.key) {
           case 's':
             e.preventDefault();
-            saveProject();
+            void saveProject();
             break;
           case ' ':
             e.preventDefault();
@@ -605,7 +876,7 @@ export function IntegratedTimelineStudio() {
             e.preventDefault();
             toggleFullscreen(studioState.activeModule);
             break;
-          default:
+          default: {
             // Verificar atalhos dos módulos
             const moduleShortcut = TIMELINE_MODULES.find(m => 
               m.shortcut === `Ctrl+${e.key}`
@@ -615,6 +886,7 @@ export function IntegratedTimelineStudio() {
               switchModule(moduleShortcut.id);
             }
             break;
+          }
         }
       }
 
@@ -647,18 +919,17 @@ export function IntegratedTimelineStudio() {
       );
     }
 
-    const ModuleComponent = activeModuleConfig.component;
-    return <ModuleComponent {...studioState} />;
+    return activeModuleConfig.render(studioState);
   };
 
   return (
     <>
-    <div 
-      ref={studioRef}
-      className={`w-full h-screen bg-gray-900 text-white flex flex-col ${
-        fullscreenModule ? 'fixed inset-0 z-50' : ''
-      }`}
-    >
+      <div 
+        ref={studioRef}
+        className={`w-full h-screen bg-gray-900 text-white flex flex-col ${
+          fullscreenModule ? 'fixed inset-0 z-50' : ''
+        }`}
+      >
       {/* Header Global */}
       <div className="bg-gray-800 border-b border-gray-700 p-4">
         <div className="flex items-center justify-between">
@@ -676,7 +947,7 @@ export function IntegratedTimelineStudio() {
                   }
                 </span>
                 <Separator orientation="vertical" className="h-4" />
-                <Badge 
+                <Badge
                   variant={studioState.syncStatus === 'synced' ? 'default' : 'destructive'}
                   className="text-xs"
                 >
@@ -687,7 +958,6 @@ export function IntegratedTimelineStudio() {
                 </Badge>
               </div>
             </div>
-          </div>
 
           {/* Controles Globais + Integração API */}
           <div className="flex items-center space-x-2">
@@ -741,7 +1011,12 @@ export function IntegratedTimelineStudio() {
                 <select
                   className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
                   value={selectedProfile}
-                  onChange={(e) => applyProfile(e.target.value as any)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (isExportProfile(value)) {
+                      applyProfile(value);
+                    }
+                  }}
                   title="Perfil de exportação"
                 >
                   <option value="balance">Equilíbrio</option>
@@ -753,7 +1028,12 @@ export function IntegratedTimelineStudio() {
               <select
                 className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
                 value={settings.fps}
-                onChange={(e) => setSettings(prev => ({ ...prev, fps: Number(e.target.value) }))}
+                onChange={(e) => {
+                  const numericValue = Number(e.target.value);
+                  if (isTimelineFps(numericValue)) {
+                    setSettings(prev => ({ ...prev, fps: numericValue }));
+                  }
+                }}
                 title="FPS"
               >
                 <option value={24}>24 FPS</option>
@@ -763,7 +1043,12 @@ export function IntegratedTimelineStudio() {
               <select
                 className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
                 value={settings.resolution}
-                onChange={(e) => setSettings(prev => ({ ...prev, resolution: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (isTimelineResolution(value)) {
+                    setSettings(prev => ({ ...prev, resolution: value }));
+                  }
+                }}
                 title="Resolução"
               >
                 <option value="1280x720">1280x720</option>
@@ -773,7 +1058,12 @@ export function IntegratedTimelineStudio() {
               <select
                 className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
                 value={settings.quality}
-                onChange={(e) => setSettings(prev => ({ ...prev, quality: e.target.value as any }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (isQualityOption(value)) {
+                    setSettings(prev => ({ ...prev, quality: value }));
+                  }
+                }}
                 title="Qualidade"
               >
                 <option value="sd">SD</option>
@@ -784,7 +1074,12 @@ export function IntegratedTimelineStudio() {
               <select
                 className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
                 value={settings.format}
-                onChange={(e) => setSettings(prev => ({ ...prev, format: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (isTimelineFormat(value)) {
+                    setSettings(prev => ({ ...prev, format: value }));
+                  }
+                }}
                 title="Formato"
               >
                 <option value="mp4">MP4</option>
@@ -794,7 +1089,7 @@ export function IntegratedTimelineStudio() {
 
             {/* Botões de Ação */}
             <Button
-              onClick={handleSaveTimeline}
+              onClick={() => { void handleSaveTimeline(); }}
               size="sm"
               className="bg-green-600 hover:bg-green-700"
               disabled={isSaving || !projectId}
@@ -804,7 +1099,7 @@ export function IntegratedTimelineStudio() {
             </Button>
 
             <Button
-              onClick={handleLoadTimeline}
+              onClick={() => { void handleLoadTimeline(); }}
               size="sm"
               variant="outline"
               className="text-gray-300 border-gray-600"
@@ -814,7 +1109,7 @@ export function IntegratedTimelineStudio() {
             </Button>
 
             <Button
-              onClick={handleExport}
+              onClick={() => { void handleExport(); }}
               size="sm"
               variant="secondary"
               disabled={isExporting || !projectId || !isCombinationValid()}
@@ -822,7 +1117,7 @@ export function IntegratedTimelineStudio() {
               {isExporting ? `Exportando (${exportProgress}%)` : 'Exportar Vídeo'}
             </Button>
             <Button
-              onClick={() => { setShowHistoryPanel(!showHistoryPanel); if (!showHistoryPanel) loadExportHistory(); }}
+              onClick={() => { setShowHistoryPanel(!showHistoryPanel); if (!showHistoryPanel) void loadExportHistory(); }}
               size="sm"
               variant="outline"
               className="text-gray-300 border-gray-600"
@@ -833,7 +1128,7 @@ export function IntegratedTimelineStudio() {
             </Button>
             {isExporting && (
               <Button
-                onClick={handleCancelExport}
+                onClick={() => { void handleCancelExport(); }}
                 size="sm"
                 variant="outline"
                 className="text-gray-300 border-gray-600"
@@ -894,13 +1189,11 @@ export function IntegratedTimelineStudio() {
                   size="sm"
                   variant="outline"
                   className="text-gray-300 border-gray-600"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(exportOutputUrl);
-                      toast.success('Link copiado para a área de transferência');
-                    } catch {
-                      toast.error('Não foi possível copiar o link');
-                    }
+                  onClick={() => {
+                    if (!exportOutputUrl) return;
+                    navigator.clipboard.writeText(exportOutputUrl)
+                      .then(() => toast.success('Link copiado para a área de transferência'))
+                      .catch(() => toast.error('Não foi possível copiar o link'));
                   }}
                 >
                   Copiar link
@@ -1036,12 +1329,29 @@ export function IntegratedTimelineStudio() {
               <div className="flex items-center justify-between mb-2">
                 <div className="font-semibold">Histórico de Exports</div>
                 <div className="space-x-2">
-                  <Button size="sm" variant="outline" className="text-gray-300 border-gray-600" onClick={loadExportHistory}>Atualizar</Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-gray-300 border-gray-600"
+                    onClick={() => { void loadExportHistory(); }}
+                  >
+                    Atualizar
+                  </Button>
                   <Button size="sm" variant="outline" className="text-gray-300 border-gray-600" onClick={() => setShowHistoryPanel(false)}>Fechar</Button>
                 </div>
               </div>
               <div className="flex items-center justify-between mb-2">
-                <select className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs" value={historyStatus} onChange={(e) => { setHistoryStatus(e.target.value as any); setHistoryPage(p => ({ ...p, offset: 0 })); }}>
+                <select
+                  className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs"
+                  value={historyStatus}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (isHistoryStatus(value)) {
+                      setHistoryStatus(value);
+                      setHistoryPage((p) => ({ ...p, offset: 0 }));
+                    }
+                  }}
+                >
                   <option value="all">Todos</option>
                   <option value="queued">Queued</option>
                   <option value="processing">Processing</option>
@@ -1072,7 +1382,7 @@ export function IntegratedTimelineStudio() {
                       ) : (
                         <span className="opacity-60">Sem URL</span>
                       )}
-                      <button className="underline" onClick={() => openJobDetails(j.id)}>Detalhes</button>
+                      <button className="underline" onClick={() => { void openJobDetails(j.id); }}>Detalhes</button>
                     </div>
                   </div>
                 </div>
@@ -1080,6 +1390,8 @@ export function IntegratedTimelineStudio() {
             </div>
           )}
         </div>
+      </div>
+
       </div>
 
       {/* Status Bar */}
@@ -1141,7 +1453,18 @@ export function IntegratedTimelineStudio() {
                     <span className="opacity-60">Sem URL</span>
                   )}
                   {jobDetails.outputUrl && (
-                    <Button size="sm" variant="outline" className="text-gray-300 border-gray-600" onClick={async () => { try { await navigator.clipboard.writeText(jobDetails.outputUrl); toast.success('Link copiado'); } catch { toast.error('Falha ao copiar'); } }}>Copiar</Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-gray-300 border-gray-600"
+                      onClick={() => {
+                        navigator.clipboard.writeText(jobDetails.outputUrl)
+                          .then(() => toast.success('Link copiado'))
+                          .catch(() => toast.error('Falha ao copiar'));
+                      }}
+                    >
+                      Copiar
+                    </Button>
                   )}
                 </span>
               </div>

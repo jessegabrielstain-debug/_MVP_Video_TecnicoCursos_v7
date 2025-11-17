@@ -5,8 +5,8 @@
  * Validação de fluxo completo do sistema
  */
 
-import { POST as uploadPOST, GET as uploadGET } from '@/app/api/v1/pptx/upload/route';
-import { POST as convertPOST, GET as convertGET } from '@/app/api/v1/pptx/to-video/route';
+import { POST as uploadPOST } from '@/app/api/pptx/upload/route';
+import { POST as convertPOST } from '@/app/api/pptx/convert/route';
 import { NextRequest } from 'next/server';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import path from 'path';

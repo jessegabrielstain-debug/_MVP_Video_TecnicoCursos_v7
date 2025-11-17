@@ -246,7 +246,7 @@ interface TemplateProject {
   id: string;
   name: string;
   templateId: string;
-  customizations: Record<string, any>;
+  customizations: Record<string, unknown>;
   progress: number;
   status: ProjectStatus;
   createdAt: Date;
@@ -913,7 +913,7 @@ export default function TemplateLibrary({
             </SelectContent>
           </Select>
           
-          <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value)}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
@@ -934,7 +934,7 @@ export default function TemplateLibrary({
 
       {/* Main Content */}
       <div className="flex-1">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="h-full">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="h-full">
           {/* Tabs Navigation */}
           <div className="bg-gray-800 border-b border-gray-700 px-6">
             <TabsList className="bg-gray-700">

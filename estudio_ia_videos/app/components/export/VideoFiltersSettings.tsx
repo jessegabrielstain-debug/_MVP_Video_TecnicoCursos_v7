@@ -8,7 +8,6 @@ import {
   VideoFilterType,
   VideoFilterConfig,
   FilterPreset,
-  DEFAULT_FILTER_VALUES,
   FILTER_PRESETS,
 } from '@/lib/export/video-filters-types'
 import { Button } from '@/components/ui/button'
@@ -36,8 +35,46 @@ interface VideoFiltersSettingsProps {
   onChange: (filters: VideoFilterConfig[]) => void
 }
 
+const TAB_VALUES = ['presets', 'custom'] as const
+type TabValue = (typeof TAB_VALUES)[number]
+
+const tabValuesSet = new Set<string>(TAB_VALUES)
+
+const isTabValue = (value: string): value is TabValue => tabValuesSet.has(value)
+
+const getDefaultFilterValue = (type: VideoFilterType): VideoFilterConfig['value'] => {
+  switch (type) {
+    case VideoFilterType.BRIGHTNESS:
+    case VideoFilterType.CONTRAST:
+      return 0
+    case VideoFilterType.SATURATION:
+      return 1
+    case VideoFilterType.BLUR:
+    case VideoFilterType.SHARPEN:
+      return 0
+    case VideoFilterType.VIGNETTE:
+      return { angle: 90, intensity: 0.5 }
+    default:
+      return 0
+  }
+}
+
+const isNumberValue = (value: VideoFilterConfig['value']): value is number =>
+  typeof value === 'number'
+
+const isVignetteValue = (
+  value: VideoFilterConfig['value'],
+): value is { angle: number; intensity: number } => {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const record = value as Record<string, unknown>
+  return typeof record.angle === 'number' && typeof record.intensity === 'number'
+}
+
 export function VideoFiltersSettings({ filters, onChange }: VideoFiltersSettingsProps) {
-  const [activeTab, setActiveTab] = useState<'presets' | 'custom'>('presets')
+  const [activeTab, setActiveTab] = useState<TabValue>('presets')
 
   /**
    * Apply preset filters
@@ -61,7 +98,7 @@ export function VideoFiltersSettings({ filters, onChange }: VideoFiltersSettings
   const addFilter = (type: VideoFilterType) => {
     const newFilter: VideoFilterConfig = {
       type,
-      value: (DEFAULT_FILTER_VALUES as any)[type] || 0,
+      value: getDefaultFilterValue(type),
       enabled: true,
     }
     onChange([...filters, newFilter])
@@ -99,7 +136,14 @@ export function VideoFiltersSettings({ filters, onChange }: VideoFiltersSettings
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          if (isTabValue(value)) {
+            setActiveTab(value)
+          }
+        }}
+      >
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="presets">
             <Sparkles className="h-4 w-4 mr-2" />
@@ -281,16 +325,19 @@ function FilterControl({ filter, onUpdate, onRemove }: FilterControlProps) {
     switch (filter.type) {
       case VideoFilterType.BRIGHTNESS:
       case VideoFilterType.CONTRAST:
+        if (!isNumberValue(filter.value)) {
+          return null
+        }
         return (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Intensidade</Label>
               <span className="text-sm text-muted-foreground">
-                {((filter.value as number) * 100).toFixed(0)}%
+                {(filter.value * 100).toFixed(0)}%
               </span>
             </div>
             <Slider
-              value={[(filter.value as number) * 100]}
+              value={[filter.value * 100]}
               onValueChange={([v]) => onUpdate({ value: v / 100 })}
               min={-100}
               max={100}
@@ -300,16 +347,19 @@ function FilterControl({ filter, onUpdate, onRemove }: FilterControlProps) {
         )
 
       case VideoFilterType.SATURATION:
+        if (!isNumberValue(filter.value)) {
+          return null
+        }
         return (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Saturação</Label>
               <span className="text-sm text-muted-foreground">
-                {((filter.value as number) * 100).toFixed(0)}%
+                {(filter.value * 100).toFixed(0)}%
               </span>
             </div>
             <Slider
-              value={[(filter.value as number) * 100]}
+              value={[filter.value * 100]}
               onValueChange={([v]) => onUpdate({ value: v / 100 })}
               min={0}
               max={300}
@@ -319,6 +369,9 @@ function FilterControl({ filter, onUpdate, onRemove }: FilterControlProps) {
         )
 
       case VideoFilterType.BLUR:
+        if (!isNumberValue(filter.value)) {
+          return null
+        }
         return (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -326,7 +379,7 @@ function FilterControl({ filter, onUpdate, onRemove }: FilterControlProps) {
               <span className="text-sm text-muted-foreground">{filter.value}px</span>
             </div>
             <Slider
-              value={[filter.value as number]}
+              value={[filter.value]}
               onValueChange={([v]) => onUpdate({ value: v })}
               min={0}
               max={20}
@@ -336,16 +389,19 @@ function FilterControl({ filter, onUpdate, onRemove }: FilterControlProps) {
         )
 
       case VideoFilterType.SHARPEN:
+        if (!isNumberValue(filter.value)) {
+          return null
+        }
         return (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Intensidade</Label>
               <span className="text-sm text-muted-foreground">
-                {((filter.value as number) * 100).toFixed(0)}%
+                {(filter.value * 100).toFixed(0)}%
               </span>
             </div>
             <Slider
-              value={[(filter.value as number) * 100]}
+              value={[filter.value * 100]}
               onValueChange={([v]) => onUpdate({ value: v / 100 })}
               min={0}
               max={200}
@@ -355,7 +411,10 @@ function FilterControl({ filter, onUpdate, onRemove }: FilterControlProps) {
         )
 
       case VideoFilterType.VIGNETTE:
-        const vignetteValue = filter.value as { angle: number; intensity: number }
+        if (!isVignetteValue(filter.value)) {
+          return null
+        }
+        const vignetteValue = filter.value
         return (
           <div className="space-y-3">
             <div className="space-y-2">

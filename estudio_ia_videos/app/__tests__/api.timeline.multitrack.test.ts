@@ -20,9 +20,14 @@ jest.mock('next-auth', () => ({ getServerSession: jest.fn().mockResolvedValue({ 
 jest.mock('@/lib/auth/auth-config', () => ({ authConfig: {} }))
 jest.mock('@/lib/analytics/analytics-tracker', () => ({ AnalyticsTracker: { trackTimelineEdit: jest.fn().mockResolvedValue(true) } }))
 
-function makeRequest(method: string, url: string, body?: any) {
-  const init: any = { method, headers: { 'content-type': 'application/json' } }
-  if (body) init.body = JSON.stringify(body)
+function makeRequest(method: string, url: string, body?: unknown): NextRequest {
+  const headers: HeadersInit = { 'content-type': 'application/json' }
+  const init: RequestInit = { method, headers }
+
+  if (body !== undefined) {
+    init.body = JSON.stringify(body)
+  }
+
   return new NextRequest(new URL(url, 'http://localhost').toString(), init)
 }
 
@@ -33,7 +38,7 @@ describe('API timeline multi-track', () => {
       tracks: [{ id: 'track1', type: 'video', duration: 100 }],
       totalDuration: 100,
       exportSettings: { fps: 60, resolution: '3840x2160', format: 'webm', quality: '4k' }
-    }) as any
+    })
     const res = await timelineRoute.POST(req)
     const json = await res.json()
     expect(res.status).toBe(200)
@@ -47,7 +52,7 @@ describe('API timeline multi-track', () => {
   })
 
   it('GET carrega timeline com sucesso', async () => {
-    const req = makeRequest('GET', '/api/v1/timeline/multi-track?projectId=p1') as any
+    const req = makeRequest('GET', '/api/v1/timeline/multi-track?projectId=p1')
     const res = await timelineRoute.GET(req)
     const json = await res.json()
     expect(res.status).toBe(200)

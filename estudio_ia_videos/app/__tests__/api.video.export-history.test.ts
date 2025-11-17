@@ -1,4 +1,3 @@
-// @ts-nocheck
 // @jest-environment node
 import { NextRequest } from 'next/server'
 import * as exportRoute from '@/api/v1/video/export-real/route'
@@ -15,20 +14,20 @@ jest.mock('@/lib/prisma', () => ({
   }
 }))
 
-function makeRequest(url: string) {
-  return new NextRequest(new URL(url, 'http://localhost').toString(), { method: 'GET' })
+function makeRequest(url: string): NextRequest {
+  return new NextRequest(new URL(url, 'http://localhost').toString(), { method: 'GET' });
 }
 
 describe('API video export-real (histórico)', () => {
   it('GET retorna histórico quando projectId informado', async () => {
-    const req = makeRequest('/api/v1/video/export-real?projectId=p1') as any
-    const res = await exportRoute.GET(req)
-    const json = await res.json()
-    expect(res.status).toBe(200)
-    expect(json.success).toBe(true)
-    expect(Array.isArray(json.history)).toBe(true)
-    expect(json.history.length).toBeGreaterThan(0)
-    expect(json.history[0]).toHaveProperty('id')
-    expect(json.history[0]).toHaveProperty('status')
-  })
-})
+    const req = makeRequest('/api/v1/video/export-real?projectId=p1');
+    const res = await exportRoute.GET(req);
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(Array.isArray(json.history)).toBe(true);
+    expect(json.history.length).toBeGreaterThan(0);
+    expect(json.history[0]).toHaveProperty('id');
+    expect(json.history[0]).toHaveProperty('status');
+  });
+});

@@ -52,7 +52,7 @@ export interface Alert {
   message: string
   timestamp: Date
   resolved: boolean
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface HealthCheck {
@@ -60,7 +60,7 @@ export interface HealthCheck {
   status: 'healthy' | 'degraded' | 'unhealthy'
   latency: number
   lastCheck: Date
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 }
 
 /**
@@ -264,7 +264,7 @@ export class ProductionMonitoring {
   private async checkServiceHealth(service: string): Promise<HealthCheck> {
     const start = Date.now()
     let status: HealthCheck['status'] = 'healthy'
-    let details: Record<string, any> = {}
+    let details: Record<string, unknown> = {}
 
     try {
       switch (service) {
@@ -348,7 +348,7 @@ export class ProductionMonitoring {
   /**
    * Cria um novo alerta
    */
-  private createAlert(type: Alert['type'], title: string, message: string, metadata?: Record<string, any>): void {
+  private createAlert(type: Alert['type'], title: string, message: string, metadata?: Record<string, unknown>): void {
     const alert: Alert = {
       id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type,

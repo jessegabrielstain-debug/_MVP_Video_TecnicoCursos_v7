@@ -84,7 +84,7 @@ describe('SubtitleEmbedder', () => {
     jest.spyOn(fs, 'mkdir').mockResolvedValue(undefined);
     jest.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
     jest.spyOn(fs, 'readFile').mockResolvedValue('1\n00:00:00,000 --> 00:00:03,000\nHello\n\n');
-    jest.spyOn(fs, 'stat').mockResolvedValue({ size: 5000000 } as any);
+    jest.spyOn(fs, 'stat').mockResolvedValue({ size: 5000000 });
     jest.spyOn(fs, 'unlink').mockResolvedValue(undefined);
   });
 

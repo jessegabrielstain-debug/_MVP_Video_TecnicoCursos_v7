@@ -69,7 +69,7 @@ export function getRenderQueue(options?: QueueOptions) {
   return cachedQueue
 }
 
-export function createRenderQueueEvents(options?: QueueEventsOptions) {
+export function createRenderQueueEvents(options?: QueueEventsOptions): RenderQueueEvents {
   const { queueName } = getQueueConfig()
   const connection = buildConnection()
 

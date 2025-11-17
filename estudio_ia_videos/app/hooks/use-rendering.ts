@@ -14,6 +14,22 @@ import {
   QualityPreset 
 } from '../types/remotion-types';
 
+interface RenderJobStats {
+  total: number;
+  pending?: number;
+  queued?: number;
+  processing?: number;
+  completed?: number;
+  failed?: number;
+  cancelled?: number;
+  [key: string]: number | undefined;
+}
+
+export interface RenderJobListResponse {
+  jobs: RenderJob[];
+  stats: RenderJobStats;
+}
+
 interface UseRenderingReturn {
   // Estado
   isRendering: boolean;
@@ -30,7 +46,7 @@ interface UseRenderingReturn {
   streamProgress: (jobId: string) => void;
   
   // Gerenciamento de jobs
-  listJobs: (status?: RenderJob['status']) => Promise<any>;
+  listJobs: (status?: RenderJob['status']) => Promise<RenderJobListResponse>;
   downloadRender: (jobId: string, format?: string) => void;
   
   // Utilidades
@@ -158,7 +174,7 @@ export function useRendering(): UseRenderingReturn {
   /**
    * Listar jobs de renderização
    */
-  const listJobs = useCallback(async (status?: RenderJob['status']) => {
+  const listJobs = useCallback(async (status?: RenderJob['status']): Promise<RenderJobListResponse> => {
     try {
       const url = status 
         ? `/api/render?action=list&status=${status}`
@@ -168,10 +184,10 @@ export function useRendering(): UseRenderingReturn {
       if (!response.ok) throw new Error('Erro ao buscar jobs');
       
       const data = await response.json();
-      return data;
+      return data as RenderJobListResponse;
     } catch (err) {
       console.error('Erro ao listar jobs:', err);
-      return { jobs: [], stats: {} };
+      return { jobs: [], stats: { total: 0 } };
     }
   }, []);
 

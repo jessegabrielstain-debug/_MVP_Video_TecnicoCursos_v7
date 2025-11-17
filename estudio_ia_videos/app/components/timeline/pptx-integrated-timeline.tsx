@@ -98,13 +98,13 @@ interface TimelineClip {
   voiceGenerated?: boolean
   avatarEnabled?: boolean
   transitionType?: string
-  properties: Record<string, any>
+  properties: Record<string, unknown>
 }
 
 interface PPTXIntegratedTimelineProps {
   projectId: string
   slides?: PPTXSlide[]
-  onSave?: (timelineData: any) => void
+  onSave?: (timelineData: unknown) => void
   onExport?: () => void
   onPreview?: () => void
 }

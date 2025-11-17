@@ -154,20 +154,33 @@ export function useCanvasCache(maxCacheSize: number = 50 * 1024 * 1024): UseCanv
     })
   }, [])
 
-  const preloadObjects = useCallback((objects: any[]) => {
+  type FabricNamespace = {
+    Canvas: new (el: HTMLCanvasElement) => {
+      add: (obj: unknown) => void
+      dispose: () => void
+    }
+  }
+
+  const preloadObjects = useCallback((objects: unknown[]) => {
     // Create a temporary canvas for preloading
     const tempCanvas = document.createElement('canvas')
-    const fabric = (window as any).fabric
-    if (!fabric) return
+    const win = window as Window & { fabric?: unknown }
+    const fabricNs = win.fabric
+    if (!fabricNs || typeof fabricNs !== 'object') return
+    const fabric = fabricNs as FabricNamespace
     
     const tempFabricCanvas = new fabric.Canvas(tempCanvas)
     
     if (!tempFabricCanvas) return
     
-    objects.forEach(obj => {
-      if (obj.id) {
+    objects.forEach((obj) => {
+      if (obj && typeof obj === 'object' && 'id' in obj) {
+        // id é usado apenas como chave de cache
+        const idVal = (obj as { id?: string | number }).id
         tempFabricCanvas.add(obj)
-        cacheObject(obj.id, tempFabricCanvas)
+        if (idVal != null) {
+          cacheObject(String(idVal), tempFabricCanvas)
+        }
       }
     })
     

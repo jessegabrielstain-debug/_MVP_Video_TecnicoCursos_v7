@@ -83,7 +83,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -105,7 +105,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -126,7 +126,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -147,7 +147,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -172,7 +172,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -196,7 +196,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -217,7 +217,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -238,7 +238,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -271,7 +271,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -295,7 +295,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -316,7 +316,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -337,7 +337,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -365,7 +365,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -389,7 +389,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -410,7 +410,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -435,7 +435,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -456,7 +456,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -482,7 +482,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -504,7 +504,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -547,7 +547,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -603,7 +603,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -632,7 +632,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -653,7 +653,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -678,7 +678,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -701,7 +701,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -738,7 +738,7 @@ describe('VideoEffects', () => {
         }
 
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         
         return mockFfmpeg;
       });
@@ -815,7 +815,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 
@@ -835,7 +835,7 @@ describe('VideoEffects', () => {
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls
-          .find((call: any) => call[0] === 'end')?.[1]();
+          .find((call: [string, ...unknown[]]) => call[0] === 'end')?.[1]();
         return mockFfmpeg;
       });
 

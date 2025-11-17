@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
@@ -37,10 +37,23 @@ interface VoiceCloningStudioProps {
   onVoiceCreated?: (voiceId: string) => void;
 }
 
+const trainingStatuses = ['pending', 'training', 'ready', 'failed'] as const;
+type TrainingStatus = typeof trainingStatuses[number];
+
+const isTrainingStatus = (value: string): value is TrainingStatus =>
+  trainingStatuses.some((status) => status === value);
+
+const statusConfig: Record<TrainingStatus, { variant: BadgeProps['variant']; icon: string; text: string }> = {
+  pending: { variant: 'secondary', icon: '⏳', text: 'Aguardando' },
+  training: { variant: 'default', icon: '🧠', text: 'Treinando' },
+  ready: { variant: 'default', icon: '✅', text: 'Pronto' },
+  failed: { variant: 'destructive', icon: '❌', text: 'Falhou' }
+};
+
 export default function VoiceCloningStudio({ onVoiceCreated }: VoiceCloningStudioProps) {
   const [currentTab, setCurrentTab] = useState('create');
   const [voiceProfiles, setVoiceProfiles] = useState<any[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+  const [selectedProfile, setSelectedProfile] = useState<unknown>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -187,16 +200,9 @@ export default function VoiceCloningStudio({ onVoiceCreated }: VoiceCloningStudi
   };
 
   const getTrainingStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { variant: 'secondary', icon: '⏳', text: 'Aguardando' },
-      training: { variant: 'default', icon: '🧠', text: 'Treinando' },
-      ready: { variant: 'default', icon: '✅', text: 'Pronto' },
-      failed: { variant: 'destructive', icon: '❌', text: 'Falhou' }
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config = isTrainingStatus(status) ? statusConfig[status] : statusConfig.pending;
     return (
-      <Badge variant={config.variant as any}>
+      <Badge variant={config.variant}>
         {config.icon} {config.text}
       </Badge>
     );

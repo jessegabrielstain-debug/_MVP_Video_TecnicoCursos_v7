@@ -8,8 +8,7 @@
  * Interface adaptativa e otimizada para dispositivos móveis
  */
 
-import React, { useState, useEffect, useRef } from 'react'
-import { useSession } from 'next-auth/react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -90,6 +89,66 @@ import {
   HelpCircle,
   LogOut
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
+
+interface NavigatorConnection extends EventTarget {
+  type?: string
+}
+
+interface BatteryManagerLike extends EventTarget {
+  charging: boolean
+  level: number
+}
+
+type NavigatorWithExtras = Navigator & {
+  connection?: NavigatorConnection
+  getBattery?: () => Promise<BatteryManagerLike>
+}
+
+const isNavigatorWithExtras = (
+  value: Navigator | NavigatorWithExtras
+): value is NavigatorWithExtras => {
+  return typeof value === 'object' && value !== null && ('connection' in value || 'getBattery' in value)
+}
+
+const resolveNavigatorExtras = (): NavigatorWithExtras | null => {
+  if (typeof navigator === 'undefined') {
+    return null
+  }
+
+  const candidate: Navigator | NavigatorWithExtras = navigator
+  if (!isNavigatorWithExtras(candidate)) {
+    return null
+  }
+
+  return candidate
+}
+
+const resolveNavigatorConnection = (): NavigatorConnection | null => {
+  const extras = resolveNavigatorExtras()
+  if (!extras?.connection || typeof extras.connection !== 'object') {
+    return null
+  }
+
+  return extras.connection
+}
+
+const normalizeConnectionType = (
+  connection: NavigatorConnection | null
+): 'wifi' | 'cellular' | 'unknown' => {
+  const type = connection?.type?.toLowerCase()
+
+  if (type === 'wifi') {
+    return 'wifi'
+  }
+
+  if (type === 'cellular' || type === 'cell' || type === '4g' || type === '5g' || type === '3g') {
+    return 'cellular'
+  }
+
+  return 'unknown'
+}
 
 // ==================== INTERFACES ====================
 
@@ -202,24 +261,21 @@ function useNetworkStatus() {
   const [networkType, setNetworkType] = useState<'wifi' | 'cellular' | 'unknown'>('unknown')
 
   useEffect(() => {
-    const updateOnlineStatus = () => setIsOnline(navigator.onLine)
-    const updateNetworkType = () => {
-      if ('connection' in navigator) {
-        const connection = (navigator as any).connection
-        if (connection) {
-          setNetworkType(connection.type === 'wifi' ? 'wifi' : 'cellular')
-        }
-      }
-    }
+    const updateOnlineStatus = () => setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : false)
+    const updateNetworkType = () => setNetworkType(normalizeConnectionType(resolveNavigatorConnection()))
 
     window.addEventListener('online', updateOnlineStatus)
     window.addEventListener('offline', updateOnlineStatus)
     updateOnlineStatus()
     updateNetworkType()
 
+    const connection = resolveNavigatorConnection()
+    connection?.addEventListener('change', updateNetworkType)
+
     return () => {
       window.removeEventListener('online', updateOnlineStatus)
       window.removeEventListener('offline', updateOnlineStatus)
+      connection?.removeEventListener('change', updateNetworkType)
     }
   }, [])
 
@@ -231,14 +287,56 @@ function useBattery() {
   const [isCharging, setIsCharging] = useState(false)
 
   useEffect(() => {
-    if ('getBattery' in navigator) {
-      (navigator as any).getBattery().then((battery: any) => {
+    let isMounted = true
+    let batteryManager: BatteryManagerLike | null = null
+
+    const handleLevelChange = () => {
+      if (!isMounted || !batteryManager) {
+        return
+      }
+
+      setBatteryLevel(batteryManager.level)
+    }
+
+    const handleChargingChange = () => {
+      if (!isMounted || !batteryManager) {
+        return
+      }
+
+      setIsCharging(batteryManager.charging)
+    }
+
+    const setupBattery = async () => {
+      const extras = resolveNavigatorExtras()
+      if (!extras?.getBattery) {
+        return
+      }
+
+      try {
+        const battery = await extras.getBattery()
+        if (!isMounted) {
+          return
+        }
+
+        batteryManager = battery
         setBatteryLevel(battery.level)
         setIsCharging(battery.charging)
+        battery.addEventListener('levelchange', handleLevelChange)
+        battery.addEventListener('chargingchange', handleChargingChange)
+      } catch (error) {
+        console.warn('Battery API indisponível:', error)
+      }
+    }
 
-        battery.addEventListener('levelchange', () => setBatteryLevel(battery.level))
-        battery.addEventListener('chargingchange', () => setIsCharging(battery.charging))
-      })
+    void setupBattery()
+
+    return () => {
+      isMounted = false
+      if (batteryManager) {
+        batteryManager.removeEventListener('levelchange', handleLevelChange)
+        batteryManager.removeEventListener('chargingchange', handleChargingChange)
+      }
+      batteryManager = null
     }
   }, [])
 
@@ -265,7 +363,7 @@ function useDeviceOrientation() {
 // ==================== COMPONENTE PRINCIPAL ====================
 
 export default function MobileOptimized() {
-  const { data: session } = useSession() || {}
+  const supabase = useMemo(() => createClient(), [])
   const { isOnline, networkType } = useNetworkStatus()
   const { batteryLevel, isCharging } = useBattery()
   const orientation = useDeviceOrientation()
@@ -286,6 +384,10 @@ export default function MobileOptimized() {
     reducedMotion: false,
     dataUsageLimit: 500
   })
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [displayName, setDisplayName] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
 
   const filteredProjects = projects.filter(project => {
     const matchesType = filterType === 'all' || project.type === filterType
@@ -294,6 +396,60 @@ export default function MobileOptimized() {
       project.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
     return matchesType && matchesSearch
   })
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadSession = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        const authUser = data.user ?? null
+        setUser(authUser)
+
+        if (authUser) {
+          const { data: profile, error } = await supabase
+            .from('user_profiles')
+            .select('full_name, avatar_url')
+            .eq('id', authUser.id)
+            .maybeSingle()
+
+          if (!isMounted) return
+          if (error) {
+            console.warn('Erro ao carregar perfil:', error)
+          }
+
+          setDisplayName(profile?.full_name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
+          setAvatarUrl(profile?.avatar_url ?? authUser.user_metadata?.avatar_url ?? null)
+        } else {
+          setDisplayName(null)
+          setAvatarUrl(null)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error)
+      }
+    }
+
+    void loadSession()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      const authUser = session?.user ?? null
+      setUser(authUser)
+      if (authUser) {
+        setDisplayName(authUser.user_metadata?.name ?? authUser.email ?? null)
+        setAvatarUrl(authUser.user_metadata?.avatar_url ?? null)
+      } else {
+        setDisplayName(null)
+        setAvatarUrl(null)
+      }
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
 
   // ==================== COMPONENTE DE STATUS BAR ====================
 
@@ -358,14 +514,17 @@ export default function MobileOptimized() {
       <SheetHeader className="mb-6">
         <div className="flex items-center space-x-3">
           <Avatar className="h-12 w-12">
-            <AvatarImage src={session?.user?.image || undefined} />
+            <AvatarImage src={avatarUrl ?? undefined} />
             <AvatarFallback>
-              {session?.user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+              {(displayName ?? user?.email ?? 'U')
+                .split(' ')
+                .map((n) => n[0])
+                .join('') || 'U'}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-medium">{session?.user?.name || 'Usuário'}</p>
-            <p className="text-sm text-muted-foreground">{session?.user?.email || 'email@exemplo.com'}</p>
+            <p className="font-medium">{displayName ?? 'Usuário'}</p>
+            <p className="text-sm text-muted-foreground">{user?.email || 'email@exemplo.com'}</p>
           </div>
         </div>
       </SheetHeader>
@@ -408,9 +567,19 @@ export default function MobileOptimized() {
         
         <Separator className="my-4" />
         
-        <Button variant="ghost" className="w-full justify-start text-red-600" onClick={() => setShowMobileMenu(false)}>
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-red-600"
+          onClick={async () => {
+            setShowMobileMenu(false)
+            if (!signingOut) {
+              await handleLogout()
+            }
+          }}
+          disabled={signingOut}
+        >
           <LogOut className="h-5 w-5 mr-3" />
-          Sair
+          {signingOut ? 'Saindo...' : 'Sair'}
         </Button>
       </div>
     </div>
@@ -646,6 +815,22 @@ export default function MobileOptimized() {
   )
 
   // ==================== RENDER PRINCIPAL ====================
+
+  const handleLogout = async () => {
+    if (signingOut) return
+    try {
+      setSigningOut(true)
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        throw error
+      }
+      window.location.href = '/login?reason=session_expired'
+    } catch (error) {
+      console.error('Erro ao encerrar sessão:', error)
+    } finally {
+      setSigningOut(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

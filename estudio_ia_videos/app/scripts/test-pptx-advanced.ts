@@ -14,10 +14,123 @@ import { PrismaClient } from '@prisma/client'
 import { PPTXBatchDBService } from '../lib/pptx/batch-db-service'
 import { AutoNarrationService } from '../lib/pptx/auto-narration-service'
 import { AnimationConverter } from '../lib/pptx/animation-converter'
-import { BatchPPTXProcessor } from '../lib/pptx/batch-processor'
 import { LayoutAnalyzer } from '../lib/pptx/layout-analyzer'
 
+type AnalyzeSlideInput = Parameters<LayoutAnalyzer['analyzeSlide']>[0]
+type LayoutAnalysis = ReturnType<LayoutAnalyzer['analyzeSlide']>
+type AnimationInput = Parameters<AnimationConverter['convertAnimation']>[0]
+type ConvertedAnimation = ReturnType<AnimationConverter['convertAnimation']>
+type ProcessingJobEntity = Awaited<ReturnType<typeof PPTXBatchDBService.createProcessingJob>>
+type BatchJobEntity = Awaited<ReturnType<typeof PPTXBatchDBService.createBatchJob>>
+type BatchStatistics = Awaited<ReturnType<typeof PPTXBatchDBService.getBatchStatistics>>
+
+interface NarrationSlide {
+  slideNumber: number
+  title: string
+  content: string
+  slideNotes: string
+  extractedText: string
+}
+
+type NarrationServiceWithExtraction = AutoNarrationService & {
+  extractScriptFromSlide(slide: NarrationSlide): string
+  cleanScript(script: string): string
+}
+
+type AsyncReturn<T extends (...args: unknown[]) => unknown> = Awaited<ReturnType<T>>
+
+interface TestSuiteResults {
+  database?: AsyncReturn<typeof testDatabaseService>
+  layoutAnalyzer?: AsyncReturn<typeof testLayoutAnalyzer>
+  animationConverter?: AsyncReturn<typeof testAnimationConverter>
+  autoNarration?: AsyncReturn<typeof testAutoNarrationService>
+  integration?: AsyncReturn<typeof testFullIntegration>
+}
+
 const prisma = new PrismaClient()
+
+function createLayoutTestSlide(): AnalyzeSlideInput {
+  const baseTimestamp = '2025-01-01T12:00:00.000Z'
+
+  return {
+    slideNumber: 1,
+    title: 'Teste de Validação',
+    content: 'Este é um teste de validação de qualidade de slides.',
+    notes: 'Notas adicionais sobre o conteúdo do slide.',
+    layout: 'content',
+    backgroundType: 'solid',
+    backgroundColor: '#FFFFFF',
+    backgroundImage: undefined,
+    backgroundVideo: undefined,
+    images: [
+      {
+        id: 'image-hero',
+        filename: 'image.jpg',
+        originalName: 'image.jpg',
+        path: 'assets/image.jpg',
+        mimeType: 'image/jpeg',
+        type: 'photo',
+        size: 307200,
+        dimensions: {
+          width: 640,
+          height: 480
+        },
+        extractedAt: baseTimestamp
+      }
+    ],
+    shapes: [],
+    textBoxes: [
+      {
+        id: 'title-text',
+        text: 'Título Grande',
+        position: {
+          x: 100,
+          y: 80,
+          width: 800,
+          height: 120
+        },
+        formatting: {
+          fontFamily: 'Arial',
+          fontSize: 32,
+          fontWeight: '700',
+          color: '#000000',
+          alignment: 'center',
+          lineHeight: 1.2
+        },
+        bulletPoints: false,
+        listLevel: 0
+      },
+      {
+        id: 'body-text',
+        text: 'Texto pequeno que pode ser difícil de ler',
+        position: {
+          x: 120,
+          y: 240,
+          width: 780,
+          height: 200
+        },
+        formatting: {
+          fontFamily: 'Arial',
+          fontSize: 10,
+          color: '#999999',
+          alignment: 'left',
+          lineHeight: 1.4
+        },
+        bulletPoints: true,
+        listLevel: 0
+      }
+    ],
+    charts: [],
+    tables: [],
+    smartArt: [],
+    animations: [],
+    hyperlinks: [],
+    duration: 45,
+    estimatedReadingTime: 30,
+    wordCount: 85,
+    characterCount: 420
+  }
+}
 
 // ============================================================================
 // HELPERS
@@ -50,7 +163,7 @@ async function testDatabaseService() {
   try {
     // 1.1 Criar batch job
     logInfo('Criando batch job...')
-    const batchJob = await PPTXBatchDBService.createBatchJob({
+    const batchJob: BatchJobEntity = await PPTXBatchDBService.createBatchJob({
       userId: 'test_user_123',
       organizationId: 'test_org_456',
       batchName: 'Teste Batch - ' + new Date().toISOString(),
@@ -70,7 +183,7 @@ async function testDatabaseService() {
     
     // 1.2 Criar processing jobs
     logInfo('Criando processing jobs...')
-    const jobs = []
+    const jobs: ProcessingJobEntity[] = []
     for (let i = 0; i < 3; i++) {
       const job = await PPTXBatchDBService.createProcessingJob({
         batchJobId: batchJob.id,
@@ -135,7 +248,7 @@ async function testDatabaseService() {
     
     // 1.6 Obter estatísticas
     logInfo('Obtendo estatísticas...')
-    const stats = await PPTXBatchDBService.getBatchStatistics(batchJob.id)
+    const stats: BatchStatistics = await PPTXBatchDBService.getBatchStatistics(batchJob.id)
     console.log('\n📊 Estatísticas:')
     console.log('   Total de arquivos:', stats.batchJob.totalFiles)
     console.log('   Completos:', stats.batchJob.completed)
@@ -189,40 +302,13 @@ async function testLayoutAnalyzer() {
   
   try {
     const analyzer = new LayoutAnalyzer()
-    
+
     // Mock slide data
-    const mockSlide = {
-      slideNumber: 1,
-      title: 'Teste de Validação',
-      content: 'Este é um teste de validação de qualidade de slides.',
-      elements: [
-        {
-          type: 'text',
-          content: 'Título Grande',
-          fontSize: 32,
-          color: '#000000',
-          backgroundColor: '#FFFFFF'
-        },
-        {
-          type: 'text',
-          content: 'Texto pequeno que pode ser difícil de ler',
-          fontSize: 10, // Muito pequeno!
-          color: '#999999', // Baixo contraste!
-          backgroundColor: '#CCCCCC'
-        },
-        {
-          type: 'image',
-          src: 'image.jpg',
-          width: 640,
-          height: 480
-        }
-      ],
-      backgroundColor: '#FFFFFF'
-    }
-    
+    const mockSlide = createLayoutTestSlide()
+
     // 2.1 Analisar slide
     logInfo('Analisando slide...')
-    const result = analyzer.analyzeSlide(mockSlide as any)
+    const result: LayoutAnalysis = analyzer.analyzeSlide(mockSlide)
     
     console.log('\n📊 Resultado da Análise:')
     console.log('   Score:', result.score + '/100')
@@ -289,12 +375,58 @@ async function testAnimationConverter() {
     const converter = new AnimationConverter()
     
     // Mock animation data
-    const mockAnimations = [
-      { type: 'Fade', elementId: 'text1', duration: 1000, delay: 0 },
-      { type: 'FlyIn', elementId: 'image1', duration: 800, delay: 200, direction: 'fromLeft' },
-      { type: 'Zoom', elementId: 'shape1', duration: 600, delay: 400, scale: 1.5 },
-      { type: 'Pulse', elementId: 'text2', duration: 500, delay: 0 },
-      { type: 'UnsupportedType', elementId: 'obj1', duration: 1000, delay: 0 }
+    const mockAnimations: AnimationInput[] = [
+      {
+        id: 'anim-fade',
+        type: 'entrance',
+        effect: 'Fade',
+        targetId: 'text1',
+        targetType: 'text',
+        trigger: 'on-click',
+        duration: 1000,
+        delay: 0
+      },
+      {
+        id: 'anim-fly-in',
+        type: 'entrance',
+        effect: 'FlyIn',
+        targetId: 'image1',
+        targetType: 'image',
+        trigger: 'with-previous',
+        duration: 800,
+        delay: 200,
+        direction: 'from-left'
+      },
+      {
+        id: 'anim-zoom',
+        type: 'entrance',
+        effect: 'Zoom',
+        targetId: 'shape1',
+        targetType: 'shape',
+        trigger: 'after-previous',
+        duration: 600,
+        delay: 400
+      },
+      {
+        id: 'anim-pulse',
+        type: 'emphasis',
+        effect: 'Pulse',
+        targetId: 'text2',
+        targetType: 'text',
+        trigger: 'on-click',
+        duration: 500,
+        delay: 0
+      },
+      {
+        id: 'anim-unsupported',
+        type: 'entrance',
+        effect: 'UnsupportedType',
+        targetId: 'obj1',
+        targetType: 'shape',
+        trigger: 'on-click',
+        duration: 1000,
+        delay: 0
+      }
     ]
     
     logInfo('Convertendo animações...')
@@ -304,7 +436,7 @@ async function testAnimationConverter() {
     let unsupportedCount = 0
     
     for (const anim of mockAnimations) {
-      const converted = converter.convertAnimation(anim as any)
+      const converted: ConvertedAnimation = converter.convertAnimation(anim)
       
       if (converted) {
         supportedCount++
@@ -341,10 +473,10 @@ async function testAutoNarrationService() {
   console.log('━'.repeat(80))
   
   try {
-    const service = new AutoNarrationService()
+    const service = new AutoNarrationService() as NarrationServiceWithExtraction
     
     // Mock slides data
-    const mockSlides = [
+    const mockSlides: NarrationSlide[] = [
       {
         slideNumber: 1,
         title: 'Introdução',
@@ -363,7 +495,7 @@ async function testAutoNarrationService() {
     
     logInfo('Extraindo scripts das notas...')
     const scripts = mockSlides.map(slide => 
-      service.extractScriptFromSlide(slide as any)
+      service.extractScriptFromSlide(slide)
     )
     
     console.log('\n📝 Scripts Extraídos:\n')
@@ -408,7 +540,7 @@ async function testFullIntegration() {
     logInfo('Simulando fluxo completo de processamento...')
     
     // 1. Criar batch job no DB
-    const batchJob = await PPTXBatchDBService.createBatchJob({
+    const batchJob: BatchJobEntity = await PPTXBatchDBService.createBatchJob({
       userId: 'integration_test_user',
       batchName: 'Teste Integração - ' + new Date().toISOString(),
       totalFiles: 2,
@@ -421,7 +553,7 @@ async function testFullIntegration() {
     logSuccess(`Batch job criado: ${batchJob.id}`)
     
     // 2. Criar jobs individuais
-    const jobs = []
+    const jobs: ProcessingJobEntity[] = []
     for (let i = 0; i < 2; i++) {
       const job = await PPTXBatchDBService.createProcessingJob({
         batchJobId: batchJob.id,
@@ -462,20 +594,15 @@ async function testFullIntegration() {
       
       // Fase 4: Quality
       const analyzer = new LayoutAnalyzer()
-      const mockSlide = {
-        slideNumber: 1,
-        title: 'Test',
-        content: 'Test content',
-        elements: []
-      }
-      const qualityResult = analyzer.analyzeSlide(mockSlide as any)
+      const mockSlide = createLayoutTestSlide()
+      const qualityResult: LayoutAnalysis = analyzer.analyzeSlide(mockSlide)
       
       await PPTXBatchDBService.updateProcessingJob(job.id, {
         phase: 'quality',
         progress: 80,
         qualityAnalyzed: true,
         qualityScore: qualityResult.score,
-        qualityData: qualityResult as any
+        qualityData: qualityResult
       })
       
       // Fase 5: Complete
@@ -505,7 +632,7 @@ async function testFullIntegration() {
     logSuccess('Batch job finalizado')
     
     // 5. Obter estatísticas finais
-    const stats = await PPTXBatchDBService.getBatchStatistics(batchJob.id)
+    const stats: BatchStatistics = await PPTXBatchDBService.getBatchStatistics(batchJob.id)
     
     console.log('\n📊 Estatísticas Finais:')
     console.log('   Status:', stats.batchJob.status)
@@ -535,7 +662,7 @@ async function main() {
   console.log('🧪 PPTX ADVANCED FEATURES v2.1 - SUITE DE TESTES COMPLETA')
   console.log('='.repeat(80) + '\n')
   
-  const results: any = {}
+  const results: TestSuiteResults = {}
   
   try {
     // Teste 1: Database Service

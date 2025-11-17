@@ -44,14 +44,14 @@ export interface RecommendationItem {
   description: string;
   score: number; // 0-100
   thumbnail?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   action?: RecommendationAction;
 }
 
 export interface RecommendationAction {
   type: 'navigate' | 'apply' | 'download' | 'watch' | 'learn';
   url?: string;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
 }
 
 export interface UserProfile {

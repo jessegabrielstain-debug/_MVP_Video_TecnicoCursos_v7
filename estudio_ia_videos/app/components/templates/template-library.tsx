@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useTemplates } from '@/hooks/useTemplates';
-import { Template, TemplateFilter, NRCategory } from '@/types/templates';
+import { Template, TemplateFilter, TemplateSort, NRCategory } from '@/types/templates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -101,9 +101,10 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
     }
   };
 
-  const handleSort = (field: string) => {
-    const newDirection = sort.field === field && sort.direction === 'asc' ? 'desc' : 'asc';
-    setSort({ field: field as any, direction: newDirection });
+  const handleSort = (field: TemplateSort['field']) => {
+    const newDirection: TemplateSort['direction'] =
+      sort.field === field && sort.direction === 'asc' ? 'desc' : 'asc';
+    setSort({ field, direction: newDirection });
   };
 
   const handleToggleFavorite = async (id: string) => {

@@ -51,10 +51,18 @@ import {
   EditorEvent,
   EditorConfig 
 } from '@/lib/types-unified-v2'
-import { CanvasEditorV2 } from './canvas-editor-v2'
-import { TimelineEditorV2 } from './timeline-editor-v2'
+import { CanvasEditorV2, type CanvasEditorHandle } from './canvas-editor-v2'
+import { TimelineEditorV2, type TimelineEditorHandle } from './timeline-editor-v2'
 import { SceneManager } from './scene-manager'
 import { AIVoiceAvatarPanel } from './ai-voice-avatar-panel'
+
+export interface AnimakerProjectSnapshot {
+  slides: UnifiedSlide[]
+  metadata: UnifiedParseResult['metadata']
+  timeline: UnifiedParseResult['timeline']
+  lastModified?: string
+  version?: string
+}
 
 interface AnimakerEditorV2Props {
   projectData: UnifiedParseResult & {
@@ -65,7 +73,7 @@ interface AnimakerEditorV2Props {
       s3Key: string
     }
   }
-  onSave?: (data: any) => void
+  onSave?: (data: AnimakerProjectSnapshot) => void
   onExport?: () => void
 }
 
@@ -125,8 +133,27 @@ export function AnimakerEditorV2({ projectData, onSave, onExport }: AnimakerEdit
     canvas: DEFAULT_EDITOR_CONFIG.canvas
   })
 
-  const canvasRef = useRef<any>(null)
-  const timelineRef = useRef<any>(null)
+  const canvasRef = useRef<CanvasEditorHandle | null>(null)
+  const timelineRef = useRef<TimelineEditorHandle | null>(null)
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const createSnapshot = useCallback(
+    (overrides: Partial<AnimakerProjectSnapshot> = {}): AnimakerProjectSnapshot => ({
+      slides,
+      metadata: projectData.metadata,
+      timeline: projectData.timeline,
+      ...overrides
+    }),
+    [slides, projectData.metadata, projectData.timeline]
+  )
+
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current)
+      }
+    }
+  }, [])
 
   // Event handling
   const handleEditorEvent = useCallback((event: EditorEvent) => {
@@ -142,9 +169,11 @@ export function AnimakerEditorV2({ projectData, onSave, onExport }: AnimakerEdit
       case 'element_update':
         // Auto-save on changes (debounced)
         if (onSave) {
-          clearTimeout((window as any).autoSaveTimer)
-          ;(window as any).autoSaveTimer = setTimeout(() => {
-            onSave({ slides, timeline: projectData.timeline })
+          if (autoSaveTimerRef.current) {
+            clearTimeout(autoSaveTimerRef.current)
+          }
+          autoSaveTimerRef.current = window.setTimeout(() => {
+            onSave(createSnapshot())
           }, 2000)
         }
         break
@@ -161,7 +190,7 @@ export function AnimakerEditorV2({ projectData, onSave, onExport }: AnimakerEdit
         }
         break
     }
-  }, [slides, projectData.timeline, onSave])
+  }, [createSnapshot, onSave])
 
   // Slide management
   const handleSlideSelect = useCallback((slideIndex: number) => {
@@ -303,9 +332,7 @@ export function AnimakerEditorV2({ projectData, onSave, onExport }: AnimakerEdit
       playback: { ...prev.playback, isPlaying }
     }))
     
-    if (timelineRef.current) {
-      timelineRef.current.togglePlayback()
-    }
+    timelineRef.current?.togglePlayback()
   }, [editorState.playback.isPlaying])
 
   const handleStop = useCallback(() => {
@@ -314,9 +341,7 @@ export function AnimakerEditorV2({ projectData, onSave, onExport }: AnimakerEdit
       playback: { ...prev.playback, isPlaying: false, currentTime: 0 }
     }))
     
-    if (timelineRef.current) {
-      timelineRef.current.stop()
-    }
+    timelineRef.current?.stop()
   }, [])
 
   const handleTimeUpdate = useCallback((time: number) => {
@@ -328,17 +353,14 @@ export function AnimakerEditorV2({ projectData, onSave, onExport }: AnimakerEdit
 
   // Actions
   const handleSave = useCallback(() => {
-    const savedProject = {
-      slides,
-      metadata: projectData.metadata,
-      timeline: projectData.timeline,
+    const savedProject = createSnapshot({
       lastModified: new Date().toISOString(),
       version: '2.0'
-    }
-    
+    })
+
     if (onSave) onSave(savedProject)
     toast.success('Projeto salvo com sucesso!')
-  }, [slides, projectData, onSave])
+  }, [createSnapshot, onSave])
 
   const handleExport = useCallback(async () => {
     try {
@@ -707,8 +729,9 @@ export function AnimakerEditorV2({ projectData, onSave, onExport }: AnimakerEdit
         <button
           data-testid="load-test-data"
           onClick={() => {
-            if ((window as any).testData) {
-              setSlides((window as any).testData.slides)
+            const testWindow = window as Window & { testData?: { slides: UnifiedSlide[] } }
+            if (testWindow.testData) {
+              setSlides(testWindow.testData.slides)
               toast.success('Dados de teste carregados!')
             }
           }}

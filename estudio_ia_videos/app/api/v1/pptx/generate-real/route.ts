@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const processingLog = project.processingLog as any
+  const processingLog = project.processingLog as Record<string, unknown> | null
 
     return NextResponse.json({
       success: true,

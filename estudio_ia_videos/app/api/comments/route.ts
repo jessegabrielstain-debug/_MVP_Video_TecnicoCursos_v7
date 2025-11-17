@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth/auth-config'
+import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { prisma } from '@/lib/db'
 
 export async function POST(req: NextRequest) {
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
     const comment = await prisma.projectComment.create({
       data: {
         projectId,
-        userId: (session.user as any).id,
+        userId: getUserId(session.user),
         content,
         position: position ? JSON.stringify(position) : null,
         parentId: parentId || null

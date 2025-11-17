@@ -21,7 +21,7 @@ export interface AnalyticsEventData {
   status?: 'success' | 'error' | 'pending'
   errorCode?: string
   errorMessage?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export class AnalyticsTracker {

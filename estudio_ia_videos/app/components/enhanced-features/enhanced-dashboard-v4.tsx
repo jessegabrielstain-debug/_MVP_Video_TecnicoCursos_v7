@@ -283,7 +283,7 @@ const EnhancedDashboardV4 = () => {
 
       {/* Main Content */}
       <div className="container mx-auto p-6">
-        <Tabs value={activeView} onValueChange={(value) => setActiveView(value as any)} className="w-full">
+        <Tabs value={activeView} onValueChange={(value) => setActiveView(value)} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="sprint24">Sprint 24</TabsTrigger>
             <TabsTrigger value="overview">Overview</TabsTrigger>

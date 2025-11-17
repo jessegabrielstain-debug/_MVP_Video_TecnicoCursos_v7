@@ -5,14 +5,79 @@
 
 import {
   AdvancedVideoEffects,
-  ParticleType,
-  TransitionType,
-  TrackingType,
-  BlurType,
   createBasicEffectsSystem,
   createProEffectsSystem,
   createDevEffectsSystem,
 } from '../../../lib/effects/advanced-effects';
+import type {
+  EffectConfig,
+  ParticleEffect,
+  TransitionEffect,
+  TrackingEffect,
+  ChromaKeyEffect,
+  ColorGradeEffect,
+  BlurEffect,
+  DistortionEffect,
+  TimeEffect,
+} from '../../../lib/effects/advanced-effects';
+
+const expectEffect = (effect: EffectConfig | undefined): EffectConfig => {
+  expect(effect).toBeDefined();
+
+  if (!effect) {
+    throw new Error('Expected effect to be defined');
+  }
+
+  return effect;
+};
+
+const expectEffectOfType = <T extends EffectConfig>(
+  effect: EffectConfig | undefined,
+  predicate: (candidate: EffectConfig) => candidate is T,
+  expectedType: T['type']
+): T => {
+  const defined = expectEffect(effect);
+  expect(defined.type).toBe(expectedType);
+
+  if (!predicate(defined)) {
+    throw new Error(`Expected effect of type ${expectedType}`);
+  }
+
+  return defined;
+};
+
+const isParticleEffect = (effect: EffectConfig): effect is ParticleEffect => effect.type === 'particle';
+const isTransitionEffect = (effect: EffectConfig): effect is TransitionEffect => effect.type === 'transition';
+const isTrackingEffect = (effect: EffectConfig): effect is TrackingEffect => effect.type === 'tracking';
+const isChromaKeyEffect = (effect: EffectConfig): effect is ChromaKeyEffect => effect.type === 'chromakey';
+const isColorGradeEffect = (effect: EffectConfig): effect is ColorGradeEffect => effect.type === 'colorgrade';
+const isBlurEffect = (effect: EffectConfig): effect is BlurEffect => effect.type === 'blur';
+const isDistortionEffect = (effect: EffectConfig): effect is DistortionEffect => effect.type === 'distortion';
+const isTimeEffect = (effect: EffectConfig): effect is TimeEffect => effect.type === 'time';
+
+const expectParticleEffect = (effect: EffectConfig | undefined): ParticleEffect =>
+  expectEffectOfType(effect, isParticleEffect, 'particle');
+
+const expectTransitionEffect = (effect: EffectConfig | undefined): TransitionEffect =>
+  expectEffectOfType(effect, isTransitionEffect, 'transition');
+
+const expectTrackingEffect = (effect: EffectConfig | undefined): TrackingEffect =>
+  expectEffectOfType(effect, isTrackingEffect, 'tracking');
+
+const expectChromaKeyEffect = (effect: EffectConfig | undefined): ChromaKeyEffect =>
+  expectEffectOfType(effect, isChromaKeyEffect, 'chromakey');
+
+const expectColorGradeEffect = (effect: EffectConfig | undefined): ColorGradeEffect =>
+  expectEffectOfType(effect, isColorGradeEffect, 'colorgrade');
+
+const expectBlurEffect = (effect: EffectConfig | undefined): BlurEffect =>
+  expectEffectOfType(effect, isBlurEffect, 'blur');
+
+const expectDistortionEffect = (effect: EffectConfig | undefined): DistortionEffect =>
+  expectEffectOfType(effect, isDistortionEffect, 'distortion');
+
+const expectTimeEffect = (effect: EffectConfig | undefined): TimeEffect =>
+  expectEffectOfType(effect, isTimeEffect, 'time');
 
 describe('AdvancedVideoEffects', () => {
   let system: AdvancedVideoEffects;
@@ -39,20 +104,16 @@ describe('AdvancedVideoEffects', () => {
       expect(effectId).toBeTruthy();
       expect(effectId).toMatch(/^particle-/);
 
-      const effect = system.getEffect(effectId);
-      expect(effect).toBeDefined();
-      expect(effect?.type).toBe('particle');
-
-      const particleEffect = effect as any;
-      expect(particleEffect.particleType).toBe('snow');
-      expect(particleEffect.count).toBe(100);
-      expect(particleEffect.color).toBe('#ffffff');
+      const effect = expectParticleEffect(system.getEffect(effectId));
+      expect(effect.particleType).toBe('snow');
+      expect(effect.count).toBe(100);
+      expect(effect.color).toBe('#ffffff');
     });
 
     test('should create rain particle effect', () => {
       const effectId = system.createParticleEffect('rain', 0, 3);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectParticleEffect(system.getEffect(effectId));
       expect(effect.particleType).toBe('rain');
       expect(effect.count).toBe(200);
       expect(effect.velocity.y).toBe(300);
@@ -61,7 +122,7 @@ describe('AdvancedVideoEffects', () => {
     test('should create fire particle effect', () => {
       const effectId = system.createParticleEffect('fire', 0, 2);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectParticleEffect(system.getEffect(effectId));
       expect(effect.particleType).toBe('fire');
       expect(effect.color).toBe('#ff6600');
       expect(effect.velocity.y).toBe(-80);
@@ -70,7 +131,7 @@ describe('AdvancedVideoEffects', () => {
     test('should create confetti particle effect', () => {
       const effectId = system.createParticleEffect('confetti', 0, 4);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectParticleEffect(system.getEffect(effectId));
       expect(effect.particleType).toBe('confetti');
       expect(effect.rotation).toBe(true);
     });
@@ -82,7 +143,7 @@ describe('AdvancedVideoEffects', () => {
         intensity: 0.7,
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectParticleEffect(system.getEffect(effectId));
       expect(effect.count).toBe(50);
       expect(effect.color).toBe('#000000');
       expect(effect.intensity).toBe(0.7);
@@ -98,7 +159,7 @@ describe('AdvancedVideoEffects', () => {
 
       expect(updated).toBe(true);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectParticleEffect(system.getEffect(effectId));
       expect(effect.count).toBe(150);
       expect(effect.size.max).toBe(10);
     });
@@ -132,8 +193,7 @@ describe('AdvancedVideoEffects', () => {
     test('should create wipe transition', () => {
       const effectId = system.createTransition('wipe', 0, 1);
 
-      const effect = system.getEffect(effectId) as any;
-      expect(effect.type).toBe('transition');
+      const effect = expectTransitionEffect(system.getEffect(effectId));
       expect(effect.transitionType).toBe('wipe');
       expect(effect.direction).toBe('right');
     });
@@ -144,7 +204,7 @@ describe('AdvancedVideoEffects', () => {
         feather: 0.3,
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectTransitionEffect(system.getEffect(effectId));
       expect(effect.transitionType).toBe('zoom');
       expect(effect.direction).toBe('in');
       expect(effect.feather).toBe(0.3);
@@ -153,21 +213,21 @@ describe('AdvancedVideoEffects', () => {
     test('should create rotate transition', () => {
       const effectId = system.createTransition('rotate', 0, 2);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectTransitionEffect(system.getEffect(effectId));
       expect(effect.transitionType).toBe('rotate');
     });
 
     test('should create page-turn transition', () => {
       const effectId = system.createTransition('page-turn', 0, 1);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectTransitionEffect(system.getEffect(effectId));
       expect(effect.transitionType).toBe('page-turn');
     });
 
     test('should create morph transition', () => {
       const effectId = system.createTransition('morph', 0, 2);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectTransitionEffect(system.getEffect(effectId));
       expect(effect.transitionType).toBe('morph');
     });
 
@@ -177,7 +237,7 @@ describe('AdvancedVideoEffects', () => {
         borderColor: '#ff0000',
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectTransitionEffect(system.getEffect(effectId));
       expect(effect.borderWidth).toBe(5);
       expect(effect.borderColor).toBe('#ff0000');
     });
@@ -191,8 +251,7 @@ describe('AdvancedVideoEffects', () => {
     test('should create object tracking', () => {
       const effectId = system.createTracking('object', 0, 10);
 
-      const effect = system.getEffect(effectId) as any;
-      expect(effect.type).toBe('tracking');
+      const effect = expectTrackingEffect(system.getEffect(effectId));
       expect(effect.trackingType).toBe('object');
       expect(effect.smoothing).toBe(0.5);
     });
@@ -202,7 +261,7 @@ describe('AdvancedVideoEffects', () => {
         confidence: 0.9,
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectTrackingEffect(system.getEffect(effectId));
       expect(effect.trackingType).toBe('face');
       expect(effect.confidence).toBe(0.9);
     });
@@ -216,10 +275,10 @@ describe('AdvancedVideoEffects', () => {
       system.updateTrackingPath(effectId, point1);
       system.updateTrackingPath(effectId, point2);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectTrackingEffect(system.getEffect(effectId));
       expect(effect.path).toHaveLength(2);
-      expect(effect.path[0]).toEqual(point1);
-      expect(effect.path[1]).toEqual(point2);
+      expect(effect.path?.[0]).toEqual(point1);
+      expect(effect.path?.[1]).toEqual(point2);
     });
 
     test('should emit tracking updated event', () => {
@@ -245,7 +304,7 @@ describe('AdvancedVideoEffects', () => {
 
       expect(applied).toBe(true);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectTrackingEffect(system.getEffect(effectId));
       expect(effect.metadata?.stabilizationData).toBeDefined();
     });
 
@@ -266,8 +325,7 @@ describe('AdvancedVideoEffects', () => {
     test('should create green screen chroma key', () => {
       const effectId = system.createChromaKey('#00ff00', 0, 10);
 
-      const effect = system.getEffect(effectId) as any;
-      expect(effect.type).toBe('chromakey');
+      const effect = expectChromaKeyEffect(system.getEffect(effectId));
       expect(effect.keyColor).toBe('#00ff00');
       expect(effect.tolerance).toBe(0.3);
     });
@@ -278,7 +336,7 @@ describe('AdvancedVideoEffects', () => {
         softness: 0.3,
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectChromaKeyEffect(system.getEffect(effectId));
       expect(effect.keyColor).toBe('#0000ff');
       expect(effect.tolerance).toBe(0.4);
       expect(effect.softness).toBe(0.3);
@@ -290,7 +348,7 @@ describe('AdvancedVideoEffects', () => {
         edgeBlur: 2,
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectChromaKeyEffect(system.getEffect(effectId));
       expect(effect.despill).toBe(0.7);
       expect(effect.edgeBlur).toBe(2);
     });
@@ -307,7 +365,7 @@ describe('AdvancedVideoEffects', () => {
 
       expect(color).toBe('#00ff00');
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectChromaKeyEffect(system.getEffect(effectId));
       expect(effect.keyColor).toBe('#00ff00');
     });
 
@@ -331,8 +389,7 @@ describe('AdvancedVideoEffects', () => {
     test('should create color grading effect', () => {
       const effectId = system.createColorGrade(0, 10);
 
-      const effect = system.getEffect(effectId) as any;
-      expect(effect.type).toBe('colorgrade');
+      const effect = expectColorGradeEffect(system.getEffect(effectId));
       expect(effect.temperature).toBe(0);
       expect(effect.exposure).toBe(0);
     });
@@ -346,7 +403,7 @@ describe('AdvancedVideoEffects', () => {
         saturation: 15,
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectColorGradeEffect(system.getEffect(effectId));
       expect(effect.temperature).toBe(10);
       expect(effect.tint).toBe(-5);
       expect(effect.exposure).toBe(0.5);
@@ -361,7 +418,7 @@ describe('AdvancedVideoEffects', () => {
 
       expect(applied).toBe(true);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectColorGradeEffect(system.getEffect(effectId));
       expect(effect.lut).toBe('/path/to/cinematic.cube');
     });
 
@@ -382,8 +439,8 @@ describe('AdvancedVideoEffects', () => {
 
       expect(updated).toBe(true);
 
-      const effect = system.getEffect(effectId) as any;
-      expect(effect.curves.rgb).toEqual(points);
+      const effect = expectColorGradeEffect(system.getEffect(effectId));
+      expect(effect.curves?.rgb).toEqual(points);
     });
 
     test('should update individual color channel curves', () => {
@@ -393,10 +450,10 @@ describe('AdvancedVideoEffects', () => {
       system.updateCurves(effectId, 'green', [0, 0.5, 1]);
       system.updateCurves(effectId, 'blue', [0, 0.7, 1]);
 
-      const effect = system.getEffect(effectId) as any;
-      expect(effect.curves.red).toEqual([0, 0.3, 1]);
-      expect(effect.curves.green).toEqual([0, 0.5, 1]);
-      expect(effect.curves.blue).toEqual([0, 0.7, 1]);
+      const effect = expectColorGradeEffect(system.getEffect(effectId));
+      expect(effect.curves?.red).toEqual([0, 0.3, 1]);
+      expect(effect.curves?.green).toEqual([0, 0.5, 1]);
+      expect(effect.curves?.blue).toEqual([0, 0.7, 1]);
     });
 
     test('should emit curves updated event', () => {
@@ -419,8 +476,7 @@ describe('AdvancedVideoEffects', () => {
     test('should create gaussian blur', () => {
       const effectId = system.createBlur('gaussian', 0, 5, 20);
 
-      const effect = system.getEffect(effectId) as any;
-      expect(effect.type).toBe('blur');
+      const effect = expectBlurEffect(system.getEffect(effectId));
       expect(effect.blurType).toBe('gaussian');
       expect(effect.amount).toBe(20);
     });
@@ -431,7 +487,7 @@ describe('AdvancedVideoEffects', () => {
         quality: 'high',
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectBlurEffect(system.getEffect(effectId));
       expect(effect.blurType).toBe('motion');
       expect(effect.angle).toBe(45);
       expect(effect.quality).toBe('high');
@@ -443,7 +499,7 @@ describe('AdvancedVideoEffects', () => {
         falloff: 0.8,
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectBlurEffect(system.getEffect(effectId));
       expect(effect.blurType).toBe('radial');
       expect(effect.center).toEqual({ x: 0.5, y: 0.5 });
       expect(effect.falloff).toBe(0.8);
@@ -452,7 +508,7 @@ describe('AdvancedVideoEffects', () => {
     test('should create tilt-shift blur', () => {
       const effectId = system.createBlur('tilt-shift', 0, 5, 25);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectBlurEffect(system.getEffect(effectId));
       expect(effect.blurType).toBe('tilt-shift');
     });
 
@@ -461,7 +517,7 @@ describe('AdvancedVideoEffects', () => {
         quality: 'ultra',
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectBlurEffect(system.getEffect(effectId));
       expect(effect.blurType).toBe('bokeh');
       expect(effect.quality).toBe('ultra');
     });
@@ -475,8 +531,7 @@ describe('AdvancedVideoEffects', () => {
     test('should create fisheye distortion', () => {
       const effectId = system.createDistortion('fisheye', 0, 5);
 
-      const effect = system.getEffect(effectId) as any;
-      expect(effect.type).toBe('distortion');
+      const effect = expectDistortionEffect(system.getEffect(effectId));
       expect(effect.distortionType).toBe('fisheye');
     });
 
@@ -485,7 +540,7 @@ describe('AdvancedVideoEffects', () => {
         amount: 0.3,
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectDistortionEffect(system.getEffect(effectId));
       expect(effect.distortionType).toBe('lens');
       expect(effect.amount).toBe(0.3);
     });
@@ -496,7 +551,7 @@ describe('AdvancedVideoEffects', () => {
         frequency: 2,
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectDistortionEffect(system.getEffect(effectId));
       expect(effect.wavelength).toBe(100);
       expect(effect.frequency).toBe(2);
     });
@@ -511,7 +566,7 @@ describe('AdvancedVideoEffects', () => {
         ],
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectDistortionEffect(system.getEffect(effectId));
       expect(effect.corners).toHaveLength(4);
     });
   });
@@ -524,8 +579,7 @@ describe('AdvancedVideoEffects', () => {
     test('should create slow motion effect', () => {
       const effectId = system.createTimeEffect('slow', 0, 5, 0.5);
 
-      const effect = system.getEffect(effectId) as any;
-      expect(effect.type).toBe('time');
+      const effect = expectTimeEffect(system.getEffect(effectId));
       expect(effect.timeType).toBe('slow');
       expect(effect.speed).toBe(0.5);
     });
@@ -533,7 +587,7 @@ describe('AdvancedVideoEffects', () => {
     test('should create fast motion effect', () => {
       const effectId = system.createTimeEffect('fast', 0, 3, 2);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectTimeEffect(system.getEffect(effectId));
       expect(effect.timeType).toBe('fast');
       expect(effect.speed).toBe(2);
     });
@@ -541,7 +595,7 @@ describe('AdvancedVideoEffects', () => {
     test('should create reverse effect', () => {
       const effectId = system.createTimeEffect('reverse', 0, 5, 1);
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectTimeEffect(system.getEffect(effectId));
       expect(effect.timeType).toBe('reverse');
     });
 
@@ -550,7 +604,7 @@ describe('AdvancedVideoEffects', () => {
         freezeFrame: 60,
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectTimeEffect(system.getEffect(effectId));
       expect(effect.timeType).toBe('freeze');
       expect(effect.freezeFrame).toBe(60);
     });
@@ -560,7 +614,7 @@ describe('AdvancedVideoEffects', () => {
         interpolation: 'optical-flow',
       });
 
-      const effect = system.getEffect(effectId) as any;
+      const effect = expectTimeEffect(system.getEffect(effectId));
       expect(effect.timeType).toBe('ramp');
       expect(effect.interpolation).toBe('optical-flow');
     });
@@ -811,8 +865,11 @@ describe('AdvancedVideoEffects', () => {
       expect(duplicateId).toBeTruthy();
       expect(duplicateId).not.toBe(effectId);
 
-      const original = system.getEffect(effectId) as any;
-      const duplicate = system.getEffect(duplicateId!) as any;
+      const original = expectBlurEffect(system.getEffect(effectId));
+      if (!duplicateId) {
+        throw new Error('Expected duplicate id to be generated');
+      }
+      const duplicate = expectBlurEffect(system.getEffect(duplicateId));
 
       expect(duplicate.type).toBe(original.type);
       expect(duplicate.amount).toBe(original.amount);

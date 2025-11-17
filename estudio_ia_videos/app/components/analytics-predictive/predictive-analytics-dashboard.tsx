@@ -291,7 +291,7 @@ const PredictiveAnalyticsDashboard = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          <Select value={timeRange} onValueChange={(value) => setTimeRange(value as any)}>
+          <Select value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
             <SelectTrigger className="w-24">
               <SelectValue />
             </SelectTrigger>
@@ -326,7 +326,7 @@ const PredictiveAnalyticsDashboard = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="h-full flex flex-col">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as string)} className="h-full flex flex-col">
           <TabsList className="w-full">
             <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
             <TabsTrigger value="content" className="flex-1">Content Performance</TabsTrigger>

@@ -20,9 +20,23 @@ jest.mock('fs/promises');
 const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs/promises');
 
+interface FfmpegInstance {
+  input: jest.Mock;
+  output: jest.Mock;
+  audioCodec: jest.Mock;
+  audioChannels: jest.Mock;
+  audioFrequency: jest.Mock;
+  audioBitrate: jest.Mock;
+  audioFilters: jest.Mock;
+  complexFilter: jest.Mock;
+  map: jest.Mock;
+  on: jest.Mock;
+  run: jest.Mock;
+}
+
 describe('AudioMixer', () => {
   let mixer: AudioMixer;
-  let mockFfmpegInstance: any;
+  let mockFfmpegInstance: FfmpegInstance;
 
   beforeEach(() => {
     mixer = new AudioMixer();
@@ -50,7 +64,11 @@ describe('AudioMixer', () => {
     (ffmpeg as jest.Mock).mockReturnValue(mockFfmpegInstance);
 
     // Mock ffprobe
-    (ffmpeg as any).ffprobe = jest.fn((filePath, callback) => {
+    interface FfprobeData {
+      format: { duration: number };
+      streams: Array<{ codec_type: string; codec_name: string; sample_rate: number; channels: number; }>;
+    }
+    (ffmpeg as unknown as { ffprobe: (path: string, callback: (err: Error | null, data: FfprobeData) => void) => void }).ffprobe = jest.fn((filePath, callback) => {
       callback(null, {
         format: { duration: 120 },
         streams: [

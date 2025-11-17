@@ -48,7 +48,7 @@ export interface EmailOptions {
   html?: string;
   text?: string;
   template?: string; // Template ID
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
   attachments?: EmailAttachment[];
   replyTo?: string;
   priority?: 'high' | 'normal' | 'low';
@@ -441,7 +441,7 @@ export class EmailSystem {
   /**
    * Renderiza template com variáveis
    */
-  private renderTemplate(templateId: string, variables: Record<string, any>): { html: string; text: string; subject: string } {
+  private renderTemplate(templateId: string, variables: Record<string, unknown>): { html: string; text: string; subject: string } {
     const template = this.templates.get(templateId);
     if (!template) {
       throw new Error(`Template não encontrado: ${templateId}`);

@@ -19,7 +19,7 @@ export function EffectMonitor({ children, componentName = 'UnknownComponent' }: 
     if (process.env.NODE_ENV === 'development') {
       const interval = setInterval(() => {
         // Aqui você pode coletar estatísticas de debug se necessário
-        const effectDebugger = (window as any)._effectDebugger
+        const effectDebugger = (window as Window & { _effectDebugger?: { getStats: () => typeof stats } })._effectDebugger
         if (effectDebugger) {
           setStats(effectDebugger.getStats())
         }

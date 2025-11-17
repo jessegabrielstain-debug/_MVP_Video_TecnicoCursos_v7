@@ -7,11 +7,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
+import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { AnalyticsTracker } from '@/lib/analytics/analytics-tracker';
 
+// Type-safe helper extraindo organizationId
+const getOrgId = (user: unknown): string | undefined => {
+  const u = user as { currentOrgId?: string; organizationId?: string };
+  return u.currentOrgId || u.organizationId || undefined;
+};
+
+// Type-safe helper verificando admin
+const isAdmin = (user: unknown): boolean => {
+  return ((user as { isAdmin?: boolean }).isAdmin) === true;
+};
+// Type-safe helper extraindo organizationId
+const getOrgId = (user: unknown): string | undefined => {
+  const u = user as { currentOrgId?: string; organizationId?: string };
+  return u.currentOrgId || u.organizationId || undefined;
+};
+
+// Type-safe helper verificando admin
+const isAdmin = (user: unknown): boolean => {
+  return ((user as { isAdmin?: boolean }).isAdmin) === true;
+};
 /**
  * POST - Restore timeline to a specific snapshot version
  */
+
+const getUserId = (user: unknown): string => ((user as { id?: string }).id || '');
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authConfig);
@@ -67,8 +90,8 @@ export async function POST(request: NextRequest) {
       data: {
         timelineId: currentTimeline.id,
         version: currentTimeline.version,
-        tracks: currentTimeline.tracks as any,
-        settings: currentTimeline.settings as any,
+        tracks: currentTimeline.tracks as unknown,
+        settings: currentTimeline.settings as unknown,
         totalDuration: currentTimeline.totalDuration,
         createdBy: session.user.id,
         description: `Auto-backup antes de restaurar v${snapshot.version}`,
@@ -81,8 +104,8 @@ export async function POST(request: NextRequest) {
     const restoredTimeline = await prisma.timeline.update({
       where: { id: snapshot.timelineId },
       data: {
-        tracks: snapshot.tracks as any,
-        settings: snapshot.settings as any,
+        tracks: snapshot.tracks as unknown,
+        settings: snapshot.settings as unknown,
         totalDuration: snapshot.totalDuration,
         version: { increment: 1 },
         updatedAt: new Date(),
@@ -91,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Timeline restaurada para v${snapshot.version} (nova versão: v${restoredTimeline.version})`);
 
-    const orgId = (session.user as any).organizationId || session.user.currentOrgId || undefined;
+    const orgId = getOrgId(session.user) || session.user.currentOrgId || undefined;
 
     // Track analytics
     await AnalyticsTracker.trackTimelineEdit({

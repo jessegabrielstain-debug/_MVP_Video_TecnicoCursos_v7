@@ -102,7 +102,7 @@ describe('VideoTranscriptionService', () => {
       setStartTime: jest.fn().mockReturnThis(),
       setDuration: jest.fn().mockReturnThis(),
       output: jest.fn().mockReturnThis(),
-      on: jest.fn(function(this: any, event: string, callback: Function) {
+      on: jest.fn(function(this: unknown, event: string, callback: Function) {
         if (event === 'end') {
           setTimeout(() => callback(), 0);
         }
@@ -350,7 +350,7 @@ describe('VideoTranscriptionService', () => {
 
       expect(fs.writeFile).toHaveBeenCalledWith(
         outputPath,
-        expect.any(String),
+        expect.stringContaining(''),
         'utf-8'
       );
     });
@@ -382,7 +382,7 @@ describe('VideoTranscriptionService', () => {
       const outputPath = path.join(outputDir, 'output.xyz');
 
       await expect(
-        service.export(result, outputPath, { format: 'xyz' as any })
+        service.export(result, outputPath, { format: 'xyz' as unknown as 'srt' })
       ).rejects.toThrow('Unsupported format');
     });
   });
@@ -582,8 +582,8 @@ describe('VideoTranscriptionService', () => {
 
       expect(completeHandler).toHaveBeenCalledWith(
         expect.objectContaining({
-          text: expect.any(String),
-          segments: expect.any(Array),
+          text: expect.stringContaining(''),
+          segments: expect.arrayContaining([]),
         })
       );
     });
@@ -654,7 +654,7 @@ describe('VideoTranscriptionService', () => {
         audioChannels: jest.fn().mockReturnThis(),
         audioFrequency: jest.fn().mockReturnThis(),
         output: jest.fn().mockReturnThis(),
-        on: jest.fn(function(this: any, event: string, callback: Function) {
+        on: jest.fn(function(this: unknown, event: string, callback: Function) {
           if (event === 'error') {
             setTimeout(() => callback(new Error('FFmpeg extraction failed')), 0);
           }
@@ -711,7 +711,7 @@ describe('VideoTranscriptionService', () => {
         audioChannels: jest.fn().mockReturnThis(),
         audioFrequency: jest.fn().mockReturnThis(),
         output: jest.fn().mockReturnThis(),
-        on: jest.fn(function(this: any, event: string, callback: Function) {
+        on: jest.fn(function(this: unknown, event: string, callback: Function) {
           if (event === 'error') {
             setTimeout(() => callback(new Error('No audio stream')), 0);
           }

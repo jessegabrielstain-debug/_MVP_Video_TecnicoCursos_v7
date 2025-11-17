@@ -307,7 +307,7 @@ export function addSecurityHeaders() {
 }
 
 // Validador de entrada para APIs
-export function validateInput(data: any, rules: Record<string, any>): {
+export function validateInput(data: any, rules: Record<string, unknown>): {
   valid: boolean
   errors: string[]
   sanitized: any

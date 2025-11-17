@@ -84,7 +84,7 @@ export default function PipelineMonitorPage() {
   const getStatusBadge = (status: string | boolean) => {
     const statusStr = typeof status === 'boolean' ? (status ? 'available' : 'unavailable') : status
     
-    const variants: Record<string, any> = {
+    const variants: Record<string, unknown> = {
       healthy: 'default',
       available: 'default',
       degraded: 'secondary',

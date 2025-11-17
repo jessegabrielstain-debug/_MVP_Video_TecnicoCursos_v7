@@ -38,7 +38,7 @@ export interface PPTXElement {
     height: number;
     rotation?: number;
   };
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
 }
 
 export interface PPTXSlide {

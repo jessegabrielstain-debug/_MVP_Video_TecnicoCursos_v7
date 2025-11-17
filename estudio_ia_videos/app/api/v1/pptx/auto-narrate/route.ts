@@ -41,36 +41,47 @@ export async function POST(request: NextRequest) {
 
     // 2. Converter slides para formato esperado
     // Priorizar slides do modelo Slide, depois slidesData JSON
-    let slides: Array<{ slideNumber: number; notes?: string; elements: any[] }> = []
+    let slides: Array<{ slideNumber: number; notes?: string; elements: unknown[] }> = []
 
     if (project.slides && project.slides.length > 0) {
       // Usar slides do modelo Slide
-      slides = project.slides.map((slide: any, index: number) => ({
-        slideNumber: index + 1,
-        notes: (slide.content as any)?.notes || '',
-        elements: (slide.content as any)?.elements || []
-      }))
+      slides = project.slides.map((slide: Record<string, unknown>, index: number) => {
+        const content = slide.content as Record<string, unknown> | null;
+        const notes = typeof content?.notes === 'string' ? content?.notes : '';
+        const elements = Array.isArray(content?.elements) ? (content?.elements as unknown[]) : [];
+        return {
+          slideNumber: index + 1,
+          notes,
+          elements
+        };
+      })
     } else if (project.slidesData) {
       // Usar slidesData JSON
-      const slidesData = project.slidesData as any
-      if (Array.isArray(slidesData)) {
-        slides = slidesData.map((slide: any, index: number) => ({
+      const slidesDataUnknown = project.slidesData as unknown
+      if (Array.isArray(slidesDataUnknown)) {
+        const slidesData = slidesDataUnknown as Array<Record<string, unknown>>
+        slides = slidesData.map((slide, index: number) => ({
           slideNumber: index + 1,
-          notes: slide.notes || '',
-          elements: slide.elements || []
+          notes: typeof slide.notes === 'string' ? (slide.notes as string) : '',
+          elements: Array.isArray(slide.elements) ? (slide.elements as unknown[]) : []
         }))
       }
     } else if (project.timeline?.tracks) {
       // Usar timeline tracks
-      const tracks = project.timeline.tracks as any
-      if (Array.isArray(tracks)) {
-        const videoTrack = tracks.find((t: any) => t.type === 'video' || t.type === 'main')
-        if (videoTrack?.elements) {
-          slides = videoTrack.elements.map((element: any, index: number) => ({
-            slideNumber: index + 1,
-            notes: element.notes || '',
-            elements: element.children || []
-          }))
+      const tracksUnknown = project.timeline.tracks as unknown
+      if (Array.isArray(tracksUnknown)) {
+        const tracks = tracksUnknown as Array<Record<string, unknown>>
+        const videoTrack = tracks.find((t) => t?.type === 'video' || t?.type === 'main') as Record<string, unknown> | undefined
+        const elems = (videoTrack?.elements as unknown[]) || []
+        if (Array.isArray(elems)) {
+          slides = elems.map((element, index: number) => {
+            const el = element as Record<string, unknown>
+            return {
+              slideNumber: index + 1,
+              notes: typeof el?.notes === 'string' ? (el?.notes as string) : '',
+              elements: Array.isArray(el?.children) ? (el?.children as unknown[]) : []
+            }
+          })
         }
       }
     }
@@ -111,9 +122,10 @@ export async function POST(request: NextRequest) {
 
     // 5. Atualizar slidesData com as narrações
     if (project.slidesData) {
-      const slidesData = project.slidesData as any
+      const slidesDataUnknown = project.slidesData as unknown
       
-      if (Array.isArray(slidesData)) {
+      if (Array.isArray(slidesDataUnknown)) {
+        const slidesData = slidesDataUnknown as Array<Record<string, unknown>>
         for (const narration of result.narrations) {
           const slideIndex = narration.slideNumber - 1
           if (slidesData[slideIndex]) {
@@ -212,11 +224,12 @@ export async function GET(request: NextRequest) {
     let totalSlides = project.totalSlides || 0
 
     if (project.slidesData) {
-      const slidesData = project.slidesData as any
-      if (Array.isArray(slidesData)) {
+      const slidesDataUnknown = project.slidesData as unknown
+      if (Array.isArray(slidesDataUnknown)) {
+        const slidesData = slidesDataUnknown as Array<Record<string, unknown>>
         totalSlides = slidesData.length
-        narratedSlides = slidesData.filter((slide: any) => 
-          slide.voiceover?.audioUrl
+        narratedSlides = slidesData.filter((slide) => 
+          Boolean((slide as Record<string, unknown>)?.voiceover && (slide as Record<string, unknown>).voiceover && (slide as Record<string, unknown>).voiceover as Record<string, unknown> && ((slide as Record<string, unknown>).voiceover as Record<string, unknown>).audioUrl)
         ).length
       }
     }

@@ -64,10 +64,24 @@ jest.mock('@/lib/analytics/analytics-tracker', () => ({
   AnalyticsTracker: { trackTimelineEdit: jest.fn().mockResolvedValue(true) } 
 }))
 
-function makeRequest(method: string, url: string, body?: any) {
-  const init: any = { method, headers: { 'content-type': 'application/json' } }
-  if (body) init.body = JSON.stringify(body)
-  return new NextRequest(new URL(url, 'http://localhost').toString(), init)
+// Test helper types
+interface RequestInit {
+  method: string;
+  headers: Record<string, string>;
+  body?: string;
+}
+
+interface RequestBody {
+  projectId?: string;
+  tracks?: Array<{ id: string; type: string; clips?: unknown[] }>;
+  settings?: { fps?: number; resolution?: string };
+  totalDuration?: number;
+}
+
+function makeRequest(method: string, url: string, body?: RequestBody): NextRequest {
+  const init: RequestInit = { method, headers: { 'content-type': 'application/json' } };
+  if (body) init.body = JSON.stringify(body);
+  return new NextRequest(new URL(url, 'http://localhost').toString(), init);
 }
 
 describe('API timeline multi-track (DELETE, PATCH)', () => {
@@ -77,85 +91,85 @@ describe('API timeline multi-track (DELETE, PATCH)', () => {
 
   describe('DELETE', () => {
     it('retorna 400 sem projectId', async () => {
-      const req = makeRequest('DELETE', '/api/v1/timeline/multi-track') as any
-      const res = await timelineRoute.DELETE(req)
-      expect(res.status).toBe(400)
-      const json = await res.json()
-      expect(json.success).toBe(false)
-      expect(json.message).toContain('projectId')
-    })
+      const req = makeRequest('DELETE', '/api/v1/timeline/multi-track');
+      const res = await timelineRoute.DELETE(req);
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+      expect(json.message).toContain('projectId');
+    });
 
     it('deleta timeline com sucesso', async () => {
-      const req = makeRequest('DELETE', '/api/v1/timeline/multi-track?projectId=p1') as any
-      const res = await timelineRoute.DELETE(req)
-      const json = await res.json()
-      expect(res.status).toBe(200)
-      expect(json.success).toBe(true)
-      expect(json.data.projectId).toBe('p1')
-      expect(json.message).toContain('deletada')
-    })
+      const req = makeRequest('DELETE', '/api/v1/timeline/multi-track?projectId=p1');
+      const res = await timelineRoute.DELETE(req);
+      const json = await res.json();
+      expect(res.status).toBe(200);
+      expect(json.success).toBe(true);
+      expect(json.data.projectId).toBe('p1');
+      expect(json.message).toContain('deletada');
+    });
 
     it('retorna 404 para timeline inexistente', async () => {
-      const { prisma } = require('@/lib/prisma')
-      prisma.timeline.delete.mockRejectedValueOnce({ code: 'P2025' })
+      const { prisma } = require('@/lib/prisma');
+      prisma.timeline.delete.mockRejectedValueOnce({ code: 'P2025' });
       
-      const req = makeRequest('DELETE', '/api/v1/timeline/multi-track?projectId=p999') as any
-      const res = await timelineRoute.DELETE(req)
-      expect(res.status).toBe(404)
-      const json = await res.json()
-      expect(json.success).toBe(false)
-      expect(json.message).toContain('não encontrada')
-    })
-  })
+      const req = makeRequest('DELETE', '/api/v1/timeline/multi-track?projectId=p999');
+      const res = await timelineRoute.DELETE(req);
+      expect(res.status).toBe(404);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+      expect(json.message).toContain('não encontrada');
+    });
+  });
 
   describe('PATCH', () => {
     it('retorna 400 sem projectId', async () => {
       const req = makeRequest('PATCH', '/api/v1/timeline/multi-track', { 
         tracks: [{ id: 'track1', type: 'video' }] 
-      }) as any
-      const res = await timelineRoute.PATCH(req)
-      expect(res.status).toBe(400)
-      const json = await res.json()
-      expect(json.success).toBe(false)
-      expect(json.message).toContain('projectId')
-    })
+      });
+      const res = await timelineRoute.PATCH(req);
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+      expect(json.message).toContain('projectId');
+    });
 
     it('atualiza apenas tracks', async () => {
       const req = makeRequest('PATCH', '/api/v1/timeline/multi-track', {
         projectId: 'p1',
         tracks: [{ id: 'track1', type: 'video', clips: [] }]
-      }) as any
-      const res = await timelineRoute.PATCH(req)
-      const json = await res.json()
-      expect(res.status).toBe(200)
-      expect(json.success).toBe(true)
-      expect(json.data.version).toBeGreaterThan(2)
-      expect(json.message).toContain('parcialmente')
-    })
+      });
+      const res = await timelineRoute.PATCH(req);
+      const json = await res.json();
+      expect(res.status).toBe(200);
+      expect(json.success).toBe(true);
+      expect(json.data.version).toBeGreaterThan(2);
+      expect(json.message).toContain('parcialmente');
+    });
 
     it('atualiza apenas settings', async () => {
       const req = makeRequest('PATCH', '/api/v1/timeline/multi-track', {
         projectId: 'p1',
         settings: { fps: 60, resolution: '3840x2160' }
-      }) as any
-      const res = await timelineRoute.PATCH(req)
-      const json = await res.json()
-      expect(res.status).toBe(200)
-      expect(json.success).toBe(true)
-      expect(json.data.settings.fps).toBe(60)
-    })
+      });
+      const res = await timelineRoute.PATCH(req);
+      const json = await res.json();
+      expect(res.status).toBe(200);
+      expect(json.success).toBe(true);
+      expect(json.data.settings.fps).toBe(60);
+    });
 
     it('atualiza apenas totalDuration', async () => {
       const req = makeRequest('PATCH', '/api/v1/timeline/multi-track', {
         projectId: 'p1',
         totalDuration: 500
-      }) as any
-      const res = await timelineRoute.PATCH(req)
-      const json = await res.json()
-      expect(res.status).toBe(200)
-      expect(json.success).toBe(true)
-      expect(json.data.totalDuration).toBe(500)
-    })
+      });
+      const res = await timelineRoute.PATCH(req);
+      const json = await res.json();
+      expect(res.status).toBe(200);
+      expect(json.success).toBe(true);
+      expect(json.data.totalDuration).toBe(500);
+    });
 
     it('atualiza múltiplos campos simultaneamente', async () => {
       const req = makeRequest('PATCH', '/api/v1/timeline/multi-track', {
@@ -163,26 +177,26 @@ describe('API timeline multi-track (DELETE, PATCH)', () => {
         tracks: [{ id: 'track1', type: 'audio', clips: [] }],
         settings: { fps: 24 },
         totalDuration: 600
-      }) as any
-      const res = await timelineRoute.PATCH(req)
-      const json = await res.json()
-      expect(res.status).toBe(200)
-      expect(json.success).toBe(true)
-      expect(json.data.totalDuration).toBe(600)
-    })
+      });
+      const res = await timelineRoute.PATCH(req);
+      const json = await res.json();
+      expect(res.status).toBe(200);
+      expect(json.success).toBe(true);
+      expect(json.data.totalDuration).toBe(600);
+    });
 
     it('retorna 404 para timeline inexistente', async () => {
-      const { prisma } = require('@/lib/prisma')
-      prisma.timeline.update.mockRejectedValueOnce({ code: 'P2025' })
+      const { prisma } = require('@/lib/prisma');
+      prisma.timeline.update.mockRejectedValueOnce({ code: 'P2025' });
       
       const req = makeRequest('PATCH', '/api/v1/timeline/multi-track', {
         projectId: 'p999',
         totalDuration: 100
-      }) as any
-      const res = await timelineRoute.PATCH(req)
-      expect(res.status).toBe(404)
-      const json = await res.json()
-      expect(json.success).toBe(false)
-    })
-  })
-})
+      });
+      const res = await timelineRoute.PATCH(req);
+      expect(res.status).toBe(404);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+    });
+  });
+});

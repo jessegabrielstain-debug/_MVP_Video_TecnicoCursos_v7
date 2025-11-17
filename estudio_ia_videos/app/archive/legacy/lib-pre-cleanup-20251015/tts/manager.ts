@@ -40,7 +40,7 @@ export interface GenerateTTSOptions {
   voiceId: string
   provider?: TTSProvider
   cacheKey?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   // ElevenLabs specific
   stability?: number
   similarityBoost?: number
@@ -57,7 +57,7 @@ export interface CachedAudio {
   audioUrl: string
   characters: number
   duration?: number
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   createdAt: Date
 }
 
@@ -279,7 +279,7 @@ export class TTSManager {
     voiceId: string,
     provider: TTSProvider,
     result: TTSResult,
-    metadata: Record<string, any>
+    metadata: Record<string, unknown>
   ): Promise<void> {
     if (!this.supabase) return
 

@@ -46,8 +46,9 @@ export function useAvatarsList(): UseAvatarsListReturn {
       const data = await response.json();
       setAvatars(data.avatars || []);
       setMode(data.mode || 'demo');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage);
       console.error('Erro ao buscar avatares:', err);
     } finally {
       setLoading(false);

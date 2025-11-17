@@ -6,9 +6,8 @@
  * Dashboard centralizado com KPIs, gráficos e funcionalidades rápidas
  */
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { useSession } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -53,6 +52,8 @@ import {
   Activity,
   Target
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 // Mock data (substituir por dados reais das APIs)
 const mockStats = {
@@ -162,9 +163,11 @@ const mockStats = {
 }
 
 export default function DashboardOverview() {
-  const { data: session } = useSession() || {}
+  const supabase = useMemo(() => createClient(), [])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
 
   // Simular carregamento de dados
   useEffect(() => {
@@ -173,6 +176,36 @@ export default function DashboardOverview() {
     }, 1000)
     return () => clearTimeout(timer)
   }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadSession = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        setUser(data.user ?? null)
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error)
+      } finally {
+        if (isMounted) {
+          setAuthLoading(false)
+        }
+      }
+    }
+
+    void loadSession()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
 
   const stats = [
     {
@@ -255,6 +288,14 @@ export default function DashboardOverview() {
     }
   }
 
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
       
@@ -262,7 +303,7 @@ export default function DashboardOverview() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-text tracking-tight">
-            Bem-vindo de volta, {session?.user?.name?.split(' ')[0] || 'Usuário'}! 👋
+            Bem-vindo de volta, {user?.user_metadata?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'Usuário'}! 👋
           </h1>
           <p className="text-text-secondary mt-2">
             Aqui está um resumo das suas atividades no estúdio.

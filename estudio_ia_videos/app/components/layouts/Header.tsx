@@ -6,10 +6,9 @@
  * Navegação global, busca, notificações, perfil
  */
 
-import React from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useSession, signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { toast } from 'react-hot-toast'
 import { cn } from '@/lib/utils'
@@ -17,6 +16,8 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { RenderNotifications } from '@/src/components/RenderNotifications'
+import { createClient } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,10 +58,120 @@ export default function Header({
   sidebarCollapsed = false,
   showMobileMenu = false
 }: HeaderProps) {
-  const { data: session } = useSession() || {}
-  const { theme, setTheme } = useTheme()
   const router = useRouter()
-  
+  const { theme, setTheme } = useTheme()
+  const supabase = useMemo(() => createClient(), [])
+
+  const [user, setUser] = useState<User | null>(null)
+  const [displayName, setDisplayName] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [subscription, setSubscription] = useState<'free' | 'pro' | 'enterprise'>('free')
+  const [signingOut, setSigningOut] = useState(false)
+
+  const loadProfile = useCallback(
+    async (userId: string, fallbackName?: string | null, fallbackAvatar?: string | null) => {
+      try {
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('full_name, avatar_url, subscription_tier')
+          .eq('id', userId)
+          .maybeSingle()
+
+        if (error) {
+          console.warn('Não foi possível carregar perfil do usuário:', error)
+        }
+
+        setDisplayName(profile?.full_name ?? fallbackName ?? null)
+        setAvatarUrl(profile?.avatar_url ?? fallbackAvatar ?? null)
+
+        if (profile?.subscription_tier === 'enterprise' || profile?.subscription_tier === 'pro') {
+          setSubscription(profile.subscription_tier)
+        } else {
+          setSubscription('free')
+        }
+      } catch (error) {
+        console.error('Erro ao carregar perfil do usuário:', error)
+        setDisplayName(fallbackName ?? null)
+        setAvatarUrl(fallbackAvatar ?? null)
+        setSubscription('free')
+      }
+    },
+    [supabase]
+  )
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadSession = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        setUser(data.user ?? null)
+
+        if (data.user) {
+          await loadProfile(
+            data.user.id,
+            data.user.user_metadata?.name ?? data.user.email ?? null,
+            data.user.user_metadata?.avatar_url ?? null
+          )
+        } else {
+          setDisplayName(null)
+          setAvatarUrl(null)
+          setSubscription('free')
+        }
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error)
+      }
+    }
+
+    void loadSession()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      const authUser = session?.user ?? null
+      setUser(authUser)
+
+      if (authUser) {
+        void loadProfile(
+          authUser.id,
+          authUser.user_metadata?.name ?? authUser.email ?? null,
+          authUser.user_metadata?.avatar_url ?? null
+        )
+      } else {
+        setDisplayName(null)
+        setAvatarUrl(null)
+        setSubscription('free')
+      }
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [loadProfile, supabase])
+
+  const handleSignOut = async () => {
+    if (signingOut) return
+
+    try {
+      setSigningOut(true)
+      toast.success('Encerrando sessão com segurança...')
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        throw error
+      }
+      router.replace('/login?reason=session_expired')
+      router.refresh()
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error)
+      toast.error('Não foi possível encerrar a sessão. Tente novamente.')
+    } finally {
+      setSigningOut(false)
+    }
+  }
+
+  const { theme, setTheme } = useTheme()
+
   // Handlers reais para navegação e ações
 
   const handleProfileClick = () => {
@@ -78,21 +189,17 @@ export default function Header({
     router.push('/help')
   }
 
-  const handleSignOut = async () => {
-    try {
-      toast.success('Fazendo logout...')
-      await signOut({ redirect: true, callbackUrl: '/' })
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error)
-      toast.error('Erro ao fazer logout')
-    }
-  }
-
-  const userInitials = session?.user?.name
+  const fallbackName = displayName ?? user?.email ?? 'Usuário'
+  const userInitials = (displayName ?? user?.email ?? 'U')
     ?.split(' ')
     ?.map(n => n[0])
     ?.join('')
     ?.toUpperCase() || 'U'
+
+  const subscriptionLabel =
+    subscription === 'enterprise' ? 'Enterprise'
+      : subscription === 'pro' ? 'Pro'
+      : 'Free'
 
   return (
     <header className="sticky top-0 z-fixed bg-surface/80 backdrop-blur-md border-b border-border">
@@ -187,7 +294,7 @@ export default function Header({
 
           {/* Render Notifications */}
           <RenderNotifications 
-            userId={session?.user?.id || null} 
+            userId={user?.id ?? null} 
             className="flex-shrink-0"
           />
 
@@ -196,7 +303,7 @@ export default function Header({
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={session?.user?.image || undefined} />
+                  <AvatarImage src={avatarUrl || undefined} />
                   <AvatarFallback className="text-xs bg-gradient-primary text-white">
                     {userInitials}
                   </AvatarFallback>
@@ -207,15 +314,15 @@ export default function Header({
               <div className="px-2 py-1.5">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    {session?.user?.name || 'Usuário'}
+                    {fallbackName}
                   </p>
                   <p className="text-xs leading-none text-text-muted">
-                    {session?.user?.email || 'usuario@exemplo.com'}
+                    {user?.email || 'usuario@exemplo.com'}
                   </p>
                   <div className="flex items-center gap-1 mt-2">
                     <Crown className="h-3 w-3 text-warning" />
                     <Badge variant="outline" className="text-xs px-1.5 py-0">
-                      Pro
+                      {subscriptionLabel}
                     </Badge>
                   </div>
                 </div>

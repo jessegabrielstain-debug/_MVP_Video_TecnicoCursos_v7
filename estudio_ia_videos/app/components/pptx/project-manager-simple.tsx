@@ -314,13 +314,14 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                         variant="ghost"
                         size="sm"
                         className="h-7 px-2 text-xs gap-1"
-                        onClick={() =>
+                        onClick={() => {
+                          const slideWithTransition = slide as { id: string; duration: number; notes?: string; transition?: string };
                           beginSlideEdit(slide.id, {
                             duration: slide.duration,
-                            transition: (slide as any).transition,
+                            transition: slideWithTransition.transition,
                             notes: slide.notes
                           })
-                        }
+                        }}
                       >
                         <SlidersHorizontal className="h-3 w-3" /> Ajustar
                       </Button>

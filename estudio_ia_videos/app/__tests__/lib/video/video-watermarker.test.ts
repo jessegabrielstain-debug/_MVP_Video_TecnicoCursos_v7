@@ -19,6 +19,7 @@ import VideoWatermarker, {
 } from '../../../lib/video/video-watermarker';
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
+import { WatermarkPosition } from '../../../types/watermark.types';
 
 // ==================== MOCKS ====================
 
@@ -50,7 +51,7 @@ beforeEach(() => {
   // Mock fs.stat (tamanho do arquivo)
   jest.spyOn(fs, 'stat').mockResolvedValue({
     size: 1024 * 1024 * 10 // 10MB
-  } as any);
+  });
 });
 
 afterEach(() => {
@@ -280,16 +281,16 @@ describe('VideoWatermarker', () => {
 
   describe('Watermark Positions', () => {
     test.each([
-      ['top-left', '10', '10'],
-      ['top-center', '(W-w)/2', '10'],
-      ['top-right', 'W-w-10', '10'],
-      ['center-left', '10', '(H-h)/2'],
-      ['center', '(W-w)/2', '(H-h)/2'],
-      ['center-right', 'W-w-10', '(H-h)/2'],
-      ['bottom-left', '10', 'H-h-10'],
-      ['bottom-center', '(W-w)/2', 'H-h-10'],
-      ['bottom-right', 'W-w-10', 'H-h-10']
-    ])('should position watermark at %s', async (position, expectedX, expectedY) => {
+      [WatermarkPosition.TOP_LEFT, '10', '10'],
+      [WatermarkPosition.TOP_CENTER, '(W-w)/2', '10'],
+      [WatermarkPosition.TOP_RIGHT, 'W-w-10', '10'],
+      [WatermarkPosition.CENTER_LEFT, '10', '(H-h)/2'],
+      [WatermarkPosition.CENTER, '(W-w)/2', '(H-h)/2'],
+      [WatermarkPosition.CENTER_RIGHT, 'W-w-10', '(H-h)/2'],
+      [WatermarkPosition.BOTTOM_LEFT, '10', 'H-h-10'],
+      [WatermarkPosition.BOTTOM_CENTER, '(W-w)/2', 'H-h-10'],
+      [WatermarkPosition.BOTTOM_RIGHT, 'W-w-10', 'H-h-10']
+    ] satisfies Array<[WatermarkPosition, string, string]>)('should position watermark at %s', async (position, expectedX, expectedY) => {
       const watermarker = new VideoWatermarker();
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
@@ -303,7 +304,7 @@ describe('VideoWatermarker', () => {
           type: 'text',
           text: 'Test'
         },
-        position: position as any,
+        position,
         margin: 10
       };
 
@@ -874,7 +875,7 @@ describe('VideoWatermarker', () => {
       // Mock large file
       jest.spyOn(fs, 'stat').mockResolvedValue({
         size: 1024 * 1024 * 1024 * 2 // 2GB
-      } as any);
+      });
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         mockFfmpeg.on.mock.calls

@@ -154,7 +154,7 @@ async function generateMainTopics(
   visuals: string[];
 }>> {
   // Topic-specific content generation
-  const nrTopics: Record<string, any> = {
+  const nrTopics: Record<string, unknown> = {
     NR12: [
       {
         title: 'Identificação de Riscos',

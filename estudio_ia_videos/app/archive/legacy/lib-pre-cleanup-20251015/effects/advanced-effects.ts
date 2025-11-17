@@ -79,7 +79,7 @@ export interface EffectConfig {
   duration: number;
   intensity: number; // 0-1
   easing?: EasingFunction;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -276,7 +276,7 @@ export interface EffectActivity {
   effectId: string;
   userId?: string;
   description: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -1187,7 +1187,7 @@ export class AdvancedVideoEffects extends EventEmitter {
     type: EffectActivity['type'],
     effectId: string,
     description: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const activity: EffectActivity = {
       id: `activity-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

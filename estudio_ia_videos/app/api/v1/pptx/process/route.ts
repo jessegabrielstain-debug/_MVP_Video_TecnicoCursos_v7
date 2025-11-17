@@ -10,6 +10,7 @@ import { S3StorageService } from '@/lib/s3-storage'
 import { prisma } from '@/lib/prisma'
 import { PPTXProcessor, ProcessingProgress } from '@/lib/pptx/pptx-processor'
 import { PPTXExtractionResult } from '@/lib/pptx/types/pptx-types'
+import type { Prisma } from '@prisma/client'
 
 interface PPTXProcessingResult {
   success: boolean
@@ -164,7 +165,7 @@ export async function POST(request: NextRequest) {
       where: { id: projectId },
       data: {
         status: 'COMPLETED',
-        slidesData: extractionResult as any, // JSON com dados reais extraídos
+        slidesData: extractionResult as unknown as Prisma.JsonValue, // JSON com dados reais extraídos
         totalSlides: extractionResult.slides.length,
         duration: extractionResult.timeline ? Math.round(extractionResult.timeline.totalDuration / 1000) : 0, // Converter para segundos
         thumbnailUrl: thumbnailUrl,
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest) {
           totalDuration: extractionResult.timeline?.totalDuration || 0,
           processingTime: processingTime,
           extractionStats: extractionResult.extractionStats
-        } as any
+        } as unknown as Prisma.JsonValue
       }
     })
 
@@ -202,7 +203,7 @@ export async function POST(request: NextRequest) {
             backgroundColor: slide.backgroundColor,
             images: slide.images,
             shapes: slide.shapes
-          } as any
+          } as unknown as Prisma.JsonValue
         }
       })
     }
@@ -219,7 +220,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result)
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Erro no processamento PPTX:', error)
     
     const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'

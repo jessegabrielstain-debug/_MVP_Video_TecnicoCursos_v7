@@ -74,7 +74,7 @@ export function captureException(
   context?: {
     level?: 'fatal' | 'error' | 'warning' | 'info' | 'debug';
     tags?: Record<string, string>;
-    extra?: Record<string, any>;
+    extra?: Record<string, unknown>;
     user?: {
       id: string;
       email?: string;
@@ -113,7 +113,7 @@ export function captureException(
 export function captureMessage(
   message: string,
   level: 'fatal' | 'error' | 'warning' | 'info' | 'debug' = 'info',
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ) {
   Sentry.withScope((scope) => {
     scope.setLevel(level);
@@ -160,7 +160,7 @@ export function clearUser() {
 export function startTransaction(
   name: string,
   op: string,
-  data?: Record<string, any>
+  data?: Record<string, unknown>
 ) {
   const transaction = Sentry.startTransaction({
     name,
@@ -177,9 +177,9 @@ export function startTransaction(
 export class PerformanceTracker {
   private startTime: number;
   private operation: string;
-  private metadata: Record<string, any>;
+  private metadata: Record<string, unknown>;
 
-  constructor(operation: string, metadata?: Record<string, any>) {
+  constructor(operation: string, metadata?: Record<string, unknown>) {
     this.startTime = Date.now();
     this.operation = operation;
     this.metadata = metadata || {};
@@ -188,7 +188,7 @@ export class PerformanceTracker {
   /**
    * Finalizar tracking e enviar métrica
    */
-  finish(additionalData?: Record<string, any>) {
+  finish(additionalData?: Record<string, unknown>) {
     const duration = Date.now() - this.startTime;
 
     // Enviar para Sentry

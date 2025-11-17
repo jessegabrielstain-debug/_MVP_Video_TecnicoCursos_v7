@@ -303,8 +303,8 @@ async function handleGetMetrics(searchParams: URLSearchParams): Promise<NextResp
 async function handleGetAlerts(searchParams: URLSearchParams): Promise<NextResponse> {
   const filterParams = {
     limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined,
-    type: searchParams.get('type') as any,
-    category: searchParams.get('category') as any,
+    type: searchParams.get('type') as 'warning' | 'error' | 'critical' | null,
+    category: searchParams.get('category') as 'performance' | 'system' | 'application' | 'security' | null,
     resolved: searchParams.get('resolved') ? searchParams.get('resolved') === 'true' : undefined,
     from: searchParams.get('from') || undefined,
     to: searchParams.get('to') || undefined

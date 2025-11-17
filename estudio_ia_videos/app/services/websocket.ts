@@ -1,4 +1,10 @@
-import { RealTimeEvent, User } from '@/types/collaboration';
+import {
+  ActivityNotification,
+  Comment,
+  CommentReply,
+  ProjectVersion,
+  User,
+} from '@/types/collaboration';
 
 export type WebSocketEventType = 
   | 'user_joined'
@@ -12,9 +18,36 @@ export type WebSocketEventType =
   | 'notification'
   | 'project_update';
 
-export interface WebSocketMessage {
-  type: WebSocketEventType;
-  payload: any;
+export type CursorMovePayload = {
+  userId?: string;
+  x: number;
+  y: number;
+  elementId?: string;
+};
+
+export type ElementUpdatePayload = {
+  elementId: string;
+  changes: Record<string, unknown>;
+};
+
+export type ProjectUpdatePayload = Record<string, unknown>;
+
+export type WebSocketEventPayloadMap = {
+  user_joined: User;
+  user_left: string;
+  cursor_move: CursorMovePayload;
+  element_update: ElementUpdatePayload;
+  comment_added: Comment;
+  comment_reply: { commentId: string; reply: CommentReply };
+  comment_resolved: string;
+  version_created: ProjectVersion;
+  notification: ActivityNotification;
+  project_update: ProjectUpdatePayload;
+};
+
+export interface WebSocketMessage<T extends WebSocketEventType = WebSocketEventType> {
+  type: T;
+  payload: WebSocketEventPayloadMap[T];
   userId: string;
   projectId: string;
   timestamp: Date;
@@ -26,7 +59,7 @@ export class WebSocketService {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private heartbeatInterval: NodeJS.Timeout | null = null;
-  private listeners: Map<WebSocketEventType, Set<(data: any) => void>> = new Map();
+  private listeners: Map<WebSocketEventType, Set<(data: WebSocketEventPayloadMap[WebSocketEventType]) => void>> = new Map();
   private connectionListeners: Set<(connected: boolean) => void> = new Set();
 
   constructor(
@@ -86,9 +119,9 @@ export class WebSocketService {
     this.stopHeartbeat();
   }
 
-  send(type: WebSocketEventType, payload: any): void {
+  send<T extends WebSocketEventType>(type: T, payload: WebSocketEventPayloadMap[T]): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      const message: WebSocketMessage = {
+      const message: WebSocketMessage<T> = {
         type,
         payload,
         userId: this.userId,
@@ -102,17 +135,17 @@ export class WebSocketService {
     }
   }
 
-  on(eventType: WebSocketEventType, callback: (data: any) => void): void {
+  on<T extends WebSocketEventType>(eventType: T, callback: (data: WebSocketEventPayloadMap[T]) => void): void {
     if (!this.listeners.has(eventType)) {
       this.listeners.set(eventType, new Set());
     }
-    this.listeners.get(eventType)!.add(callback);
+    this.listeners.get(eventType)!.add(callback as (data: WebSocketEventPayloadMap[WebSocketEventType]) => void);
   }
 
-  off(eventType: WebSocketEventType, callback: (data: any) => void): void {
+  off<T extends WebSocketEventType>(eventType: T, callback: (data: WebSocketEventPayloadMap[T]) => void): void {
     const listeners = this.listeners.get(eventType);
     if (listeners) {
-      listeners.delete(callback);
+      listeners.delete(callback as (data: WebSocketEventPayloadMap[WebSocketEventType]) => void);
     }
   }
 

@@ -146,7 +146,7 @@ class MetricsCollector {
   
   // Obter todas as métricas
   getAllMetrics() {
-    const result: Record<string, any> = {}
+    const result: Record<string, unknown> = {}
     
     for (const [key, value] of this.metrics.entries()) {
       const [metric, type] = key.split(':')

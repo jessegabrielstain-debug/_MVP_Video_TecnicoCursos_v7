@@ -64,6 +64,30 @@ const ProfessionalExportPipeline: React.FC = () => {
     includeAudio: true,
     audioQuality: 128
   })
+
+  const isFormatValue = (value: string): value is ExportSettings['format'] => {
+    return value === 'mp4' || value === 'webm' || value === 'gif' || value === 'png_sequence' || value === 'jpeg_sequence'
+  }
+
+  const isQualityValue = (value: string): value is ExportSettings['quality'] => {
+    return value === 'high' || value === 'medium' || value === 'low' || value === 'custom'
+  }
+
+  const isResolutionValue = (value: string): value is ExportSettings['resolution'] => {
+    return value === '4k' || value === '1080p' || value === '720p' || value === '480p' || value === 'custom'
+  }
+
+  const isVideoCodecValue = (value: string): value is ExportSettings['videoCodec'] => {
+    return value === 'h264' || value === 'h265' || value === 'vp9'
+  }
+
+  const isPresetValue = (value: string): value is ExportSettings['preset'] => {
+    return value === 'ultrafast' || value === 'fast' || value === 'medium' || value === 'slow' || value === 'veryslow'
+  }
+
+  const isAudioCodecValue = (value: string): value is ExportSettings['audioCodec'] => {
+    return value === 'aac' || value === 'mp3' || value === 'opus'
+  }
   
   // Preset configurations
   const presets = {
@@ -139,10 +163,10 @@ const ProfessionalExportPipeline: React.FC = () => {
   const applyPreset = (preset: keyof typeof presets) => {
     if (preset === 'custom') return
     
-    setSettings({
-      ...settings,
+    setSettings(prev => ({
+      ...prev,
       ...presets[preset].settings
-    })
+    }))
     setSelectedPreset(preset)
   }
   
@@ -191,7 +215,7 @@ const ProfessionalExportPipeline: React.FC = () => {
       createdAt: new Date()
     }
     
-    setExportJobs([...exportJobs, newJob])
+    setExportJobs(prev => [...prev, newJob])
     
     // Simulate export progress
     const interval = setInterval(() => {
@@ -313,7 +337,12 @@ const ProfessionalExportPipeline: React.FC = () => {
                   <Label>Output Format</Label>
                   <select
                     value={settings.format}
-                    onChange={(e) => setSettings({...settings, format: e.target.value as any})}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (isFormatValue(value)) {
+                        setSettings(prev => ({ ...prev, format: value }))
+                      }
+                    }}
                     className="w-full mt-1 p-2 border rounded bg-white dark:bg-gray-700"
                   >
                     <option value="mp4">MP4 (Recommended)</option>
@@ -327,7 +356,12 @@ const ProfessionalExportPipeline: React.FC = () => {
                   <Label>Quality</Label>
                   <select
                     value={settings.quality}
-                    onChange={(e) => setSettings({...settings, quality: e.target.value as any})}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (isQualityValue(value)) {
+                        setSettings(prev => ({ ...prev, quality: value }))
+                      }
+                    }}
                     className="w-full mt-1 p-2 border rounded bg-white dark:bg-gray-700"
                   >
                     <option value="high">High Quality</option>
@@ -340,7 +374,12 @@ const ProfessionalExportPipeline: React.FC = () => {
                   <Label>Resolution</Label>
                   <select
                     value={settings.resolution}
-                    onChange={(e) => setSettings({...settings, resolution: e.target.value as any})}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (isResolutionValue(value)) {
+                        setSettings(prev => ({ ...prev, resolution: value }))
+                      }
+                    }}
                     className="w-full mt-1 p-2 border rounded bg-white dark:bg-gray-700"
                   >
                     <option value="4k">4K Ultra HD (3840×2160)</option>
@@ -354,7 +393,12 @@ const ProfessionalExportPipeline: React.FC = () => {
                   <Label>Frame Rate</Label>
                   <select
                     value={settings.fps}
-                    onChange={(e) => setSettings({...settings, fps: parseInt(e.target.value)})}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10)
+                      if (!Number.isNaN(value)) {
+                        setSettings(prev => ({ ...prev, fps: value }))
+                      }
+                    }}
                     className="w-full mt-1 p-2 border rounded bg-white dark:bg-gray-700"
                   >
                     <option value="24">24 fps (Cinematic)</option>
@@ -370,7 +414,12 @@ const ProfessionalExportPipeline: React.FC = () => {
                 <Label>Video Codec</Label>
                 <select
                   value={settings.videoCodec}
-                  onChange={(e) => setSettings({...settings, videoCodec: e.target.value as any})}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (isVideoCodecValue(value)) {
+                      setSettings(prev => ({ ...prev, videoCodec: value }))
+                    }
+                  }}
                   className="w-full mt-1 p-2 border rounded bg-white dark:bg-gray-700"
                 >
                   <option value="h264">H.264 (Compatible)</option>
@@ -383,7 +432,7 @@ const ProfessionalExportPipeline: React.FC = () => {
                 <Label>Bitrate (kbps)</Label>
                 <Slider
                   value={[settings.bitrate || 5000]}
-                  onValueChange={([value]) => setSettings({...settings, bitrate: value})}
+                    onValueChange={([value]) => setSettings(prev => ({ ...prev, bitrate: value }))}
                   min={500}
                   max={20000}
                   step={500}
@@ -396,7 +445,7 @@ const ProfessionalExportPipeline: React.FC = () => {
                 <Label>CRF (Quality)</Label>
                 <Slider
                   value={[settings.crf]}
-                  onValueChange={([value]) => setSettings({...settings, crf: value})}
+                    onValueChange={([value]) => setSettings(prev => ({ ...prev, crf: value }))}
                   min={0}
                   max={51}
                   step={1}
@@ -411,7 +460,12 @@ const ProfessionalExportPipeline: React.FC = () => {
                 <Label>Encoding Speed</Label>
                 <select
                   value={settings.preset}
-                  onChange={(e) => setSettings({...settings, preset: e.target.value as any})}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (isPresetValue(value)) {
+                      setSettings(prev => ({ ...prev, preset: value }))
+                    }
+                  }}
                   className="w-full mt-1 p-2 border rounded bg-white dark:bg-gray-700"
                 >
                   <option value="ultrafast">Ultra Fast (Lower Quality)</option>
@@ -437,8 +491,13 @@ const ProfessionalExportPipeline: React.FC = () => {
                   <div>
                     <Label>Audio Codec</Label>
                     <select
-                      value={settings.audioCodec}
-                      onChange={(e) => setSettings({...settings, audioCodec: e.target.value as any})}
+                        value={settings.audioCodec}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          if (isAudioCodecValue(value)) {
+                            setSettings(prev => ({ ...prev, audioCodec: value }))
+                          }
+                        }}
                       className="w-full mt-1 p-2 border rounded bg-white dark:bg-gray-700"
                     >
                       <option value="aac">AAC (Recommended)</option>

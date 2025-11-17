@@ -45,7 +45,8 @@ export default function NRTemplateLibrary({
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedNR, setSelectedNR] = useState<string>('all')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [stats, setStats] = useState<any>(null)
+  interface NRStats { total: number; byNR: Record<string, number>; topCategories: string[]; }
+  const [stats, setStats] = useState<NRStats | null>(null)
 
   useEffect(() => {
     loadTemplates()

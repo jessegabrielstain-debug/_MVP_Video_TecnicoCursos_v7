@@ -56,7 +56,7 @@ class FormValidator {
     return FormValidator.instance;
   }
 
-  private getMessage(code: string, params?: Record<string, any>): string {
+  private getMessage(code: string, params?: Record<string, unknown>): string {
     let message = this.validationMessages.pt[code] || code;
     
     if (params) {
@@ -72,7 +72,7 @@ class FormValidator {
     fieldName: string,
     value: any,
     rules: ValidationRule,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): ValidationError[] {
     const errors: ValidationError[] = [];
 
@@ -190,10 +190,10 @@ class FormValidator {
     return errors;
   }
 
-  validateForm<T extends Record<string, any>>(
+  validateForm<T extends Record<string, unknown>>(
     data: T,
     schema: Record<keyof T, ValidationRule>,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationError[] = [];
@@ -313,7 +313,7 @@ class FormValidator {
 }
 
 // Hook React para validação de formulários
-export function useFormValidation<T extends Record<string, any>>(
+export function useFormValidation<T extends Record<string, unknown>>(
   initialData: T,
   schema: Record<keyof T, ValidationRule>
 ) {

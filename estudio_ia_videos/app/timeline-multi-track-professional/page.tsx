@@ -21,11 +21,23 @@ import KeyframeAnimationSystem from '@/components/timeline-professional/keyframe
 import AudioSyncIASystem from '@/components/timeline-professional/audio-sync-ia-system';
 import MotionGraphicsAIEngine from '@/components/timeline-professional/motion-graphics-ai-engine';
 
+type ModuleId = 'timeline' | 'keyframes' | 'audio' | 'motion';
+
+interface ModuleConfig {
+  id: ModuleId;
+  name: string;
+  icon: React.ReactNode;
+  description: string;
+  color: string;
+  bgColor: string;
+  component: React.ComponentType;
+}
+
 const TimelineMultiTrackProfessional = () => {
-  const [activeModule, setActiveModule] = useState<'timeline' | 'keyframes' | 'audio' | 'motion'>('timeline');
+  const [activeModule, setActiveModule] = useState<ModuleId>('timeline');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const modules = [
+  const modules: ModuleConfig[] = [
     {
       id: 'timeline',
       name: 'Advanced Timeline',
@@ -64,11 +76,17 @@ const TimelineMultiTrackProfessional = () => {
     }
   ];
 
+  const moduleIds: ModuleId[] = modules.map((module) => module.id);
+
+  const isModuleId = (value: string): value is ModuleId => {
+    return moduleIds.includes(value as ModuleId);
+  };
+
   const currentModule = modules.find(m => m.id === activeModule);
   const ActiveComponent = currentModule?.component;
 
-  const handleModuleSwitch = useCallback((moduleId: string) => {
-    setActiveModule(moduleId as any);
+  const handleModuleSwitch = useCallback((moduleId: ModuleId) => {
+    setActiveModule(moduleId);
   }, []);
 
   const renderOverview = () => (
@@ -329,7 +347,15 @@ const TimelineMultiTrackProfessional = () => {
       {/* Main Content */}
       <div className="container mx-auto">
         {activeModule === 'timeline' ? renderOverview() : (
-          <Tabs value={activeModule} onValueChange={handleModuleSwitch} className="h-[calc(100vh-80px)]">
+          <Tabs
+            value={activeModule}
+            onValueChange={(value) => {
+              if (isModuleId(value)) {
+                handleModuleSwitch(value);
+              }
+            }}
+            className="h-[calc(100vh-80px)]"
+          >
             <TabsList className="w-full bg-gray-800/50 border-b border-gray-700">
               {modules.map((module) => (
                 <TabsTrigger 

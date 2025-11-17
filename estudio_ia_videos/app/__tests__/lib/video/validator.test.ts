@@ -24,7 +24,12 @@ describe('VideoValidator', () => {
   let validator: VideoValidator;
 
   // Helper function to create mock probe data
-  const createMockProbeData = (overrides: any = {}) => ({
+  interface ProbeDataOverrides {
+    format?: Partial<{ format_name: string; duration: number; bit_rate: number; size: number; }>;
+    video?: Partial<{ codec_type: string; codec_name: string; width: number; height: number; r_frame_rate: string; bit_rate: number; }>;
+    noAudio?: boolean;
+  }
+  const createMockProbeData = (overrides: ProbeDataOverrides = {}) => ({
     format: {
       format_name: 'mp4',
       duration: 120,

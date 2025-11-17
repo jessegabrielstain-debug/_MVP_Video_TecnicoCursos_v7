@@ -98,7 +98,7 @@ interface Keyframe {
   id: string;
   time: number;
   property: string;
-  value: any;
+  value: unknown;
   easing: 'linear' | 'easeIn' | 'easeOut' | 'easeInOut';
 }
 

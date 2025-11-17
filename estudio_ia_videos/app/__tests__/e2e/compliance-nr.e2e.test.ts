@@ -199,11 +199,12 @@ describe('E2E: Compliance NR Inteligente', () => {
         expect(result.report).toBeDefined()
         
         console.log(`✅ Validação NR-06 concluída: score=${result.score}, passed=${result.passed}`)
-      } catch (error: any) {
-        if (error.message?.includes('OpenAI API') || error.message?.includes('GPT-4')) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage?.includes('OpenAI API') || errorMessage?.includes('GPT-4')) {
           console.warn('⚠️ API OpenAI não disponível - teste ignorado')
         } else {
-          throw error
+          throw error;
         }
       }
     }, 30000) // 30s timeout para API externa
@@ -230,8 +231,9 @@ describe('E2E: Compliance NR Inteligente', () => {
         console.log(`  - Tópicos cobertos: ${result.report.topicsCovered.length}`)
         console.log(`  - Tópicos ausentes: ${result.report.topicsMissing.length}`)
         console.log(`  - Recomendações: ${result.report.recommendations.length}`)
-      } catch (error: any) {
-        if (error.message?.includes('OpenAI API') || error.message?.includes('GPT-4')) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage?.includes('OpenAI API') || errorMessage?.includes('GPT-4')) {
           console.warn('⚠️ API OpenAI não disponível - teste ignorado')
         } else {
           throw error
@@ -292,20 +294,20 @@ describe('E2E: Compliance NR Inteligente', () => {
 
       // ACT & ASSERT
       await expect(
-        validator.validate(testProjectId, 'NR-99' as any)
-      ).rejects.toThrow()
+        validator.validate(testProjectId, 'NR-99' as unknown as string)
+      ).rejects.toThrow();
       
-      console.log('✅ NR inválida rejeitada')
-    })
-  })
+      console.log('✅ NR inválida rejeitada');
+    });
+  });
 
   describe('Análise de Pontos Críticos', () => {
     it('deve identificar pontos críticos de cada NR', () => {
       // ACT: Analisar pontos críticos de NRs principais
-      const nrs = ['NR-06', 'NR-10', 'NR-17', 'NR-35']
+      const nrs = ['NR-06', 'NR-10', 'NR-17', 'NR-35'];
       
       nrs.forEach(nrCode => {
-        const template = getNRTemplate(nrCode as any)
+        const template = getNRTemplate(nrCode as unknown as string);
         
         // ASSERT
         expect(template.criticalPoints.length).toBeGreaterThan(0)

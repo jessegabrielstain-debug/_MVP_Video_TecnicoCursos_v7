@@ -1,0 +1,21 @@
+                <>
+                  <Separator className="bg-gray-700" />
+                  <div className="font-semibold">Metadata</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {jobDetails.metadata.codec && <div><span className="text-gray-400">Codec: </span>{jobDetails.metadata.codec}</div>}
+                    {typeof jobDetails.metadata.duration === 'number' && <div><span className="text-gray-400">Duração: </span>{Math.round(jobDetails.metadata.duration)}s</div>}
+                    {typeof jobDetails.metadata.fps === 'number' && <div><span className="text-gray-400">FPS: </span>{jobDetails.metadata.fps}</div>}
+                    {jobDetails.metadata.resolution && <div><span className="text-gray-400">Resolução: </span>{jobDetails.metadata.resolution}</div>}
+                    {typeof jobDetails.metadata.bitrateKbps === 'number' && <div><span className="text-gray-400">Bitrate: </span>{jobDetails.metadata.bitrateKbps} kbps</div>}
+                    {typeof jobDetails.metadata.sizeBytes === 'number' && <div><span className="text-gray-400">Tamanho: </span>{Math.max(1, Math.round(jobDetails.metadata.sizeBytes / (1024 * 1024)))} MB</div>}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+    </>
+  );
+}

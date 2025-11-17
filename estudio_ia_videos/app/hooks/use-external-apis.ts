@@ -5,10 +5,11 @@
 
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import useSWR from 'swr'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
 
 // Types and Interfaces
 export interface TTSProvider {
@@ -132,7 +133,7 @@ export interface ComplianceCheckRequest {
   content_url?: string
   content_text?: string
   checks: string[]
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface ComplianceResult {
@@ -159,7 +160,8 @@ const fetcher = async (url: string) => {
 }
 
 export function useExternalAPIs() {
-  const { data: session } = useSession()
+  const supabase = useMemo(() => createClient(), [])
+  const [user, setUser] = useState<User | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
   // SWR Hooks for provider configurations
@@ -169,7 +171,7 @@ export function useExternalAPIs() {
     mutate: mutateTTS,
     isLoading: isLoadingTTS 
   } = useSWR<TTSProvider[]>(
-    session ? '/api/external/tts/providers' : null,
+    user ? '/api/external/tts/providers' : null,
     fetcher
   )
 
@@ -179,7 +181,7 @@ export function useExternalAPIs() {
     mutate: mutateMedia,
     isLoading: isLoadingMedia 
   } = useSWR<MediaProvider[]>(
-    session ? '/api/external/media/providers' : null,
+    user ? '/api/external/media/providers' : null,
     fetcher
   )
 
@@ -189,9 +191,35 @@ export function useExternalAPIs() {
     mutate: mutateCompliance,
     isLoading: isLoadingCompliance 
   } = useSWR<NRComplianceProvider[]>(
-    session ? '/api/external/compliance/providers' : null,
+    user ? '/api/external/compliance/providers' : null,
     fetcher
   )
+  useEffect(() => {
+    let isMounted = true
+
+    const loadUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        setUser(data.user ?? null)
+      } catch (error) {
+        console.error('[ExternalAPIs] Falha ao carregar usuário:', error)
+      }
+    }
+
+    void loadUser()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
+
 
   // TTS Functions
   const generateTTS = useCallback(async (request: TTSRequest): Promise<TTSResponse> => {

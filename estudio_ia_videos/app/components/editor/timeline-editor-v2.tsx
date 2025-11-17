@@ -36,9 +36,11 @@ import {
 } from 'lucide-react'
 import { UnifiedSlide, UnifiedTimeline, EditorState, EditorEvent } from '@/lib/types-unified-v2'
 
+type TimelineTrackType = 'scene' | 'audio' | 'effects' | 'text' | 'video';
+
 interface TimelineTrack {
   id: string
-  type: 'scene' | 'audio' | 'effects' | 'text' | 'video'
+  type: TimelineTrackType
   name: string
   items: TimelineItem[]
   height: number
@@ -65,7 +67,7 @@ interface Keyframe {
   id: string
   time: number
   property: string
-  value: any
+  value: unknown
   easing: string
 }
 
@@ -79,7 +81,23 @@ interface TimelineEditorProps {
   onEventEmit?: (event: EditorEvent) => void
 }
 
-const TimelineEditorV2 = forwardRef<any, TimelineEditorProps>(({
+export interface TimelineEditorHandle {
+  togglePlayback: () => void;
+  stop: () => void;
+  seek: (time: number) => void;
+  addTrack: (type: string) => void;
+  deleteSelectedItems: () => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+}
+
+const TIMELINE_TRACK_TYPES: TimelineTrackType[] = ['scene', 'audio', 'effects', 'text', 'video']
+
+const isTimelineTrackType = (value: string): value is TimelineTrackType => {
+  return TIMELINE_TRACK_TYPES.includes(value as TimelineTrackType)
+}
+
+const TimelineEditorV2 = forwardRef<TimelineEditorHandle, TimelineEditorProps>(({ 
   slides,
   timeline,
   editorState,
@@ -249,10 +267,12 @@ const TimelineEditorV2 = forwardRef<any, TimelineEditorProps>(({
 
   // Track management
   const handleAddTrack = useCallback((type: string) => {
+    const trackType: TimelineTrackType = isTimelineTrackType(type) ? type : 'effects'
+
     const newTrack: TimelineTrack = {
       id: `track-${Date.now()}`,
-      type: type as any,
-      name: `Nova ${type}`,
+      type: trackType,
+      name: `Nova ${trackType}`,
       height: trackHeight,
       color: getElementColor(type),
       visible: true,

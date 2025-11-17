@@ -17,8 +17,61 @@ import {
 import { 
   AudioProcessor,
   AudioEnhancementType,
-  type AudioEnhancementConfig 
+  type AudioEnhancementConfig,
+  type NormalizationConfig,
+  type CompressionConfig 
 } from '@/lib/export/audio-processor'
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+type NormalizationValue = NormalizationConfig['value']
+type CompressionValue = CompressionConfig['value']
+
+const isNormalizationValue = (value: AudioEnhancementConfig['value']): value is NormalizationValue => {
+  if (!isRecord(value)) return false
+
+  const { method, targetLevel } = value
+  return (
+    typeof method === 'string' &&
+    (method === 'peak' || method === 'rms' || method === 'ebu') &&
+    typeof targetLevel === 'number'
+  )
+}
+
+const isCompressionValue = (value: AudioEnhancementConfig['value']): value is CompressionValue => {
+  if (!isRecord(value)) return false
+
+  const { threshold, ratio, attack, release } = value
+
+  return (
+    typeof threshold === 'number' &&
+    typeof ratio === 'number' &&
+    typeof attack === 'number' &&
+    typeof release === 'number'
+  )
+}
+
+const assertNormalizationValue = (enhancement: AudioEnhancementConfig): NormalizationValue => {
+  expect(enhancement.type).toBe(AudioEnhancementType.NORMALIZE)
+
+  if (!isNormalizationValue(enhancement.value)) {
+    throw new Error('Expected normalization configuration value')
+  }
+
+  return enhancement.value
+}
+
+const assertCompressionValue = (enhancement: AudioEnhancementConfig): CompressionValue => {
+  expect(enhancement.type).toBe(AudioEnhancementType.COMPRESSION)
+
+  if (!isCompressionValue(enhancement.value)) {
+    throw new Error('Expected compression configuration value')
+  }
+
+  return enhancement.value
+}
 
 describe('Video Filters - Configuration Validation', () => {
   describe('Filter Types', () => {
@@ -239,7 +292,8 @@ describe('Audio Processor - Configuration Validation', () => {
       }
 
       expect(enhancement.value).toHaveProperty('method')
-      expect((enhancement.value as any).method).toBe('ebu')
+      const value = assertNormalizationValue(enhancement)
+      expect(value.method).toBe('ebu')
     })
 
     it('deve aceitar método Peak', () => {
@@ -249,7 +303,8 @@ describe('Audio Processor - Configuration Validation', () => {
         enabled: true,
       }
 
-      expect((enhancement.value as any).method).toBe('peak')
+      const value = assertNormalizationValue(enhancement)
+      expect(value.method).toBe('peak')
     })
 
     it('deve aceitar método RMS', () => {
@@ -259,7 +314,8 @@ describe('Audio Processor - Configuration Validation', () => {
         enabled: true,
       }
 
-      expect((enhancement.value as any).method).toBe('rms')
+      const value = assertNormalizationValue(enhancement)
+      expect(value.method).toBe('rms')
     })
   })
 
@@ -276,7 +332,8 @@ describe('Audio Processor - Configuration Validation', () => {
         enabled: true,
       }
 
-      expect((enhancement.value as any).threshold).toBe(-15)
+      const value = assertCompressionValue(enhancement)
+      expect(value.threshold).toBe(-15)
     })
 
     it('deve aceitar diferentes ratios de compressão', () => {
@@ -293,7 +350,8 @@ describe('Audio Processor - Configuration Validation', () => {
           },
           enabled: true,
         }
-        expect((enhancement.value as any).ratio).toBe(ratio)
+        const value = assertCompressionValue(enhancement)
+        expect(value.ratio).toBe(ratio)
       })
     })
   })

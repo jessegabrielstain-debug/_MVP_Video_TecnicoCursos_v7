@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAnalytics } from './hooks/useAnalytics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -39,8 +39,9 @@ import {
   Settings
 } from 'lucide-react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 interface AnalyticsData {
   overview: {
@@ -107,16 +108,43 @@ interface AnalyticsData {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export default function AnalyticsDashboard() {
-  const { data: session } = useSession();
+  const supabase = useMemo(() => createClient(), []);
+  const [user, setUser] = useState<User | null>(null);
   const [timeRange, setTimeRange] = useState('7d');
   
   const { data, loading, refreshing, fetchAnalytics } = useAnalytics<AnalyticsData>({ timeRange });
 
   useEffect(() => {
-    if (session) {
+    let isMounted = true;
+
+    const loadUser = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getUser();
+        if (!isMounted) return;
+        setUser(sessionData.user ?? null);
+      } catch (error) {
+        console.error('[Analytics] Falha ao carregar usuário:', error);
+      }
+    };
+
+    void loadUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+      listener?.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (user) {
       fetchAnalytics();
     }
-  }, [session, timeRange, fetchAnalytics]);
+  }, [user, timeRange, fetchAnalytics]);
 
   const exportData = async (format: 'csv' | 'json' | 'pdf') => {
     try {
@@ -139,6 +167,18 @@ export default function AnalyticsDashboard() {
       toast.error('Erro ao exportar dados');
     }
   };
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Acesso restrito</h2>
+          <p className="text-gray-600">Faça login para visualizar o dashboard de analytics.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading && !data) {
     return (

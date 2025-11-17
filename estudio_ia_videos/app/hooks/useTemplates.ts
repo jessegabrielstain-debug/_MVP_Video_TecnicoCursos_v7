@@ -92,6 +92,17 @@ export const useTemplates = (): UseTemplatesReturn => {
   };
 
   // Filter and sort templates
+  const getComplianceStatus = (template: Template): 'compliant' | 'non-compliant' | 'pending' => {
+    if (template.metadata.complianceStatus) {
+      return template.metadata.complianceStatus
+    }
+
+    const score = template.metadata.compliance.auditScore
+    if (score >= 80) return 'compliant'
+    if (score <= 50) return 'non-compliant'
+    return 'pending'
+  }
+
   const filteredTemplates = templates
     .filter(template => {
       if (filter.category && filter.category.length > 0 && !filter.category.includes(template.category)) {
@@ -123,6 +134,22 @@ export const useTemplates = (): UseTemplatesReturn => {
           template.tags.some(tag => tag.toLowerCase().includes(searchLower))
         );
       }
+      if (filter.favorites !== undefined) {
+        if (filter.favorites !== template.isFavorite) {
+          return false
+        }
+      }
+      if (filter.has3DPreview !== undefined) {
+        const hasPreview = Boolean(template.metadata.has3DPreview)
+        if (filter.has3DPreview !== hasPreview) {
+          return false
+        }
+      }
+      if (filter.compliance) {
+        if (getComplianceStatus(template) !== filter.compliance) {
+          return false
+        }
+      }
       return true;
     })
     .sort((a, b) => {
@@ -138,6 +165,8 @@ export const useTemplates = (): UseTemplatesReturn => {
           return (a.downloads - b.downloads) * direction;
         case 'rating':
           return (a.rating - b.rating) * direction;
+        case 'usage':
+          return (a.downloads - b.downloads) * direction;
         default:
           return 0;
       }
@@ -245,15 +274,13 @@ export const useTemplates = (): UseTemplatesReturn => {
       throw new Error('Template not found');
     }
 
-    const duplicated = {
-      ...original,
+    const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = original;
+
+    const duplicated: Omit<Template, 'id' | 'createdAt' | 'updatedAt'> = {
+      ...rest,
       name: name || `${original.name} (Copy)`,
       isCustom: true,
     };
-
-    delete (duplicated as any).id;
-    delete (duplicated as any).createdAt;
-    delete (duplicated as any).updatedAt;
 
     return createTemplate(duplicated);
   };

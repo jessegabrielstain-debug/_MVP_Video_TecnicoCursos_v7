@@ -11,9 +11,9 @@ interface Guide {
 }
 
 interface SmartGuidesProps {
-  canvas: any | null
-  enabled: boolean
-  snapDistance: number
+  canvas: unknown;
+  enabled: boolean;
+  snapDistance: number;
 }
 
 export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesProps) {
@@ -23,15 +23,15 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
   useEffect(() => {
     if (!canvas || !enabled) return
     
-    const handleObjectMoving = (e: any) => {
+    const handleObjectMoving = (e: { target: unknown }) => {
       const movingObject = e.target
       if (!movingObject) return
       
       const guides: Guide[] = []
-      const objects = canvas.getObjects().filter((obj: any) => obj !== movingObject)
+      const objects = (canvas as { getObjects: () => unknown[] }).getObjects().filter((obj: unknown) => obj !== movingObject)
       
       // Calcular guides horizontais e verticais
-      objects.forEach((obj: any) => {
+      objects.forEach((obj: unknown) => {
         const objBounds = obj.getBoundingRect()
         const movingBounds = movingObject.getBoundingRect()
         
@@ -151,9 +151,13 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
     
     const clearGuides = () => {
       try {
-        if (canvas.getObjects) {
-          const guides = canvas.getObjects().filter((obj: any) => obj.name === 'smart-guide')
-          guides.forEach((guide: any) => canvas.remove && canvas.remove(guide))
+        if ((canvas as { getObjects?: () => unknown[] }).getObjects) {
+          const guides = (canvas as { getObjects: () => unknown[] }).getObjects().filter((obj: unknown) => (obj as { name?: string }).name === 'smart-guide')
+          guides.forEach((guide: unknown) => {
+            if ((canvas as { remove?: (obj: unknown) => void }).remove) {
+              (canvas as { remove: (obj: unknown) => void }).remove(guide)
+            }
+          })
         }
       } catch (error) {
         console.warn('Error clearing guides:', error)
@@ -178,7 +182,7 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
 }
 
 // Hook para usar smart guides
-export function useSmartGuides(canvas: any | null) {
+export function useSmartGuides(canvas: unknown) {
   const [enabled, setEnabled] = useState(true)
   const [snapDistance, setSnapDistance] = useState(5)
   

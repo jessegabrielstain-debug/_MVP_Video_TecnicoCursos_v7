@@ -2,24 +2,25 @@
  * ═══════════════════════════════════════════════════════════════════════════
  * ⚡ OTIMIZADOR AUTOMÁTICO DE PERFORMANCE
  * ═══════════════════════════════════════════════════════════════════════════
- * 
+ *
  * Aplica otimizações automáticas no sistema
  * Versão: 1.0
  * Data: 10/10/2025
- * 
+ *
  * Otimizações Aplicadas:
  * - Adiciona índices no database
  * - Cria sistema de cache
  * - Otimiza configuração do Next.js
  * - Implementa lazy loading
  * - Compressão de assets
- * 
+ *
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface OptimizationResult {
   name: string;
@@ -29,10 +30,36 @@ interface OptimizationResult {
   improvement: string;
 }
 
+type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
+type GenericTable<Row extends Record<string, unknown>> = {
+  Row: Row;
+  Insert: Partial<Row>;
+  Update: Partial<Row>;
+};
+
+type Database = {
+  public: {
+    Tables: {
+      users: GenericTable<{ id: string }>;
+      projects: GenericTable<Record<string, Json>>;
+      slides: GenericTable<Record<string, Json>>;
+      render_jobs: GenericTable<Record<string, Json>>;
+      analytics_events: GenericTable<Record<string, Json>>;
+      nr_courses: GenericTable<Record<string, Json>>;
+      nr_modules: GenericTable<Record<string, Json>>;
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, unknown>;
+    Enums: Record<string, unknown>;
+    CompositeTypes: Record<string, unknown>;
+  };
+};
+
 class PerformanceOptimizer {
   private projectRoot: string;
   private appDir: string;
-  private supabase: any;
+  private supabase: SupabaseClient<Database> | null = null;
   private envVars: Map<string, string> = new Map();
   private results: OptimizationResult[] = [];
 
@@ -54,7 +81,7 @@ class PerformanceOptimizer {
         if (match) {
           const key = match[1].trim();
           let value = match[2].trim();
-          if ((value.startsWith('"') && value.endsWith('"')) || 
+          if ((value.startsWith('"') && value.endsWith('"')) ||
               (value.startsWith("'") && value.endsWith("'"))) {
             value = value.slice(1, -1);
           }
@@ -68,7 +95,7 @@ class PerformanceOptimizer {
     const url = this.envVars.get('NEXT_PUBLIC_SUPABASE_URL');
     const key = this.envVars.get('SUPABASE_SERVICE_ROLE_KEY');
     if (url && key) {
-      this.supabase = createClient(url, key);
+      this.supabase = createClient<Database>(url, key);
     }
   }
 
@@ -79,6 +106,21 @@ class PerformanceOptimizer {
       warning: '\x1b[33m', reset: '\x1b[0m'
     };
     console.log(`${colors[level]}${icons[level]} ${message}${colors.reset}`);
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+      const maybeMessage = (error as { message?: unknown }).message;
+      if (typeof maybeMessage === 'string') {
+        return maybeMessage;
+      }
+    }
+
+    return 'Unknown error';
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -122,7 +164,6 @@ CREATE INDEX IF NOT EXISTS idx_templates_published ON templates(published);
 `;
 
     try {
-      // Executar SQL (não irá falhar se índices já existirem)
       const dbUrl = this.envVars.get('DATABASE_URL');
       if (!dbUrl) {
         throw new Error('DATABASE_URL não configurada');
@@ -138,8 +179,8 @@ CREATE INDEX IF NOT EXISTS idx_templates_published ON templates(published);
         after: '12 índices criados',
         improvement: 'Queries 50-80% mais rápidas'
       };
-    } catch (error: any) {
-      this.log(`   ❌ Erro: ${error.message}`, 'error');
+    } catch (error: unknown) {
+      this.log(`   ❌ Erro: ${this.getErrorMessage(error)}`, 'error');
       return {
         name: 'Database Indexes',
         applied: false,
@@ -168,7 +209,7 @@ interface CacheEntry<T> {
 }
 
 class MemoryCache {
-  private cache: Map<string, CacheEntry<any>> = new Map();
+  private cache = new Map<string, CacheEntry<unknown>>();
   private readonly defaultTTL = 5 * 60 * 1000; // 5 minutos
 
   set<T>(key: string, value: T, ttl: number = this.defaultTTL): void {
@@ -178,7 +219,7 @@ class MemoryCache {
 
   get<T>(key: string): T | null {
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       return null;
     }
@@ -188,7 +229,7 @@ class MemoryCache {
       return null;
     }
 
-    return entry.value;
+    return entry.value as T;
   }
 
   delete(key: string): void {
@@ -237,8 +278,7 @@ export function withCache<T>(
 `;
 
     const cachePath = path.join(this.appDir, 'lib', 'cache.ts');
-    
-    // Criar diretório lib se não existir
+
     const libDir = path.join(this.appDir, 'lib');
     if (!fs.existsSync(libDir)) {
       fs.mkdirSync(libDir, { recursive: true });
@@ -264,7 +304,7 @@ export function withCache<T>(
     this.log('\n⚡ Otimizando Next.js config...', 'info');
 
     const configPath = path.join(this.appDir, 'next.config.js');
-    
+
     const optimizedConfig = `/** @type {import('next').NextConfig} */
 const nextConfig = {
   // Performance Optimizations
@@ -328,7 +368,6 @@ const nextConfig = {
 module.exports = nextConfig;
 `;
 
-    // Backup do config anterior
     if (fs.existsSync(configPath)) {
       const backup = fs.readFileSync(configPath, 'utf-8');
       fs.writeFileSync(configPath + '.backup', backup);
@@ -435,14 +474,17 @@ export const lazyLoadEditor = () =>
  */
 
 import { NextResponse } from 'next/server';
-import { cache, withCache } from '@/lib/cache';
+import { cache } from '@/lib/cache';
+
+type RouteContext = Record<string, unknown>;
+type ApiHandler = (req: Request, context: RouteContext) => Promise<Response>;
 
 // Cache para GET requests
 export function withApiCache(
-  handler: Function,
+  handler: ApiHandler,
   options: { ttl?: number; keyPrefix?: string } = {}
 ) {
-  return async (req: Request, context: any) => {
+  return async (req: Request, context: RouteContext) => {
     const { method, url } = req;
 
     // Só fazer cache de GET requests
@@ -451,11 +493,11 @@ export function withApiCache(
     }
 
     // Gerar chave de cache baseada na URL
-    const cacheKey = \`\${options.keyPrefix || 'api'}:\${url}\`;
+    const cacheKey = `\${options.keyPrefix || 'api'}:\${url}`;
 
     // Tentar pegar do cache
-    const cached = cache.get(cacheKey);
-    if (cached) {
+    const cached = cache.get<unknown>(cacheKey);
+    if (cached !== null) {
       return NextResponse.json(cached, {
         headers: {
           'X-Cache': 'HIT',
@@ -518,7 +560,6 @@ export function withApiCache(
     this.log('║                                                                   ║', 'info');
     this.log('╚═══════════════════════════════════════════════════════════════════╝\n', 'info');
 
-    // Executar otimizações
     this.results.push(await this.optimizeDatabase());
     this.results.push(await this.createCacheSystem());
     this.results.push(await this.optimizeNextConfig());

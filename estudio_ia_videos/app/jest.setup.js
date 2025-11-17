@@ -12,6 +12,7 @@ require('@testing-library/jest-dom')
 
 // Mock environment variables
 process.env.NODE_ENV = 'test'
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_db'
 process.env.AWS_ACCESS_KEY_ID = 'test-access-key'
 process.env.AWS_SECRET_ACCESS_KEY = 'test-secret-key'
 process.env.AWS_REGION = 'us-east-1'
@@ -53,9 +54,9 @@ global.File = class MockFile {
 
 global.Blob = class MockBlob {
   constructor(parts, properties) {
-    this.parts = parts
-    this.size = parts.reduce((acc, part) => acc + part.length, 0)
-    this.type = properties?.type || ''
+    this.parts = parts;
+    this.size = parts.reduce((acc, part) => acc + (part.byteLength || part.length || 0), 0);
+    this.type = properties?.type || '';
   }
 }
 
@@ -97,6 +98,21 @@ global.WebSocket = jest.fn().mockImplementation(() => ({
   addEventListener: jest.fn(),
   removeEventListener: jest.fn(),
 }))
+
+// Mock Request for Node test environments
+if (typeof Request === 'undefined') {
+  global.Request = class MockRequest {
+    constructor(url, options = {}) {
+      this.url = url
+      this.method = options.method || 'GET'
+      this.headers = new Map(Object.entries(options.headers || {}))
+      this.body = options.body
+    }
+    async json() {
+      return typeof this.body === 'string' ? JSON.parse(this.body) : this.body
+    }
+  }
+}
 
 // Timeout global para testes assíncronos
 jest.setTimeout(120000) // 2 minutos

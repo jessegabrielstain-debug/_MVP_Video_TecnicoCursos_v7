@@ -45,6 +45,15 @@ const sqlFiles = [
     {
         name: 'scripts/seed-nr-courses.sql',
         description: 'Dados iniciais dos cursos NR'
+    },
+    {
+        name: 'scripts/sql/migrations/2025-11-12_fix_render_jobs_status.sql',
+        description: 'Migração: normalizar status de render_jobs (pending -> queued) e default'
+    }
+    ,
+    {
+        name: 'scripts/sql/migrations/2025-11-12_add_attempts_duration.sql',
+        description: 'Migração: adicionar colunas attempts e duration_ms em render_jobs'
     }
 ];
 

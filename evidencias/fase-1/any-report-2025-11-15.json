@@ -1,0 +1,15 @@
+{
+  "any": {
+    "percentReduction": -321.8,
+    "current": 19968,
+    "reduction": -15234,
+    "baseline": 4734
+  },
+  "tsNoCheck": {
+    "percentReduction": 8.11,
+    "current": 34,
+    "reduction": 3,
+    "baseline": 37
+  },
+  "timestamp": "2025-11-15T11:40:14.0743451-03:00"
+}

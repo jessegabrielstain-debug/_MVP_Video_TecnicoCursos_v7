@@ -98,9 +98,14 @@ jest.mock('next-auth', () => ({
 }))
 jest.mock('@/lib/auth/auth-config', () => ({ authConfig: {} }))
 
-function makeRequest(method: string, url: string, body?: any) {
-  const init: any = { method, headers: { 'content-type': 'application/json' } }
-  if (body) init.body = JSON.stringify(body)
+function makeRequest(method: string, url: string, body?: unknown): NextRequest {
+  const headers: HeadersInit = { 'content-type': 'application/json' }
+  const init: RequestInit = { method, headers }
+
+  if (body !== undefined) {
+    init.body = JSON.stringify(body)
+  }
+
   return new NextRequest(new URL(url, 'http://localhost').toString(), init)
 }
 
@@ -115,7 +120,7 @@ describe('Timeline Advanced Features', () => {
         projectId: 'p1',
         trackId: 'track1',
         action: 'lock'
-      }) as any
+      })
       const res = await collaborateRoute.POST(req)
       const json = await res.json()
       
@@ -136,7 +141,7 @@ describe('Timeline Advanced Features', () => {
         projectId: 'p1',
         trackId: 'track1',
         action: 'lock'
-      }) as any
+      })
       const res = await collaborateRoute.POST(req)
       
       expect(res.status).toBe(409)
@@ -147,7 +152,7 @@ describe('Timeline Advanced Features', () => {
         projectId: 'p1',
         trackId: 'track1',
         action: 'unlock'
-      }) as any
+      })
       const res = await collaborateRoute.POST(req)
       const json = await res.json()
       
@@ -156,7 +161,7 @@ describe('Timeline Advanced Features', () => {
     })
 
     it('retorna locks e presença ativa', async () => {
-      const req = makeRequest('GET', '/api/v1/timeline/multi-track/collaborate?projectId=p1') as any
+      const req = makeRequest('GET', '/api/v1/timeline/multi-track/collaborate?projectId=p1')
       const res = await collaborateRoute.GET(req)
       const json = await res.json()
       
@@ -170,7 +175,7 @@ describe('Timeline Advanced Features', () => {
       const req = makeRequest('PUT', '/api/v1/timeline/multi-track/collaborate', {
         projectId: 'p1',
         currentTrackId: 'track1'
-      }) as any
+      })
       const res = await collaborateRoute.PUT(req)
       const json = await res.json()
       
@@ -186,7 +191,7 @@ describe('Timeline Advanced Features', () => {
         name: 'Meu Template',
         description: 'Template de teste',
         category: 'custom'
-      }) as any
+      })
       const res = await templatesRoute.POST(req)
       const json = await res.json()
       
@@ -196,7 +201,7 @@ describe('Timeline Advanced Features', () => {
     })
 
     it('lista templates disponíveis', async () => {
-      const req = makeRequest('GET', '/api/v1/timeline/multi-track/templates') as any
+      const req = makeRequest('GET', '/api/v1/timeline/multi-track/templates')
       const res = await templatesRoute.GET(req)
       const json = await res.json()
       
@@ -207,7 +212,7 @@ describe('Timeline Advanced Features', () => {
     })
 
     it('retorna template específico', async () => {
-      const req = makeRequest('GET', '/api/v1/timeline/multi-track/templates?templateId=tpl1') as any
+      const req = makeRequest('GET', '/api/v1/timeline/multi-track/templates?templateId=tpl1')
       const res = await templatesRoute.GET(req)
       const json = await res.json()
       
@@ -220,7 +225,7 @@ describe('Timeline Advanced Features', () => {
       const req = makeRequest('PUT', '/api/v1/timeline/multi-track/templates', {
         templateId: 'tpl1',
         projectId: 'p1'
-      }) as any
+      })
       const res = await templatesRoute.PUT(req)
       const json = await res.json()
       
@@ -230,7 +235,7 @@ describe('Timeline Advanced Features', () => {
     })
 
     it('deleta template', async () => {
-      const req = makeRequest('DELETE', '/api/v1/timeline/multi-track/templates?templateId=tpl1') as any
+      const req = makeRequest('DELETE', '/api/v1/timeline/multi-track/templates?templateId=tpl1')
       const res = await templatesRoute.DELETE(req)
       const json = await res.json()
       
@@ -245,7 +250,7 @@ describe('Timeline Advanced Features', () => {
         projectId: 'p1',
         operation: 'delete_tracks',
         targets: { trackIds: ['track1'] }
-      }) as any
+      })
       const res = await bulkRoute.POST(req)
       const json = await res.json()
       
@@ -259,7 +264,7 @@ describe('Timeline Advanced Features', () => {
         projectId: 'p1',
         operation: 'delete_clips',
         targets: { clipIds: ['clip1', 'clip2'] }
-      }) as any
+      })
       const res = await bulkRoute.POST(req)
       const json = await res.json()
       
@@ -273,7 +278,7 @@ describe('Timeline Advanced Features', () => {
         operation: 'duplicate_clips',
         targets: { clipIds: ['clip1'] },
         data: { timeOffset: 10 }
-      }) as any
+      })
       const res = await bulkRoute.POST(req)
       const json = await res.json()
       
@@ -287,7 +292,7 @@ describe('Timeline Advanced Features', () => {
         operation: 'move_clips',
         targets: { clipIds: ['clip1'] },
         data: { targetTrackId: 'track2' }
-      }) as any
+      })
       const res = await bulkRoute.POST(req)
       const json = await res.json()
       
@@ -301,7 +306,7 @@ describe('Timeline Advanced Features', () => {
         operation: 'apply_effect',
         targets: { clipIds: ['clip1', 'clip2'] },
         data: { effect: { type: 'fade', duration: 1 } }
-      }) as any
+      })
       const res = await bulkRoute.POST(req)
       const json = await res.json()
       
@@ -312,7 +317,7 @@ describe('Timeline Advanced Features', () => {
 
   describe('Analytics', () => {
     it('retorna sumário da timeline', async () => {
-      const req = makeRequest('GET', '/api/v1/timeline/multi-track/analytics?projectId=p1&type=summary') as any
+      const req = makeRequest('GET', '/api/v1/timeline/multi-track/analytics?projectId=p1&type=summary')
       const res = await analyticsRoute.GET(req)
       const json = await res.json()
       
@@ -323,7 +328,7 @@ describe('Timeline Advanced Features', () => {
     })
 
     it('retorna estatísticas de uso', async () => {
-      const req = makeRequest('GET', '/api/v1/timeline/multi-track/analytics?projectId=p1&type=usage') as any
+      const req = makeRequest('GET', '/api/v1/timeline/multi-track/analytics?projectId=p1&type=usage')
       const res = await analyticsRoute.GET(req)
       const json = await res.json()
       
@@ -332,7 +337,7 @@ describe('Timeline Advanced Features', () => {
     })
 
     it('retorna métricas de performance', async () => {
-      const req = makeRequest('GET', '/api/v1/timeline/multi-track/analytics?projectId=p1&type=performance') as any
+      const req = makeRequest('GET', '/api/v1/timeline/multi-track/analytics?projectId=p1&type=performance')
       const res = await analyticsRoute.GET(req)
       const json = await res.json()
       
@@ -342,7 +347,7 @@ describe('Timeline Advanced Features', () => {
     })
 
     it('retorna padrões de edição', async () => {
-      const req = makeRequest('GET', '/api/v1/timeline/multi-track/analytics?projectId=p1&type=editing_patterns') as any
+      const req = makeRequest('GET', '/api/v1/timeline/multi-track/analytics?projectId=p1&type=editing_patterns')
       const res = await analyticsRoute.GET(req)
       const json = await res.json()
       

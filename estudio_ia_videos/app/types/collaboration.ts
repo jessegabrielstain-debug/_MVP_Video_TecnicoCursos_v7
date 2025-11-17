@@ -47,7 +47,7 @@ export interface ProjectVersion {
   description: string;
   createdBy: string;
   createdAt: Date;
-  state: any; // Editor state snapshot
+  state: unknown; // Editor state snapshot
   changes: VersionChange[];
   parentVersion?: string;
   isMerged: boolean;
@@ -60,8 +60,8 @@ export interface VersionChange {
   type: 'create' | 'update' | 'delete' | 'move';
   elementId: string;
   elementType: string;
-  before?: any;
-  after?: any;
+  before?: Record<string, unknown>;
+  after?: Record<string, unknown>;
   userId: string;
   timestamp: Date;
   description: string;
@@ -119,7 +119,7 @@ export interface RealTimeEvent {
   type: 'user_join' | 'user_leave' | 'cursor_move' | 'element_change' | 'comment_add' | 'comment_update' | 'version_create';
   userId: string;
   projectId: string;
-  data: any;
+  data: Record<string, unknown>;
   timestamp: Date;
 }
 
@@ -127,8 +127,8 @@ export interface ConflictResolution {
   id: string;
   elementId: string;
   conflictType: 'concurrent_edit' | 'delete_edit' | 'move_conflict';
-  localChange: any;
-  remoteChange: any;
+  localChange: Record<string, unknown>;
+  remoteChange: Record<string, unknown>;
   resolution: 'accept_local' | 'accept_remote' | 'merge' | 'manual';
   resolvedBy?: string;
   resolvedAt?: Date;

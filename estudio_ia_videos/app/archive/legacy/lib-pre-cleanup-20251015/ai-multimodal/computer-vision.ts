@@ -21,7 +21,7 @@ interface DetectionResult {
     width: number;
     height: number;
   };
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
   safetyAnalysis?: {
     compliant: boolean;
     violations: string[];

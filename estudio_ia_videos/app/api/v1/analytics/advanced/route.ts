@@ -10,6 +10,7 @@ import { log } from '@/lib/monitoring/logger'
 import { AnalyticsTracker } from '@/lib/analytics/analytics-tracker'
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth/auth-config'
+import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 
 interface AnalyticsData {
   funnel: {
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
     const startDate = new Date()
     startDate.setDate(endDate.getDate() - days)
     
-    const orgId = (session.user as any).organizationId || session.user.currentOrgId || undefined
+    const orgId = getOrgId(session.user) || session.user.currentOrgId || undefined
     
     // Get funnel analysis with REAL DATA
     const funnelData = await AnalyticsTracker.getFunnelAnalysis({

@@ -80,7 +80,7 @@ export default function AdvancedTimelineEditor() {
   const [totalDuration, setTotalDuration] = useState(300); // 5 minutos padrão
   const [zoomLevel, setZoomLevel] = useState(1);
   const [selectedElements, setSelectedElements] = useState<string[]>([]);
-  const [dragState, setDragState] = useState<any>(null);
+  const [dragState, setDragState] = useState<unknown>(null);
 
   // Timeline Tracks
   const [tracks, setTracks] = useState<TimelineTrack[]>([

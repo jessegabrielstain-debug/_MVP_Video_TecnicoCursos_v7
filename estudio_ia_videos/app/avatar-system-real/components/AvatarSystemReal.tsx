@@ -271,9 +271,9 @@ export default function AvatarSystemReal() {
         status: 'generating',
         thumbnail: '/api/placeholder/200/200',
         created_at: new Date().toISOString().split('T')[0],
-        style: avatarConfig.style as any,
-        gender: avatarConfig.gender as any,
-        age_range: avatarConfig.age_range as any,
+        style: avatarConfig.style,
+        gender: avatarConfig.gender,
+        age_range: avatarConfig.age_range,
         ethnicity: avatarConfig.ethnicity,
         customizations: {
           hair_color: avatarConfig.hair_color,

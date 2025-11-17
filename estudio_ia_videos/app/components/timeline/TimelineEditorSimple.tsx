@@ -48,7 +48,7 @@ interface TimelineElement {
   startTime: number;
   visible: boolean;
   locked: boolean;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 interface TimelineTrack {

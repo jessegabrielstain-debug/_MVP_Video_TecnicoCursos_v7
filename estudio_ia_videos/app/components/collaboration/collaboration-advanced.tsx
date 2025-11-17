@@ -10,7 +10,6 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useSession } from 'next-auth/react'
 import { useCollaboration, type Comment as CommentType, type ProjectVersion as ProjectVersionType } from '@/hooks/use-collaboration'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -148,7 +147,6 @@ interface Attachment {
 // ==================== COMPONENTE PRINCIPAL ====================
 
 export default function CollaborationAdvanced({ projectId = 'demo-project' }: { projectId?: string }) {
-  const { data: session } = useSession() || {}
   const [activeTab, setActiveTab] = useState('comments')
   
   // ✅ USANDO HOOK REAL DE COLABORAÇÃO

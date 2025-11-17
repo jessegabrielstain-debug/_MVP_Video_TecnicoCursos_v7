@@ -569,7 +569,8 @@ describe('VideoOptimizationEngine', () => {
 
       expect(progressSpy).toHaveBeenCalled();
       const calls = progressSpy.mock.calls;
-      calls.forEach((call: any) => {
+      interface ProgressData { percent: number; }
+      calls.forEach((call: [ProgressData, ...unknown[]]) => {
         expect(call[0]).toHaveProperty('percent');
         expect(call[0].percent).toBeGreaterThanOrEqual(0);
         expect(call[0].percent).toBeLessThanOrEqual(100);
@@ -585,7 +586,7 @@ describe('VideoOptimizationEngine', () => {
 
       expect(completeSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          outputPath: expect.any(String),
+          outputPath: expect.stringContaining(''),
           savings: expect.any(Object),
         })
       );

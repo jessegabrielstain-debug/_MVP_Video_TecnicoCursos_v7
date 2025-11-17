@@ -34,7 +34,7 @@ export interface UnifiedElement {
     delay: number
     easing: string
   }>
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface UnifiedSlide {
@@ -62,7 +62,7 @@ export interface UnifiedSlide {
     type: string
     startTime: number
     duration: number
-    parameters: Record<string, any>
+    parameters: Record<string, unknown>
   }>
   transitions?: Array<{
     type: string

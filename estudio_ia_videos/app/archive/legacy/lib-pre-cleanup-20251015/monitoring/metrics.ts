@@ -149,8 +149,8 @@ class MetricsCollector {
   }
 
   // 📊 GET SUMMARY
-  getSummary(): Record<string, any> {
-    const summary: Record<string, any> = {}
+  getSummary(): Record<string, unknown> {
+    const summary: Record<string, unknown> = {}
     
     // Counters
     summary.counters = Object.fromEntries(this.counters)

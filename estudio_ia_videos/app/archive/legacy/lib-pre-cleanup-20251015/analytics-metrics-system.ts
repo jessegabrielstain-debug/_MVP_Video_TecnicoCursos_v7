@@ -112,7 +112,7 @@ export interface TrackedEvent {
   userId?: string;
   sessionId?: string;
   timestamp: Date;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   metadata: EventMetadata;
 }
 
@@ -148,7 +148,7 @@ export interface Metric {
   timestamp: Date;
   period: AggregationPeriod;
   dimensions: Record<string, string>;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -250,7 +250,7 @@ export interface ABTestVariant {
   description: string;
   weight: number; // 0-100
   isControl: boolean;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 /**
@@ -315,7 +315,7 @@ export interface WidgetConfig {
   metrics?: string[];
   chartType?: 'line' | 'bar' | 'pie' | 'area' | 'scatter';
   period?: AggregationPeriod;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   groupBy?: string[];
   orderBy?: string;
   limit?: number;
@@ -477,7 +477,7 @@ export class AnalyticsMetricsSystem {
    */
   public async trackEvent(
     type: EventType,
-    properties: Record<string, any> = {},
+    properties: Record<string, unknown> = {},
     metadata: Partial<EventMetadata> = {}
   ): Promise<TrackedEvent> {
     const event: TrackedEvent = {
@@ -523,7 +523,7 @@ export class AnalyticsMetricsSystem {
   public async trackEventsBatch(
     events: Array<{
       type: EventType;
-      properties: Record<string, any>;
+      properties: Record<string, unknown>;
       metadata?: Partial<EventMetadata>;
     }>
   ): Promise<TrackedEvent[]> {

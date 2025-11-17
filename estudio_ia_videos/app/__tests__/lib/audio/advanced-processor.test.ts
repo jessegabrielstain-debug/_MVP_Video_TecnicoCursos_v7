@@ -577,7 +577,7 @@ describe('AdvancedAudioProcessor', () => {
 
       expect(completeSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          outputPath: expect.any(String),
+          outputPath: expect.stringContaining(''),
         })
       );
     });

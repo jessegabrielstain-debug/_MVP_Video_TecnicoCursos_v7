@@ -49,7 +49,7 @@ export interface ElementTemplate {
   type: 'text' | 'image' | 'video' | 'audio' | 'avatar' | 'chart' | 'interactive';
   position: { x: number; y: number; z?: number };
   size: { width: number; height: number };
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   animations: AnimationTemplate[];
   compliance?: ComplianceRule[];
 }
@@ -61,7 +61,7 @@ export interface AssetTemplate {
   name: string;
   size: number;
   format: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface AnimationTemplate {
@@ -70,14 +70,14 @@ export interface AnimationTemplate {
   type: 'entrance' | 'emphasis' | 'exit' | 'motion';
   duration: number;
   easing: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   triggers: AnimationTrigger[];
 }
 
 export interface AnimationTrigger {
   type: 'click' | 'hover' | 'time' | 'scroll' | 'voice';
   delay: number;
-  conditions: Record<string, any>;
+  conditions: Record<string, unknown>;
 }
 
 export interface InteractionTemplate {
@@ -156,7 +156,7 @@ export interface CheckpointCriteria {
 export interface ValidationRule {
   type: 'content' | 'duration' | 'interaction' | 'assessment' | 'accessibility';
   rule: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   errorMessage: string;
 }
 
@@ -187,6 +187,11 @@ export interface TemplateMetadata {
   language: string;
   accessibility: AccessibilityFeatures;
   compliance: ComplianceMetadata;
+  has3DPreview?: boolean;
+  lastPreviewUpdate?: Date;
+  lastOptimization?: Date;
+  optimizationScore?: number;
+  complianceStatus?: 'compliant' | 'non-compliant' | 'pending';
 }
 
 export interface AccessibilityFeatures {
@@ -254,10 +259,13 @@ export interface TemplateFilter {
   author?: string;
   rating?: number;
   search?: string;
+  favorites?: boolean;
+  has3DPreview?: boolean;
+  compliance?: 'compliant' | 'non-compliant' | 'pending';
 }
 
 export interface TemplateSort {
-  field: 'name' | 'createdAt' | 'updatedAt' | 'downloads' | 'rating';
+  field: 'name' | 'createdAt' | 'updatedAt' | 'downloads' | 'rating' | 'usage';
   direction: 'asc' | 'desc';
 }
 

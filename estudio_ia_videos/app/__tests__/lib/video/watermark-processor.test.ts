@@ -101,7 +101,7 @@ describe('WatermarkProcessor', () => {
     // Mock fs
     jest.spyOn(fs, 'mkdir').mockResolvedValue(undefined);
     jest.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
-    jest.spyOn(fs, 'stat').mockResolvedValue({ size: 10000000 } as any);
+    jest.spyOn(fs, 'stat').mockResolvedValue({ size: 10000000 });
     jest.spyOn(fs, 'unlink').mockResolvedValue(undefined);
   });
 

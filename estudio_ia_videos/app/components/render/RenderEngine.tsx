@@ -545,7 +545,7 @@ export default function RenderEngine({
 
       {/* Main Content */}
       <div className="flex-1">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="h-full">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="h-full">
           {/* Tabs Navigation */}
           <div className="bg-gray-800 border-b border-gray-700 px-6">
             <TabsList className="bg-gray-700">

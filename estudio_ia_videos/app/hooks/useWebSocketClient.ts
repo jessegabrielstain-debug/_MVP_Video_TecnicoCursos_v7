@@ -8,13 +8,13 @@ interface WebSocketOptions {
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Event) => void;
-  onMessage?: (data: any) => void;
+  onMessage?: (data: unknown) => void;
 }
 
 interface WebSocketState {
   isConnected: boolean;
   connectionState: 'connecting' | 'connected' | 'disconnected' | 'error';
-  lastMessage: any;
+  lastMessage: unknown;
   error: string | null;
 }
 
@@ -115,7 +115,7 @@ export function useWebSocketClient(options: WebSocketOptions) {
     }));
   }, []);
 
-  const sendMessage = useCallback((message: any) => {
+  const sendMessage = useCallback((message: unknown) => {
     if (wsRef.current && state.isConnected) {
       try {
         wsRef.current.send(JSON.stringify(message));

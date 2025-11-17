@@ -42,7 +42,7 @@ export interface PublicationRequest {
   };
   targets: string[]; // IDs das integrações
   schedule?: Date;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }
 
 export interface PublicationResult {
@@ -318,7 +318,7 @@ export class ExternalIntegrationsService {
     };
   }
 
-  private getStatsByIntegration(results: PublicationResult[]): Record<string, any> {
+  private getStatsByIntegration(results: PublicationResult[]): Record<string, unknown> {
     const stats = {};
     
     results.forEach(result => {

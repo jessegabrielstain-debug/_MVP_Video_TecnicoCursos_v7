@@ -22,8 +22,8 @@ import {
 } from 'lucide-react'
 
 export function PPTXMetricsDashboard() {
-  const [performanceStats, setPerformanceStats] = useState<any>(null)
-  const [qualityMetrics, setQualityMetrics] = useState<any>(null)
+  const [performanceStats, setPerformanceStats] = useState<unknown>(null)
+  const [qualityMetrics, setQualityMetrics] = useState<unknown>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

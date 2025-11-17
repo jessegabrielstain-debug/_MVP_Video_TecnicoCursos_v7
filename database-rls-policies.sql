@@ -15,6 +15,10 @@ ALTER TABLE public.render_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.analytics_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.nr_courses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.nr_modules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.permissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- POLÍTICAS PARA TABELA: users
@@ -178,6 +182,66 @@ CREATE POLICY "Anyone can view modules" ON public.nr_modules
 -- (Nota: Ajuste conforme seu sistema de permissões)
 
 -- ============================================
+-- POLÍTICAS PARA TABELA: roles
+-- ============================================
+
+-- Administradores podem gerenciar tudo
+CREATE POLICY "Allow admin to manage roles" ON public.roles
+    FOR ALL
+    USING (public.is_admin(auth.uid()))
+    WITH CHECK (public.is_admin(auth.uid()));
+
+-- Usuários autenticados podem ver os papéis
+CREATE POLICY "Allow authenticated users to view roles" ON public.roles
+    FOR SELECT
+    USING (auth.role() = 'authenticated');
+
+-- ============================================
+-- POLÍTICAS PARA TABELA: permissions
+-- ============================================
+
+-- Administradores podem gerenciar tudo
+CREATE POLICY "Allow admin to manage permissions" ON public.permissions
+    FOR ALL
+    USING (public.is_admin(auth.uid()))
+    WITH CHECK (public.is_admin(auth.uid()));
+
+-- Usuários autenticados podem ver as permissões
+CREATE POLICY "Allow authenticated users to view permissions" ON public.permissions
+    FOR SELECT
+    USING (auth.role() = 'authenticated');
+
+-- ============================================
+-- POLÍTICAS PARA TABELA: role_permissions
+-- ============================================
+
+-- Administradores podem gerenciar tudo
+CREATE POLICY "Allow admin to manage role_permissions" ON public.role_permissions
+    FOR ALL
+    USING (public.is_admin(auth.uid()))
+    WITH CHECK (public.is_admin(auth.uid()));
+
+-- Usuários autenticados podem ver as permissões dos papéis
+CREATE POLICY "Allow authenticated users to view role_permissions" ON public.role_permissions
+    FOR SELECT
+    USING (auth.role() = 'authenticated');
+
+-- ============================================
+-- POLÍTICAS PARA TABELA: user_roles
+-- ============================================
+
+-- Administradores podem gerenciar tudo
+CREATE POLICY "Allow admin to manage user_roles" ON public.user_roles
+    FOR ALL
+    USING (public.is_admin(auth.uid()))
+    WITH CHECK (public.is_admin(auth.uid()));
+
+-- Usuários podem ver seus próprios papéis
+CREATE POLICY "Allow users to view their own roles" ON public.user_roles
+    FOR SELECT
+    USING (auth.uid() = user_id);
+
+-- ============================================
 -- FUNÇÕES AUXILIARES PARA ADMIN
 -- ============================================
 
@@ -196,43 +260,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- ============================================
--- POLÍTICAS DE ADMIN PARA CURSOS
--- ============================================
+-- Função auxiliar para verificar se o usuário tem um papel específico
+CREATE OR REPLACE FUNCTION public.user_has_role(user_id UUID, role_name TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1
+        FROM public.user_roles ur
+        JOIN public.roles r ON ur.role_id = r.id
+        WHERE ur.user_id = user_id AND r.name = role_name
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Admins podem criar cursos
-CREATE POLICY "Admins can create courses" ON public.nr_courses
-    FOR INSERT
-    WITH CHECK (is_admin());
-
--- Admins podem atualizar cursos
-CREATE POLICY "Admins can update courses" ON public.nr_courses
-    FOR UPDATE
-    USING (is_admin());
-
--- Admins podem deletar cursos
-CREATE POLICY "Admins can delete courses" ON public.nr_courses
-    FOR DELETE
-    USING (is_admin());
-
--- ============================================
--- POLÍTICAS DE ADMIN PARA MÓDULOS
--- ============================================
-
--- Admins podem criar módulos
-CREATE POLICY "Admins can create modules" ON public.nr_modules
-    FOR INSERT
-    WITH CHECK (is_admin());
-
--- Admins podem atualizar módulos
-CREATE POLICY "Admins can update modules" ON public.nr_modules
-    FOR UPDATE
-    USING (is_admin());
-
--- Admins podem deletar módulos
-CREATE POLICY "Admins can delete modules" ON public.nr_modules
-    FOR DELETE
-    USING (is_admin());
+-- Função auxiliar para verificar se o usuário é administrador
+CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN public.user_has_role(user_id, 'admin');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================
 -- GRANTS PARA ROLES

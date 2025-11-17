@@ -25,6 +25,18 @@ import {
 import { MascotSystem, MascotTemplate, MascotCustomization } from '../../lib/mascots/mascot-system'
 import Image from 'next/image'
 
+type PersonalityStyleOption = MascotCustomization['personality']['style']
+
+const PERSONALITY_STYLE_OPTIONS: ReadonlyArray<{ value: PersonalityStyleOption; label: string }> = [
+  { value: 'profissional', label: '👔 Profissional' },
+  { value: 'descontraido', label: '😊 Descontraído' },
+  { value: 'energetico', label: '⚡ Energético' },
+  { value: 'calmo', label: '🧘 Calmo' }
+]
+
+const isPersonalityStyleOption = (value: string): value is PersonalityStyleOption =>
+  PERSONALITY_STYLE_OPTIONS.some(option => option.value === value)
+
 interface MascotCreatorProps {
   onMascotCreate: (mascot: MascotTemplate, customization: MascotCustomization) => void
   companyBranding?: {
@@ -279,19 +291,26 @@ export default function MascotCreator({ onMascotCreate, companyBranding }: Masco
                     <label className="text-sm font-medium">Estilo de Interação</label>
                     <Select 
                       value={customization.personality.style}
-                      onValueChange={(value) => setCustomization(prev => ({
-                        ...prev,
-                        personality: { ...prev.personality, style: value as any }
-                      }))}
+                      onValueChange={(value) => {
+                        if (!isPersonalityStyleOption(value)) {
+                          return
+                        }
+
+                        setCustomization(prev => ({
+                          ...prev,
+                          personality: { ...prev.personality, style: value }
+                        }))
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="profissional">👔 Profissional</SelectItem>
-                        <SelectItem value="descontraido">😊 Descontraído</SelectItem>
-                        <SelectItem value="energetico">⚡ Energético</SelectItem>
-                        <SelectItem value="calmo">🧘 Calmo</SelectItem>
+                        {PERSONALITY_STYLE_OPTIONS.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

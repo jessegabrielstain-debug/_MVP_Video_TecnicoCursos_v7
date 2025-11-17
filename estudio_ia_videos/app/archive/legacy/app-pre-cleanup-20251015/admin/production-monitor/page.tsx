@@ -58,7 +58,7 @@ interface SystemMetrics {
       heapUsed: number
     }
   }
-  metrics: Record<string, any>
+  metrics: Record<string, unknown>
   alerts: {
     active: number
     total: number

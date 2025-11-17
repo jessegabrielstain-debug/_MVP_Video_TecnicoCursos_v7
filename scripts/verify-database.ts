@@ -3,6 +3,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import type { Bucket } from '@supabase/storage-js';
 import fs from 'fs';
 import path from 'path';
 
@@ -74,7 +75,7 @@ async function verify() {
     
     for (const tableName of expectedTables) {
       try {
-        const { data, error, count } = await supabase
+        const { error, count } = await supabase
           .from(tableName)
           .select('*', { count: 'exact', head: true });
         
@@ -83,8 +84,8 @@ async function verify() {
         } else {
           console.log(`✅ ${tableName}: Existe (${count || 0} registros)`);
         }
-      } catch (e: any) {
-        console.log(`❌ ${tableName}: ${e.message}`);
+      } catch (error: unknown) {
+        console.log(`❌ ${tableName}: ${extractErrorMessage(error)}`);
       }
     }
     
@@ -96,7 +97,7 @@ async function verify() {
       console.log('❌ Erro ao listar buckets:', bucketsError.message);
     } else {
       console.log(`✅ Total de buckets: ${buckets?.length || 0}`);
-      buckets?.forEach((bucket: any) => {
+      buckets?.forEach((bucket: Bucket) => {
         console.log(`   - ${bucket.name} (${bucket.public ? 'público' : 'privado'})`);
       });
     }
@@ -111,7 +112,7 @@ async function verify() {
       console.log('❌ Erro ao buscar cursos:', coursesError.message);
     } else {
       console.log(`✅ Total de cursos: ${courses?.length || 0}`);
-      courses?.forEach((course: any) => {
+      courses?.forEach((course: NRCourse) => {
         console.log(`   - ${course.code}: ${course.title}`);
       });
     }
@@ -125,3 +126,23 @@ async function verify() {
 }
 
 verify().catch(console.error);
+
+interface NRCourse {
+  code: string;
+  title: string;
+}
+
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const maybeMessage = (error as { message?: unknown }).message;
+    if (typeof maybeMessage === 'string') {
+      return maybeMessage;
+    }
+  }
+
+  return 'Unknown error';
+}

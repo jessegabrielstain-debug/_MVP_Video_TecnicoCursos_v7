@@ -12,6 +12,13 @@ import { toast } from 'react-hot-toast'
 export default function TabsHandlersFix() {
   useEffect(() => {
     const fixTabHandlers = () => {
+      const hasInlineHandler = (element: Element): boolean => {
+        if (!(element instanceof HTMLElement)) {
+          return false
+        }
+        return typeof element.onclick === 'function' || Boolean(element.getAttribute('onclick'))
+      }
+
       // Aguardar a DOM estar totalmente carregada
       setTimeout(() => {
         // Canvas Editor Pro - Tabs: Ferramentas, Camadas, Assets
@@ -73,7 +80,7 @@ export default function TabsHandlersFix() {
             
             tab.addEventListener('click', (e) => {
               // Para avatar studio, não prevenir padrão pois pode ter handlers existentes
-              const hasExistingHandler = (tab as any).onclick || tab.getAttribute('onclick')
+              const hasExistingHandler = hasInlineHandler(tab)
               if (!hasExistingHandler) {
                 e.preventDefault()
                 e.stopPropagation()
@@ -98,7 +105,7 @@ export default function TabsHandlersFix() {
             const tabText = tab.textContent?.trim()
             
             // Adicionar handler apenas se não existir
-            const hasExistingHandler = (tab as any).onclick || tab.getAttribute('onclick')
+            const hasExistingHandler = hasInlineHandler(tab)
             if (!hasExistingHandler) {
               tab.addEventListener('click', (e) => {
                 // Permitir comportamento padrão das tabs
@@ -115,7 +122,7 @@ export default function TabsHandlersFix() {
         // Fix geral para qualquer tab que não tenha handler
         const allTabs = document.querySelectorAll('[role="tab"]:not([data-tab-fixed])')
         allTabs.forEach(tab => {
-          const hasHandler = (tab as any).onclick || tab.getAttribute('onclick')
+          const hasHandler = hasInlineHandler(tab)
           if (!hasHandler) {
             const tabText = tab.textContent?.trim() || 'Tab'
             

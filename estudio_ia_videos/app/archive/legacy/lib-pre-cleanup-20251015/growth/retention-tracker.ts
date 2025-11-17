@@ -44,7 +44,7 @@ export class RetentionTracker {
   static trackUserActivity(
     userId: string,
     eventType: 'signup' | 'login' | 'feature_use' | 'video_render' | 'upgrade',
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const event = {
       userId,

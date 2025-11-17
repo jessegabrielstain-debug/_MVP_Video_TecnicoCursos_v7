@@ -81,7 +81,7 @@ interface TimelineItem {
   start: number
   duration: number
   content: string
-  properties?: Record<string, any>
+  properties?: Record<string, unknown>
   selected?: boolean
   keyframes?: Keyframe[]
   effects?: Effect[]
@@ -91,14 +91,14 @@ interface TimelineItem {
 interface Keyframe {
   id: string
   time: number
-  properties: Record<string, any>
+  properties: Record<string, unknown>
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'cubic-bezier'
 }
 
 interface Effect {
   id: string
   type: 'fade' | 'slide' | 'zoom' | 'rotate' | 'blur' | 'color'
-  parameters: Record<string, any>
+  parameters: Record<string, unknown>
   enabled: boolean
 }
 
@@ -130,6 +130,11 @@ interface HistoryState {
   timestamp: number
   state: Partial<TimelineState>
 }
+
+const previewQualityOptions: TimelineState['previewQuality'][] = ['low', 'medium', 'high']
+
+const isPreviewQuality = (value: string): value is TimelineState['previewQuality'] =>
+  previewQualityOptions.some((option) => option === value)
 
 // Constants
 const TRACK_HEIGHT = 80
@@ -285,7 +290,7 @@ const DroppableTrack: React.FC<{
 }> = ({ track, zoom, duration, selectedItems, onItemSelect, onItemMove, onItemResize, snapToGrid, gridSize }) => {
   const [{ isOver }, drop] = useDrop({
     accept: ItemTypes.TIMELINE_ITEM,
-    drop: (item: any, monitor) => {
+    drop: (item: unknown, monitor) => {
       const offset = monitor.getClientOffset()
       if (!offset) return
 
@@ -978,7 +983,11 @@ export default function ProfessionalTimelineEditor() {
               <select
                 value={timelineState.previewQuality}
                 onChange={(e) => 
-                  setTimelineState(prev => ({ ...prev, previewQuality: e.target.value as any }))
+                  setTimelineState(prev => (
+                    isPreviewQuality(e.target.value)
+                      ? { ...prev, previewQuality: e.target.value }
+                      : prev
+                  ))
                 }
                 className="bg-gray-700 text-white text-xs rounded px-2 py-1"
               >

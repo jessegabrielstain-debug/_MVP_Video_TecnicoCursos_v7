@@ -102,6 +102,19 @@ export function AdvancedThemeProvider({ children }: { children: React.ReactNode 
   
   const actualTheme = theme === 'system' ? systemTheme : theme
   const colors = themes[actualTheme]
+  const themeInlineStyle: React.CSSProperties = {
+    background: colors.background,
+    color: colors.text,
+    '--theme-canvas': colors.canvas,
+    '--theme-toolbar': colors.toolbar,
+    '--theme-sidebar': colors.sidebar,
+    '--theme-accent': colors.accent,
+    '--theme-text': colors.text,
+    '--theme-textSecondary': colors.textSecondary,
+    '--theme-border': colors.border,
+    '--theme-background': colors.background,
+    '--theme-surface': colors.surface
+  }
   
   // Aplicar CSS variables
   useEffect(() => {
@@ -128,7 +141,7 @@ export function AdvancedThemeProvider({ children }: { children: React.ReactNode 
       setTheme: handleSetTheme,
       toggleTheme
     }}>
-      <div className={`theme-${actualTheme}`} style={colors as any}>
+      <div className={`theme-${actualTheme}`} style={themeInlineStyle}>
         {children}
       </div>
     </ThemeContext.Provider>

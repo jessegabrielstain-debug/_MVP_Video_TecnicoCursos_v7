@@ -2,6 +2,68 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useEditor } from './useEditor';
 import { useAdvancedAI } from './useAdvancedAI';
 import { useRealTimeCollaboration } from './useRealTimeCollaboration';
+import type { ContentGenerationResult, ContentOptimization } from './useAdvancedAI';
+
+export interface TextLayerContent {
+  text: string;
+  fontSize: number;
+  color: string;
+  fontFamily?: string;
+  align?: 'left' | 'center' | 'right' | 'justify';
+}
+
+export interface MediaLayerContent {
+  src: string;
+  alt?: string;
+  autoplay?: boolean;
+  loop?: boolean;
+  name?: string;
+  size?: number;
+  captionsUrl?: string;
+}
+
+export interface AnimationLayerContent {
+  type: string;
+  duration: number;
+  easing?: string;
+  parameters?: Record<string, unknown>;
+}
+
+export interface InteractionLayerContent {
+  type: string;
+  action: string;
+  payload?: Record<string, unknown>;
+}
+
+export interface SafetyLayerContent {
+  type: string;
+  message: string;
+  severity?: 'low' | 'medium' | 'high';
+  metadata?: Record<string, unknown>;
+}
+
+export interface UnknownLayerContent {
+  [key: string]: unknown;
+}
+
+export type EditorLayerContent =
+  | TextLayerContent
+  | MediaLayerContent
+  | AnimationLayerContent
+  | InteractionLayerContent
+  | SafetyLayerContent
+  | UnknownLayerContent
+  | ContentGenerationResult
+  | ContentOptimization
+  | null;
+
+const isMediaLayerContent = (content: EditorLayerContent): content is MediaLayerContent => {
+  if (!content || typeof content !== 'object') {
+    return false;
+  }
+
+  return 'src' in content && typeof (content as { src?: unknown }).src === 'string';
+};
 
 export interface EditorLayer {
   id: string;
@@ -14,7 +76,7 @@ export interface EditorLayer {
   position: { x: number; y: number; z: number };
   scale: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number };
-  content: any;
+  content: EditorLayerContent;
   keyframes: Keyframe[];
   effects: Effect[];
   metadata: {
@@ -29,7 +91,7 @@ export interface EditorLayer {
 export interface Keyframe {
   id: string;
   time: number;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce' | 'elastic';
   interpolation: 'linear' | 'bezier' | 'step';
 }
@@ -39,7 +101,7 @@ export interface Effect {
   name: string;
   type: 'filter' | 'transition' | 'animation' | 'particle' | 'physics';
   enabled: boolean;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   startTime: number;
   duration: number;
 }
@@ -102,9 +164,15 @@ export interface EditorState {
   description: string;
 }
 
+export type DraggedItem =
+  | { kind: 'layer'; layer: EditorLayer }
+  | { kind: 'keyframe'; layerId: string; keyframe: Keyframe }
+  | { kind: 'effect'; layerId: string; effect: Effect }
+  | null;
+
 export interface DragDropData {
   isDragging: boolean;
-  draggedItem: any;
+  draggedItem: DraggedItem;
   dropTarget: string | null;
   dragPreview: string | null;
 }
@@ -120,15 +188,26 @@ export interface SelectionData {
   } | null;
 }
 
-export interface ClipboardData {
-  type: 'layer' | 'keyframe' | 'effect';
-  data: any;
-  timestamp: Date;
-}
+export type ClipboardData =
+  | {
+      type: 'layer';
+      data: EditorLayer[];
+      timestamp: Date;
+    }
+  | {
+      type: 'keyframe';
+      data: Array<{ layerId: string; keyframe: Keyframe }>;
+      timestamp: Date;
+    }
+  | {
+      type: 'effect';
+      data: Array<{ layerId: string; effect: Effect }>;
+      timestamp: Date;
+    };
 
 export interface AdvancedEditorFeatures {
   // Layer Management
-  addLayer: (type: EditorLayer['type'], content?: any) => EditorLayer;
+  addLayer: (type: EditorLayer['type'], content?: EditorLayerContent | undefined) => EditorLayer;
   removeLayer: (layerId: string) => void;
   duplicateLayer: (layerId: string) => EditorLayer;
   moveLayer: (layerId: string, newIndex: number) => void;
@@ -147,7 +226,7 @@ export interface AdvancedEditorFeatures {
   setTimelineZoom: (zoom: number) => void;
   
   // Keyframe Management
-  addKeyframe: (layerId: string, time: number, properties: Record<string, any>) => Keyframe;
+  addKeyframe: (layerId: string, time: number, properties: Record<string, unknown>) => Keyframe;
   removeKeyframe: (layerId: string, keyframeId: string) => void;
   updateKeyframe: (layerId: string, keyframeId: string, updates: Partial<Keyframe>) => void;
   moveKeyframe: (layerId: string, keyframeId: string, newTime: number) => void;
@@ -365,7 +444,7 @@ export const useAdvancedEditor = (): AdvancedEditorFeatures & {
   };
 
   // Layer Management
-  const addLayer = useCallback((type: EditorLayer['type'], content?: any): EditorLayer => {
+  const addLayer = useCallback((type: EditorLayer['type'], content?: EditorLayerContent): EditorLayer => {
     const newLayer: EditorLayer = {
       id: `layer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: `${type.charAt(0).toUpperCase() + type.slice(1)} Layer`,
@@ -514,7 +593,7 @@ export const useAdvancedEditor = (): AdvancedEditorFeatures & {
   }, []);
 
   // Keyframe Management
-  const addKeyframe = useCallback((layerId: string, time: number, properties: Record<string, any>): Keyframe => {
+  const addKeyframe = useCallback((layerId: string, time: number, properties: Record<string, unknown>): Keyframe => {
     const newKeyframe: Keyframe = {
       id: `keyframe_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       time,
@@ -691,7 +770,7 @@ export const useAdvancedEditor = (): AdvancedEditorFeatures & {
   const paste = useCallback(() => {
     if (!clipboard || clipboard.type !== 'layer') return;
 
-    const pastedLayers = clipboard.data.map((layer: EditorLayer) => ({
+    const pastedLayers = clipboard.data.map(layer => ({
       ...layer,
       id: `layer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: `${layer.name} Copy`,
@@ -1002,9 +1081,9 @@ ${layers.map(layer => `
   const preloadAssets = useCallback(async () => {
     // Preload all assets used in layers
     const assetUrls = layers
-      .map(layer => layer.content?.src)
-      .filter(Boolean);
-    
+      .map(layer => (isMediaLayerContent(layer.content) ? layer.content.src : null))
+      .filter((url): url is string => typeof url === 'string' && url.length > 0);
+
     await Promise.all(
       assetUrls.map(url => {
         return new Promise((resolve, reject) => {
@@ -1025,7 +1104,7 @@ ${layers.map(layer => `
   }, []);
 
   // Helper functions
-  const getDefaultContent = (type: EditorLayer['type']) => {
+  const getDefaultContent = (type: EditorLayer['type']): EditorLayerContent => {
     switch (type) {
       case 'text':
         return { text: 'Novo texto', fontSize: 24, color: '#000000' };
@@ -1042,11 +1121,11 @@ ${layers.map(layer => `
       case 'safety':
         return { type: 'warning', message: 'Atenção: área de risco' };
       default:
-        return {};
+        return {} as UnknownLayerContent;
     }
   };
 
-  const processImportedFile = async (file: File) => {
+  const processImportedFile = async (file: File): Promise<MediaLayerContent> => {
     const url = URL.createObjectURL(file);
     return { src: url, name: file.name, size: file.size };
   };

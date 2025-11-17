@@ -30,7 +30,7 @@ const CanvasEditorSSRFixed = dynamic(
 )
 
 export default function CanvasEditorDemoSprint29() {
-  const [canvasData, setCanvasData] = useState<any>(null)
+  const [canvasData, setCanvasData] = useState<unknown>(null)
 
   const handleSave = (data: any) => {
     setCanvasData(data)

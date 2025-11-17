@@ -2,20 +2,48 @@
 'use client';
 
 /**
- * 🔧 SPRINT 39 - PWA Provider
- * Provider para inicializar PWA, offline sync e push notifications
- */
+* 🔧 SPRINT 39 - PWA Provider
+* Provider para inicializar PWA, offline sync e push notifications
+*/
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { pwaManager } from '@/lib/pwa/pwa-manager';
-import { useSession } from 'next-auth/react';
 import { PublicOnboarding } from '@/components/onboarding/public-onboarding';
 import { ProductTour, editorTourSteps } from '@/components/tour/product-tour';
 import { OfflineIndicator } from '@/components/pwa/offline-indicator';
+import { createClient } from '@/lib/supabase/client';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export function PWAProvider({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession() || {};
+  const supabase = useMemo(() => createClient(), []);
   const [initialized, setInitialized] = useState(false);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSession = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (!isMounted) return;
+        setUser(data.user ?? null);
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error);
+      }
+    };
+
+    void loadSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+      listener?.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   useEffect(() => {
     const initPWA = async () => {
@@ -24,9 +52,9 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         setInitialized(true);
 
         // Se usuário logado, solicitar permissão de notificações
-        if (session?.user) {
+        if (user) {
           const hasPermission = await Notification.permission;
-          
+
           if (hasPermission === 'default') {
             // Aguardar 3 segundos antes de solicitar
             setTimeout(async () => {
@@ -40,18 +68,18 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     };
 
     initPWA();
-  }, [session]);
+  }, [user]);
 
   return (
     <>
       {children}
-      
+
       {/* Onboarding para novos usuários */}
-      {session?.user && <PublicOnboarding />}
-      
+      {user && <PublicOnboarding />}
+
       {/* Tour do editor */}
-      {session?.user && <ProductTour steps={editorTourSteps} />}
-      
+      {user && <ProductTour steps={editorTourSteps} />}
+
       {/* Indicador offline */}
       <OfflineIndicator />
     </>

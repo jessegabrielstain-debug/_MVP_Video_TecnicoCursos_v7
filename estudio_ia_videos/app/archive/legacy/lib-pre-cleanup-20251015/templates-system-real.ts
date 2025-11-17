@@ -358,7 +358,7 @@ class TemplatesSystemReal {
   async applyTemplateToProject(
     templateId: string,
     projectId: string,
-    customizations?: Record<string, any>
+    customizations?: Record<string, unknown>
   ) {
     const template = await this.getTemplate(templateId)
     const config = template.config as TemplateConfig

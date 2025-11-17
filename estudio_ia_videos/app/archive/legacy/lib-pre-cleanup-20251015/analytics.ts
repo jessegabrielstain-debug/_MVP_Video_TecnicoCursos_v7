@@ -16,14 +16,14 @@ if (typeof window !== 'undefined') {
 
 export interface AnalyticsEvent {
   event: string
-  properties?: Record<string, any>
+  properties?: Record<string, unknown>
   timestamp?: Date
 }
 
 export class Analytics {
   
   // Tracking de eventos principais
-  static track(event: string, properties?: Record<string, any>) {
+  static track(event: string, properties?: Record<string, unknown>) {
     try {
       // Para desenvolvimento, logar no console
       if (process.env.NODE_ENV === 'development') {

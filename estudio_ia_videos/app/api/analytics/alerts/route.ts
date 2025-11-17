@@ -1,10 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
+import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { AlertSystem, AlertType, AlertSeverity } from '@/lib/analytics/alert-system';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
 import { prisma } from '@/lib/db';
 
+// Type-safe helper extraindo organizationId
+const getOrgId = (user: unknown): string | undefined => {
+  const u = user as { currentOrgId?: string; organizationId?: string };
+  return u.currentOrgId || u.organizationId || undefined;
+};
+
+// Type-safe helper verificando admin
+const isAdmin = (user: unknown): boolean => {
+  return ((user as { isAdmin?: boolean }).isAdmin) === true;
+};
+// Type-safe helper extraindo organizationId
+const getOrgId = (user: unknown): string | undefined => {
+  const u = user as { currentOrgId?: string; organizationId?: string };
+  return u.currentOrgId || u.organizationId || undefined;
+};
+
+// Type-safe helper verificando admin
+const isAdmin = (user: unknown): boolean => {
+  return ((user as { isAdmin?: boolean }).isAdmin) === true;
+};
 /**
  * GET /api/analytics/alerts
  * Lista alertas ativos ou executa avaliação de alertas
@@ -31,13 +52,13 @@ async function getHandler(req: NextRequest) {
     const status = searchParams.get('status') || 'active';
     const severity = searchParams.get('severity') || 'all';
     const limit = parseInt(searchParams.get('limit') || '50');
-    const organizationId = (session.user as any)?.currentOrgId;
+    const organizationId = getOrgId(session.user);
 
     const alertSystem = new AlertSystem();
 
     if (action === 'evaluate') {
       // Verificar se o usuário tem permissão para executar avaliação manual
-      if (!(session.user as any)?.isAdmin) {
+      if (!isAdmin(session.user)) {
         return NextResponse.json(
           { error: 'Admin privileges required to evaluate alerts manually' },
           { status: 403 }
@@ -116,7 +137,7 @@ async function getHandler(req: NextRequest) {
     ]);
 
     const formattedAlerts = alerts.map(alert => {
-      const metadata = (alert.metadata as Record<string, any> | null) ?? {}
+      const metadata = (alert.metadata as Record<string, unknown> | null) ?? {}
 
       const valueFromMetadata = typeof metadata.value === 'number'
         ? metadata.value
@@ -190,7 +211,7 @@ async function postHandler(req: NextRequest) {
     const body = await req.json();
     const { action, alertId, ruleData } = body;
 
-    const organizationId = (session.user as any)?.currentOrgId;
+    const organizationId = getOrgId(session.user);
     const alertSystem = new AlertSystem();
 
     if (action === 'acknowledge' && alertId) {
@@ -308,7 +329,7 @@ async function putHandler(req: NextRequest) {
       );
     }
 
-    const organizationId = (session.user as any)?.currentOrgId;
+    const organizationId = getOrgId(session.user);
 
     // Verificar se a regra existe e pertence ao usuário/organização
     const existingRule = await prisma.analyticsEvent.findFirst({
@@ -328,7 +349,7 @@ async function putHandler(req: NextRequest) {
     }
 
     // Atualizar regra
-    const currentMetadata = existingRule.metadata as any;
+    const currentMetadata = existingRule.metadata as Record<string, unknown> | null;
     const updatedMetadata = {
       ...currentMetadata,
       ...updates,
@@ -390,7 +411,7 @@ async function deleteHandler(req: NextRequest) {
       );
     }
 
-    const organizationId = (session.user as any)?.currentOrgId;
+    const organizationId = getOrgId(session.user);
 
     // Verificar se a regra existe e pertence ao usuário/organização
     const existingRule = await prisma.analyticsEvent.findFirst({

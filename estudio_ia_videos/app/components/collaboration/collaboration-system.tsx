@@ -6,8 +6,7 @@
  * Sistema básico de colaboração: comentários, compartilhamento, histórico
  */
 
-import React, { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,6 +63,8 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { createClient } from '@/lib/supabase/client'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface Collaborator {
   id: string
@@ -145,7 +146,10 @@ interface ShareSettings {
 }
 
 export default function CollaborationSystem({ projectId }: { projectId: string }) {
-  const { data: session } = useSession() || {}
+  const supabase = useMemo(() => createClient(), [])
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [displayName, setDisplayName] = useState('Você')
+  const [avatarUrl, setAvatarUrl] = useState('')
   
   const [collaborators, setCollaborators] = useState<Collaborator[]>([
     {
@@ -250,9 +254,9 @@ export default function CollaborationSystem({ projectId }: { projectId: string }
       id: 'v1.2',
       version: '1.2',
       author: {
-        id: session?.user?.id || 'current',
-        name: session?.user?.name || 'Você',
-        avatar: session?.user?.image || ''
+        id: 'current',
+        name: 'Você',
+        avatar: ''
       },
       timestamp: '2024-09-24T14:30:00Z',
       description: 'Versão inicial com slides básicos',
@@ -276,15 +280,78 @@ export default function CollaborationSystem({ projectId }: { projectId: string }
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<Collaborator['role']>('viewer')
 
+  useEffect(() => {
+    let isMounted = true
+
+    const loadSession = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        const authUser = data.user ?? null
+        setUser(authUser)
+
+        if (authUser) {
+          const name = authUser.user_metadata?.name ?? authUser.email ?? 'Você'
+          const avatar = authUser.user_metadata?.avatar_url ?? ''
+          setDisplayName(name)
+          setAvatarUrl(avatar)
+        } else {
+          setDisplayName('Você')
+          setAvatarUrl('')
+        }
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error)
+      }
+    }
+
+    void loadSession()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      const authUser = session?.user ?? null
+      setUser(authUser)
+      if (authUser) {
+        setDisplayName(authUser.user_metadata?.name ?? authUser.email ?? 'Você')
+        setAvatarUrl(authUser.user_metadata?.avatar_url ?? '')
+      } else {
+        setDisplayName('Você')
+        setAvatarUrl('')
+      }
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    if (!user) return
+    setVersionHistory((prev) =>
+      prev.map((version) =>
+        version.id === 'v1.2'
+          ? {
+              ...version,
+              author: {
+                id: user.id,
+                name: displayName,
+                avatar: avatarUrl
+              }
+            }
+          : version
+      )
+    )
+  }, [avatarUrl, displayName, user])
+
   const handleAddComment = () => {
     if (!newComment.trim()) return
 
     const comment: Comment = {
       id: `comment-${Date.now()}`,
       author: {
-        id: session?.user?.id || 'current',
-        name: session?.user?.name || 'Você',
-        avatar: session?.user?.image || ''
+        id: user?.id || 'current',
+        name: displayName,
+        avatar: avatarUrl
       },
       content: newComment,
       timestamp: new Date().toISOString(),
@@ -310,7 +377,7 @@ export default function CollaborationSystem({ projectId }: { projectId: string }
   }
 
   const handleAddReaction = (commentId: string, emoji: string) => {
-    const userId = session?.user?.id || 'current'
+    const userId = user?.id || 'current'
     
     setComments(prev =>
       prev.map(comment => {
@@ -608,8 +675,8 @@ export default function CollaborationSystem({ projectId }: { projectId: string }
                 {/* Novo Comentário */}
                 <div className="flex gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={session?.user?.image || ''} />
-                    <AvatarFallback>{session?.user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                    <AvatarImage src={avatarUrl} />
+                    <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 space-y-2">
                     <Textarea

@@ -44,7 +44,7 @@ interface UploadResponse {
     size: number
     type: string
     thumbnail?: string
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   }
   error?: string
 }
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Extrair metadata
-    const metadata: Record<string, any> = {
+    const metadata: Record<string, unknown> = {
       originalName: file.name,
       uploadedAt: new Date().toISOString(),
       uploadedBy: user.id,

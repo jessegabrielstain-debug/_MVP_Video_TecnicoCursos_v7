@@ -6,12 +6,13 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Shield, AlertTriangle, Users, Activity, TrendingUp, Lock, CheckCircle, XCircle } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 interface SecurityStats {
   logins: {
@@ -41,12 +42,39 @@ interface SecurityStats {
 }
 
 export default function SecurityAnalyticsPage() {
-  const { data: session } = useSession() || {};
+  const supabase = useMemo(() => createClient(), []);
+  const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<SecurityStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d');
 
-  const orgId = session?.user?.currentOrgId;
+  const orgId = user?.user_metadata?.currentOrgId;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (!isMounted) return;
+        setUser(data.user ?? null);
+      } catch (error) {
+        console.error('[SecurityAnalytics] Falha ao carregar usuário:', error);
+      }
+    };
+
+    void loadUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+      listener?.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -110,7 +138,7 @@ export default function SecurityAnalyticsPage() {
     }
   };
 
-  if (!session?.user) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Faça login para acessar o dashboard de segurança.</p>

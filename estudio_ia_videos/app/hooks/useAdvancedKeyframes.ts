@@ -11,7 +11,7 @@ import { useState, useCallback, useMemo } from 'react';
 interface KeyframeValue {
   id: string;
   time: number;
-  value: any;
+  value: unknown;
   easing: EasingType;
   interpolation: InterpolationType;
   selected?: boolean;
@@ -23,7 +23,7 @@ interface AnimationTrack {
   property: string;
   type: PropertyType;
   keyframes: KeyframeValue[];
-  defaultValue: any;
+  defaultValue: unknown;
   enabled: boolean;
   color: string;
 }
@@ -103,7 +103,7 @@ export function useAdvancedKeyframes() {
   const interpolateValue = useCallback((
     track: AnimationTrack, 
     time: number
-  ): any => {
+  ): unknown => {
     if (track.keyframes.length === 0) {
       return track.defaultValue;
     }
@@ -154,23 +154,26 @@ export function useAdvancedKeyframes() {
   // Type-specific interpolation
   const interpolateByType = useCallback((
     type: PropertyType,
-    startValue: any,
-    endValue: any,
+    startValue: unknown,
+    endValue: unknown,
     progress: number,
     interpolation: InterpolationType
-  ): any => {
+  ): unknown => {
     switch (type) {
       case 'number':
       case 'opacity':
       case 'rotation':
       case 'scale':
+        if (typeof startValue !== 'number' || typeof endValue !== 'number') {
+          return startValue;
+        }
         if (interpolation === 'discrete') {
           return progress < 1 ? startValue : endValue;
         }
         return startValue + (endValue - startValue) * progress;
 
       case 'position':
-        if (typeof startValue === 'object' && typeof endValue === 'object') {
+        if (isPositionValue(startValue) && isPositionValue(endValue)) {
           return {
             x: startValue.x + (endValue.x - startValue.x) * progress,
             y: startValue.y + (endValue.y - startValue.y) * progress
@@ -179,15 +182,24 @@ export function useAdvancedKeyframes() {
         return startValue;
 
       case 'color':
+        if (typeof startValue !== 'string' || typeof endValue !== 'string') {
+          return startValue;
+        }
         if (interpolation === 'discrete') {
           return progress < 1 ? startValue : endValue;
         }
         return interpolateColor(startValue, endValue, progress);
 
       case 'text':
+        if (typeof startValue !== 'string' || typeof endValue !== 'string') {
+          return startValue;
+        }
         return progress < 1 ? startValue : endValue;
 
       case 'path':
+        if (typeof startValue !== 'string' || typeof endValue !== 'string') {
+          return startValue;
+        }
         // Path interpolation for SVG paths (simplified)
         return progress < 1 ? startValue : endValue;
 
@@ -220,11 +232,20 @@ export function useAdvancedKeyframes() {
     } : null;
   };
 
+  const isPositionValue = (value: unknown): value is { x: number; y: number } => {
+    if (typeof value !== 'object' || value === null) {
+      return false;
+    }
+
+    const maybePosition = value as { x?: unknown; y?: unknown };
+    return typeof maybePosition.x === 'number' && typeof maybePosition.y === 'number';
+  };
+
   // Add keyframe to track
   const addKeyframe = useCallback((
     trackId: string, 
     time: number, 
-    value?: any,
+    value?: unknown,
     easing: EasingType = 'ease-out'
   ) => {
     setTracks(prevTracks => 
@@ -324,7 +345,7 @@ export function useAdvancedKeyframes() {
 
   // Get all values at specific time
   const getValuesAtTime = useCallback((time: number) => {
-    const values: Record<string, any> = {};
+    const values: Record<string, unknown> = {};
     
     tracks.forEach(track => {
       values[track.property] = interpolateValue(track, time);
@@ -337,7 +358,7 @@ export function useAdvancedKeyframes() {
   const createTrack = useCallback((
     property: string,
     type: PropertyType,
-    defaultValue: any,
+    defaultValue: unknown,
     color: string = '#3b82f6'
   ): AnimationTrack => {
     return {
@@ -371,6 +392,10 @@ export function useAdvancedKeyframes() {
             (kf.time - prev.time) / (next.time - prev.time),
             'linear'
           );
+
+          if (typeof interpolatedValue !== 'number' || typeof kf.value !== 'number') {
+            return true;
+          }
 
           return Math.abs(interpolatedValue - kf.value) > 0.001;
         });
@@ -416,24 +441,87 @@ export function exportAnimation(tracks: AnimationTrack[]): string {
 }
 
 // Import animation data
+interface SerializedKeyframe {
+  time: number;
+  value: unknown;
+  easing?: EasingType;
+  interpolation?: InterpolationType;
+}
+
+interface SerializedTrack {
+  property: string;
+  type: PropertyType;
+  keyframes: SerializedKeyframe[];
+  defaultValue?: unknown;
+  enabled?: boolean;
+  color?: string;
+}
+
+interface SerializedAnimationData {
+  version?: string;
+  tracks: SerializedTrack[];
+}
+
+const isSerializedKeyframe = (value: unknown): value is SerializedKeyframe => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const keyframe = value as Record<string, unknown>;
+  return typeof keyframe.time === 'number';
+};
+
+const isSerializedTrack = (value: unknown): value is SerializedTrack => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const track = value as Record<string, unknown>;
+  if (typeof track.property !== 'string') {
+    return false;
+  }
+
+  if (typeof track.type !== 'string') {
+    return false;
+  }
+
+  if (!Array.isArray(track.keyframes) || !track.keyframes.every(isSerializedKeyframe)) {
+    return false;
+  }
+
+  return true;
+};
+
+const isSerializedAnimationData = (value: unknown): value is SerializedAnimationData => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const data = value as Record<string, unknown>;
+  return Array.isArray(data.tracks) && data.tracks.every(isSerializedTrack);
+};
+
 export function importAnimation(jsonData: string): AnimationTrack[] {
   try {
     const data = JSON.parse(jsonData);
-    
-    return data.tracks.map((trackData: any) => ({
+    if (!isSerializedAnimationData(data)) {
+      return [];
+    }
+
+    return data.tracks.map((trackData) => ({
       id: `track-${Date.now()}-${Math.random()}`,
       property: trackData.property,
       type: trackData.type,
-      keyframes: trackData.keyframes.map((kfData: any) => ({
+      keyframes: trackData.keyframes.map((kfData) => ({
         id: `kf-${Date.now()}-${Math.random()}`,
         time: kfData.time,
         value: kfData.value,
         easing: kfData.easing || 'ease-out',
         interpolation: kfData.interpolation || 'bezier'
       })),
-      defaultValue: trackData.keyframes[0]?.value || 0,
-      enabled: true,
-      color: '#3b82f6'
+      defaultValue: trackData.defaultValue ?? trackData.keyframes[0]?.value ?? null,
+      enabled: trackData.enabled ?? true,
+      color: trackData.color ?? '#3b82f6'
     }));
   } catch (error) {
     console.error('Failed to import animation:', error);

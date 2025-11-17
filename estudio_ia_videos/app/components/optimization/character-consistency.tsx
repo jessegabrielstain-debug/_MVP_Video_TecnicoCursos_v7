@@ -31,24 +31,64 @@ interface CharacterCard {
   avatar_id: string
   visual_seed: number
   appearance: {
-    style: 'realistic' | 'animated' | 'cartoon'
-    age: 'young' | 'adult' | 'senior'
-    build: 'slim' | 'average' | 'sturdy'
-    clothing: 'casual' | 'business' | 'safety-gear' | 'uniform'
+    style: AppearanceStyle
+    age: AppearanceAge
+    build: AppearanceBuild
+    clothing: AppearanceClothing
   }
   camera_settings: {
-    angle: 'close' | 'medium' | 'wide'
-    height: 'low' | 'eye-level' | 'high'
-    movement: 'static' | 'subtle' | 'dynamic'
+    angle: CameraAngle
+    height: CameraHeight
+    movement: CameraMovement
   }
   lighting: {
-    setup: 'natural' | 'studio' | 'dramatic' | 'soft'
-    direction: 'front' | 'side' | 'back' | 'mixed'
+    setup: LightingSetup
+    direction: LightingDirection
     intensity: number
   }
   consistency_enabled: boolean
   used_in_scenes: string[]
 }
+
+const APPEARANCE_STYLES = ['realistic', 'animated', 'cartoon'] as const
+type AppearanceStyle = (typeof APPEARANCE_STYLES)[number]
+
+const APPEARANCE_AGES = ['young', 'adult', 'senior'] as const
+type AppearanceAge = (typeof APPEARANCE_AGES)[number]
+
+const APPEARANCE_BUILDS = ['slim', 'average', 'sturdy'] as const
+type AppearanceBuild = (typeof APPEARANCE_BUILDS)[number]
+
+const APPEARANCE_CLOTHING = ['casual', 'business', 'safety-gear', 'uniform'] as const
+type AppearanceClothing = (typeof APPEARANCE_CLOTHING)[number]
+
+const CAMERA_ANGLES = ['close', 'medium', 'wide'] as const
+type CameraAngle = (typeof CAMERA_ANGLES)[number]
+
+const CAMERA_HEIGHTS = ['low', 'eye-level', 'high'] as const
+type CameraHeight = (typeof CAMERA_HEIGHTS)[number]
+
+const CAMERA_MOVEMENTS = ['static', 'subtle', 'dynamic'] as const
+type CameraMovement = (typeof CAMERA_MOVEMENTS)[number]
+
+const LIGHTING_SETUPS = ['natural', 'studio', 'dramatic', 'soft'] as const
+type LightingSetup = (typeof LIGHTING_SETUPS)[number]
+
+const LIGHTING_DIRECTIONS = ['front', 'side', 'back', 'mixed'] as const
+type LightingDirection = (typeof LIGHTING_DIRECTIONS)[number]
+
+const createGuard = <T extends readonly string[]>(options: T) =>
+  (value: string): value is T[number] => options.includes(value as T[number])
+
+const isAppearanceStyle = createGuard(APPEARANCE_STYLES)
+const isAppearanceAge = createGuard(APPEARANCE_AGES)
+const isAppearanceBuild = createGuard(APPEARANCE_BUILDS)
+const isAppearanceClothing = createGuard(APPEARANCE_CLOTHING)
+const isCameraAngle = createGuard(CAMERA_ANGLES)
+const isCameraHeight = createGuard(CAMERA_HEIGHTS)
+const isCameraMovement = createGuard(CAMERA_MOVEMENTS)
+const isLightingSetup = createGuard(LIGHTING_SETUPS)
+const isLightingDirection = createGuard(LIGHTING_DIRECTIONS)
 
 export default function CharacterConsistency() {
   const [characterCards, setCharacterCards] = useState<CharacterCard[]>([
@@ -74,7 +114,7 @@ export default function CharacterConsistency() {
         intensity: 0.8
       },
       consistency_enabled: true,
-      used_in_scenes: ['scene-1', 'scene-3', 'scene-5']
+      used_in_scenes: ['Cena 01', 'Cena 05', 'Cena 08']
     }
   ])
 
@@ -352,9 +392,15 @@ export default function CharacterConsistency() {
                       <Label>Estilo</Label>
                       <select 
                         value={selectedCharacter.appearance.style}
-                        onChange={(e) => updateCharacterCard(selectedCharacter.id, {
-                          appearance: { ...selectedCharacter.appearance, style: e.target.value as any }
-                        })}
+                        onChange={(e) => {
+                          const { value } = e.target
+                          if (!isAppearanceStyle(value)) {
+                            return
+                          }
+                          updateCharacterCard(selectedCharacter.id, {
+                            appearance: { ...selectedCharacter.appearance, style: value }
+                          })
+                        }}
                         disabled={!isEditing}
                         className="w-full p-2 border rounded text-sm"
                       >
@@ -368,9 +414,15 @@ export default function CharacterConsistency() {
                       <Label>Idade</Label>
                       <select 
                         value={selectedCharacter.appearance.age}
-                        onChange={(e) => updateCharacterCard(selectedCharacter.id, {
-                          appearance: { ...selectedCharacter.appearance, age: e.target.value as any }
-                        })}
+                        onChange={(e) => {
+                          const { value } = e.target
+                          if (!isAppearanceAge(value)) {
+                            return
+                          }
+                          updateCharacterCard(selectedCharacter.id, {
+                            appearance: { ...selectedCharacter.appearance, age: value }
+                          })
+                        }}
                         disabled={!isEditing}
                         className="w-full p-2 border rounded text-sm"
                       >
@@ -384,9 +436,15 @@ export default function CharacterConsistency() {
                       <Label>Físico</Label>
                       <select 
                         value={selectedCharacter.appearance.build}
-                        onChange={(e) => updateCharacterCard(selectedCharacter.id, {
-                          appearance: { ...selectedCharacter.appearance, build: e.target.value as any }
-                        })}
+                        onChange={(e) => {
+                          const { value } = e.target
+                          if (!isAppearanceBuild(value)) {
+                            return
+                          }
+                          updateCharacterCard(selectedCharacter.id, {
+                            appearance: { ...selectedCharacter.appearance, build: value }
+                          })
+                        }}
                         disabled={!isEditing}
                         className="w-full p-2 border rounded text-sm"
                       >
@@ -400,9 +458,15 @@ export default function CharacterConsistency() {
                       <Label>Vestimenta</Label>
                       <select 
                         value={selectedCharacter.appearance.clothing}
-                        onChange={(e) => updateCharacterCard(selectedCharacter.id, {
-                          appearance: { ...selectedCharacter.appearance, clothing: e.target.value as any }
-                        })}
+                        onChange={(e) => {
+                          const { value } = e.target
+                          if (!isAppearanceClothing(value)) {
+                            return
+                          }
+                          updateCharacterCard(selectedCharacter.id, {
+                            appearance: { ...selectedCharacter.appearance, clothing: value }
+                          })
+                        }}
                         disabled={!isEditing}
                         className="w-full p-2 border rounded text-sm"
                       >
@@ -429,9 +493,15 @@ export default function CharacterConsistency() {
                       <Label>Enquadramento</Label>
                       <select 
                         value={selectedCharacter.camera_settings.angle}
-                        onChange={(e) => updateCharacterCard(selectedCharacter.id, {
-                          camera_settings: { ...selectedCharacter.camera_settings, angle: e.target.value as any }
-                        })}
+                        onChange={(e) => {
+                          const { value } = e.target
+                          if (!isCameraAngle(value)) {
+                            return
+                          }
+                          updateCharacterCard(selectedCharacter.id, {
+                            camera_settings: { ...selectedCharacter.camera_settings, angle: value }
+                          })
+                        }}
                         disabled={!isEditing}
                         className="w-full p-2 border rounded text-sm"
                       >
@@ -445,9 +515,15 @@ export default function CharacterConsistency() {
                       <Label>Altura da Câmera</Label>
                       <select 
                         value={selectedCharacter.camera_settings.height}
-                        onChange={(e) => updateCharacterCard(selectedCharacter.id, {
-                          camera_settings: { ...selectedCharacter.camera_settings, height: e.target.value as any }
-                        })}
+                        onChange={(e) => {
+                          const { value } = e.target
+                          if (!isCameraHeight(value)) {
+                            return
+                          }
+                          updateCharacterCard(selectedCharacter.id, {
+                            camera_settings: { ...selectedCharacter.camera_settings, height: value }
+                          })
+                        }}
                         disabled={!isEditing}
                         className="w-full p-2 border rounded text-sm"
                       >
@@ -461,9 +537,15 @@ export default function CharacterConsistency() {
                       <Label>Movimento</Label>
                       <select 
                         value={selectedCharacter.camera_settings.movement}
-                        onChange={(e) => updateCharacterCard(selectedCharacter.id, {
-                          camera_settings: { ...selectedCharacter.camera_settings, movement: e.target.value as any }
-                        })}
+                        onChange={(e) => {
+                          const { value } = e.target
+                          if (!isCameraMovement(value)) {
+                            return
+                          }
+                          updateCharacterCard(selectedCharacter.id, {
+                            camera_settings: { ...selectedCharacter.camera_settings, movement: value }
+                          })
+                        }}
                         disabled={!isEditing}
                         className="w-full p-2 border rounded text-sm"
                       >
@@ -489,9 +571,15 @@ export default function CharacterConsistency() {
                       <Label>Setup de Luz</Label>
                       <select 
                         value={selectedCharacter.lighting.setup}
-                        onChange={(e) => updateCharacterCard(selectedCharacter.id, {
-                          lighting: { ...selectedCharacter.lighting, setup: e.target.value as any }
-                        })}
+                        onChange={(e) => {
+                          const { value } = e.target
+                          if (!isLightingSetup(value)) {
+                            return
+                          }
+                          updateCharacterCard(selectedCharacter.id, {
+                            lighting: { ...selectedCharacter.lighting, setup: value }
+                          })
+                        }}
                         disabled={!isEditing}
                         className="w-full p-2 border rounded text-sm"
                       >
@@ -506,9 +594,15 @@ export default function CharacterConsistency() {
                       <Label>Direção</Label>
                       <select 
                         value={selectedCharacter.lighting.direction}
-                        onChange={(e) => updateCharacterCard(selectedCharacter.id, {
-                          lighting: { ...selectedCharacter.lighting, direction: e.target.value as any }
-                        })}
+                        onChange={(e) => {
+                          const { value } = e.target
+                          if (!isLightingDirection(value)) {
+                            return
+                          }
+                          updateCharacterCard(selectedCharacter.id, {
+                            lighting: { ...selectedCharacter.lighting, direction: value }
+                          })
+                        }}
                         disabled={!isEditing}
                         className="w-full p-2 border rounded text-sm"
                       >

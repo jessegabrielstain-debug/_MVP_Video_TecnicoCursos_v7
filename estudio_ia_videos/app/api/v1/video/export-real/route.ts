@@ -66,14 +66,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
   const jobId = searchParams.get('jobId')
     const projectId = searchParams.get('projectId')
-    const statusFilter = searchParams.get('status') as any // queued|processing|completed|error
+    const statusFilter = searchParams.get('status') as 'queued' | 'processing' | 'completed' | 'error' | null
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10) || 20, 100)
     const offset = parseInt(searchParams.get('offset') || '0', 10) || 0
 
     if (!jobId) {
       // Se projectId for fornecido, retornar histórico
       if (projectId) {
-        const where: any = { projectId }
+        const where: { projectId: string; status?: 'queued' | 'processing' | 'completed' | 'error' } = { projectId }
         if (statusFilter && ['queued','processing','completed','error'].includes(statusFilter)) {
           where.status = statusFilter
         }
@@ -216,23 +216,26 @@ type Quality = 'sd' | 'hd' | 'fhd' | '4k'
 type Codec = 'h264' | 'h265' | 'vp9' | 'av1'
 type Preset = 'ultrafast'|'superfast'|'veryfast'|'faster'|'fast'|'medium'|'slow'|'slower'|'veryslow'|'good'|'best'
 
-function normalizeAndValidateOptions(input: any) {
-  const opts: {
-    format: Format
-    quality: Quality
-    fps: 24 | 30 | 60
-    codec: Codec
-    includeAudio: boolean
-    bitrate?: string
-    preset?: Preset
-  } = {
+type ExportOptions = {
+  format: Format
+  quality: Quality
+  fps: 24 | 30 | 60
+  codec: Codec
+  includeAudio: boolean
+  bitrate?: string
+  preset?: Preset
+}
+
+function normalizeAndValidateOptions(input: unknown): ExportOptions | NextResponse {
+  const src = input as Record<string, unknown> | null;
+  const opts: ExportOptions = {
     format: (input?.format || DEFAULTS.format) as Format,
     quality: (input?.quality || DEFAULTS.quality) as Quality,
-    fps: ([24, 30, 60].includes(input?.fps) ? input.fps : DEFAULTS.fps) as 24 | 30 | 60,
+    fps: ([24, 30, 60].includes((src?.fps as number) ?? NaN) ? (src?.fps as 24 | 30 | 60) : DEFAULTS.fps),
     codec: (input?.codec || DEFAULTS.codec) as Codec,
-    includeAudio: typeof input?.includeAudio === 'boolean' ? input.includeAudio : DEFAULTS.includeAudio,
-    bitrate: normalizeBitrate(input?.bitrate),
-    preset: input?.preset as Preset | undefined
+    includeAudio: typeof src?.includeAudio === 'boolean' ? (src?.includeAudio as boolean) : DEFAULTS.includeAudio,
+    bitrate: normalizeBitrate(src?.bitrate),
+    preset: src?.preset as Preset | undefined
   }
 
   // Regras de compatibilidade simples:
@@ -240,13 +243,13 @@ function normalizeAndValidateOptions(input: any) {
   // - mp4/mov: codec deve ser h264 ou h265
   // - 4k: requer codec eficiente (h265, vp9 ou av1)
   if (opts.format === 'webm' && !['vp9', 'av1'].includes(opts.codec)) {
-    return NextResponse.json({ error: 'Formato webm requer codec vp9 ou av1' }, { status: 400 }) as any
+    return NextResponse.json({ error: 'Formato webm requer codec vp9 ou av1' }, { status: 400 })
   }
   if ((opts.format === 'mp4' || opts.format === 'mov') && !['h264', 'h265'].includes(opts.codec)) {
-    return NextResponse.json({ error: `${opts.format} requer codec h264 ou h265` }, { status: 400 }) as any
+    return NextResponse.json({ error: `${opts.format} requer codec h264 ou h265` }, { status: 400 })
   }
   if (opts.quality === '4k' && !['h265', 'vp9', 'av1'].includes(opts.codec)) {
-    return NextResponse.json({ error: '4K requer codec h265, vp9 ou av1' }, { status: 400 }) as any
+    return NextResponse.json({ error: '4K requer codec h265, vp9 ou av1' }, { status: 400 })
   }
 
   // Validar preset por codec
@@ -255,12 +258,12 @@ function normalizeAndValidateOptions(input: any) {
     if (['h264','h265'].includes(opts.codec)) {
       const allowed: Preset[] = ['ultrafast','superfast','veryfast','faster','fast','medium','slow','slower','veryslow']
       if (!allowed.includes(preset)) {
-        return NextResponse.json({ error: `Preset inválido para ${opts.codec}` }, { status: 400 }) as any
+        return NextResponse.json({ error: `Preset inválido para ${opts.codec}` }, { status: 400 })
       }
     } else if (['vp9','av1'].includes(opts.codec)) {
       const allowed: Preset[] = ['good','best']
       if (!allowed.includes(preset)) {
-        return NextResponse.json({ error: `Preset inválido para ${opts.codec}` }, { status: 400 }) as any
+        return NextResponse.json({ error: `Preset inválido para ${opts.codec}` }, { status: 400 })
       }
     }
   } else {
@@ -276,7 +279,7 @@ function normalizeAndValidateOptions(input: any) {
   return opts
 }
 
-function normalizeBitrate(bitrate: any): string | undefined {
+function normalizeBitrate(bitrate: unknown): string | undefined {
   if (bitrate == null) return undefined
   if (typeof bitrate === 'number' && isFinite(bitrate) && bitrate > 0) return `${Math.round(bitrate)}k`
   if (typeof bitrate === 'string') {

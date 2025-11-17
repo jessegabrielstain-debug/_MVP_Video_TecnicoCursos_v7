@@ -130,7 +130,7 @@ export interface Activity {
   projectId: string;
   description: string;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -1331,7 +1331,7 @@ export class VideoCollaborationSystem extends EventEmitter {
     userId: string,
     projectId: string,
     description: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const activity: Activity = {
       id: `activity-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

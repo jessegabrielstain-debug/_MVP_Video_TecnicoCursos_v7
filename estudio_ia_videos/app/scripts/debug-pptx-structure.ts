@@ -10,6 +10,40 @@ import path from 'path'
 import JSZip from 'jszip'
 import { parseStringPromise } from 'xml2js'
 
+type XmlLeaf = string | number | boolean | null
+type XmlValue = XmlLeaf | XmlValue[] | { [key: string]: XmlValue }
+
+const isXmlRecord = (value: XmlValue | undefined): value is Record<string, XmlValue> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+const toArray = (value: XmlValue | undefined): XmlValue[] => {
+  if (Array.isArray(value)) {
+    return value
+  }
+
+  if (value === undefined || value === null) {
+    return []
+  }
+
+  return [value]
+}
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const maybeMessage = (error as { message?: unknown }).message
+    if (typeof maybeMessage === 'string') {
+      return maybeMessage
+    }
+  }
+
+  return 'Unknown error'
+}
+
 async function debugPPTXStructure() {
   console.log('🔍 Analisando estrutura XML do PPTX...\n')
 
@@ -40,30 +74,28 @@ async function debugPPTXStructure() {
       console.log(slide1Xml.substring(0, 1000) + '...')
       
       // Parse do XML
-      const slide1Data = await parseStringPromise(slide1Xml)
+      const slide1Data = (await parseStringPromise(slide1Xml)) as XmlValue
       console.log('\n🔧 ESTRUTURA PARSEADA:')
       console.log(JSON.stringify(slide1Data, null, 2).substring(0, 2000) + '...')
       
       // Procurar por texto
       console.log('\n🔍 PROCURANDO TEXTO:')
-      const findText = (obj: any, path: string = '') => {
-        if (typeof obj !== 'object' || obj === null) return
+      const findText = (obj: XmlValue, currentPath: string = ''): void => {
+        if (!isXmlRecord(obj)) return
         
         Object.keys(obj).forEach(key => {
-          const currentPath = path ? `${path}.${key}` : key
+          const nextPath = currentPath ? `${currentPath}.${key}` : key
+          const value = obj[key]
           
-          if (key === 'a:t' && obj[key]) {
-            console.log(`  📝 Texto encontrado em ${currentPath}: "${obj[key]}"`)
+          if (key === 'a:t' && typeof value === 'string') {
+            console.log(`  📝 Texto encontrado em ${nextPath}: "${value}"`)
           }
           
-          if (typeof obj[key] === 'object') {
-            if (Array.isArray(obj[key])) {
-              obj[key].forEach((item: any, index: number) => {
-                findText(item, `${currentPath}[${index}]`)
-              })
-            } else {
-              findText(obj[key], currentPath)
-            }
+          if (typeof value === 'object' && value !== null) {
+            toArray(value).forEach((item, index) => {
+              const arrayPath = Array.isArray(value) ? `${nextPath}[${index}]` : nextPath
+              findText(item, arrayPath)
+            })
           }
         })
       }
@@ -72,40 +104,49 @@ async function debugPPTXStructure() {
       
       // Procurar por shapes
       console.log('\n🔍 PROCURANDO SHAPES:')
-      const findShapes = (obj: any, path: string = '') => {
-        if (typeof obj !== 'object' || obj === null) return
+      const findShapes = (obj: XmlValue, currentPath: string = ''): void => {
+        if (!isXmlRecord(obj)) return
         
         Object.keys(obj).forEach(key => {
-          const currentPath = path ? `${path}.${key}` : key
+          const nextPath = currentPath ? `${currentPath}.${key}` : key
+          const value = obj[key]
           
           if (key === 'p:sp') {
-            console.log(`  🔷 Shape encontrado em ${currentPath}`)
-            if (obj[key]) {
-              const shapes = Array.isArray(obj[key]) ? obj[key] : [obj[key]]
-              shapes.forEach((shape: any, index: number) => {
-                console.log(`    Shape ${index + 1}:`)
-                if (shape['p:txBody']) {
-                  console.log(`      - Tem texto body`)
-                  findText(shape['p:txBody'], `${currentPath}[${index}].p:txBody`)
-                }
-                if (shape['p:nvSpPr']) {
-                  const nvSpPr = shape['p:nvSpPr']
-                  if (nvSpPr['p:cNvPr'] && nvSpPr['p:cNvPr'][0] && nvSpPr['p:cNvPr'][0].$) {
-                    console.log(`      - Nome: ${nvSpPr['p:cNvPr'][0].$.name}`)
+            console.log(`  🔷 Shape encontrado em ${nextPath}`)
+            toArray(value).forEach((shape, index) => {
+              if (!isXmlRecord(shape)) return
+              console.log(`    Shape ${index + 1}:`)
+
+              const txBody = shape['p:txBody']
+              if (txBody) {
+                console.log('      - Tem texto body')
+                findText(txBody, `${nextPath}[${index}].p:txBody`)
+              }
+
+              const nvSpPr = shape['p:nvSpPr']
+              if (nvSpPr && isXmlRecord(nvSpPr)) {
+                const cNvPrValue = nvSpPr['p:cNvPr']
+                const cNvPrArray = toArray(cNvPrValue)
+                const first = cNvPrArray[0]
+
+                if (isXmlRecord(first)) {
+                  const attributes = first.$
+                  if (isXmlRecord(attributes)) {
+                    const nameAttribute = attributes.name
+                    if (typeof nameAttribute === 'string') {
+                      console.log(`      - Nome: ${nameAttribute}`)
+                    }
                   }
                 }
-              })
-            }
+              }
+            })
           }
           
-          if (typeof obj[key] === 'object') {
-            if (Array.isArray(obj[key])) {
-              obj[key].forEach((item: any, index: number) => {
-                findShapes(item, `${currentPath}[${index}]`)
-              })
-            } else {
-              findShapes(obj[key], currentPath)
-            }
+          if (typeof value === 'object' && value !== null) {
+            toArray(value).forEach((item, index) => {
+              const arrayPath = Array.isArray(value) ? `${nextPath}[${index}]` : nextPath
+              findShapes(item, arrayPath)
+            })
           }
         })
       }
@@ -126,7 +167,7 @@ async function debugPPTXStructure() {
     }
 
   } catch (error) {
-    console.error('❌ Erro durante análise:', error)
+    console.error('❌ Erro durante análise:', getErrorMessage(error))
     process.exit(1)
   }
 }
@@ -139,7 +180,7 @@ if (require.main === module) {
       process.exit(0)
     })
     .catch((error) => {
-      console.error('\n❌ Erro na análise:', error)
+      console.error('\n❌ Erro na análise:', getErrorMessage(error))
       process.exit(1)
     })
 }

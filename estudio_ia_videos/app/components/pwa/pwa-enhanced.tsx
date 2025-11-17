@@ -39,6 +39,74 @@ import {
   Minimize
 } from 'lucide-react'
 
+interface NavigatorConnection extends EventTarget {
+  type?: string
+  effectiveType?: string
+}
+
+interface BatteryManagerLike extends EventTarget {
+  charging: boolean
+  level: number
+}
+
+type NavigatorWithExtras = Navigator & {
+  connection?: NavigatorConnection
+  getBattery?: () => Promise<BatteryManagerLike>
+}
+
+type NetworkSpeed = 'slow-2g' | '2g' | '3g' | '4g' | '5g' | 'unknown'
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => void
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
+}
+
+const getNavigator = (): Navigator | null => {
+  return typeof navigator === 'undefined' ? null : navigator
+}
+
+const isNavigatorWithExtras = (value: Navigator | NavigatorWithExtras): value is NavigatorWithExtras => {
+  return typeof value === 'object' && value !== null && ('connection' in value || 'getBattery' in value)
+}
+
+const resolveNavigatorExtras = (): NavigatorWithExtras | null => {
+  const baseNavigator = getNavigator()
+  if (!baseNavigator) {
+    return null
+  }
+
+  return isNavigatorWithExtras(baseNavigator) ? baseNavigator : null
+}
+
+const resolveNavigatorConnection = (): NavigatorConnection | null => {
+  const extras = resolveNavigatorExtras()
+  if (!extras?.connection || typeof extras.connection !== 'object') {
+    return null
+  }
+
+  return extras.connection
+}
+
+const normalizeNetworkSpeed = (effectiveType?: string | null): NetworkSpeed => {
+  const normalized = effectiveType?.toLowerCase()
+
+  switch (normalized) {
+    case 'slow-2g':
+    case '2g':
+    case '3g':
+    case '4g':
+    case '5g':
+      return normalized
+    default:
+      return 'unknown'
+  }
+}
+
+const isBeforeInstallPromptEvent = (event: Event): event is BeforeInstallPromptEvent => {
+  return typeof (event as Partial<BeforeInstallPromptEvent>).prompt === 'function' &&
+    typeof (event as Partial<BeforeInstallPromptEvent>).userChoice === 'object'
+}
+
 interface PWACapabilities {
   isInstallable: boolean
   isInstalled: boolean
@@ -73,8 +141,8 @@ export default function PWAEnhanced() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [showOfflineManager, setShowOfflineManager] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
-  const [networkSpeed, setNetworkSpeed] = useState<string>('fast')
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [networkSpeed, setNetworkSpeed] = useState<NetworkSpeed>('unknown')
 
   const [offlineTasks, setOfflineTasks] = useState<OfflineTask[]>([
     {
@@ -97,109 +165,143 @@ export default function PWAEnhanced() {
   ])
 
   useEffect(() => {
-    // Inicializar capacidades do PWA no lado do cliente
-    setCapabilities({
-      isInstallable: false,
-      isInstalled: false,
-      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
-      supportsPush: typeof window !== 'undefined' && 'Notification' in window && 'PushManager' in window,
-      supportsBackground: typeof navigator !== 'undefined' && 'serviceWorker' in navigator,
-      deviceType: 'desktop'
-    })
+    let isMounted = true
+    let batteryManager: BatteryManagerLike | null = null
+    const connection = resolveNavigatorConnection()
 
-    // Detectar tipo de dispositivo
-    const detectDevice = () => {
-      if (typeof window === 'undefined') return 'desktop'
+    const detectDevice = (): PWACapabilities['deviceType'] => {
+      if (typeof window === 'undefined') {
+        return 'desktop'
+      }
+
       const width = window.innerWidth
       if (width < 768) return 'mobile'
       if (width < 1024) return 'tablet'
       return 'desktop'
     }
 
-    // Detectar se é instalável
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault()
-      setDeferredPrompt(e)
+    const initializeCapabilities = () => {
+      setCapabilities(prev => ({
+        ...prev,
+        isOnline: typeof navigator !== 'undefined' ? navigator.onLine : prev.isOnline,
+        supportsPush: typeof window !== 'undefined' && 'Notification' in window && 'PushManager' in window,
+        supportsBackground: typeof navigator !== 'undefined' && 'serviceWorker' in navigator,
+        deviceType: detectDevice()
+      }))
+    }
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      if (!isBeforeInstallPromptEvent(event)) {
+        return
+      }
+
+      event.preventDefault()
+      setDeferredPrompt(event)
       setCapabilities(prev => ({ ...prev, isInstallable: true }))
-      
-      // Mostrar prompt de instalação apenas em mobile
+
       if (detectDevice() === 'mobile') {
-        setTimeout(() => setShowInstallPrompt(true), 3000)
+        setTimeout(() => {
+          if (isMounted) {
+            setShowInstallPrompt(true)
+          }
+        }, 3000)
       }
     }
 
-    // Detectar se já está instalado
     const handleAppInstalled = () => {
-      setCapabilities(prev => ({ 
-        ...prev, 
-        isInstalled: true, 
-        isInstallable: false 
+      setCapabilities(prev => ({
+        ...prev,
+        isInstalled: true,
+        isInstallable: false
       }))
       setShowInstallPrompt(false)
     }
 
-    // Monitor de conectividade
     const handleOnline = () => setCapabilities(prev => ({ ...prev, isOnline: true }))
     const handleOffline = () => {
       setCapabilities(prev => ({ ...prev, isOnline: false }))
       setShowOfflineManager(true)
     }
 
-    // Monitor de bateria (se disponível)
-    const updateBatteryInfo = async () => {
-      if ('getBattery' in navigator) {
-        try {
-          const battery = await (navigator as any).getBattery()
-          setCapabilities(prev => ({
-            ...prev,
-            batteryLevel: Math.floor(battery.level * 100),
-            isCharging: battery.charging
-          }))
-        } catch (error) {
-          console.log('Battery API não disponível')
-        }
-      }
-    }
-
-    // Monitor de velocidade de rede
-    const updateNetworkInfo = () => {
-      if ('connection' in navigator) {
-        const connection = (navigator as any).connection
-        const effectiveType = connection.effectiveType
-        setNetworkSpeed(effectiveType)
-      }
-    }
-
-    // Detectar fullscreen
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement)
+      setIsFullscreen(Boolean(document.fullscreenElement))
     }
 
-    // Event listeners
+    const updateBatteryState = () => {
+      if (!batteryManager || !isMounted) {
+        return
+      }
+
+      setCapabilities(prev => ({
+        ...prev,
+        batteryLevel: Math.floor(batteryManager.level * 100),
+        isCharging: batteryManager.charging
+      }))
+    }
+
+    const setupBatteryManager = async () => {
+      const extras = resolveNavigatorExtras()
+      if (!extras?.getBattery) {
+        return
+      }
+
+      try {
+        const battery = await extras.getBattery()
+        if (!isMounted) {
+          return
+        }
+
+        batteryManager = battery
+        updateBatteryState()
+        battery.addEventListener('levelchange', updateBatteryState)
+        battery.addEventListener('chargingchange', updateBatteryState)
+      } catch (error) {
+        console.log('Battery API não disponível', error)
+      }
+    }
+
+    const updateNetworkInfo = () => {
+      setNetworkSpeed(normalizeNetworkSpeed(connection?.effectiveType ?? null))
+    }
+
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
       window.addEventListener('appinstalled', handleAppInstalled)
       window.addEventListener('online', handleOnline)
       window.addEventListener('offline', handleOffline)
+      initializeCapabilities()
     }
+
     document.addEventListener('fullscreenchange', handleFullscreenChange)
 
-    // Inicialização
-    setCapabilities(prev => ({ ...prev, deviceType: detectDevice() }))
-    updateBatteryInfo()
     updateNetworkInfo()
+    void setupBatteryManager()
 
-    // Verificar se já está em modo standalone (instalado)
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setCapabilities(prev => ({ ...prev, isInstalled: true }))
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        setCapabilities(prev => ({ ...prev, isInstalled: true }))
+      }
     }
 
+    connection?.addEventListener('change', updateNetworkInfo)
+
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-      window.removeEventListener('appinstalled', handleAppInstalled)
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
+      isMounted = false
+
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+        window.removeEventListener('appinstalled', handleAppInstalled)
+        window.removeEventListener('online', handleOnline)
+        window.removeEventListener('offline', handleOffline)
+      }
+
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      connection?.removeEventListener('change', updateNetworkInfo)
+
+      if (batteryManager) {
+        batteryManager.removeEventListener('levelchange', updateBatteryState)
+        batteryManager.removeEventListener('chargingchange', updateBatteryState)
+      }
     }
   }, [])
 
@@ -313,7 +415,7 @@ export default function PWAEnhanced() {
         </Button>
       )}
       
-      {capabilities.supportsPush && Notification.permission !== 'granted' && (
+      {capabilities.supportsPush && typeof Notification !== 'undefined' && Notification.permission !== 'granted' && (
         <Button
           size="sm"
           variant="outline"

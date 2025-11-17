@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
+import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { analyticsCollector } from '@/lib/analytics/real-time-collector';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
 
@@ -30,7 +31,7 @@ async function postHandler(req: NextRequest) {
     
     // Analytics pode ser anônimo, mas preferimos rastrear usuários logados
     const userId = session?.user?.id || null;
-    const organizationId = (session?.user as any)?.currentOrgId || null;
+    const organizationId = getOrgId(session?.user) || null;
 
     const body = await req.json();
     const {
@@ -139,7 +140,7 @@ async function getHandler(req: NextRequest) {
     }
 
     const userId = session.user.id;
-    const organizationId = (session.user as any)?.currentOrgId || null;
+    const organizationId = getOrgId(session.user) || null;
 
     // Obter estatísticas usando o novo sistema
     const stats = await analyticsCollector.getUserStats(userId, organizationId);

@@ -203,7 +203,7 @@ interface ExportTrackItem {
     file: string
     format: string
     duration: number
-    properties: Record<string, any>
+    properties: Record<string, unknown>
   }
   timeline: {
     start: number
@@ -237,7 +237,7 @@ interface ExportEffect {
   type: string
   category: string
   enabled: boolean
-  parameters: Record<string, any>
+  parameters: Record<string, unknown>
   keyframes: string[]
   blendMode: string
   opacity: number
@@ -249,7 +249,7 @@ interface ExportTransition {
   type: string
   duration: number
   easing: string
-  parameters: Record<string, any>
+  parameters: Record<string, unknown>
   keyframes: string[]
 }
 
@@ -260,18 +260,18 @@ interface ExportMarker {
   name: string
   description: string
   color: string
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
 }
 
 interface ExportKeyframe {
   id: string
   time: number
   property: string
-  value: any
+  value: unknown
   interpolation: 'linear' | 'bezier' | 'hold' | 'ease-in' | 'ease-out' | 'ease-in-out'
   easing: {
     type: string
-    parameters: Record<string, any>
+    parameters: Record<string, unknown>
   }
 }
 
@@ -331,10 +331,36 @@ interface ExportProgress {
   warnings: string[]
 }
 
+type ExportStageName = Exclude<ExportProgress['stage'], 'completed' | 'error'>
+interface ExportHistoryEntry {
+  id: string
+  timestamp: string
+  format: ExportFormat
+  scope: ExportScope
+  size: number
+  duration: number
+  success: boolean
+}
+
+
+const EXPORT_FORMAT_OPTIONS = ['json', 'xml', 'yaml', 'csv', 'binary'] as const
+type ExportFormat = (typeof EXPORT_FORMAT_OPTIONS)[number]
+
+const exportFormatSet = new Set<string>(EXPORT_FORMAT_OPTIONS)
+
+const isExportFormat = (value: string): value is ExportFormat => exportFormatSet.has(value)
+
+const EXPORT_SCOPE_OPTIONS = ['full', 'selection', 'range', 'markers'] as const
+type ExportScope = (typeof EXPORT_SCOPE_OPTIONS)[number]
+
+const exportScopeSet = new Set<string>(EXPORT_SCOPE_OPTIONS)
+
+const isExportScope = (value: string): value is ExportScope => exportScopeSet.has(value)
+
 // Timeline Export Engine Component
 export default function TimelineExportEngine() {
-  const [exportFormat, setExportFormat] = useState<'json' | 'xml' | 'csv' | 'yaml' | 'binary'>('json')
-  const [exportScope, setExportScope] = useState<'full' | 'selection' | 'range' | 'markers'>('full')
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('json')
+  const [exportScope, setExportScope] = useState<ExportScope>('full')
   const [compressionLevel, setCompressionLevel] = useState(5)
   const [includeMetadata, setIncludeMetadata] = useState(true)
   const [includePreview, setIncludePreview] = useState(false)
@@ -357,7 +383,7 @@ export default function TimelineExportEngine() {
   const [isExporting, setIsExporting] = useState(false)
   const [exportResult, setExportResult] = useState<string>('')
   const [showPreview, setShowPreview] = useState(false)
-  const [exportHistory, setExportHistory] = useState<any[]>([])
+  const [exportHistory, setExportHistory] = useState<ExportHistoryEntry[]>([])
 
   // Sample timeline data for demonstration
   const sampleTimelineData: TimelineExportFormat = useMemo(() => ({
@@ -631,7 +657,7 @@ export default function TimelineExportEngine() {
       warnings: []
     })
 
-    const stages = [
+    const stages: Array<{ name: ExportStageName; duration: number; items: string[] }> = [
       { name: 'preparing', duration: 1000, items: ['Validando timeline', 'Preparando dados', 'Verificando recursos'] },
       { name: 'analyzing', duration: 2000, items: ['Analisando tracks', 'Processando efeitos', 'Calculando keyframes'] },
       { name: 'processing', duration: 5000, items: ['Exportando vídeo', 'Exportando áudio', 'Aplicando efeitos'] },
@@ -645,7 +671,7 @@ export default function TimelineExportEngine() {
     for (const stage of stages) {
       setExportProgress(prev => ({ 
         ...prev, 
-        stage: stage.name as any,
+        stage: stage.name,
         currentItem: stage.items[0]
       }))
 
@@ -890,7 +916,12 @@ export default function TimelineExportEngine() {
                     <Label className="text-xs">Formato</Label>
                     <select 
                       value={exportFormat}
-                      onChange={(e) => setExportFormat(e.target.value as any)}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (isExportFormat(value)) {
+                          setExportFormat(value)
+                        }
+                      }}
                       className="w-full mt-1 bg-gray-600 text-white text-sm rounded px-3 py-2"
                     >
                       <option value="json">JSON</option>
@@ -905,7 +936,12 @@ export default function TimelineExportEngine() {
                     <Label className="text-xs">Escopo</Label>
                     <select 
                       value={exportScope}
-                      onChange={(e) => setExportScope(e.target.value as any)}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (isExportScope(value)) {
+                          setExportScope(value)
+                        }
+                      }}
                       className="w-full mt-1 bg-gray-600 text-white text-sm rounded px-3 py-2"
                     >
                       <option value="full">Timeline Completa</option>

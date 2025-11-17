@@ -412,7 +412,7 @@ export default function RenderDashboard({ className }: RenderDashboardProps) {
 
       {/* Main Content */}
       <div className="flex-1">
-        <Tabs value={activeModule} onValueChange={(value) => setActiveModule(value as any)} className="h-full">
+        <Tabs value={activeModule} onValueChange={(value) => setActiveModule(value)} className="h-full">
           {/* Module Navigation */}
           <div className="bg-gray-800 border-b border-gray-700 px-6">
             <TabsList className="bg-gray-700">

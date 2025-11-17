@@ -26,14 +26,14 @@ export class APIError extends Error {
   public readonly type: ErrorType
   public readonly statusCode: number
   public readonly isOperational: boolean
-  public readonly context?: Record<string, any>
+  public readonly context?: Record<string, unknown>
 
   constructor(
     message: string,
     type: ErrorType = ErrorType.INTERNAL,
     statusCode: number = 500,
     isOperational: boolean = true,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ) {
     super(message)
     this.name = 'APIError'
@@ -70,7 +70,7 @@ export function createErrorHandler() {
   return async function errorHandler(
     error: Error | APIError,
     request: NextRequest,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): Promise<NextResponse<ErrorResponse>> {
     
     // Generate request ID for tracking

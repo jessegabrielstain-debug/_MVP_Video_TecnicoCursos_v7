@@ -59,12 +59,19 @@ import {
 } from 'lucide-react';
 
 // Interfaces para efeitos e transições
+type EffectParameterValue = 
+  | number 
+  | string 
+  | boolean 
+  | { x: number; y: number } 
+  | number[];
+
 interface EffectParameter {
   id: string;
   name: string;
   type: 'number' | 'color' | 'boolean' | 'select' | 'range' | 'point' | 'curve';
-  value: any;
-  defaultValue: any;
+  value: EffectParameterValue;
+  defaultValue: EffectParameterValue;
   min?: number;
   max?: number;
   step?: number;
@@ -92,7 +99,7 @@ interface EffectPreset {
   id: string;
   name: string;
   description: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   thumbnail?: string;
 }
 
@@ -114,7 +121,7 @@ interface AppliedEffect {
   effectId: string;
   name: string;
   enabled: boolean;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   startTime: number;
   endTime: number;
   opacity: number;
@@ -126,7 +133,7 @@ interface AppliedEffect {
 interface EffectKeyframe {
   id: string;
   time: number;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   easing: string;
 }
 
@@ -530,7 +537,7 @@ export function EffectsTransitionsLibrary() {
     setAppliedEffects(prev => prev.filter(effect => effect.id !== effectId));
   }, []);
 
-  const updateEffectParameter = useCallback((effectId: string, parameterId: string, value: any) => {
+  const updateEffectParameter = useCallback((effectId: string, parameterId: string, value: EffectParameterValue) => {
     setAppliedEffects(prev => prev.map(effect => 
       effect.id === effectId 
         ? {
@@ -688,7 +695,7 @@ export function EffectsTransitionsLibrary() {
               Preview
             </Button>
 
-            <Select value={realTimeQuality} onValueChange={(value: any) => setRealTimeQuality(value)}>
+            <Select value={realTimeQuality} onValueChange={(value: string) => setRealTimeQuality(value)}>
               <SelectTrigger className="w-32 bg-gray-700 border-gray-600">
                 <SelectValue />
               </SelectTrigger>

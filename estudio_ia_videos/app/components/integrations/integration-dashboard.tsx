@@ -46,9 +46,9 @@ import { toast } from 'react-hot-toast';
 export default function IntegrationDashboard() {
   const [integrations, setIntegrations] = useState<any[]>([]);
   const [publications, setPublications] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedIntegration, setSelectedIntegration] = useState<any>(null);
+  const [selectedIntegration, setSelectedIntegration] = useState<unknown>(null);
 
   const integrationTypes = [
     { 

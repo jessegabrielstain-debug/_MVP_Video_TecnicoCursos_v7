@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
         pptxUrl: s3Url,
         originalFileName: file.name,
         totalSlides: parseResult.slides.length,
-        slidesData: slidesDataJson as any
+        slidesData: slidesDataJson as unknown as Prisma.JsonValue
       }
     });
 

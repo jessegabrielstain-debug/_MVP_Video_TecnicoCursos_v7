@@ -48,7 +48,7 @@ export interface ReportData {
     logo?: string;
   };
   sections: ReportSection[];
-  summary: Record<string, any>;
+  summary: Record<string, unknown>;
 }
 
 export interface ReportSection {
@@ -86,7 +86,7 @@ class ReportGeneratorEnterprise {
     }
 
     let sections: ReportSection[] = [];
-    let summary: Record<string, any> = {};
+    let summary: Record<string, unknown> = {};
 
     switch (config.type) {
       case 'analytics':
@@ -134,7 +134,7 @@ class ReportGeneratorEnterprise {
    */
   private async collectAnalyticsData(config: ReportConfig): Promise<{
     sections: ReportSection[];
-    summary: Record<string, any>;
+    summary: Record<string, unknown>;
   }> {
     const { organizationId, startDate, endDate } = config;
 
@@ -199,7 +199,7 @@ class ReportGeneratorEnterprise {
    */
   private async collectSecurityData(config: ReportConfig): Promise<{
     sections: ReportSection[];
-    summary: Record<string, any>;
+    summary: Record<string, unknown>;
   }> {
     const { organizationId, startDate, endDate } = config;
 
@@ -270,7 +270,7 @@ class ReportGeneratorEnterprise {
    */
   private async collectAuditLogsData(config: ReportConfig): Promise<{
     sections: ReportSection[];
-    summary: Record<string, any>;
+    summary: Record<string, unknown>;
   }> {
     const { organizationId, startDate, endDate } = config;
 
@@ -335,7 +335,7 @@ class ReportGeneratorEnterprise {
    */
   private async collectBillingData(config: ReportConfig): Promise<{
     sections: ReportSection[];
-    summary: Record<string, any>;
+    summary: Record<string, unknown>;
   }> {
     const { organizationId, startDate, endDate } = config;
 
@@ -390,7 +390,7 @@ class ReportGeneratorEnterprise {
    */
   private async collectUsageData(config: ReportConfig): Promise<{
     sections: ReportSection[];
-    summary: Record<string, any>;
+    summary: Record<string, unknown>;
   }> {
     const { organizationId } = config;
 
@@ -430,7 +430,7 @@ class ReportGeneratorEnterprise {
    */
   private async collectSSOData(config: ReportConfig): Promise<{
     sections: ReportSection[];
-    summary: Record<string, any>;
+    summary: Record<string, unknown>;
   }> {
     const { organizationId, startDate, endDate } = config;
 
@@ -494,7 +494,7 @@ class ReportGeneratorEnterprise {
    */
   private async collectMembersData(config: ReportConfig): Promise<{
     sections: ReportSection[];
-    summary: Record<string, any>;
+    summary: Record<string, unknown>;
   }> {
     const { organizationId } = config;
 

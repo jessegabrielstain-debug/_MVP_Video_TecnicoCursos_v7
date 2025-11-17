@@ -70,7 +70,7 @@ export async function GET(
     }
 
     // Verificar permissões
-    const project = upload.projects as any
+    const project = upload.projects as Record<string, unknown>
     const hasPermission = project.owner_id === user.id || 
                          project.collaborators?.includes(user.id) ||
                          project.is_public

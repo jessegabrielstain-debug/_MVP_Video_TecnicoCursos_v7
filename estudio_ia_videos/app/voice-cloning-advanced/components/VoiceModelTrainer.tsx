@@ -15,7 +15,7 @@ import {
   Brain, 
   Play, 
   Pause, 
-  Stop, 
+  Square, 
   Settings, 
   Zap,
   Clock,
@@ -420,7 +420,7 @@ export default function VoiceModelTrainer() {
                               stopTraining(model.id)
                             }}
                           >
-                            <Stop className="w-4 h-4 mr-2" />
+                            <Square className="w-4 h-4 mr-2" />
                             Parar
                           </Button>
                         </>

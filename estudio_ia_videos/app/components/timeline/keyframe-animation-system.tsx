@@ -34,11 +34,17 @@ import {
 } from 'lucide-react';
 
 // Interfaces para o sistema de keyframes
+type KeyframePropertyValue = 
+  | number 
+  | string 
+  | { x: number; y: number } 
+  | { r: number; g: number; b: number; a?: number };
+
 interface KeyframeProperty {
   id: string;
   name: string;
   type: 'number' | 'color' | 'position' | 'rotation' | 'scale' | 'opacity' | 'text';
-  value: any;
+  value: KeyframePropertyValue;
   unit?: string;
   min?: number;
   max?: number;
@@ -222,11 +228,11 @@ export function KeyframeAnimationSystem() {
   }, [selectedLayer]);
 
   // Funções de gerenciamento de tracks
-  const addTrack = useCallback((layerId: string, trackType: string) => {
+  const addTrack = useCallback((layerId: string, trackType: AnimationTrack['type']) => {
     const newTrack: AnimationTrack = {
       id: `track_${Date.now()}`,
       name: `${trackType.charAt(0).toUpperCase() + trackType.slice(1)} Track`,
-      type: trackType as any,
+      type: trackType,
       keyframes: [],
       enabled: true,
       locked: false,
@@ -379,7 +385,7 @@ export function KeyframeAnimationSystem() {
 
     // Interpolar entre keyframes
     const progress = (time - startKeyframe.time) / (endKeyframe.time - startKeyframe.time);
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
 
     startKeyframe.properties.forEach(startProp => {
       const endProp = endKeyframe.properties.find(p => p.name === startProp.name);

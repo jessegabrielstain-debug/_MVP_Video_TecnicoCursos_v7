@@ -7,8 +7,7 @@
  * Dashboard com todos os botões e links funcionais
  */
 
-import React, { useState, useEffect } from 'react'
-import { useSession, signOut } from 'next-auth/react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
@@ -74,6 +73,8 @@ import {
   Trash2,
   Copy
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface Project {
   id: string
@@ -108,19 +109,78 @@ interface DashboardStats {
 }
 
 export default function UnifiedDashboardReal() {
-  const { data: session } = useSession() || {}
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [projects, setProjects] = useState<Project[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [notifications, setNotifications] = useState(0)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [displayName, setDisplayName] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
 
   // Carregar dados do dashboard
   useEffect(() => {
     loadDashboardData()
   }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadSession = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!isMounted) return
+        const authUser = data.user ?? null
+        setUser(authUser)
+
+        if (authUser) {
+          const { data: profile, error } = await supabase
+            .from('user_profiles')
+            .select('full_name, avatar_url')
+            .eq('id', authUser.id)
+            .maybeSingle()
+
+          if (!isMounted) return
+
+          if (error) {
+            console.warn('Erro ao carregar perfil:', error)
+          }
+
+          setDisplayName(profile?.full_name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
+          setAvatarUrl(profile?.avatar_url ?? authUser.user_metadata?.avatar_url ?? null)
+        } else {
+          setDisplayName(null)
+          setAvatarUrl(null)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar sessão do usuário:', error)
+      }
+    }
+
+    void loadSession()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      const authUser = session?.user ?? null
+      setUser(authUser)
+      if (authUser) {
+        setDisplayName(authUser.user_metadata?.name ?? authUser.email ?? null)
+        setAvatarUrl(authUser.user_metadata?.avatar_url ?? null)
+      } else {
+        setDisplayName(null)
+        setAvatarUrl(null)
+      }
+    })
+
+    return () => {
+      isMounted = false
+      listener?.subscription.unsubscribe()
+    }
+  }, [supabase])
 
   const loadDashboardData = async () => {
     try {
@@ -271,13 +331,21 @@ export default function UnifiedDashboardReal() {
   }
 
   const handleLogout = async () => {
+    if (signingOut) return
     try {
-      toast.success('Fazendo logout...')
-      await signOut({ redirect: false })
-      router.push('/')
+      setSigningOut(true)
+      toast.success('Encerrando sessão...')
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        throw error
+      }
+      router.replace('/login?reason=session_expired')
+      router.refresh()
     } catch (error) {
       console.error('Erro no logout:', error)
-      toast.error('Erro ao fazer logout')
+      toast.error('Erro ao encerrar a sessão')
+    } finally {
+      setSigningOut(false)
     }
   }
 
@@ -307,6 +375,13 @@ export default function UnifiedDashboardReal() {
     }
   }
 
+  const userInitials = (displayName ?? user?.email ?? 'Usuário')
+    ?.split(' ')
+    ?.map((n) => n[0])
+    ?.join('')
+    ?.slice(0, 2)
+    ?.toUpperCase() || 'US'
+
   if (loading || !stats) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -321,7 +396,7 @@ export default function UnifiedDashboardReal() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Olá, {session?.user?.name || 'Usuário'}! 👋
+            Olá, {displayName ?? user?.email ?? 'Usuário'}! 👋
           </h1>
           <p className="text-muted-foreground">
             Crie vídeos profissionais com IA de forma simples e rápida
@@ -351,9 +426,9 @@ export default function UnifiedDashboardReal() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={session?.user?.image || ''} />
+                  <AvatarImage src={avatarUrl ?? undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                    {session?.user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'US'}
+                    {userInitials}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -368,9 +443,9 @@ export default function UnifiedDashboardReal() {
                 Configurações
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600" disabled={signingOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                Sair
+                {signingOut ? 'Saindo...' : 'Sair'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

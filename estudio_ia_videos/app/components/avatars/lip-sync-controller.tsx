@@ -23,24 +23,48 @@ import {
   Waves
 } from 'lucide-react';
 
+interface LipSyncSession {
+  isPlaying?: boolean;
+}
+
+interface LipSyncPhoneme {
+  phoneme: string;
+  intensity: number;
+}
+
+interface LipSyncData {
+  phonemes: LipSyncPhoneme[];
+  currentPhoneme: string;
+  intensity: number;
+  accuracy: number;
+  fps: number;
+}
+
+interface AudioAnalysisSnapshot {
+  frequency: number;
+  amplitude: number;
+  pitch: number;
+  formants: number[];
+}
+
 interface LipSyncControllerProps {
-  session: any;
+  session?: LipSyncSession;
 }
 
 export default function LipSyncController({ session }: LipSyncControllerProps) {
-  const [lipSyncData, setLipSyncData] = useState({
-    phonemes: [] as any[],
+  const [lipSyncData, setLipSyncData] = useState<LipSyncData>({
+    phonemes: [],
     currentPhoneme: '',
     intensity: 0,
     accuracy: 0,
     fps: 60
   });
 
-  const [audioAnalysis, setAudioAnalysis] = useState({
+  const [audioAnalysis, setAudioAnalysis] = useState<AudioAnalysisSnapshot>({
     frequency: 0,
     amplitude: 0,
     pitch: 0,
-    formants: [] as number[]
+    formants: []
   });
 
   // Simulação da análise de áudio em tempo real

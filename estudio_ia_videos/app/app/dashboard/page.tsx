@@ -1,8 +1,11 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { listProjectsByOwner, type Project } from '@/lib/projects'
 import { listRenderJobs } from '@/lib/render-jobs'
 import type { RenderJob } from '@/lib/render-jobs'
 import { RenderJobActions } from './render-job-actions'
+import { createClient } from '@/lib/supabase/server'
+import { ProjectList } from '@/components/ProjectList'
 
 type DashboardPageProps = {
   searchParams?: {
@@ -11,24 +14,17 @@ type DashboardPageProps = {
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  const ownerId = searchParams?.ownerId
+  const supabase = createClient()
+  const {
+    data: { user },
+    error: authError
+  } = await supabase.auth.getUser()
 
-  if (!ownerId) {
-    return (
-      <main className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-16">
-        <h1 className="text-3xl font-semibold tracking-tight">Dashboard de projetos</h1>
-        <p className="text-muted-foreground">
-          Adicione <code>?ownerId=&lt;uuid&gt;</code> à URL ou integre a autenticação para carregar os projetos do usuário.
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Exemplo: <code>/dashboard?ownerId=00000000-0000-0000-0000-000000000000</code>
-        </p>
-        <Link className="text-sm text-primary underline" href="/upload">
-          Ir para upload de apresentações
-        </Link>
-      </main>
-    )
+  if (authError || !user) {
+    redirect('/login')
   }
+
+  const ownerId = searchParams?.ownerId ?? user.id
 
   let projects: Project[] = []
   let loadError: string | null = null
@@ -77,7 +73,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     projects.map(async (project) => {
       try {
         const jobs = await listRenderJobs(project.id)
-        const latestJob = jobs.at(0) ?? null
+        const latestJob = jobs[0] ?? null
         return { project, latestJob, jobError: undefined as string | undefined }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Falha ao carregar jobs'
@@ -93,7 +89,19 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <p className="text-muted-foreground">
           Acompanhe o status de renderização, reabra o editor e faça download dos vídeos gerados.
         </p>
+        <div className="mt-4 flex gap-2">
+          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">✅ Auth: {user.email}</span>
+          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">✅ API Projects</span>
+          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">✅ API Slides</span>
+          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">✅ API Analytics</span>
+        </div>
       </header>
+
+      {/* Sistema de Gerenciamento de Projetos/Slides */}
+      <section className="border rounded-lg p-6 bg-white">
+        <h2 className="text-xl font-semibold mb-4">🚀 Gerenciamento de Projetos e Slides</h2>
+        <ProjectList />
+      </section>
 
       <section className="grid gap-4 md:grid-cols-2">
         {projectsWithJobs.map(({ project, latestJob, jobError }) => (

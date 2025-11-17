@@ -2,6 +2,24 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRealTimeCollaboration } from './useRealTimeCollaboration';
+import type { SerializedProjectState } from './useRealTimeCollaboration';
+
+export interface RestorePreview {
+  versionId: string;
+  estimatedDuration: number;
+  dataSize: number;
+  changes: BackupChange[];
+  warnings: string[];
+}
+
+export interface ProjectBackupPayload {
+  id: string;
+  timestamp: Date;
+  data: SerializedProjectState;
+  compressed?: CompressedBackupData;
+}
+
+export type CompressedBackupData = string | Record<string, unknown> | Array<unknown>;
 
 // Interfaces para Backup System
 export interface BackupVersion {
@@ -28,8 +46,8 @@ export interface BackupChange {
   id: string;
   type: 'create' | 'update' | 'delete' | 'move';
   path: string;
-  oldValue?: any;
-  newValue?: any;
+  oldValue?: unknown;
+  newValue?: unknown;
   timestamp: Date;
   author: string;
 }
@@ -96,7 +114,7 @@ export interface ConflictResolution {
   localVersion: BackupVersion;
   remoteVersion: BackupVersion;
   resolution: 'local' | 'remote' | 'merge' | 'manual';
-  mergedData?: any;
+  mergedData?: Record<string, unknown>;
 }
 
 export interface UseBackupSystemReturn {
@@ -118,7 +136,7 @@ export interface UseBackupSystemReturn {
   // Restore
   restoreVersion: (versionId: string) => Promise<boolean>;
   restoreToPoint: (restorePointId: string) => Promise<boolean>;
-  previewRestore: (versionId: string) => Promise<any>;
+  previewRestore: (versionId: string) => Promise<RestorePreview>;
   
   // Versioning
   getVersionHistory: (projectId: string) => Promise<BackupVersion[]>;
@@ -209,6 +227,15 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
     onSyncStatusChanged: [],
   });
 
+  const generateRandomId = (prefix: string): string => {
+    const randomSegment =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2);
+
+    return `${prefix}_${randomSegment}`;
+  };
+
   // Inicialização
   useEffect(() => {
     loadVersionHistory();
@@ -233,14 +260,51 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
   const loadVersionHistory = useCallback(async () => {
     try {
       // Carregar do localStorage e cloud
-      const localVersions = JSON.parse(
+      const rawVersions = JSON.parse(
         localStorage.getItem(`backup_versions_${projectId}`) || '[]'
-      );
-      
-      setVersions(localVersions.map((v: any) => ({
-        ...v,
-        timestamp: new Date(v.timestamp),
-      })));
+      ) as unknown;
+
+      if (Array.isArray(rawVersions)) {
+        const deserialized = rawVersions.map(entry => {
+          const version = entry as Partial<BackupVersion> & { timestamp?: string };
+          const changes = Array.isArray(version?.changes)
+            ? version.changes.map(changeEntry => {
+                const change = changeEntry as Partial<BackupChange> & { timestamp?: string };
+                return {
+                  id: change?.id ?? generateRandomId('change'),
+                  type: change?.type ?? 'update',
+                  path: change?.path ?? '',
+                  oldValue: change?.oldValue,
+                  newValue: change?.newValue,
+                  timestamp: change?.timestamp ? new Date(change.timestamp) : new Date(),
+                  author: change?.author ?? 'unknown',
+                } satisfies BackupChange;
+              })
+            : [];
+
+          return {
+            id: version?.id ?? generateRandomId('backup'),
+            projectId: version?.projectId ?? projectId,
+            version: version?.version ?? 'v0.0.0.0',
+            timestamp: version?.timestamp ? new Date(version.timestamp) : new Date(),
+            size: typeof version?.size === 'number' ? version.size : 0,
+            type: version?.type ?? 'manual',
+            description: version?.description,
+            changes,
+            metadata: version?.metadata ?? {
+              author: 'unknown',
+              device: 'unknown',
+              platform: 'unknown',
+              appVersion: 'unknown',
+            },
+            checksum: version?.checksum ?? '',
+            compressed: Boolean(version?.compressed),
+            tags: Array.isArray(version?.tags) ? version.tags : [],
+          } satisfies BackupVersion;
+        });
+
+        setVersions(deserialized);
+      }
       
       updateStats();
     } catch (error) {
@@ -250,14 +314,28 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
 
   const loadRestorePoints = useCallback(async () => {
     try {
-      const localPoints = JSON.parse(
+      const rawPoints = JSON.parse(
         localStorage.getItem(`restore_points_${projectId}`) || '[]'
-      );
-      
-      setRestorePoints(localPoints.map((p: any) => ({
-        ...p,
-        timestamp: new Date(p.timestamp),
-      })));
+      ) as unknown;
+
+      if (Array.isArray(rawPoints)) {
+        const deserialized = rawPoints.map(entry => {
+          const point = entry as Partial<RestorePoint> & { timestamp?: string };
+          return {
+            id: point?.id ?? generateRandomId('restore'),
+            projectId: point?.projectId ?? projectId,
+            name: point?.name ?? 'Restore Point',
+            description: point?.description ?? '',
+            timestamp: point?.timestamp ? new Date(point.timestamp) : new Date(),
+            versionId: point?.versionId ?? '',
+            automatic: Boolean(point?.automatic),
+            stable: point?.stable ?? true,
+            tags: Array.isArray(point?.tags) ? point.tags : [],
+          } satisfies RestorePoint;
+        });
+
+        setRestorePoints(deserialized);
+      }
     } catch (error) {
       console.error('Erro ao carregar restore points:', error);
     }
@@ -267,7 +345,23 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
     try {
       const savedConfig = localStorage.getItem('backup_config');
       if (savedConfig) {
-        setConfig(JSON.parse(savedConfig));
+        const parsed = JSON.parse(savedConfig) as Partial<BackupConfig> | null;
+        if (parsed) {
+          setConfig(prev => ({
+            autoBackup: parsed.autoBackup ?? prev.autoBackup,
+            interval: parsed.interval ?? prev.interval,
+            maxVersions: parsed.maxVersions ?? prev.maxVersions,
+            compression: parsed.compression ?? prev.compression,
+            cloudSync: parsed.cloudSync ?? prev.cloudSync,
+            incrementalBackup: parsed.incrementalBackup ?? prev.incrementalBackup,
+            restorePointInterval: parsed.restorePointInterval ?? prev.restorePointInterval,
+            retentionPolicy: {
+              daily: parsed.retentionPolicy?.daily ?? prev.retentionPolicy.daily,
+              weekly: parsed.retentionPolicy?.weekly ?? prev.retentionPolicy.weekly,
+              monthly: parsed.retentionPolicy?.monthly ?? prev.retentionPolicy.monthly,
+            },
+          }));
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar configuração:', error);
@@ -297,17 +391,20 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
     try {
       // Obter dados do projeto atual
       const projectData = await getCurrentProjectData();
-      
+
       // Calcular mudanças desde último backup
       const changes = await calculateChanges(projectData);
-      
+
+      const timestamp = new Date();
+      const dataSize = calculateDataSize(projectData);
+
       // Criar nova versão
       const newVersion: BackupVersion = {
         id: `backup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         projectId,
         version: generateVersionNumber(),
-        timestamp: new Date(),
-        size: calculateDataSize(projectData),
+        timestamp,
+        size: dataSize,
         type,
         description,
         changes,
@@ -322,13 +419,20 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
         tags: [],
       };
 
+      const backupPayload: ProjectBackupPayload = {
+        id: newVersion.id,
+        timestamp,
+        data: projectData,
+      };
+
       // Comprimir se necessário
       if (config.compression) {
-        projectData.compressed = await compressData(projectData);
+        const compressedData = await compressData(projectData);
+        backupPayload.compressed = compressedData;
       }
 
       // Salvar localmente
-      await saveVersionLocally(newVersion, projectData);
+      await saveVersionLocally(newVersion, backupPayload);
       
       // Atualizar lista de versões
       setVersions(prev => {
@@ -560,7 +664,9 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
     };
   };
 
-  const calculateChanges = async (projectData: any): Promise<BackupChange[]> => {
+  const calculateChanges = async (
+    projectData: SerializedProjectState
+  ): Promise<BackupChange[]> => {
     // Implementar cálculo de mudanças
     return [];
   };
@@ -570,35 +676,78 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
     return `v${now.getFullYear()}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}.${versions.length + 1}`;
   };
 
-  const calculateDataSize = (data: any): number => {
-    return JSON.stringify(data).length;
+  const calculateDataSize = (
+    data: SerializedProjectState | CompressedBackupData
+  ): number => {
+    if (typeof data === 'string') {
+      return data.length;
+    }
+
+    try {
+      return JSON.stringify(data).length;
+    } catch {
+      return 0;
+    }
   };
 
-  const calculateChecksum = async (data: any): Promise<string> => {
+  const calculateChecksum = async (
+    data: SerializedProjectState | CompressedBackupData
+  ): Promise<string> => {
     const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(JSON.stringify(data));
+    const serialized = typeof data === 'string' ? data : JSON.stringify(data);
+    const dataBuffer = encoder.encode(serialized);
     const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   };
 
-  const compressData = async (data: any): Promise<any> => {
+  const compressData = async (
+    data: SerializedProjectState
+  ): Promise<CompressedBackupData> => {
     // Implementar compressão real
     return data;
   };
 
-  const saveVersionLocally = async (version: BackupVersion, data: any) => {
-    localStorage.setItem(`backup_data_${version.id}`, JSON.stringify(data));
+  const saveVersionLocally = async (
+    version: BackupVersion,
+    data: ProjectBackupPayload
+  ) => {
+    const payload = {
+      ...data,
+      timestamp: data.timestamp.toISOString(),
+    };
+
+    localStorage.setItem(`backup_data_${version.id}`, JSON.stringify(payload));
   };
 
-  const loadVersionData = async (versionId: string) => {
+  const loadVersionData = async (
+    versionId: string
+  ): Promise<ProjectBackupPayload | null> => {
     const data = localStorage.getItem(`backup_data_${versionId}`);
-    return data ? JSON.parse(data) : null;
+    if (!data) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(data) as Partial<ProjectBackupPayload> & {
+        timestamp?: string;
+      };
+
+      return {
+        id: parsed?.id ?? versionId,
+        timestamp: parsed?.timestamp ? new Date(parsed.timestamp) : new Date(),
+        data: (parsed?.data ?? {}) as SerializedProjectState,
+        compressed: parsed?.compressed,
+      } satisfies ProjectBackupPayload;
+    } catch (error) {
+      console.error('Erro ao carregar dados do backup:', error);
+      return null;
+    }
   };
 
-  const applyVersionData = async (data: any) => {
+  const applyVersionData = async (payload: ProjectBackupPayload) => {
     // Implementar aplicação dos dados restaurados
-    console.log('Aplicando dados da versão:', data);
+    console.log('Aplicando dados da versão:', payload);
   };
 
   const applyRetentionPolicy = (versions: BackupVersion[]): BackupVersion[] => {
@@ -609,6 +758,28 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
   const uploadVersionToCloud = async (version: BackupVersion) => {
     // Implementar upload real para Supabase
     console.log('Uploading version to cloud:', version.id);
+  };
+
+  const estimateRestoreDuration = (size: number): number => {
+    const seconds = Math.ceil(size / 1024);
+    return Math.max(15, Math.min(300, seconds));
+  };
+
+  const buildRestoreWarnings = (
+    version: BackupVersion,
+    payload: ProjectBackupPayload
+  ): string[] => {
+    const warnings: string[] = [];
+
+    if (!payload.data || Object.keys(payload.data).length === 0) {
+      warnings.push('Backup vazio ou sem dados detectados.');
+    }
+
+    if (version.compressed && !payload.compressed) {
+      warnings.push('Backup marcado como comprimido mas dado comprimido ausente.');
+    }
+
+    return warnings;
   };
 
   return {
@@ -630,7 +801,27 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
     // Restore
     restoreVersion,
     restoreToPoint,
-    previewRestore: async () => ({}), // Implementar
+    previewRestore: async (versionId) => {
+      const version = versions.find(v => v.id === versionId);
+      if (!version) {
+        throw new Error('Versão não encontrada para preview');
+      }
+
+      const payload = await loadVersionData(versionId);
+      if (!payload) {
+        throw new Error('Dados do backup não encontrados para preview');
+      }
+
+      const previewSize = calculateDataSize(payload.compressed ?? payload.data);
+
+      return {
+        versionId,
+        estimatedDuration: estimateRestoreDuration(previewSize),
+        dataSize: previewSize,
+        changes: version.changes,
+        warnings: buildRestoreWarnings(version, payload),
+      } satisfies RestorePreview;
+    },
     
     // Versioning
     getVersionHistory: async () => versions,

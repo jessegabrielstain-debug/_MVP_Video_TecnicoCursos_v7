@@ -62,7 +62,7 @@ export async function GET(
     }
 
     // Verificar permissões
-    const upload = slide.pptx_uploads as any
+    const upload = slide.pptx_uploads as Record<string, unknown>
     const project = upload.projects
     const hasPermission = project.owner_id === user.id || 
                          project.collaborators?.includes(user.id) ||

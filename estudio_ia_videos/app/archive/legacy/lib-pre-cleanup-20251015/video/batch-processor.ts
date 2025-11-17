@@ -71,7 +71,7 @@ export interface BatchTask {
   retryCount: number;
   maxRetries: number;
   error?: Error;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
   startedAt?: Date;
   completedAt?: Date;
@@ -121,7 +121,7 @@ export interface ProcessingResult {
   error?: Error;
   processingTime: number;
   retryCount: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -215,7 +215,7 @@ export class BatchProcessor extends EventEmitter {
     options?: {
       priority?: Priority;
       maxRetries?: number;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
   ): string {
     const taskId = `task-${this.nextTaskId++}`;
@@ -258,7 +258,7 @@ export class BatchProcessor extends EventEmitter {
       outputPath: string;
       priority?: Priority;
       maxRetries?: number;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }>
   ): string[] {
     const taskIds: string[] = [];

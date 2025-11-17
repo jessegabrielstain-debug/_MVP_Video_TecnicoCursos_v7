@@ -7,7 +7,7 @@
 export interface AnalyticsEvent {
   eventName: string;
   userId?: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
   timestamp?: Date;
 }
 
@@ -167,7 +167,7 @@ export class ExternalAnalytics {
   static async trackProductEvent(
     eventName: string,
     userId: string,
-    properties?: Record<string, any>
+    properties?: Record<string, unknown>
   ): Promise<void> {
     await this.track({
       eventName,
@@ -187,7 +187,7 @@ export class ExternalAnalytics {
     conversionType: 'signup' | 'upgrade' | 'trial_start' | 'purchase',
     userId: string,
     value?: number,
-    properties?: Record<string, any>
+    properties?: Record<string, unknown>
   ): Promise<void> {
     await this.track({
       eventName: `conversion_${conversionType}`,

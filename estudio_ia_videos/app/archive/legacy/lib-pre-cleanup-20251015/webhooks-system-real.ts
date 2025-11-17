@@ -67,7 +67,7 @@ export type WebhookEvent =
 export interface WebhookPayload {
   event: WebhookEvent
   timestamp: string
-  data: Record<string, any>
+  data: Record<string, unknown>
   metadata?: {
     userId?: string
     projectId?: string
@@ -299,7 +299,7 @@ export class WebhookManager {
   /**
    * Dispara um evento de webhook
    */
-  async trigger(event: WebhookEvent, data: Record<string, any>, metadata?: Record<string, any>): Promise<void> {
+  async trigger(event: WebhookEvent, data: Record<string, unknown>, metadata?: Record<string, unknown>): Promise<void> {
     try {
       const payload: WebhookPayload = {
         event,
