@@ -53,6 +53,8 @@
     "node_modules",
     ".next",
     "app/.next",
+    "app/archive",
+    "app/archive/**/*",
     "_next_temp",
     "__tests__",
     "app/(pages)",

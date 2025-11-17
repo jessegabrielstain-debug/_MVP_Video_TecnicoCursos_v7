@@ -1,0 +1,36 @@
+
+> estudio-ia-videos@1.0.0 build
+> next build
+
+  Ôû▓ Next.js 14.2.33
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./app/archive/legacy/analytics-real/page.tsx
+Module not found: Can't resolve '../../components/layouts/AppShell'
+
+https://nextjs.org/docs/messages/module-not-found
+
+./app/archive/legacy/analytics-real/page.tsx
+Module not found: Can't resolve '../../components/analytics/real-time-analytics-real'
+
+https://nextjs.org/docs/messages/module-not-found
+
+./app/archive/legacy/app-pre-cleanup-20251015/admin/metrics/page.tsx
+Module not found: Can't resolve '../../../components/ui/card'
+
+https://nextjs.org/docs/messages/module-not-found
+
+./app/archive/legacy/app-pre-cleanup-20251015/admin/metrics/page.tsx
+Module not found: Can't resolve '../../../components/ui/button'
+
+https://nextjs.org/docs/messages/module-not-found
+
+./app/archive/legacy/app-pre-cleanup-20251015/admin/metrics/page.tsx
+Module not found: Can't resolve '../../../components/ui/badge'
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+> Build failed because of webpack errors
