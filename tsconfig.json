@@ -33,5 +33,11 @@
     "scripts/**/*.ts",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "estudio_ia_videos/app/archive/**",
+    "estudio_ia_videos/app/pages_old_backup/**",
+    "archive/**",
+    "_archive/**"
+  ]
 }
