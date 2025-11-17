@@ -2,6 +2,8 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: 'tests/e2e',
+  globalSetup: './tests/global-setup.ts',
+  globalTeardown: './tests/global-teardown.ts',
   timeout: 60000,
   retries: process.env.CI ? 1 : 0,
   use: {
@@ -9,7 +11,7 @@ export default defineConfig({
     trace: 'on-first-retry'
   },
   webServer: process.env.E2E_SKIP_SERVER ? undefined : {
-    command: 'npm run dev --prefix estudio_ia_videos/app',
+    command: 'cd estudio_ia_videos && npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 90000

@@ -12,8 +12,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getSupabaseForRequest } from '~/lib/services/supabase-server'
-import { createRedisClient } from '~/lib/services/redis'
+import { getSupabaseForRequest, getRedisClient } from '@/lib/services'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -63,7 +62,7 @@ async function checkDatabase(): Promise<Check> {
 async function checkRedis(): Promise<Check> {
   const start = Date.now()
   try {
-    const redis = createRedisClient()
+    const redis = getRedisClient()
     await redis.set('healthcheck', Date.now().toString(), 'EX', 10)
     const latency_ms = Date.now() - start
     return { status: 'ok', latency_ms }

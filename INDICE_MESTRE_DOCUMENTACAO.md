@@ -1,8 +1,8 @@
 # 📚 ÍNDICE MESTRE - DOCUMENTAÇÃO COMPLETA
 
 **Sistema**: MVP Video Técnico Cursos v7  
-**Versão**: 2.0 Production-Ready  
-**Data**: 14 de outubro de 2025
+**Versão**: 2.3 Production-Ready (8 Fases Completas)  
+**Data**: 17 de novembro de 2025
 
 ---
 
@@ -10,33 +10,80 @@
 
 ### 📄 Leia Primeiro (Ordem de Prioridade)
 
-1. **[RESUMO_1_PAGINA.md](./RESUMO_1_PAGINA.md)** ⭐ **5 min**
+1. **[STATUS_FASE_8_COMPLETA.md](./STATUS_FASE_8_COMPLETA.md)** ⭐ **5 min**
+   - Resumo executivo Fase 8 (Render Real)
+   - Pipeline FFmpeg completo
+   - Métricas e próximos passos
+
+2. **[FASE_8_RENDERIZACAO_REAL_COMPLETA.md](./FASE_8_RENDERIZACAO_REAL_COMPLETA.md)** ⭐ **15 min**
+   - Documentação completa Fase 8
+   - Arquitetura e módulos (~2,200 linhas)
+   - Guia de configuração e testes
+
+3. **[IMPLEMENTACAO_PPTX_REAL_COMPLETA.md](./IMPLEMENTACAO_PPTX_REAL_COMPLETA.md)** ⭐ **15 min**
+   - Documentação completa Fase 7
+   - 8 parsers PPTX (~1,850 linhas)
+   - Integração com renderização
+
+4. **[RESUMO_1_PAGINA.md](./RESUMO_1_PAGINA.md)** ⭐ **5 min**
    - Status atual em 1 página
    - Números principais
    - Próximos passos imediatos
 
-2. **[README_EXECUCAO_FINAL.md](./README_EXECUCAO_FINAL.md)** ⭐ **10 min**
-   - Sumário executivo completo
-   - Resultado das execuções
-   - Guia de próximos passos
-
-3. **[STATUS_FINAL_EXECUCAO.md](./STATUS_FINAL_EXECUCAO.md)** ⭐ **15 min**
-   - Status técnico detalhado
-   - Estatísticas completas
-   - Comandos úteis
+5. **[README.md](./README.md)** ⭐ **10 min**
+   - Visão geral do projeto
+   - Quick start e setup
+   - Funcionalidades principais
 
 ---
 
-## 📊 DOCUMENTAÇÃO DA EXECUÇÃO (Gerados Hoje)
+## 📊 DOCUMENTAÇÃO DAS FASES (Geradas Recentemente)
 
-### Relatórios de Execução
+### 🎬 Fase 8: Renderização Real de Vídeo (17/11/2025)
+1. **[FASE_8_RENDERIZACAO_REAL_COMPLETA.md](./FASE_8_RENDERIZACAO_REAL_COMPLETA.md)** (~50 páginas)
+   - Pipeline completo FFmpeg + BullMQ
+   - 5 módulos (~2,200 linhas)
+   - Worker, Frame Generator, FFmpeg Executor, Video Uploader, API SSE
+   - Suporte 720p/1080p/4K, codecs H.264/H.265/VP9
+   - Integração 100% com Fase 7 (PPTX parsers)
+
+2. **[STATUS_FASE_8_COMPLETA.md](./STATUS_FASE_8_COMPLETA.md)** (resumo executivo)
+   - Arquitetura e capacidades
+   - Métricas de entrega
+   - Configuração e testes
+   - Próximos passos (TTS, avatares, cache)
+
+### 📄 Fase 7: Processamento Real de PPTX (17/11/2025)
+3. **[IMPLEMENTACAO_PPTX_REAL_COMPLETA.md](./IMPLEMENTACAO_PPTX_REAL_COMPLETA.md)** (~40 páginas)
+   - 8 parsers completos (~1,850 linhas)
+   - text-parser, image-parser, layout-parser, notes-parser, duration-calculator, animation-parser, advanced-parser, index
+   - API unificada (AdvancedPowerPointParser)
+   - Integração com editor e renderização
+
+### 🧪 Fase 6: E2E Testing & Monitoring (17/11/2025)
+4. **[FASE_6_RESUMO_EXECUTIVO_FINAL.md](./FASE_6_RESUMO_EXECUTIVO_FINAL.md)**
+   - 40 testes E2E (25 RBAC + 15 Video Flow)
+   - Playwright v1.56.1
+   - CI/CD com 6 suites paralelas (~15-25 min)
+   - Coverage 87% (142+ testes)
+
+5. **[FASE_6_E2E_SETUP_PRONTO.md](./FASE_6_E2E_SETUP_PRONTO.md)**
+   - Setup técnico detalhado
+   - Monitoramento sintético 24/7
+   - Alertas Slack automatizados
+
+---
+
+## 📁 DOCUMENTAÇÃO HISTÓRICA
+
+### Relatórios de Execução (Fases 0-5)
 1. **RESUMO_1_PAGINA.md**
    - Vista rápida do status
-   - Score 75/100
-   - Próximos 15 minutos
+   - Score 82/100 (atualizado)
+   - Próximos passos
 
 2. **README_EXECUCAO_FINAL.md**
-   - Sumário executivo
+   - Sumário executivo fases 0-5
    - Conquistas e pendências
    - Recomendações técnicas
 
@@ -56,7 +103,8 @@
    {
      "completed": true,
      "tables_created": 7,
-     "health_score": 75
+     "health_score": 82,
+     "phases_completed": 8
    }
    ```
 

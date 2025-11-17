@@ -123,5 +123,6 @@
     "eval": false,
     "Invoke-Expression": false,
     "iex": false
-  }
+  },
+  "git.ignoreLimitWarning": true
 }

@@ -5,6 +5,7 @@
  */
 
 import Redis from 'ioredis';
+import { logger } from './logger-service';
 
 let redisClient: Redis | null = null;
 
@@ -25,11 +26,11 @@ export function getRedisClient(): Redis {
     });
 
     redisClient.on('error', (err) => {
-      console.error('[Redis] Connection error:', err);
+      logger.error('Redis', 'Connection error', err);
     });
 
     redisClient.on('connect', () => {
-      console.log('[Redis] Connected successfully');
+      logger.info('Redis', 'Connected successfully');
     });
   }
 

@@ -13,9 +13,9 @@
     "type-check": "tsc -p tsconfig.typecheck.json --noEmit",
     "type-check:strict": "tsc -p tsconfig.strict.json --noEmit --pretty",
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
-    "audit:any": "node scripts/audit-any.ts",
-    "quality:any": "node scripts/audit-any.ts --fail-on-findings",
-    "quality:report": "node scripts/audit-any.ts",
+    "audit:any": "tsx scripts/audit-any.ts",
+    "quality:any": "tsx scripts/audit-any.ts --fail-on-findings",
+    "quality:report": "tsx scripts/audit-any.ts",
     "quality:check": "npm run type-check && npm run lint -s && npm run quality:any",
     "ci": "npm run type-check && npm run audit:any && npm run test:contract:video-jobs && (npm run test:all || npm run test:integration || echo no-tests) && (npm run ci:strict || echo strict-pending)",
     "test:contract": "node scripts/run-contract-suite.js",
@@ -37,10 +37,17 @@
     "test:contract:video-jobs-metrics": "node --no-warnings scripts/test-contract-video-jobs-metrics.js",
     "test:suite:pptx": "jest \"estudio_ia_videos/app/tests/pptx-processing.test.ts\" \"estudio_ia_videos/app/tests/pptx-processor.test.ts\" \"estudio_ia_videos/app/tests/pptx-system.test.ts\" --runInBand --coverage --coverageDirectory estudio_ia_videos/app/coverage --coverageReporters text-summary --coverageReporters lcov --coverageReporters json-summary --json --outputFile evidencias/fase-2/pptx-suite-result.json",
     "test": "jest",
-    "test:e2e:playwright": "playwright test"
-    ,"perf:lighthouse": "ts-node scripts/performance/run-lighthouse.ts"
-    ,"report:weekly": "ts-node scripts/governanca/generate-weekly-report.ts"
-    ,"kpis:update": "ts-node scripts/governanca/update-kpis.ts"
+    "test:e2e:playwright": "playwright test",
+    "test:services": "jest __tests__/lib/services --runInBand",
+    "test:services:watch": "jest __tests__/lib/services --watch",
+    "perf:lighthouse": "ts-node scripts/performance/run-lighthouse.ts",
+    "report:weekly": "ts-node scripts/governanca/generate-weekly-report.ts",
+    "kpis:update": "ts-node scripts/governanca/update-kpis.ts",
+    "health": "tsx scripts/health-check.ts",
+    "rbac:apply": "tsx scripts/apply-rbac-schema.ts",
+    "test:rbac": "jest --testPathPattern=__tests__/lib/hooks/use-rbac.test.ts",
+    "test:e2e:rbac": "playwright test tests/e2e/rbac.spec.ts",
+    "logs:test": "tsx scripts/test-logger.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.75.0",

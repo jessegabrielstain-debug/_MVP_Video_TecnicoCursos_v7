@@ -92,67 +92,163 @@ npm run validate:env
 
 ## 🔗 Serviços Centralizados
 
-Toda integração com Supabase, Redis, BullMQ, Logging e Monitoramento deve usar o módulo unificado em `estudio_ia_videos/app/lib/services/index.ts`.
+Toda integração com Supabase, Redis, BullMQ e Logging deve usar os serviços centralizados em `@/lib/services/`.
 
 ### Supabase
-**Antes (não permitido em novo código):**
+
+**✅ Correto:**
 ```ts
+import { createClient, createServerClient } from '@/lib/services'
+
+// Em componentes client-side
+const supabase = createClient()
+
+// Em Server Components e API Routes
+const supabase = createServerClient()
+```
+
+**❌ Evitar:**
+```ts
+import { createClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
-import { createClient } from '@/lib/supabase/server'
 ```
 
-**Depois (padrão obrigatório):**
+### Redis
+
+**✅ Correto:**
 ```ts
-import {
-	createBrowserSupabaseClient,
-	createServerSupabaseClient,
-	supabase,
-	supabaseAdmin,
-	getCurrentUser,
-	isAuthenticated,
-	signOut
-} from '@/lib/services'
+import { redisClient } from '@/lib/services'
+
+// Operações básicas
+await redisClient.set('chave', valor, 3600) // TTL em segundos
+const valor = await redisClient.get('chave')
+await redisClient.del('chave')
+
+// Health check
+const health = await redisClient.health()
+console.log(`Redis: ${health.status}, Latência: ${health.latency}ms`)
+
+// Namespaces
+await redisClient.clearNamespace('cache:users')
 ```
 
-Use:
-- `createBrowserSupabaseClient()` em componentes client-side / hooks.
-- `createServerSupabaseClient()` em rotas API e Server Components.
-- `supabaseAdmin` apenas em operações privilegiadas (RLS bypass) dentro de rotas seguras.
+**Features:**
+- Singleton com lazy initialization
+- Health checks com latência
+- Suporte a TTL
+- Operações de contador (incr)
+- Limpeza por namespace
+- Fallback gracioso em caso de falha
 
-### Redis / BullMQ
-Exportado via `redis-service` e `bullmq-service` internamente. Não instanciar filas diretamente. Utilize:
+### BullMQ (Filas)
+
+**✅ Correto:**
 ```ts
-import { getVideoRenderQueue, addRenderJob } from '@/lib/services/bullmq-service'
+import { queueClient } from '@/lib/services'
+
+// Adicionar job
+const job = await queueClient.addJob('video-render', 'render-123', {
+  videoId: '123',
+  resolution: '1080p'
+}, { 
+  priority: 'high', // high, normal, low
+  attempts: 3,
+  backoff: { type: 'exponential', delay: 5000 }
+})
+
+// Processar jobs
+queueClient.on('video-render', async (job) => {
+  console.log('Processando:', job.data)
+  // Sua lógica aqui
+  return { success: true }
+})
+
+// Métricas
+const metrics = await queueClient.getMetrics('video-render')
+console.log(`Aguardando: ${metrics.waiting}, Ativo: ${metrics.active}`)
+
+// Health check
+const health = await queueClient.health()
+console.log(`Filas: ${health.queues.join(', ')}`)
 ```
+
+**Features:**
+- Múltiplas filas
+- Priorização de jobs (high=1, normal=5, low=10)
+- Retry com backoff exponencial
+- Métricas detalhadas
+- Event listeners
+- Cleanup automático
 
 ### Logger
-Uso padronizado:
+
+**✅ Correto:**
 ```ts
-import { logger, createLogger } from '@/lib/services'
-logger.info('Render iniciado', { jobId })
-const jobLogger = createLogger('RenderJob')
-jobLogger.error('Falha no FFmpeg', err)
+import { logger } from '@/lib/services'
+
+// Logs básicos
+logger.debug('Detalhes técnicos', { data: {...} })
+logger.info('Operação iniciada', { userId: '123' })
+logger.warn('Recurso próximo do limite', { usage: 85 })
+logger.error('Falha na operação', { component: 'VideoRender' }, error)
+
+// Logger contextual
+const requestLogger = logger.withContext({ 
+  requestId: 'req-456',
+  userId: 'user-789'
+})
+requestLogger.info('Processando requisição')
+requestLogger.error('Erro durante processamento', {}, error)
+
+// Timer de performance
+const timer = logger.timer()
+await minhaOperacao()
+const elapsed = timer()
+logger.info('Operação concluída', { duration: elapsed })
 ```
 
-### Monitoring (Sentry Opcional)
-Não importe `@sentry/node` diretamente. Utilize wrappers:
-```ts
-import { captureError, captureException, addBreadcrumb, recordMetric } from '@/lib/services/monitoring-service'
+**Features:**
+- Níveis: debug, info, warn, error
+- Contexto estruturado (userId, requestId, component, etc)
+- Saída console + arquivo JSON Lines
+- Logger contextual com `withContext()`
+- Timer para medição de performance
+- **Integração automática com Sentry** (envia erros se SENTRY_DSN configurado)
+
+### Sentry (Observabilidade)
+
+O Sentry é inicializado automaticamente no `app/layout.tsx` se a variável `SENTRY_DSN` estiver configurada.
+
+**Configuração:**
+```bash
+# No .env.local
+SENTRY_DSN=https://sua-chave@sentry.io/projeto
+NEXT_PUBLIC_SENTRY_DSN=https://sua-chave@sentry.io/projeto
+SENTRY_TRACES_SAMPLE_RATE=0.1
 ```
-Se `SENTRY_DSN` não estiver definido, funções fazem fallback seguro (log local).
+
+**Uso:**
+- Erros são capturados automaticamente pelo logger
+- Use `logger.error()` para enviar erros ao Sentry
+- Erros não tratados são capturados automaticamente
+- Integração transparente - nenhum código adicional necessário
 
 ### Razões do Padrão
-1. Reduz duplicação de configuração.
-2. Facilita mocking em testes.
-3. Permite instrumentação futura (tracing, métricas, retries) em único ponto.
-4. Conformidade com ADR 0004.
+
+1. **Centralização**: Configuração única, fácil manutenção
+2. **Testabilidade**: Fácil de mockar em testes unitários
+3. **Observabilidade**: Logs estruturados e rastreamento unificado
+4. **Resiliência**: Health checks e fallbacks gracioso
+5. **Conformidade**: Segue ADR 0004
 
 ### Checklist para Novo Código
-- [ ] Usou somente imports de `@/lib/services` para clientes.
-- [ ] Evitou instanciar `createClient()` diretamente.
-- [ ] Não utilizou service role no front-end.
-- [ ] Tratou erros com `captureError` onde aplicável.
-- [ ] Logging estruturado com `logger` em operações críticas.
+
+- [ ] Importa serviços de `@/lib/services`
+- [ ] Não instancia clientes diretamente
+- [ ] Usa logger para operações críticas
+- [ ] Adiciona contexto estruturado aos logs
+- [ ] Implementa health checks onde aplicável
+- [ ] Trata erros com `logger.error()`
 
 
 ## 📐 Code Style

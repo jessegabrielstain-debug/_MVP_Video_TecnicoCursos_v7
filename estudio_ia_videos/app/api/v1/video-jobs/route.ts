@@ -1,12 +1,11 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { logger } from '~lib/services/logger';
-import { getSupabaseForRequest } from '~lib/services/supabase-server';
+import { logger, getSupabaseForRequest } from '@/lib/services';
 import { checkRateLimit, inspectRateLimit } from '@/lib/utils/rate-limit';
 import { recordRateLimitHit, recordError } from '~lib/utils/metrics';
 import { parseVideoJobInput, isErr } from '~lib/handlers/video-jobs';
-import { parseVideoJobsQuery } from '~lib/handlers/video-jobs-query';
+import { parseVideoJobsQuery, type VideoJobsQuery } from '~lib/handlers/video-jobs-query';
 import { shouldUseMockRenderJobs, getMockUserId, insertMockJob, listMockJobs } from '@/lib/render-jobs/mock-store';
 
 // Removido schema local de erro (não usado diretamente)
@@ -112,8 +111,7 @@ export async function GET(req: Request) {
   const fallbackEnabled = allowMockFallback();
   let buildMockResponse: (() => NextResponse) | null = null;
   let userId = '';
-  let limit = 10;
-  let statusFilter: string | undefined;
+  let queryParams: VideoJobsQuery | null = null;
   try {
     const authHeader = (req.headers.get('authorization') ?? req.headers.get('Authorization') ?? '').trim();
     const authToken = authHeader.toLowerCase().startsWith('bearer ')
@@ -142,16 +140,23 @@ export async function GET(req: Request) {
       const err = parsed as import('zod').SafeParseError<unknown>;
       return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'Parâmetros inválidos', details: err.error.issues }, { status: 400 });
     }
-    limit = parsed.data.limit;
-    statusFilter = parsed.data.status;
+    queryParams = parsed.data;
+    const { limit, offset, status, projectId, sortBy, sortOrder } = queryParams;
 
     // Cache simples em memória por usuário+query (TTL 15s)
     const CACHE_TTL_MS = 15_000;
     const globalAny = globalThis as unknown as { __vj_cache?: Map<string, { expiresAt: number; payload: any }> };
     if (!globalAny.__vj_cache) globalAny.__vj_cache = new Map();
-    const cacheKey = `list:${userId}:${limit}:${statusFilter || 'all'}`;
+    const cacheKey = `list:${userId}:${limit}:${offset}:${status || 'all'}:${projectId || 'all'}:${sortBy}:${sortOrder}`;
     const computeMockResponse = (cacheTag: 'MISS' | 'HIT' = 'MISS') => {
-      const jobs = listMockJobs(userId, { limit, status: statusFilter });
+      const jobs = listMockJobs(userId, {
+        limit,
+        offset,
+        status,
+        projectId,
+        sortBy,
+        sortOrder,
+      });
       const payload = { jobs };
       globalAny.__vj_cache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, payload });
       return new NextResponse(JSON.stringify(payload), {
@@ -176,14 +181,22 @@ export async function GET(req: Request) {
       throw new Error('Supabase client não inicializado');
     }
 
+    if (!queryParams) {
+      throw new Error('Parâmetros da listagem não foram inicializados');
+    }
+    const { limit: dbLimit, offset, status: statusFilter, projectId, sortBy, sortOrder } = queryParams;
+    const sortColumn = sortBy === 'updated_at' ? 'updated_at' : sortBy === 'status' ? 'status' : 'created_at';
     let query = supabase.from('render_jobs')
-      .select('id,status,project_id,created_at,progress,render_settings,attempts,duration_ms')
+      .select('id,status,project_id,created_at,updated_at,progress,render_settings,attempts,duration_ms')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
+      .order(sortColumn, { ascending: sortOrder === 'asc' })
+      .range(offset, offset + dbLimit - 1);
 
     if (statusFilter) {
       query = query.eq('status', statusFilter);
+    }
+    if (projectId) {
+      query = query.eq('project_id', projectId);
     }
 
     const { data, error } = await query;

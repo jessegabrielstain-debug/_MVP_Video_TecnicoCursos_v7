@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getSupabaseForRequest } from '~lib/services/supabase-server'
+import { getSupabaseForRequest, logger } from '@/lib/services'
 import { parseUuidParam } from '~lib/handlers/route-params'
-import { logger } from '~lib/services/logger'
 
 export async function GET(req: Request, ctx: { params: { id: string } }) {
   try {

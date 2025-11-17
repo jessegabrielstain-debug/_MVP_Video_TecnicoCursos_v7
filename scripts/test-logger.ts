@@ -2,7 +2,7 @@
  * Testes do Sistema de Logging
  */
 
-import { logger } from './logger.js';
+import { logger } from '../estudio_ia_videos/app/lib/services';
 
 console.log('\n🧪 Testando Sistema de Logging...\n');
 

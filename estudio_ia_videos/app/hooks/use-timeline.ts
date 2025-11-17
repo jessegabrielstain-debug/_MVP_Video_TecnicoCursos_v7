@@ -76,7 +76,7 @@ function timelineReducer(state: TimelineProject, action: TimelineAction): Timeli
       }
       return newState;
     }
-    
+
     case 'REMOVE_ELEMENT': {
       const newState = { ...state };
       newState.layers = newState.layers.map(layer => ({
@@ -86,23 +86,23 @@ function timelineReducer(state: TimelineProject, action: TimelineAction): Timeli
       newState.selectedElementIds = newState.selectedElementIds.filter(id => id !== action.elementId);
       return newState;
     }
-    
+
     case 'UPDATE_ELEMENT': {
       const newState = { ...state };
       newState.layers = newState.layers.map(layer => ({
         ...layer,
-        elements: layer.elements.map(el => 
+        elements: layer.elements.map(el =>
           el.id === action.elementId ? { ...el, ...action.updates } : el
         )
       }));
       return newState;
     }
-    
+
     case 'MOVE_ELEMENT': {
       const newState = { ...state };
       let elementToMove: TimelineElement | null = null;
       let sourceLayerId = '';
-      
+
       // Find and remove element from source layer
       newState.layers = newState.layers.map(layer => {
         const elementIndex = layer.elements.findIndex(el => el.id === action.elementId);
@@ -116,77 +116,77 @@ function timelineReducer(state: TimelineProject, action: TimelineAction): Timeli
         }
         return layer;
       });
-      
+
       if (elementToMove) {
         const targetLayerId = action.newLayerId || sourceLayerId;
         const updatedElement = { ...elementToMove, startTime: action.newStartTime };
-        
+
         // Add element to target layer
-        newState.layers = newState.layers.map(layer => 
-          layer.id === targetLayerId 
+        newState.layers = newState.layers.map(layer =>
+          layer.id === targetLayerId
             ? { ...layer, elements: [...layer.elements, updatedElement] }
             : layer
         );
       }
-      
+
       return newState;
     }
-    
+
     case 'RESIZE_ELEMENT': {
       const newState = { ...state };
       newState.layers = newState.layers.map(layer => ({
         ...layer,
-        elements: layer.elements.map(el => 
-          el.id === action.elementId 
+        elements: layer.elements.map(el =>
+          el.id === action.elementId
             ? { ...el, duration: action.newDuration }
             : el
         )
       }));
       return newState;
     }
-    
+
     case 'ADD_KEYFRAME': {
       const newState = { ...state };
       newState.layers = newState.layers.map(layer => ({
         ...layer,
-        elements: layer.elements.map(el => 
-          el.id === action.elementId 
-            ? { ...el, keyframes: [...el.keyframes, action.keyframe] }
+        elements: layer.elements.map(el =>
+          el.id === action.elementId
+            ? { ...el, keyframes: [...(el.keyframes || []), action.keyframe] }
             : el
         )
       }));
       return newState;
     }
-    
+
     case 'SET_CURRENT_TIME': {
       return { ...state, currentTime: Math.max(0, action.time) };
     }
-    
+
     case 'SET_ZOOM_LEVEL': {
       return { ...state, zoomLevel: Math.max(0.1, Math.min(10, action.zoomLevel)) };
     }
-    
+
     case 'SET_SELECTION': {
-      return { 
-        ...state, 
-        selectedElementIds: action.selection.elementIds 
+      return {
+        ...state,
+        selectedElementIds: action.selection.elementIds
       };
     }
-    
+
     case 'ADD_LAYER': {
       return {
         ...state,
         layers: [...state.layers, action.layer]
       };
     }
-    
+
     case 'REMOVE_LAYER': {
       return {
         ...state,
         layers: state.layers.filter(layer => layer.id !== action.layerId)
       };
     }
-    
+
     case 'UPDATE_LAYER': {
       return {
         ...state,
@@ -195,7 +195,7 @@ function timelineReducer(state: TimelineProject, action: TimelineAction): Timeli
         )
       };
     }
-    
+
     case 'COPY_ELEMENTS': {
       const elementsToCopy: TimelineElement[] = [];
       state.layers.forEach(layer => {
@@ -207,29 +207,29 @@ function timelineReducer(state: TimelineProject, action: TimelineAction): Timeli
       });
       return { ...state, clipboardElements: elementsToCopy };
     }
-    
+
     case 'PASTE_ELEMENTS': {
       const newState = { ...state };
       const targetLayer = newState.layers.find(l => l.id === action.targetLayerId);
-      
+
       if (targetLayer && state.clipboardElements.length > 0) {
         const pastedElements = state.clipboardElements.map((element, index) => ({
           ...element,
           id: crypto.randomUUID(),
           startTime: action.targetTime + (index * 100), // slight offset for multiple elements
-          keyframes: element.keyframes.map(kf => ({ ...kf, id: crypto.randomUUID() }))
+          keyframes: (element.keyframes || []).map(kf => ({ ...kf, id: crypto.randomUUID() }))
         }));
-        
+
         newState.layers = newState.layers.map(layer =>
           layer.id === action.targetLayerId
             ? { ...layer, elements: [...layer.elements, ...pastedElements] }
             : layer
         );
       }
-      
+
       return newState;
     }
-    
+
     default:
       return state;
   }
@@ -248,7 +248,7 @@ export function useTimeline() {
     if (!isPlayingRef.current) {
       isPlayingRef.current = true;
       startTimeRef.current = Date.now() - project.currentTime;
-      
+
       const animate = () => {
         if (isPlayingRef.current) {
           const currentTime = Date.now() - startTimeRef.current;
@@ -260,7 +260,7 @@ export function useTimeline() {
           }
         }
       };
-      
+
       animationFrameRef.current = requestAnimationFrame(animate);
     }
   }, [project.currentTime, project.duration]);
@@ -393,13 +393,13 @@ export function useTimeline() {
     // State
     project,
     isPlaying: isPlayingRef.current,
-    
+
     // Playback controls
     play,
     pause,
     stop,
     seek,
-    
+
     // Element operations
     addElement,
     removeElement,
@@ -407,30 +407,30 @@ export function useTimeline() {
     moveElement,
     resizeElement,
     addKeyframe,
-    
+
     // Selection
     selectElement,
     selectElements,
     clearSelection,
     getSelectedElements,
-    
+
     // Layers
     addLayer,
     removeLayer,
     updateLayer,
-    
+
     // Clipboard
     copyElements,
     pasteElements,
-    
+
     // Zoom
     zoomIn,
     zoomOut,
     setZoom,
-    
+
     // Utilities
     getElementsAtTime,
-    
+
     // Direct dispatch for advanced operations
     dispatch
   };

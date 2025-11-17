@@ -1,19 +1,12 @@
-import { z } from 'zod'
+import type { z } from 'zod'
+import { VideoJobsListQuerySchema } from '../validation/schemas'
 
-export const StatusSchema = z.enum(['queued','processing','completed','failed','cancelled'])
-
-export const VideoJobsQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(50).default(20),
-  status: StatusSchema.optional(),
-})
-
-export type VideoJobsQuery = z.infer<typeof VideoJobsQuerySchema>
+export type VideoJobsQuery = z.infer<typeof VideoJobsListQuerySchema>
 
 export function parseVideoJobsQuery(input: Record<string, string | string[] | undefined>) {
-  // Normalize to single string values
-  const norm: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(input)) {
-    norm[k] = Array.isArray(v) ? v[0] : v
+  const normalized: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(input)) {
+    normalized[key] = Array.isArray(value) ? value[0] : value
   }
-  return VideoJobsQuerySchema.safeParse(norm)
+  return VideoJobsListQuerySchema.safeParse(normalized)
 }

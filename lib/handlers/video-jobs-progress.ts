@@ -1,12 +1,23 @@
 import { z } from 'zod'
-import { StatusSchema } from './video-jobs-query'
+import { JobStatusEnum, VideoJobProgressSchema } from '../validation/schemas'
 
-const AllowedStatus = z.enum(['processing','completed','failed'])
-export const UpdateProgressSchema = z.object({
-  id: z.string().uuid(),
-  progress: z.coerce.number().min(0).max(100),
-  status: AllowedStatus.optional(),
-})
+const progressStatusAllowList = new Set(['processing', 'completed', 'failed'] as const)
+
+const UpdateProgressSchema = z.preprocess((value: unknown) => {
+  if (typeof value === 'object' && value !== null) {
+    const record = value as Record<string, unknown> & { id?: unknown; job_id?: unknown }
+    if (!('jobId' in record)) {
+      if (record.id) return { ...record, jobId: record.id }
+      if (record.job_id) return { ...record, jobId: record.job_id }
+    }
+  }
+  return value
+}, VideoJobProgressSchema.pick({ jobId: true, progress: true }).extend({
+  status: JobStatusEnum.optional(),
+}).refine(data => !data.status || progressStatusAllowList.has(data.status), {
+  path: ['status'],
+  message: 'Status inválido para atualização de progresso',
+}))
 
 export type UpdateProgressInput = z.infer<typeof UpdateProgressSchema>
 

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { z } from 'zod'
 import {
   computeBasicStats,
   computePerformanceMetrics,
@@ -12,26 +11,12 @@ import {
   BasicRenderJob
 } from '@/lib/analytics/render-core'
 import getInMemoryCache from '@/lib/in-memory-cache'
-
-const RenderStatsQuerySchema = z.object({
-  timeRange: z.enum(['1h', '24h', '7d', '30d', '90d']).default('24h'),
-  userId: z.string().min(1).optional(),
-  projectType: z.string().min(1).optional(),
-  status: z.enum(['all', 'completed', 'failed', 'processing', 'pending']).default('all'),
-  includeErrors: z
-    .enum(['true', 'false'])
-    .default('true')
-    .transform(value => value === 'true'),
-  includePerformance: z
-    .enum(['true', 'false'])
-    .default('true')
-    .transform(value => value === 'true')
-})
+import { RenderStatsQuerySchema, type RenderStatsQuery } from '@/lib/validation/schemas'
 
 const MAX_ROWS = 5000
 const cache = getInMemoryCache({ ttl: 30000 })
 
-type TimeRange = z.infer<typeof RenderStatsQuerySchema>['timeRange']
+type TimeRange = RenderAnalyticsQuery['timeRange']
 
 type RenderJobRow = BasicRenderJob & {
   user_id?: string
@@ -45,7 +30,7 @@ type RenderStatsPayload = {
     filters: {
       userId: string | null
       projectType: string | null
-      status: z.infer<typeof RenderStatsQuerySchema>['status']
+      status: RenderAnalyticsQuery['status']
     }
     row_count: number
     truncated: boolean

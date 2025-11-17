@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
-import { getSupabaseForRequest } from '~lib/services/supabase-server'
+import { getSupabaseForRequest, logger } from '@/lib/services'
 import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { recordRateLimitHit, recordError } from '~lib/utils/metrics'
 import { parseCancelJobInput } from '~lib/handlers/video-jobs-cancel'
-import { logger } from '~lib/services/logger'
 
 function badRequest(details: unknown) {
   return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'Payload inválido', details }, { status: 400 })
@@ -30,13 +29,16 @@ export async function POST(req: Request) {
       const err = parsed as import('zod').SafeParseError<unknown>
       return badRequest(err.error.issues)
     }
-    const { id } = parsed.data
+    const { id: jobId, reason } = parsed.data
+    if (reason) {
+      logger.info('video-jobs-cancel', 'cancel-reason', { jobId, userId: userData.user.id, reason })
+    }
 
     // Buscar job do usuário
     const { data: existing, error: fetchErr } = await supabase
       .from('render_jobs')
       .select('id,status,user_id')
-      .eq('id', id)
+      .eq('id', jobId)
       .single()
 
     if (fetchErr || !existing) {
@@ -64,7 +66,7 @@ export async function POST(req: Request) {
     const { data: updated, error: updateErr } = await supabase
       .from('render_jobs')
       .update({ status: 'cancelled' })
-      .eq('id', id)
+      .eq('id', jobId)
       .select('id,status,project_id,created_at,progress,render_settings,attempts,duration_ms')
       .single()
 

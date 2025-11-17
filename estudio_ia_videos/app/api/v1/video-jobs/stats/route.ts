@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { getSupabaseForRequest } from '~lib/services/supabase-server'
+import { getSupabaseForRequest, logger } from '@/lib/services'
 import { shouldUseMockRenderJobs, getMockUserId, computeMockStats } from '@/lib/render-jobs/mock-store'
-import { logger } from '~lib/services/logger'
-import { RenderStatsQuerySchema } from '~lib/validation/schemas'
+import { VideoJobStatsQuerySchema } from '~lib/validation/schemas'
 
 // Cache in-memory simples com TTL por usuário
 const CACHE_TTL_MS = 30_000
@@ -26,6 +25,7 @@ export async function GET(req: Request) {
   const fallbackEnabled = process.env.ALLOW_RENDER_JOBS_FALLBACK !== 'false'
   let buildMockResponse: (() => NextResponse) | null = null
   let userId = ''
+  let queryParams: import('zod').infer<typeof VideoJobStatsQuerySchema> | null = null
   try {
     const authHeader = (req.headers.get('authorization') ?? req.headers.get('Authorization') ?? '').trim()
     const authToken = authHeader.toLowerCase().startsWith('bearer ')
@@ -50,10 +50,14 @@ export async function GET(req: Request) {
     const url = new URL(req.url)
     const rawParams: Record<string, unknown> = {}
     url.searchParams.forEach((v, k) => { rawParams[k] = v })
-    const parsed = RenderStatsQuerySchema.safeParse(rawParams)
-    const period = parsed.success ? parsed.data.period : undefined
+    const parsed = VideoJobStatsQuerySchema.safeParse(rawParams)
+    if (!parsed.success) {
+      return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'Parâmetros inválidos', details: parsed.error.issues }, { status: 400 })
+    }
+    queryParams = parsed.data
+    const { period, status, projectId, limit, includeErrors, includePerformance } = queryParams
 
-    const cacheKey = `stats:${userId}:${period ?? 'default'}`
+    const cacheKey = `stats:${userId}:${period}:${status || 'all'}:${projectId || 'all'}:${limit}:${includeErrors ? 1 : 0}:${includePerformance ? 1 : 0}`
     const createMockResponse = (cacheTag: 'MISS' | 'HIT' = 'MISS') => {
       const payload = computeMockStats(userId)
       setCache(cacheKey, payload)
@@ -66,7 +70,10 @@ export async function GET(req: Request) {
 
     const cached = getCache(cacheKey)
     if (cached) {
-      return new NextResponse(JSON.stringify({ ...cached, metadata: { cache: 'HIT', ttl_ms: CACHE_TTL_MS } }), {
+      return new NextResponse(JSON.stringify({
+        ...cached,
+        metadata: { ...cached.metadata, cache: 'HIT', ttl_ms: CACHE_TTL_MS }
+      }), {
         status: 200,
         headers: { 'content-type': 'application/json', 'X-Cache': 'HIT' }
       })
@@ -78,6 +85,10 @@ export async function GET(req: Request) {
 
     if (!supabase) {
       throw new Error('Supabase client não inicializado')
+    }
+
+    if (!queryParams) {
+      throw new Error('Parâmetros de stats não inicializados')
     }
 
     // Janela baseada em "period" (fallback 60 minutos)
@@ -93,19 +104,37 @@ export async function GET(req: Request) {
     const sinceIso = new Date(Date.now() - windowMs).toISOString()
 
     // Total de jobs (head=true para retornar apenas count)
-    const totalQuery = await supabase
+    let baseQuery = supabase
       .from('render_jobs')
-      .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
+
+    if (queryParams.status) {
+      baseQuery = baseQuery.eq('status', queryParams.status)
+    }
+    if (queryParams.projectId) {
+      baseQuery = baseQuery.eq('project_id', queryParams.projectId)
+    }
+
+    const totalQuery = await baseQuery
+      .select('*', { count: 'exact', head: true })
 
     const total_jobs = totalQuery.count ?? 0
 
     // Buscar status (limit para evitar exaustão – segue padrão MAX_ROWS=5000 usado em analytics)
-    const { data: statusRows, error: statusErr } = await supabase
+    let statusQuery = supabase
       .from('render_jobs')
       .select('status')
       .eq('user_id', userId)
-      .limit(5000)
+      .limit(queryParams.limit)
+
+    if (queryParams.status) {
+      statusQuery = statusQuery.eq('status', queryParams.status)
+    }
+    if (queryParams.projectId) {
+      statusQuery = statusQuery.eq('project_id', queryParams.projectId)
+    }
+
+    const { data: statusRows, error: statusErr } = await statusQuery
 
     if (statusErr) {
       logger.warn('video-jobs-stats', 'fallback: status query error', { message: statusErr.message })
@@ -131,23 +160,35 @@ export async function GET(req: Request) {
     }
 
     // Throughput: completados nos últimos 60 minutos
-    const completedQuery = await supabase
+    let completedQueryBuilder = supabase
       .from('render_jobs')
       .select('id', { count: 'exact' })
       .eq('user_id', userId)
       .eq('status', 'completed')
       .gte('completed_at', sinceIso)
 
+    if (queryParams.projectId) {
+      completedQueryBuilder = completedQueryBuilder.eq('project_id', queryParams.projectId)
+    }
+
+    const completedQuery = await completedQueryBuilder
+
     const jobs_completed_last_60m = completedQuery.count || (completedQuery.data?.length ?? 0)
     const jobs_per_min = Number(((jobs_completed_last_60m || 0) / 60).toFixed(3))
 
     // Duração média (ms) para completados recentes (limitado a 5000)
-    const { data: durationRows, error: durationErr } = await supabase
+    let durationQuery = supabase
       .from('render_jobs')
       .select('duration_ms')
       .eq('user_id', userId)
       .eq('status', 'completed')
-      .limit(5000)
+      .limit(queryParams.limit)
+
+    if (queryParams.projectId) {
+      durationQuery = durationQuery.eq('project_id', queryParams.projectId)
+    }
+
+    const { data: durationRows, error: durationErr } = await durationQuery
 
     if (durationErr) {
       logger.warn('video-jobs-stats', 'fallback: duration query error', { message: durationErr.message })
@@ -184,12 +225,24 @@ export async function GET(req: Request) {
         p50_ms,
         p90_ms,
         p95_ms
+      },
+      metadata: {
+        cache: 'MISS' as const,
+        ttl_ms: CACHE_TTL_MS,
+        period: queryParams.period,
+        include_errors: queryParams.includeErrors,
+        include_performance: queryParams.includePerformance,
+        limit: queryParams.limit,
+        filters: {
+          status: queryParams.status ?? null,
+          projectId: queryParams.projectId ?? null,
+        }
       }
     }
 
     setCache(cacheKey, payload)
 
-    return new NextResponse(JSON.stringify({ ...payload, metadata: { cache: 'MISS', ttl_ms: CACHE_TTL_MS, period: period ?? 'default' } }), {
+    return new NextResponse(JSON.stringify(payload), {
       status: 200,
       headers: { 'content-type': 'application/json', 'X-Cache': 'MISS' }
     })

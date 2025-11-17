@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 import { z } from 'zod'
+import { VideoRenderWorker } from '@/lib/workers/video-render-worker'
+import Queue from 'bull'
+
+// Configurar fila de renderização
+const renderQueue = new Queue('video render', process.env.REDIS_URL || 'redis://localhost:6379')
 
 // Schema de validação para renderização
 const renderSchema = z.object({
@@ -27,10 +33,10 @@ const updateRenderSchema = z.object({
   render_duration: z.number().positive().optional()
 })
 
-// POST - Iniciar renderização
+// POST - Iniciar renderização REAL com VideoRenderWorker
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = createRouteHandlerClient({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -161,11 +167,28 @@ export async function POST(request: NextRequest) {
         }
       })
 
-    // Iniciar processamento assíncrono
-    processRenderJobAsync(renderJob.id)
+    // Adicionar job à fila de renderização REAL
+    const job = await renderQueue.add('render-video', {
+      jobId: renderJob.id,
+      projectId: validatedData.project_id,
+      userId: user.id,
+      settings: finalSettings,
+      priority: validatedData.priority,
+      webhookUrl: validatedData.webhook_url
+    }, {
+      priority: validatedData.priority === 'high' ? 1 : validatedData.priority === 'low' ? 3 : 2,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000
+      }
+    })
+
+    console.log(`🎬 Render job ${renderJob.id} added to queue with job ID: ${job.id}`)
 
     return NextResponse.json({
       render_job: renderJob,
+      queue_job_id: job.id,
       message: 'Renderização iniciada com sucesso'
     }, { status: 201 })
 
@@ -188,7 +211,7 @@ export async function POST(request: NextRequest) {
 // GET - Listar jobs de renderização
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = createRouteHandlerClient({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -265,89 +288,109 @@ function getDefaultVideoBitrate(resolution: string): number {
   }
 }
 
-// Função para processar renderização assincronamente (simulada)
-async function processRenderJobAsync(jobId: string) {
-  try {
-    const supabase = createClient()
-
-    // Atualizar status para processando
-    await supabase
-      .from('render_jobs')
-      .update({ 
-        status: 'processing',
-        started_at: new Date().toISOString(),
-        progress: 5
-      })
-      .eq('id', jobId)
-
-    // Simular progresso de renderização
-    const progressSteps = [10, 25, 40, 55, 70, 85, 95]
+// Configurar worker para processar fila de renderização REAL
+renderQueue.process('render-video', async (job) => {
+  console.log(`🎬 Processing render job: ${job.data.jobId}`)
+  
+  const worker = new VideoRenderWorker()
+  
+  // Configurar listeners de progresso
+  worker.on('progress', async (progress) => {
+    console.log(`📊 Job ${job.data.jobId} progress: ${progress.percentage}% - ${progress.stage}`)
     
-    for (const progress of progressSteps) {
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
+    // Atualizar progresso no job da fila
+    job.progress(progress.percentage)
+    
+    // Atualizar progresso no banco de dados
+    try {
+      const supabase = createRouteHandlerClient({ cookies })
       await supabase
         .from('render_jobs')
-        .update({ progress })
-        .eq('id', jobId)
+        .update({
+          progress: progress.percentage,
+          current_stage: progress.stage,
+          status_message: progress.message
+        })
+        .eq('id', job.data.jobId)
+    } catch (error) {
+      console.error('Error updating progress in database:', error)
     }
-
-    // Simular finalização
-    await new Promise(resolve => setTimeout(resolve, 3000))
-
-    // Gerar URL de output simulada
-    const outputUrl = `https://storage.example.com/renders/${jobId}.mp4`
-    const outputFileSize = Math.floor(Math.random() * 100000000) + 10000000 // 10MB - 100MB
-
-    await supabase
-      .from('render_jobs')
-      .update({
-        status: 'completed',
-        progress: 100,
-        output_url: outputUrl,
-        output_file_size: outputFileSize,
-        completed_at: new Date().toISOString(),
-        render_duration: Math.floor(Math.random() * 300) + 60 // 1-5 minutos
-      })
-      .eq('id', jobId)
-
-    // Buscar dados do job para webhook
-    const { data: job } = await supabase
-      .from('render_jobs')
-      .select('*, projects:project_id(name)')
-      .eq('id', jobId)
-      .single()
-
+  })
+  
+  worker.on('stage-change', async (stage) => {
+    console.log(`🎭 Job ${job.data.jobId} stage: ${stage}`)
+    
+    try {
+      const supabase = createRouteHandlerClient({ cookies })
+      await supabase
+        .from('render_jobs')
+        .update({
+          current_stage: stage,
+          status: stage === 'preparing' ? 'processing' : 'processing'
+        })
+        .eq('id', job.data.jobId)
+    } catch (error) {
+      console.error('Error updating stage in database:', error)
+    }
+  })
+  
+  try {
+    // Processar renderização real
+    const videoUrl = await worker.processRenderJob(job.data)
+    
+    console.log(`✅ Render job ${job.data.jobId} completed: ${videoUrl}`)
+    
     // Enviar webhook se configurado
-    if (job?.webhook_url) {
+    if (job.data.webhookUrl) {
       try {
-        await fetch(job.webhook_url, {
+        await fetch(job.data.webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            job_id: jobId,
+            job_id: job.data.jobId,
             status: 'completed',
-            output_url: outputUrl,
-            project_name: job.projects?.name
+            video_url: videoUrl,
+            project_id: job.data.projectId
           })
         })
       } catch (webhookError) {
         console.warn('Erro ao enviar webhook:', webhookError)
       }
     }
-
-  } catch (error) {
-    console.error('Erro no processamento de renderização:', error)
     
-    // Marcar como falha
-    const supabase = createClient()
-    await supabase
-      .from('render_jobs')
-      .update({
-        status: 'failed',
-        error_message: 'Erro durante o processamento da renderização',
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', jobId)
+    return { videoUrl }
+    
+  } catch (error) {
+    console.error(`❌ Render job ${job.data.jobId} failed:`, error)
+    
+    // Atualizar status de erro no banco
+    try {
+      const supabase = createRouteHandlerClient({ cookies })
+      await supabase
+        .from('render_jobs')
+        .update({
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'Unknown error',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', job.data.jobId)
+    } catch (dbError) {
+      console.error('Error updating failed status in database:', dbError)
+    }
+    
+    throw error
   }
-}
+})
+
+// Event listeners para a fila
+renderQueue.on('completed', (job, result) => {
+  console.log(`🎉 Render job completed: ${job.data.jobId} -> ${result.videoUrl}`)
+})
+
+renderQueue.on('failed', (job, err) => {
+  console.error(`❌ Render job failed: ${job.data.jobId}`, err)
+})
+
+renderQueue.on('stalled', (job) => {
+  console.warn(`⏸️ Render job stalled: ${job.data.jobId}`)
+})

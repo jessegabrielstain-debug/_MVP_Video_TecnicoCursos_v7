@@ -1,0 +1,35 @@
+
+Implementar worker que chama FFmpeg de verdade
+Gerar frames a partir de slides (Remotion ou Canvas)
+Processar áudio TTS real e sincronizar
+Aplicar transições entre slides
+Gerar arquivo MP4 final
+Upload do vídeo para Supabase Storage
+Capturar progresso real do FFmpeg (parsing stdout)
+Substituir mock por chamadas reais à API ElevenLabs
+Implementar voice cloning real (upload samples)
+Salvar arquivos de áudio no Storage (não retornar fake)
+Integrar TTS gerado com renderização de vídeo
+Testar com credenciais reais em staging
+Migrar templates NR para tabela nr_templates no banco
+Criar seed script para popular templates
+Substituir mockNRTemplates por query real
+Implementar CRUD de templates via admin
+Expandir para mais NRs (atualmente só 3)
+Integrar com D-ID, Synthesia ou HeyGen API
+Ou implementar pipeline próprio com Ready Player Me + Blender
+Sincronizar lip sync com áudio TTS real
+Renderizar vídeo com avatar usando FFmpeg
+Armazenar vídeos renderizados no Storage
+
+
+
+RENDERIZAÇÃO DE VÍDEO REAL
+
+
+
+Problemas:
+
+❌ Voice Cloning não faz chamada real (retorna buffer fake)
+❌ Geração de áudio TTS não integra com ElevenLabs de fato
+⚠️ Credenciais existem, mas não são usadas em produção

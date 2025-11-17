@@ -144,10 +144,34 @@ export const insertMockJob = (
   return toJobResponse(job)
 }
 
-export const listMockJobs = (userId: string, opts: { limit: number; status?: string }) => {
+type ListJobsOpts = {
+  limit: number
+  offset: number
+  status?: string
+  projectId?: string
+  sortBy: 'created_at' | 'updated_at' | 'status'
+  sortOrder: 'asc' | 'desc'
+}
+
+export const listMockJobs = (userId: string, opts: ListJobsOpts) => {
   const jobs = ensureUserJobs(userId)
-  const filtered = opts.status ? jobs.filter((job) => job.status === opts.status) : jobs
-  return filtered.slice(0, opts.limit).map(toJobResponse)
+  let filtered = opts.status ? jobs.filter((job) => job.status === opts.status) : jobs
+  if (opts.projectId) {
+    filtered = filtered.filter((job) => job.project_id === opts.projectId)
+  }
+
+  const sorted = filtered.slice().sort((a, b) => {
+    const dir = opts.sortOrder === 'asc' ? 1 : -1
+    if (opts.sortBy === 'status') {
+      return a.status.localeCompare(b.status) * dir
+    }
+    if (opts.sortBy === 'updated_at') {
+      return (a.updated_at.localeCompare(b.updated_at)) * dir
+    }
+    return (a.created_at.localeCompare(b.created_at)) * dir
+  })
+
+  return sorted.slice(opts.offset, opts.offset + opts.limit).map(toJobResponse)
 }
 
 export const computeMockStats = (userId: string) => {

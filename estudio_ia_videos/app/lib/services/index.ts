@@ -16,4 +16,4 @@ export {
 	isAuthenticated,
 	signOut
 } from '../supabase/client';
-export { createServerSupabaseClient, supabaseAdmin } from '../supabase/server';
+export { createServerSupabaseClient, supabaseAdmin, getSupabaseForRequest } from '../supabase/server';

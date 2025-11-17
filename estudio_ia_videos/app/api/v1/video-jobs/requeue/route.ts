@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
-import { getSupabaseForRequest } from '~lib/services/supabase-server'
+import { getSupabaseForRequest, logger } from '@/lib/services'
 import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { recordRateLimitHit, recordError } from '~lib/utils/metrics'
 import { parseRequeueJob } from '~lib/handlers/video-jobs-requeue'
-import { logger } from '~lib/services/logger'
 
 function badRequest(details: unknown) {
   return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'Payload inválido', details }, { status: 400 })
@@ -28,12 +27,12 @@ export async function POST(req: Request) {
       const err = parsed as import('zod').SafeParseError<unknown>
       return badRequest(err.error.issues)
     }
-    const { id } = parsed.data
+    const { jobId, priority, resetProgress } = parsed.data
 
     const { data: existing, error: fetchErr } = await supabase
       .from('render_jobs')
       .select('id,status,user_id')
-      .eq('id', id)
+      .eq('id', jobId)
       .single()
 
     if (fetchErr || !existing) return NextResponse.json({ code: 'NOT_FOUND', message: 'Job não encontrado' }, { status: 404 })
@@ -47,6 +46,7 @@ export async function POST(req: Request) {
       progress?: number | null
       duration_ms?: number | null
       render_settings?: unknown
+      priority?: string | null
     }
     const row = existing as unknown as RenderJobRow
     if (row.user_id && row.user_id !== userData.user.id) return NextResponse.json({ code: 'FORBIDDEN', message: 'Sem permissão' }, { status: 403 })
@@ -57,11 +57,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ code: 'MAX_ATTEMPTS_REACHED', message: `Limite de tentativas atingido (${MAX_ATTEMPTS}).` }, { status: 409 })
     }
 
+    const nextAttempts = resetProgress ? 1 : (row.attempts ? row.attempts + 1 : 2)
+    const updatePayload = {
+      status: 'queued',
+      progress: 0,
+      attempts: nextAttempts,
+      started_at: null,
+      completed_at: null,
+      duration_ms: null,
+      error_message: null,
+      priority,
+    }
+
+    if (resetProgress) {
+      (updatePayload as Record<string, unknown>).progress = 0
+    }
+
     const { data: updated, error: updateErr } = await supabase
       .from('render_jobs')
-      .update({ status: 'queued', progress: 0, attempts: (row.attempts ? row.attempts + 1 : 2), started_at: null, completed_at: null, duration_ms: null, error_message: null })
-      .eq('id', id)
-      .select('id,status,project_id,created_at,progress,render_settings,attempts,duration_ms')
+      .update(updatePayload)
+      .eq('id', jobId)
+      .select('id,status,project_id,created_at,progress,render_settings,attempts,duration_ms,priority')
       .single()
 
   if (updateErr || !updated) {

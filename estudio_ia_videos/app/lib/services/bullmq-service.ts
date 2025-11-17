@@ -6,6 +6,7 @@
 
 import { Queue, Worker, QueueEvents, ConnectionOptions, Job } from 'bullmq';
 import { getRedisClient } from './redis-service';
+import { logger } from './logger-service';
 
 // =====================================
 // Types
@@ -83,7 +84,7 @@ export function getVideoRenderQueue(): Queue<VideoRenderJobData> {
     });
 
     queueInstance.on('error', (err) => {
-      console.error('[BullMQ Queue] Error:', err);
+      logger.error('BullMQ Queue', 'Error', err);
     });
   }
 
@@ -100,7 +101,7 @@ export function getQueueEvents(): QueueEvents {
     });
 
     eventsInstance.on('error', (err) => {
-      console.error('[BullMQ Events] Error:', err);
+      logger.error('BullMQ Events', 'Error', err);
     });
   }
 
@@ -120,15 +121,15 @@ export function createVideoRenderWorker(
   });
 
   worker.on('completed', (job) => {
-    console.log(`[Worker] Job ${job.id} completed`);
+    logger.info('Worker', `Job ${job.id} completed`);
   });
 
   worker.on('failed', (job, err) => {
-    console.error(`[Worker] Job ${job?.id} failed:`, err);
+    logger.error('Worker', `Job ${job?.id} failed`, err);
   });
 
   worker.on('error', (err) => {
-    console.error('[Worker] Error:', err);
+    logger.error('Worker', 'Error', err);
   });
 
   return worker;
@@ -233,16 +234,12 @@ export function startQueueMetricsPolling(intervalMs: number = 30000) {
     try {
       const m = await getQueueMetrics();
       // Formato estruturado para futura ingestão
-      console.log(
-        JSON.stringify({
-          ts: new Date().toISOString(),
-          type: 'bullmq.metrics',
-          queue: QUEUE_NAME,
-          ...m,
-        })
-      );
+      logger.info('BullMQ Metrics', 'Queue metrics polled', {
+        queue: QUEUE_NAME,
+        ...m,
+      });
     } catch (err) {
-      console.error('[BullMQ Metrics Polling] Error:', err);
+      logger.error('BullMQ Metrics Polling', 'Error polling metrics', err as Error);
     }
   }, intervalMs);
 }

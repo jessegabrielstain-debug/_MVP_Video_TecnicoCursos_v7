@@ -134,3 +134,57 @@ jobs:
         run: npm ci
       - name: Run alert check (non-fail)
         run: npx ts-node scripts/alerts/bullmq-alerts.ts || echo "alert script completed with issues"
+  
+  synthetic-monitoring:
+    name: Synthetic API Monitoring
+    runs-on: ubuntu-latest
+    needs: [tests]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run synthetic API monitoring
+        run: node scripts/monitoring/synthetic-api-monitor.js || echo "synthetic monitoring completed with warnings"
+        env:
+          MONITORING_BASE_URL: ${{ secrets.PRODUCTION_URL || 'http://localhost:3000' }}
+          CI: true
+      - name: Upload monitoring results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-monitoring-results
+          path: evidencias/monitoring/synthetic-*.json
+          if-no-files-found: warn
+
+  performance-audit:
+    name: Lighthouse Performance Audit
+    runs-on: ubuntu-latest
+    needs: [tests]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Lighthouse audit
+        run: npm run perf:lighthouse || echo "Lighthouse audit completed with warnings"
+        env:
+          LIGHTHOUSE_URL: ${{ secrets.STAGING_URL || 'http://localhost:3000' }}
+          CI: true
+      - name: Upload Lighthouse results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-results
+          path: evidencias/monitoring/lighthouse-*.json
+          if-no-files-found: warn

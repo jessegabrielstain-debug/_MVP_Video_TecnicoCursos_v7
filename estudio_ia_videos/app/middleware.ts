@@ -90,19 +90,30 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAdminRoute(pathname)) {
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .maybeSingle()
+    try {
+      // Usar função RLS is_admin() para verificar permissões
+      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin', {
+        user_id: session.user.id
+      })
 
-    if (profileError) {
-      console.error('Erro ao verificar perfil admin no middleware:', profileError)
-    }
+      if (adminError) {
+        console.error('Erro ao verificar role admin no middleware:', adminError)
+        const dashboardUrl = new URL('/dashboard', request.url)
+        dashboardUrl.searchParams.set('reason', 'permission-check-failed')
+        const redirectResponse = NextResponse.redirect(dashboardUrl)
+        return applySecurityHeaders(redirectResponse)
+      }
 
-    if (profile?.role !== 'admin') {
+      if (!isAdmin) {
+        const dashboardUrl = new URL('/dashboard', request.url)
+        dashboardUrl.searchParams.set('reason', 'forbidden')
+        const redirectResponse = NextResponse.redirect(dashboardUrl)
+        return applySecurityHeaders(redirectResponse)
+      }
+    } catch (err) {
+      console.error('Exceção ao verificar permissões admin:', err)
       const dashboardUrl = new URL('/dashboard', request.url)
-      dashboardUrl.searchParams.set('reason', 'forbidden')
+      dashboardUrl.searchParams.set('reason', 'permission-check-error')
       const redirectResponse = NextResponse.redirect(dashboardUrl)
       return applySecurityHeaders(redirectResponse)
     }

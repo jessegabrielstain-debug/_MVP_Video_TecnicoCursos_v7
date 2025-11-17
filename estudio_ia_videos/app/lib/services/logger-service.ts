@@ -1,212 +1,381 @@
 /**
- * Logger Service
- * Sistema centralizado de logging estruturado
- * Compatível com scripts/logger.ts (JSONL + rotação 10MB)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 📝 SISTEMA DE LOGGING ESTRUTURADO (SERVICE)
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * Versão centralizada do sistema de logging, conforme ADR-0004.
+ * 
+ * Funcionalidades:
+ * - Múltiplos níveis de log (DEBUG, INFO, WARN, ERROR, FATAL)
+ * - Rotação automática de arquivos
+ * - Formatação estruturada (JSON)
+ * - Análise de logs
+ * - Filtragem e busca
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { writeFileSync, existsSync, mkdirSync, statSync, renameSync } from 'fs';
-import { join } from 'path';
+import fs from 'fs';
+import path from 'path';
 
-// =====================================
-// Types
-// =====================================
+type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
-
-export interface LogEntry {
+interface LogEntry {
   timestamp: string;
   level: LogLevel;
+  component: string;
   message: string;
-  context?: string;
-  metadata?: Record<string, unknown>;
-  error?: {
-    message: string;
-    stack?: string;
-    code?: string;
+  data?: unknown;
+  stack?: string;
+}
+
+interface LogAnalysis {
+  totalLogs: number;
+  byLevel: Record<LogLevel, number>;
+  byComponent: Record<string, number>;
+  errors: LogEntry[];
+  warnings: LogEntry[];
+  timeRange: {
+    start: string;
+    end: string;
   };
 }
 
-// =====================================
-// Configuration
-// =====================================
-
-const LOG_DIR = process.env.LOG_DIR || join(process.cwd(), 'logs');
-const LOG_FILE = join(LOG_DIR, 'app.log');
-const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10MB
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const LOG_LEVEL = (process.env.LOG_LEVEL || 'info') as LogLevel;
-
-const LOG_LEVELS: Record<LogLevel, number> = {
-  debug: 0,
-  info: 1,
-  warn: 2,
-  error: 3,
-  fatal: 4,
-};
-
-// =====================================
-// Logger Class
-// =====================================
-
 class Logger {
-  private context?: string;
+  private static instance: Logger;
+  private logDir: string;
+  private currentLogFile: string;
+  private maxFileSize: number = 10 * 1024 * 1024; // 10MB
+  private maxFiles: number = 5;
 
-  constructor(context?: string) {
-    this.context = context;
-    this.ensureLogDir();
+  private constructor() {
+    // Criar diretório de logs na raiz do projeto
+    this.logDir = path.join(process.cwd(), 'logs');
+    if (!fs.existsSync(this.logDir)) {
+      fs.mkdirSync(this.logDir, { recursive: true });
+    }
+
+    // Arquivo de log atual
+    this.currentLogFile = path.join(
+      this.logDir, 
+      `app-${this.getDateString()}.log`
+    );
   }
 
-  private ensureLogDir(): void {
-    if (!existsSync(LOG_DIR)) {
-      mkdirSync(LOG_DIR, { recursive: true });
+  static getInstance(): Logger {
+    if (!Logger.instance) {
+      Logger.instance = new Logger();
     }
+    return Logger.instance;
   }
 
-  private shouldLog(level: LogLevel): boolean {
-    return LOG_LEVELS[level] >= LOG_LEVELS[LOG_LEVEL];
+  private getDateString(): string {
+    const now = new Date();
+    return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
   }
 
-  private rotateLogIfNeeded(): void {
-    if (!existsSync(LOG_FILE)) {
-      return;
-    }
-
-    const stats = statSync(LOG_FILE);
-    if (stats.size >= MAX_LOG_SIZE) {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const archiveName = join(LOG_DIR, `app-${timestamp}.log`);
-      renameSync(LOG_FILE, archiveName);
-    }
+  private getTimestamp(): string {
+    return new Date().toISOString();
   }
 
-  private writeLog(entry: LogEntry): void {
-    if (!this.shouldLog(entry.level)) {
-      return;
-    }
-
-    // Console output (colorido em desenvolvimento)
-    if (!IS_PRODUCTION) {
-      const colors: Record<LogLevel, string> = {
-        debug: '\x1b[36m', // Cyan
-        info: '\x1b[32m',  // Green
-        warn: '\x1b[33m',  // Yellow
-        error: '\x1b[31m', // Red
-        fatal: '\x1b[35m', // Magenta
-      };
-      const reset = '\x1b[0m';
-      const color = colors[entry.level];
-      
-      console.log(
-        `${color}[${entry.level.toUpperCase()}]${reset} ${entry.timestamp} ${entry.context ? `[${entry.context}]` : ''} ${entry.message}`
-      );
-      
-      if (entry.metadata) {
-        console.log('  Metadata:', entry.metadata);
-      }
-      
-      if (entry.error) {
-        console.error('  Error:', entry.error);
-      }
-    }
-
-    // File output (JSONL format)
-    try {
-      this.rotateLogIfNeeded();
-      const line = JSON.stringify(entry) + '\n';
-      writeFileSync(LOG_FILE, line, { flag: 'a' });
-    } catch (err) {
-      console.error('[Logger] Failed to write log:', err);
-    }
-  }
-
-  private createEntry(
-    level: LogLevel,
-    message: string,
-    metadata?: Record<string, unknown>,
-    error?: Error
-  ): LogEntry {
-    const errorCode = this.extractErrorCode(error);
-
-    return {
-      timestamp: new Date().toISOString(),
-      level,
-      message,
-      context: this.context,
-      metadata,
-      error: error
-        ? {
-            message: error.message,
-            stack: error.stack,
-            code: errorCode,
-          }
-        : undefined,
+  private formatConsole(entry: LogEntry): string {
+    const colors = {
+      DEBUG: '\x1b[36m',   // Cyan
+      INFO: '\x1b[37m',    // White
+      WARN: '\x1b[33m',    // Yellow
+      ERROR: '\x1b[31m',   // Red
+      FATAL: '\x1b[35m',   // Magenta
+      RESET: '\x1b[0m'
     };
-  }
 
-  private extractErrorCode(error?: Error): string | number | undefined {
-    if (!error) {
-      return undefined;
+    const icons = {
+      DEBUG: '🔍',
+      INFO: 'ℹ️',
+      WARN: '⚠️',
+      ERROR: '❌',
+      FATAL: '💀'
+    };
+
+    const color = colors[entry.level];
+    const icon = icons[entry.level];
+    
+    let output = `${color}[${entry.timestamp}] ${icon} ${entry.level} [${entry.component}] ${entry.message}${colors.RESET}`;
+    
+    if (entry.data) {
+      output += `\n${color}   Data: ${JSON.stringify(entry.data, null, 2)}${colors.RESET}`;
+    }
+    
+    if (entry.stack) {
+      output += `\n${color}   Stack: ${entry.stack}${colors.RESET}`;
     }
 
-    const candidate = error as Partial<{ code: string | number }>;
-    return typeof candidate.code === 'string' || typeof candidate.code === 'number'
-      ? candidate.code
-      : undefined;
+    return output;
   }
 
-  debug(message: string, metadata?: Record<string, unknown>): void {
-    this.writeLog(this.createEntry('debug', message, metadata));
+  private writeToFile(entry: LogEntry) {
+    try {
+      // Verificar se precisa rotacionar
+      this.rotateIfNeeded();
+
+      // Escrever log (JSON Lines format)
+      const logLine = JSON.stringify(entry) + '\n';
+      fs.appendFileSync(this.currentLogFile, logLine, 'utf-8');
+    } catch (error) {
+      console.error('Erro ao escrever log:', error);
+    }
   }
 
-  info(message: string, metadata?: Record<string, unknown>): void {
-    this.writeLog(this.createEntry('info', message, metadata));
+  private rotateIfNeeded() {
+    try {
+      // Verificar se arquivo existe e seu tamanho
+      if (fs.existsSync(this.currentLogFile)) {
+        const stats = fs.statSync(this.currentLogFile);
+        
+        if (stats.size >= this.maxFileSize) {
+          // Rotacionar arquivo
+          const timestamp = Date.now();
+          const rotatedFile = this.currentLogFile.replace('.log', `-${timestamp}.log`);
+          fs.renameSync(this.currentLogFile, rotatedFile);
+
+          // Limpar arquivos antigos
+          this.cleanOldLogs();
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao rotacionar logs:', error);
+    }
   }
 
-  warn(message: string, metadata?: Record<string, unknown>): void {
-    this.writeLog(this.createEntry('warn', message, metadata));
+  private cleanOldLogs() {
+    try {
+      const files = fs.readdirSync(this.logDir)
+        .filter(f => f.endsWith('.log'))
+        .map(f => ({
+          name: f,
+          path: path.join(this.logDir, f),
+          time: fs.statSync(path.join(this.logDir, f)).mtime.getTime()
+        }))
+        .sort((a, b) => b.time - a.time);
+
+      // Manter apenas os N arquivos mais recentes
+      if (files.length > this.maxFiles) {
+        files.slice(this.maxFiles).forEach(file => {
+          fs.unlinkSync(file.path);
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao limpar logs antigos:', error);
+    }
   }
 
-  error(message: string, error?: Error, metadata?: Record<string, unknown>): void {
-    this.writeLog(this.createEntry('error', message, metadata, error));
+  private log(level: LogLevel, component: string, message: string, data?: unknown, error?: Error) {
+    const entry: LogEntry = {
+      timestamp: this.getTimestamp(),
+      level,
+      component,
+      message,
+      data
+    };
+
+    if (error) {
+      entry.stack = error.stack;
+    }
+
+    // Console output
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(this.formatConsole(entry));
+    }
+
+    // File output
+    this.writeToFile(entry);
   }
 
-  fatal(message: string, error?: Error, metadata?: Record<string, unknown>): void {
-    this.writeLog(this.createEntry('fatal', message, metadata, error));
+  // ═══════════════════════════════════════════════════════════════════════
+  // MÉTODOS PÚBLICOS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  debug(component: string, message: string, data?: unknown) {
+    this.log('DEBUG', component, message, data);
+  }
+
+  info(component: string, message: string, data?: unknown) {
+    this.log('INFO', component, message, data);
+  }
+
+  warn(component: string, message: string, data?: unknown) {
+    this.log('WARN', component, message, data);
+  }
+
+  error(component: string, message: string, error?: Error, data?: unknown) {
+    this.log('ERROR', component, message, data, error);
+  }
+
+  fatal(component: string, message: string, error?: Error, data?: unknown) {
+    this.log('FATAL', component, message, data, error);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ANÁLISE DE LOGS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  analyzeLogs(filePath?: string): LogAnalysis {
+    const targetFile = filePath || this.currentLogFile;
+
+    if (!fs.existsSync(targetFile)) {
+      throw new Error(`Arquivo de log não encontrado: ${targetFile}`);
+    }
+
+    const content = fs.readFileSync(targetFile, 'utf-8');
+    const lines = content.split('\n').filter(line => line.trim());
+    
+    const logs: LogEntry[] = lines
+      .map(line => {
+        try {
+          return JSON.parse(line) as LogEntry;
+        } catch {
+          return null;
+        }
+      })
+      .filter((log): log is LogEntry => log !== null);
+
+    const analysis: LogAnalysis = {
+      totalLogs: logs.length,
+      byLevel: {
+        DEBUG: logs.filter(l => l.level === 'DEBUG').length,
+        INFO: logs.filter(l => l.level === 'INFO').length,
+        WARN: logs.filter(l => l.level === 'WARN').length,
+        ERROR: logs.filter(l => l.level === 'ERROR').length,
+        FATAL: logs.filter(l => l.level === 'FATAL').length
+      },
+      byComponent: {},
+      errors: logs.filter(l => l.level === 'ERROR' || l.level === 'FATAL'),
+      warnings: logs.filter(l => l.level === 'WARN'),
+      timeRange: {
+        start: logs[0]?.timestamp || '',
+        end: logs[logs.length - 1]?.timestamp || ''
+      }
+    };
+
+    // Contar por componente
+    logs.forEach(log => {
+      if (!analysis.byComponent[log.component]) {
+        analysis.byComponent[log.component] = 0;
+      }
+      analysis.byComponent[log.component]++;
+    });
+
+    return analysis;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // BUSCA E FILTRAGEM
+  // ═══════════════════════════════════════════════════════════════════════
+
+  searchLogs(
+    query: string, 
+    level?: LogLevel, 
+    component?: string,
+    filePath?: string
+  ): LogEntry[] {
+    const targetFile = filePath || this.currentLogFile;
+
+    if (!fs.existsSync(targetFile)) {
+      return [];
+    }
+
+    const content = fs.readFileSync(targetFile, 'utf-8');
+    const lines = content.split('\n').filter(line => line.trim());
+    
+    const logs: LogEntry[] = lines
+      .map(line => {
+        try {
+          return JSON.parse(line) as LogEntry;
+        } catch {
+          return null;
+        }
+      })
+      .filter((log): log is LogEntry => log !== null);
+
+    return logs.filter(log => {
+      // Filtro de nível
+      if (level && log.level !== level) return false;
+      
+      // Filtro de componente
+      if (component && log.component !== component) return false;
+      
+      // Filtro de busca
+      if (query) {
+        const searchString = JSON.stringify(log).toLowerCase();
+        return searchString.includes(query.toLowerCase());
+      }
+      
+      return true;
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // RELATÓRIO
+  // ═══════════════════════════════════════════════════════════════════════
+
+  printAnalysis(analysis: LogAnalysis) {
+    console.log('\n╔═══════════════════════════════════════════════════════════════════╗');
+    console.log('║                    📊 ANÁLISE DE LOGS                            ║');
+    console.log('╚═══════════════════════════════════════════════════════════════════╝\n');
+
+    console.log(`📋 Total de Logs: ${analysis.totalLogs}`);
+    console.log(`⏰ Período: ${analysis.timeRange.start} → ${analysis.timeRange.end}\n`);
+
+    console.log('📊 Por Nível:');
+    console.log(`   🔍 DEBUG: ${analysis.byLevel.DEBUG}`);
+    console.log(`   ℹ️  INFO:  ${analysis.byLevel.INFO}`);
+    console.log(`   ⚠️  WARN:  ${analysis.byLevel.WARN}`);
+    console.log(`   ❌ ERROR: ${analysis.byLevel.ERROR}`);
+    console.log(`   💀 FATAL: ${analysis.byLevel.FATAL}\n`);
+
+    console.log('📦 Por Componente:');
+    Object.entries(analysis.byComponent)
+      .sort(([, a], [, b]) => b - a)
+      .forEach(([component, count]) => {
+        console.log(`   - ${component}: ${count}`);
+      });
+
+    if (analysis.errors.length > 0) {
+      console.log(`\n❌ Erros Recentes (${analysis.errors.length}):`);
+      analysis.errors.slice(-5).forEach(error => {
+        console.log(`   [${error.timestamp}] ${error.component}: ${error.message}`);
+      });
+    }
+
+    if (analysis.warnings.length > 0) {
+      console.log(`\n⚠️  Avisos Recentes (${analysis.warnings.length}):`);
+      analysis.warnings.slice(-5).forEach(warning => {
+        console.log(`   [${warning.timestamp}] ${warning.component}: ${warning.message}`);
+      });
+    }
+
+    console.log('\n');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // UTILITÁRIOS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  getLogFiles(): string[] {
+    return fs.readdirSync(this.logDir)
+      .filter(f => f.endsWith('.log'))
+      .map(f => path.join(this.logDir, f));
+  }
+
+  clearLogs() {
+    const files = this.getLogFiles();
+    files.forEach(file => fs.unlinkSync(file));
+    console.log(`✅ ${files.length} arquivos de log removidos`);
   }
 }
 
-// =====================================
-// Singleton Instance
-// =====================================
+// ═══════════════════════════════════════════════════════════════════════════
+// SINGLETON EXPORT
+// ═══════════════════════════════════════════════════════════════════════════
 
-let defaultLogger: Logger | null = null;
-
-/**
- * Obtém instância singleton do logger
- */
-export function getLogger(context?: string): Logger {
-  if (!context && !defaultLogger) {
-    defaultLogger = new Logger();
-  }
-
-  return context ? new Logger(context) : defaultLogger!;
-}
-
-/**
- * Cria logger com contexto específico
- */
-export function createLogger(context: string): Logger {
-  return new Logger(context);
-}
-
-// =====================================
-// Convenience Exports
-// =====================================
-
-export const logger = getLogger();
-
-export default {
-  getLogger,
-  createLogger,
-  logger,
-};
+export const logger = Logger.getInstance();
+export type { LogEntry, LogAnalysis, LogLevel };

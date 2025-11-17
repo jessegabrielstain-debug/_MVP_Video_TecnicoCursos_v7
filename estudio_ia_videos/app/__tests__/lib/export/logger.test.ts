@@ -3,7 +3,7 @@
  * Sprint 53 - Logging & E2E Tests
  */
 
-import { Logger, LogLevel, createLogger, renderingLogger } from '@/lib/export/logger'
+import { Logger, LogLevel, createLogger, renderingLogger } from '@/lib/services/logger'
 import fs from 'fs'
 import path from 'path'
 

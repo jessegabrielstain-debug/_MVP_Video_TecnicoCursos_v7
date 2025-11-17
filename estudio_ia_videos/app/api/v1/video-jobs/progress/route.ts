@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
-import { getSupabaseForRequest } from '~lib/services/supabase-server'
+import { getSupabaseForRequest, logger } from '@/lib/services'
 import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { recordRateLimitHit, recordError } from '~lib/utils/metrics'
 import { parseUpdateProgress } from '~lib/handlers/video-jobs-progress'
-import { logger } from '~lib/services/logger'
 
 
 interface RenderJobRow {
@@ -42,12 +41,12 @@ export async function POST(req: Request) {
       const err = parsed as import('zod').SafeParseError<unknown>
       return badRequest(err.error.issues)
     }
-    const { id, progress, status } = parsed.data
+    const { jobId, progress, status } = parsed.data
 
     const { data: existing, error: fetchErr } = await supabase
       .from('render_jobs')
       .select('id,status,user_id')
-      .eq('id', id)
+      .eq('id', jobId)
       .single()
 
     if (fetchErr || !existing) return NextResponse.json({ code: 'NOT_FOUND', message: 'Job não encontrado' }, { status: 404 })
@@ -64,7 +63,7 @@ export async function POST(req: Request) {
     if (status) patch.status = status
     // Auto set started_at quando entrar em processing
     if (status === 'processing') {
-      const { data: currentRow } = await supabase.from('render_jobs').select('started_at').eq('id', id).single()
+      const { data: currentRow } = await supabase.from('render_jobs').select('started_at').eq('id', jobId).single()
       if (currentRow && !(currentRow as RenderJobRow).started_at) {
         patch.started_at = new Date().toISOString()
       }
@@ -78,7 +77,7 @@ export async function POST(req: Request) {
     // Obter registro para cálculo de duração se necessário
     let baseRow: any = null
     if (status === 'completed') {
-      const { data: existingForDuration } = await supabase.from('render_jobs').select('id,started_at').eq('id', id).single()
+      const { data: existingForDuration } = await supabase.from('render_jobs').select('id,started_at').eq('id', jobId).single()
       baseRow = existingForDuration
       if (existingForDuration && (existingForDuration as RenderJobRow).started_at) {
         const startedAtMs = Date.parse((existingForDuration as RenderJobRow).started_at)
@@ -89,7 +88,7 @@ export async function POST(req: Request) {
     const { data: updated, error: updateErr } = await supabase
       .from('render_jobs')
       .update(patch)
-      .eq('id', id)
+      .eq('id', jobId)
       .select('id,status,project_id,created_at,progress,render_settings,attempts,duration_ms')
       .single()
 

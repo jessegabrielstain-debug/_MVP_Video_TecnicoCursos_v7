@@ -65,7 +65,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [contract, pptx, bullmq, e2e]
+        suite: [contract, pptx, services, rbac-unit, e2e-smoke, e2e-rbac]
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js
@@ -75,6 +75,8 @@ jobs:
           cache: 'npm'
       - name: Install root dependencies
         run: npm ci
+      
+      # Contract tests
       - name: Run API Contract tests
         if: matrix.suite == 'contract'
         run: npm run test:contract
@@ -89,6 +91,8 @@ jobs:
             evidencias/fase-2/contract-suite-result.json
             evidencias/fase-2/contract-report.md
           if-no-files-found: warn
+      
+      # PPTX system tests
       - name: Install app dependencies (Jest)
         if: matrix.suite == 'pptx'
         run: npm ci --prefix ./estudio_ia_videos/app
@@ -97,18 +101,6 @@ jobs:
         run: npm run test:suite:pptx
         env:
           CI: true
-      - name: Run BullMQ metrics polling test
-        if: matrix.suite == 'bullmq'
-        run: npx jest __tests__/lib/services/bullmq-metrics.test.ts --no-coverage
-        env:
-          CI: true
-      - name: Upload BullMQ test evidence
-        if: always() && matrix.suite == 'bullmq'
-        uses: actions/upload-artifact@v4
-        with:
-          name: bullmq-metrics-test-log
-          path: jest*.log
-          if-no-files-found: ignore
       - name: Upload PPTX suite evidence
         if: always() && matrix.suite == 'pptx'
         uses: actions/upload-artifact@v4
@@ -126,20 +118,75 @@ jobs:
           name: jest-coverage-app
           path: estudio_ia_videos/app/coverage
           if-no-files-found: warn
+      
+      # Services unit tests (Redis, Queue, Logger)
+      - name: Run Services Unit Tests
+        if: matrix.suite == 'services'
+        run: npm run test:services
+        env:
+          CI: true
+      - name: Upload services test evidence
+        if: always() && matrix.suite == 'services'
+        uses: actions/upload-artifact@v4
+        with:
+          name: services-test-results
+          path: |
+            evidencias/fase-2/services-test-*.json
+            coverage/
+          if-no-files-found: warn
+      
+      # RBAC unit tests
+      - name: Run RBAC Unit Tests
+        if: matrix.suite == 'rbac-unit'
+        run: npm run test:rbac
+        env:
+          CI: true
+      - name: Upload RBAC unit test evidence
+        if: always() && matrix.suite == 'rbac-unit'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rbac-unit-test-results
+          path: |
+            evidencias/fase-5/rbac-unit-*.json
+            coverage/
+          if-no-files-found: warn
+      
+      # E2E smoke tests
+      - name: Install Playwright
+        if: matrix.suite == 'e2e-smoke'
+        run: npx playwright install --with-deps chromium
       - name: Run Playwright E2E smoke
-        if: matrix.suite == 'e2e'
-        run: |
-          npm ci --prefix ./estudio_ia_videos
-          npx playwright test --config=playwright.config.ts --reporter=list
+        if: matrix.suite == 'e2e-smoke'
+        run: npx playwright test tests/e2e/video-flow.spec.ts --reporter=list
         env:
           CI: true
           E2E_BASE_URL: 'http://localhost:3000'
-      - name: Upload Playwright report (e2e)
-        if: always() && matrix.suite == 'e2e'
+          E2E_SKIP_SERVER: 'true'
+      - name: Upload Playwright smoke report
+        if: always() && matrix.suite == 'e2e-smoke'
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-smoke-report
           path: evidencias/fase-2/playwright-report
+          if-no-files-found: warn
+      
+      # E2E RBAC tests
+      - name: Install Playwright
+        if: matrix.suite == 'e2e-rbac'
+        run: npx playwright install --with-deps chromium
+      - name: Run Playwright E2E RBAC
+        if: matrix.suite == 'e2e-rbac'
+        run: npx playwright test tests/e2e/rbac-complete.spec.ts --reporter=list
+        env:
+          CI: true
+          E2E_BASE_URL: 'http://localhost:3000'
+          E2E_SKIP_SERVER: 'true'
+      - name: Upload Playwright RBAC report
+        if: always() && matrix.suite == 'e2e-rbac'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-rbac-report
+          path: evidencias/fase-5/playwright-rbac-report
           if-no-files-found: warn
 
   security:
