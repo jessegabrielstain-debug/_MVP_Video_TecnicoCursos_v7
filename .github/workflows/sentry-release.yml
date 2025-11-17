@@ -1,0 +1,31 @@
+name: Sentry Release Tracking
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  sentry-release:
+    name: Create Sentry Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set Release Version
+        id: rel
+        run: |
+          echo "version=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Create and Finalize Release
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: production
+          version: ${{ steps.rel.outputs.version }}
+          finalize: true
+          ignore_empty: true

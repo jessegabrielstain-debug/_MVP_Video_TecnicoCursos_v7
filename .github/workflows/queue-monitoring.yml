@@ -1,0 +1,67 @@
+name: Queue Monitoring
+
+on:
+  schedule:
+    - cron: '*/15 * * * *' # a cada 15 minutos
+  workflow_dispatch:
+
+jobs:
+  queue-health:
+    name: Monitor Queue Metrics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Queue Metrics
+        id: metrics
+        run: |
+          if [ -z "${{ secrets.PRODUCTION_URL }}" ]; then
+            echo "PRODUCTION_URL secret not set" >&2
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          curl -s -f ${{ secrets.PRODUCTION_URL }}/api/queue/metrics -o metrics.json || echo '{"ok":false}' > metrics.json
+          echo "payload=$(cat metrics.json | tr -d '\n' | sed 's/\"/\\\"/g')" >> $GITHUB_OUTPUT
+          echo "waiting=$(jq -r '.metrics.waiting // 0' metrics.json)" >> $GITHUB_OUTPUT
+          echo "active=$(jq -r '.metrics.active // 0' metrics.json)" >> $GITHUB_OUTPUT
+          echo "failed=$(jq -r '.metrics.failed // 0' metrics.json)" >> $GITHUB_OUTPUT
+          echo "delayed=$(jq -r '.metrics.delayed // 0' metrics.json)" >> $GITHUB_OUTPUT
+
+      - name: Alert thresholds
+        id: verdict
+        run: |
+          WAITING=${{ steps.metrics.outputs.waiting }}
+          ACTIVE=${{ steps.metrics.outputs.active }}
+          FAILED=${{ steps.metrics.outputs.failed }}
+          DELAYED=${{ steps.metrics.outputs.delayed }}
+
+          echo "waiting=$WAITING, active=$ACTIVE, failed=$FAILED, delayed=$DELAYED"
+
+          ALERT="false"
+          REASON=""
+          if [ "$FAILED" -gt 0 ]; then ALERT="true"; REASON="$REASON\n• failed > 0 ($FAILED)"; fi
+          if [ "$WAITING" -gt 100 ]; then ALERT="true"; REASON="$REASON\n• waiting > 100 ($WAITING)"; fi
+          if [ "$DELAYED" -gt 50 ]; then ALERT="true"; REASON="$REASON\n• delayed > 50 ($DELAYED)"; fi
+
+          echo "alert=$ALERT" >> $GITHUB_OUTPUT
+          echo "reason<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$REASON" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Slack Alert
+        if: steps.verdict.outputs.alert == 'true'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: workflow,job,commit,repo
+          custom_payload: |
+            {
+              "text": "⚠️ Queue Alert",
+              "attachments": [
+                {
+                  "color": "warning",
+                  "text": "${{ steps.verdict.outputs.reason }}\n\nPayload: ${{ steps.metrics.outputs.payload }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
