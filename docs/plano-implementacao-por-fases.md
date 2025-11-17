@@ -6,6 +6,14 @@
 - **Premissas:** manter implementações reais (sem mocks), TypeScript estrito, validação Zod em entradas, uso prioritário de Server Components.
 - **Critérios de conclusão global:** todas as fases com critérios de aceite atendidos, pipelines automatizados ativos, documentação e governança contínua estabelecidas.
 
+### Atualização 17/11/2025 – Encerramento v2.2
+- **Estado consolidado:** todas as fases deste plano estão marcadas como concluídas para o escopo da versão `v2.2` (encerramento documental). Itens fora de escopo foram movidos para o roadmap de evolução contínua.
+- **Links finais:**
+  - Release Notes: `RELEASE_v2.2.0.md`
+  - Conclusão Total: `CONCLUSAO_TOTAL_v2.2.md`
+  - Finalização Analytics & Testes: `FINALIZACAO_ANALYTICS_TESTING.md`
+  - Governança (seção “Testes Analytics”): `docs/governanca/README.md`
+
 ## Alinhamento Técnico Essencial (Projeto Atual)
 - **Stack núcleo:** Next.js 14 (app dir), TypeScript estrito, Server Components por padrão.
 - **Fluxo de vídeo:** Upload PPTX → parse (JSZip + fast-xml-parser) → estado normalizado (Zustand) → composição Remotion → export FFmpeg → salvar em bucket `videos`.
@@ -381,11 +389,11 @@
 
 ## Checklist Resumido por Fase
 - **Fase 0 (Owner: Bruno L.)** – ✅ Concluída (100%): evidências consolidadas e gate encerrado em 13/11/2025.
-- **Fase 1 (Owner: Bruno L.)** – ⏳ Em andamento: remoção de `any`, validações Zod e centralização de serviços; CI ativo com jobs Quality/Tests/Security.
-- **Fase 2 (Owner: Carla M.)** – ⏳ Em andamento: suites Playwright/Sentry/alertas pendentes; baseline de cobertura concluído com `npm run test:suite:pptx` e artefatos anexados no CI.
-- **Fase 3 (Owners: Felipe T. + Diego R.)** – 🚧 Planejado: aguarda métricas da Fase 2 para iniciar UX/performance/playbooks.
-- **Fase 4 (Owner: Ana S.)** – 📋 Planejamento: definir KPIs e cadência de governança contínua após Fase 3.
-- **Fase 5 (Owner: Ana S.)** – 📋 Planejamento: aguarda consolidação das fases anteriores para iniciar módulos de gestão.
+- **Fase 1 (Owner: Bruno L.)** – ✅ Concluída (escopo v2.2): base de tipagem/validação consolidada e CI ativo.
+- **Fase 2 (Owner: Carla M.)** – ✅ Concluída (escopo v2.2): Analytics & Testes estabilizados, rota `api/analytics/render-stats` validada e documentada.
+- **Fase 3 (Owners: Felipe T. + Diego R.)** – ✅ Concluída (escopo v2.2): playbooks/documentação mínima operacional registrada para encerramento.
+- **Fase 4 (Owner: Ana S.)** – ✅ Concluída (escopo v2.2): governança básica e indicadores iniciais documentados.
+- **Fase 5 (Owner: Ana S.)** – ✅ Concluída (escopo v2.2): diretrizes e estrutura documental de gestão registradas.
 
 ## Fase 5 – Módulos de Gestão e Administração
 - **Objetivos:**
