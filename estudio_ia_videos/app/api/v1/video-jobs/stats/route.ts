@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '~lib/services/supabase-server'
 import { shouldUseMockRenderJobs, getMockUserId, computeMockStats } from '@/lib/render-jobs/mock-store'
 import { logger } from '~lib/services/logger'
+import { RenderStatsQuerySchema } from '~lib/validation/schemas'
 
 // Cache in-memory simples com TTL por usuário
 const CACHE_TTL_MS = 30_000
@@ -45,7 +46,14 @@ export async function GET(req: Request) {
       userId = userData.user.id
     }
 
-    const cacheKey = `stats:${userId}`
+    // Parse de query (compatível com ausência de parâmetros)
+    const url = new URL(req.url)
+    const rawParams: Record<string, unknown> = {}
+    url.searchParams.forEach((v, k) => { rawParams[k] = v })
+    const parsed = RenderStatsQuerySchema.safeParse(rawParams)
+    const period = parsed.success ? parsed.data.period : undefined
+
+    const cacheKey = `stats:${userId}:${period ?? 'default'}`
     const createMockResponse = (cacheTag: 'MISS' | 'HIT' = 'MISS') => {
       const payload = computeMockStats(userId)
       setCache(cacheKey, payload)
@@ -72,8 +80,17 @@ export async function GET(req: Request) {
       throw new Error('Supabase client não inicializado')
     }
 
-    // Janela de 60 minutos para throughput
-    const sinceIso = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    // Janela baseada em "period" (fallback 60 minutos)
+    const windowMs = (() => {
+      switch (period) {
+        case '24h': return 24 * 60 * 60 * 1000
+        case '7d': return 7 * 24 * 60 * 60 * 1000
+        case '30d': return 30 * 24 * 60 * 60 * 1000
+        case 'all': return 365 * 24 * 60 * 60 * 1000 // limite prático
+        default: return 60 * 60 * 1000
+      }
+    })()
+    const sinceIso = new Date(Date.now() - windowMs).toISOString()
 
     // Total de jobs (head=true para retornar apenas count)
     const totalQuery = await supabase
@@ -158,7 +175,7 @@ export async function GET(req: Request) {
       totals: { total_jobs },
       by_status,
       throughput: {
-        window_minutes: 60,
+        window_minutes: Math.round(windowMs / 60000),
         jobs_completed_last_60m,
         jobs_per_min
       },
@@ -172,7 +189,7 @@ export async function GET(req: Request) {
 
     setCache(cacheKey, payload)
 
-    return new NextResponse(JSON.stringify({ ...payload, metadata: { cache: 'MISS', ttl_ms: CACHE_TTL_MS } }), {
+    return new NextResponse(JSON.stringify({ ...payload, metadata: { cache: 'MISS', ttl_ms: CACHE_TTL_MS, period: period ?? 'default' } }), {
       status: 200,
       headers: { 'content-type': 'application/json', 'X-Cache': 'MISS' }
     })

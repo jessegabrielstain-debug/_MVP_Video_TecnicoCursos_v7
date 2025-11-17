@@ -3,6 +3,7 @@ import { getSupabaseForRequest } from '~lib/services/supabase-server'
 import { checkRateLimit } from '@/lib/utils/rate-limit'
 import { recordRateLimitHit, recordError } from '~lib/utils/metrics'
 import { parseUpdateProgress } from '~lib/handlers/video-jobs-progress'
+import { logger } from '~lib/services/logger'
 
 
 interface RenderJobRow {
@@ -94,12 +95,14 @@ export async function POST(req: Request) {
 
     if (updateErr || !updated) {
       recordError('DB_ERROR');
+      logger.error('video-jobs-progress', 'db-update-failed', updateErr as Error)
       return NextResponse.json({ code: 'DB_ERROR', message: 'Falha ao atualizar job', details: updateErr?.message }, { status: 500 })
     }
   const jobResp = { id: (updated as RenderJobRow).id, status: (updated as RenderJobRow).status, project_id: (updated as RenderJobRow).project_id, created_at: (updated as RenderJobRow).created_at, progress: (updated as RenderJobRow).progress, attempts: (updated as RenderJobRow).attempts, duration_ms: (updated as RenderJobRow).duration_ms ?? null, settings: (updated as RenderJobRow).render_settings }
   return NextResponse.json({ job: jobResp })
   } catch (err) {
     recordError('UNEXPECTED');
+    logger.error('video-jobs-progress', 'unexpected-error', err as Error)
     return NextResponse.json({ code: 'UNEXPECTED', message: 'Erro inesperado', details: (err as Error).message }, { status: 500 })
   }
 }

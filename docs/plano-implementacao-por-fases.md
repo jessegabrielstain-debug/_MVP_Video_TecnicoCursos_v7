@@ -229,7 +229,7 @@
 **Gate previsto:** 14/02/2025.  
 **Bloqueios identificados:** ✅ Nenhum bloqueio crítico no momento – bateria `npm run test:suite:pptx` estabilizada (38/38 testes) em 13/11/2025 com artefato JSON em `evidencias/fase-2/pptx-suite-result.json`.  
 **Evidências:** `evidencias/fase-1/contract-tests-results.md` (8/12 OK), `evidencias/fase-2/pptx-tests-results.md` (38/38 OK – suíte completa `pptx-processing` + `pptx-processor` + `pptx-system`).  
-**Observação CI:** Workflow `CI/CD Pipeline` (job `tests`) executa `npm run test:contract` (artefato `contract-suite-result`) e `npm run test:suite:pptx` (artefato `pptx-suite-result` + `jest-coverage-app`) em toda execução. A suíte de contrato agora inicializa automaticamente um servidor Next.js dedicado (porta `3310`, host `127.0.0.1`) antes dos cenários que dependem das rotas `app/api/v1/video-jobs/**`, dispensando o setup manual que mantinha 4 testes em SKIP.
+**Observação CI:** Workflow `CI/CD Pipeline` (job `tests`) executa `npm run test:contract` (artefato `contract-suite-result`) e `npm run test:suite:pptx` (artefato `pptx-suite-result` + `jest-coverage-app`) em toda execução. A suíte de contrato agora inicializa automaticamente um servidor Next.js dedicado (porta `3310`, host `127.0.0.1`) antes dos cenários que dependem das rotas `app/api/v1/video-jobs/**`, dispensando o setup manual que mantinha 4 testes em SKIP. As rotas `video-jobs` já usam o logger centralizado e validações Zod (núcleo) com compatibilidade de payloads.
 
 | Entregável | Responsável | Status | Evidência planejada | Observações |
 | --- | --- | --- | --- | --- |
@@ -337,6 +337,7 @@
 | Entregável | Responsável | Status | Evidência planejada | Observações |
 | --- | --- | --- | --- | --- |
 | UX loading/erro padronizada | Felipe T. | Não iniciado | Biblioteca `app/components/ui/feedback` + prints em `evidencias/fase-3/ux.md` | Criar componentes genéricos e aplicar nas rotas `app/api/v1/video-jobs/*` (feedback PT-BR). |
+| Validações Zod núcleo adotadas | Bruno L. | Concluído | `lib/validation/schemas.ts` + handlers `video-jobs/*` | Compatibilidade `{id}`/`{jobId}` e query `stats` com `period` (fallback 60min). |
 | Performance (next/image, cache) | Felipe T. | Não iniciado | Relatório Lighthouse (`docs/operacao/performance.md`) | Medir rotas `dashboard`, `jobs/[id]`; usar `next/image` e caching. |
 | Playbooks de deploy/rollback | Diego R. | Parcial | `docs/DEPLOY_VALIDACAO_COMPLETA.md` + scripts automatizados | Existe documentação textual; falta scriptar rollback e validar em staging. |
 | Rate limiting & políticas de segurança | Bruno L. | Parcial | `lib/utils/rate-limit.ts` + testes `scripts/test-contract-video-jobs-rate-limit.js` | Implementação utilitária criada, mas endpoints ainda sem cobertura completa; revisar secrets/RLS. |
