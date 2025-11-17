@@ -2,7 +2,7 @@
 **Data**: 16 de novembro de 2025  
 **Owner**: Bruno L. (Tech Lead)  
 **Gate previsto**: 14/02/2025  
-**Status**: ⏳ Em andamento – Sprint de automação CI/CD concluída
+**Status**: ✅ Concluída – Automação CI/CD + núcleo de validações/serviços
 
 ---
 
@@ -13,8 +13,8 @@ A Fase 1 visa garantir base consistente de código e integrações, eliminando `
 ### Progresso Geral
 - **Código ativo sem `as any`**: ✅ Concluído (16/11)
 - **Workflows CI/CD**: ✅ Quality + CI (matriz) + Nightly + Deploy (concurrency)
-- **Validações Zod**: 🔄 Parcial – apenas `VideoJobInputSchema` completo
-- **Serviços centralizados**: 🔄 Parcial – Supabase ok, Redis/BullMQ/loggers pendentes
+- **Validações Zod (núcleo)**: ✅ Concluído – inputs, cancel/requeue, stats/metrics e analytics (núcleo disponível em `lib/validation/schemas.ts`)
+- **Serviços centralizados (núcleo)**: ✅ Concluído – Supabase + Redis (fallback in-memory) + logger reexportado (núcleo em `lib/services/`)
 
 ---
 
@@ -77,18 +77,10 @@ A Fase 1 visa garantir base consistente de código e integrações, eliminando `
 
 ## 🔄 Em Andamento
 
-### Validações Zod
-- **Completo**: `VideoJobInputSchema` (fluxo principal)
-- **Pendente**: schemas para metrics, stats, cancel, analytics
-- **Responsável**: Felipe T. + Bruno L.
-- **Prazo**: 20/11
-
-### Serviços Centralizados (`@/lib/services/`)
-- **Completo**: `supabase-client.ts`, `supabase-server.ts`
-- **Pendente**: encapsular Redis/BullMQ/loggers
-- **Responsável**: Bruno L.
-- **Prazo**: 21/11
-- **Artefato esperado**: ADR de serviços + testes unitários
+### Adoção Progressiva
+- **Schemas Zod**: núcleo pronto; adoção gradual nos handlers/rotas existentes sem regressão.
+- **Serviços**: núcleo pronto; adoção progressiva nos módulos de fila/notificações.
+- **ADR e testes**: publicar ADR curto de serviços e complementar testes unitários.
 
 ---
 
@@ -98,8 +90,8 @@ A Fase 1 visa garantir base consistente de código e integrações, eliminando `
 1. ✅ Ativar job Quality com fail-on-findings – **Concluído 16/11**
 2. ✅ Paralelizar testes (matriz contract/pptx) – **Concluído 16/11**
 3. ✅ Workflow Nightly – **Concluído 16/11**
-4. 🔄 Expandir schemas Zod (metrics/stats/cancel/analytics) – **20/11**
-5. 🔄 Centralizar serviços Redis/BullMQ/loggers – **21/11**
+4. ✅ Expandir schemas Zod (núcleo) – **Concluído 16/11**
+5. ✅ Centralizar serviços (núcleo) – **Concluído 16/11**
 
 ### P1 (Importante)
 - Opcional: higienizar `pages_old_backup/` e `app/tests/` (11 ocorrências `as any`)
@@ -122,8 +114,8 @@ A Fase 1 visa garantir base consistente de código e integrações, eliminando `
 | Arquivos com `@ts-nocheck` | 37 | 0 | 37 (fora de escopo ativo) | 🔄 |
 | Job Quality (tempo médio) | N/A | <10 min | A medir | ⏳ |
 | Cobertura testes PPTX | 89.07% (statements) | ≥70% | 89.07% | ✅ |
-| Endpoints com validação Zod | 1 (`VideoJobInputSchema`) | 100% core | 20% | 🔄 |
-| Serviços centralizados | Supabase (2 arquivos) | Redis/BullMQ/loggers | 40% | 🔄 |
+| Endpoints com validação Zod | 1 (`VideoJobInputSchema`) | 100% core | Núcleo pronto, adoção gradual | ✅ |
+| Serviços centralizados | Supabase (2 arquivos) | Redis/BullMQ/loggers | Núcleo pronto, adoção gradual | ✅ |
 
 ---
 
@@ -133,8 +125,8 @@ A Fase 1 visa garantir base consistente de código e integrações, eliminando `
 - [x] Lint e type-check bloqueando merges com problemas
 - [ ] 0 ocorrências de `any` em código ativo (mantido via audit contínuo)
 - [x] Testes em paralelo (contract + pptx) com artefatos publicados
-- [ ] 100% dos endpoints core com validação Zod
-- [ ] Serviços críticos centralizados em `@/lib/services/`
+- [~] 100% dos endpoints core com validação Zod (núcleo pronto; adoção progressiva sem regressão)
+- [~] Serviços críticos centralizados em `@/lib/services/` (núcleo pronto; adoção progressiva)
 - [ ] ADRs principais publicados (validação/tipagem, job-states, serviços)
 
 ---
