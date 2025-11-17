@@ -1,0 +1,49 @@
+name: Publish Release v2.2.0
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - ".github/workflows/publish-release-v2.2.0.yml"
+      - "RELEASE_v2.2.0.md"
+  workflow_dispatch: {}
+
+env:
+  TAG_NAME: v2.2.0
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check if release exists
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG_NAME}")
+          echo "status=${code}" >> $GITHUB_OUTPUT
+
+      - name: Create release from tag
+        if: steps.check.outputs.status == '404'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          body=$(jq -Rs . < RELEASE_v2.2.0.md)
+          curl -s -X POST \
+            -H "Authorization: token ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -d "{\"tag_name\":\"${TAG_NAME}\",\"name\":\"${TAG_NAME}\",\"body\":${body},\"draft\":false,\"prerelease\":false}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases"
+
+      - name: Release already exists or API unavailable
+        if: steps.check.outputs.status != '404'
+        run: echo "Release skipped (status=${{ steps.check.outputs.status }})"
