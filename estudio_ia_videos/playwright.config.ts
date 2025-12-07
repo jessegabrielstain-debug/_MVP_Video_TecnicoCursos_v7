@@ -7,11 +7,10 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 export default defineConfig({
   testDir: '.',
-  testMatch: ['**/app/e2e-playwright/**/*.spec.ts', '**/app/e2e/**/*.spec.ts'],
-  // Skip global setup/teardown if they depend on root files we can't easily access or just rely on manual setup
-  // If ../tests exists, we can try using it
-  globalSetup: '../tests/global-setup.ts',
-  globalTeardown: '../tests/global-teardown.ts',
+  testMatch: ['**/app/e2e-playwright/**/*.spec.ts', '**/app/e2e/**/*.spec.ts', '**/app/tests/e2e/**/*.spec.ts'],
+  // Global setup/teardown desabilitado - servidor roda manualmente
+  // globalSetup: '../tests/global-setup.ts',
+  // globalTeardown: '../tests/global-teardown.ts',
   timeout: 60000,
   use: {
     baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000',

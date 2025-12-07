@@ -105,6 +105,12 @@ export default function PPTXUploadComponent() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Tratamento especial para erros de autenticação
+        if (response.status === 401) {
+          throw new Error('Você precisa estar logado para fazer upload. Faça login e tente novamente.');
+        }
+        
         throw new Error(errorData.error || errorData.message || 'Falha no upload');
       }
 

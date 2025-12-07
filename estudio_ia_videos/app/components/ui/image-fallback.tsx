@@ -14,6 +14,7 @@ interface ImageFallbackProps {
   fill?: boolean
   priority?: boolean
   fallbackIcon?: 'image' | 'alert'
+  sizes?: string
 }
 
 export function ImageFallback({ 
@@ -24,7 +25,8 @@ export function ImageFallback({
   className = '',
   fill = false,
   priority = false,
-  fallbackIcon = 'image'
+  fallbackIcon = 'image',
+  sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
 }: ImageFallbackProps) {
   const [imageError, setImageError] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -74,6 +76,7 @@ export function ImageFallback({
         height={fill ? undefined : height}
         fill={fill}
         priority={priority}
+        sizes={fill ? sizes : undefined}
         className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity`}
         onError={handleImageError}
         onLoad={handleImageLoad}

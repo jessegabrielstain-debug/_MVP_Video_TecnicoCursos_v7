@@ -44,7 +44,6 @@ export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POS
 
     const formData = await request.formData()
     const file = formData.get('file') as File
-    const projectId = formData.get('project_id') as string
 
     // Validar dados
     if (!file) {
@@ -54,50 +53,77 @@ export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POS
       )
     }
 
+    // Se não tiver project_id, criar um projeto automaticamente
+    let projectId = formData.get('project_id') as string | null
+    let autoCreatedProject = false
+
     if (!projectId) {
-      return NextResponse.json(
-        { error: 'ID do projeto é obrigatório' },
-        { status: 400 }
-      )
+      // Criar projeto automaticamente com base no nome do arquivo
+      const projectName = file.name.replace('.pptx', '').replace('.ppt', '')
+      
+      const { data: newProject, error: projectError } = await supabase
+        .from('projects')
+        .insert({
+          user_id: user.id,
+          name: projectName,
+          description: `Projeto criado a partir do arquivo ${file.name}`,
+          status: 'draft',
+          project_type: 'pptx_import'
+        })
+        .select()
+        .single()
+      
+      if (projectError || !newProject) {
+        console.error('Erro ao criar projeto:', projectError)
+        return NextResponse.json(
+          { error: 'Erro ao criar projeto automaticamente' },
+          { status: 500 }
+        )
+      }
+      
+      projectId = newProject.id
+      autoCreatedProject = true
     }
 
     // Validar projeto
     uploadSchema.parse({ project_id: projectId })
 
-    // Verificar permissões no projeto
-    const { data: project } = await supabase
-      .from('projects')
-      .select('user_id')
-      .eq('id', projectId)
-      .single()
-
-    if (!project) {
-      return NextResponse.json(
-        { error: 'Projeto não encontrado' },
-        { status: 404 }
-      )
-    }
-
-    let hasPermission = project.user_id === user.id
-
-    if (!hasPermission) {
-      const { data: collaborator } = await supabase
-        .from('project_collaborators')
-        .select('permissions')
-        .eq('project_id', projectId)
-        .eq('user_id', user.id)
+    // Verificar permissões no projeto (pular se foi auto-criado)
+    if (!autoCreatedProject) {
+      const { data: project } = await supabase
+        .from('projects')
+        .select('user_id')
+        .eq('id', projectId)
         .single()
-      
-      if (collaborator && (collaborator.permissions as any)?.can_edit) {
-        hasPermission = true
-      }
-    }
 
-    if (!hasPermission) {
-      return NextResponse.json(
-        { error: 'Sem permissão para fazer upload neste projeto' },
-        { status: 403 }
-      )
+      if (!project) {
+        return NextResponse.json(
+          { error: 'Projeto não encontrado' },
+          { status: 404 }
+        )
+      }
+
+      let hasPermission = project.user_id === user.id
+
+      if (!hasPermission) {
+        const { data: collaborator } = await supabase
+          .from('project_collaborators')
+          .select('permissions')
+          .eq('project_id', projectId)
+          .eq('user_id', user.id)
+          .single()
+        
+        if (collaborator && (collaborator.permissions as unknown as { can_edit?: boolean })?.can_edit) {
+          hasPermission = true
+        }
+      }
+
+      if (!hasPermission) {
+        return NextResponse.json(
+          { error: 'Sem permissão para fazer upload neste projeto' },
+          { status: 403 }
+        )
+      }
     }
 
     // Validar arquivo
@@ -200,11 +226,15 @@ export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POS
 
     return NextResponse.json({
       upload_id: upload.id,
-      filename: (upload as any).filename,
+      projectId: projectId,
+      autoCreatedProject: autoCreatedProject,
+      filename: (upload as unknown as { filename: string }).filename,
       original_filename: upload.original_filename,
-      file_size: (upload as any).file_size,
+      file_size: (upload as unknown as { file_size: number }).file_size,
       status: upload.status,
-      message: 'Upload realizado com sucesso. Processamento iniciado.'
+      message: autoCreatedProject 
+        ? 'Upload realizado com sucesso. Projeto criado automaticamente. Processamento iniciado.'
+        : 'Upload realizado com sucesso. Processamento iniciado.'
     }, { status: 201 })
 
   } catch (error) {

@@ -233,12 +233,15 @@ export default function PPTXPage() {
 
         {/* Footer da Página */}
         <div className="mt-12 text-center text-gray-500 text-sm">
-          <p>
-            Suporte a arquivos .pptx • Processamento seguro e privado • 
-            <Badge variant="outline" className="ml-2">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <span>Suporte a arquivos .pptx</span>
+            <span>•</span>
+            <span>Processamento seguro e privado</span>
+            <span>•</span>
+            <Badge variant="outline">
               Powered by IA
             </Badge>
-          </p>
+          </div>
         </div>
       </div>
     </div>

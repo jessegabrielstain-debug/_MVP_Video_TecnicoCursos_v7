@@ -674,6 +674,7 @@ export default function PPTXStudio() {
                         type="number" 
                         value={selectedSlideData.duration} 
                         className="mt-1"
+                        readOnly
                       />
                     </div>
                   </>
@@ -697,7 +698,11 @@ export default function PPTXStudio() {
                     
                     <div>
                       <Label className="text-sm font-medium">Voz</Label>
-                      <select className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded">
+                      <select 
+                        className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded"
+                        defaultValue="female"
+                        disabled
+                      >
                         <option value="female">Feminina</option>
                         <option value="male">Masculina</option>
                         <option value="neutral">Neutra</option>
@@ -738,7 +743,10 @@ export default function PPTXStudio() {
               <TabsContent value="export" className="p-4 space-y-4">
                 <div>
                   <Label className="text-sm font-medium">Resolução</Label>
-                  <select className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded">
+                  <select 
+                    className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded"
+                    defaultValue="1080p"
+                  >
                     <option value="720p">720p (HD)</option>
                     <option value="1080p">1080p (Full HD)</option>
                     <option value="1440p">1440p (2K)</option>
@@ -748,7 +756,10 @@ export default function PPTXStudio() {
                 
                 <div>
                   <Label className="text-sm font-medium">Qualidade</Label>
-                  <select className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded">
+                  <select 
+                    className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded"
+                    defaultValue="standard"
+                  >
                     <option value="draft">Rascunho</option>
                     <option value="standard">Padrão</option>
                     <option value="high">Alta</option>
@@ -758,7 +769,10 @@ export default function PPTXStudio() {
                 
                 <div>
                   <Label className="text-sm font-medium">Formato</Label>
-                  <select className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded">
+                  <select 
+                    className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded"
+                    defaultValue="mp4"
+                  >
                     <option value="mp4">MP4</option>
                     <option value="webm">WebM</option>
                     <option value="mov">MOV</option>
