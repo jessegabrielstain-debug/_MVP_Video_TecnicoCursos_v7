@@ -9,6 +9,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getOrgContext, hasPermission } from '@/lib/multi-tenancy/org-context';
 import { getAuditLogs } from '@/lib/billing/audit-logger';
+// @ts-ignore
 import { Parser } from 'json2csv';
 
 export async function GET(

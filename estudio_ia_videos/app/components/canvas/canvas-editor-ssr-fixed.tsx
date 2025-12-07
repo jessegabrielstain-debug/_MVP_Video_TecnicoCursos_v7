@@ -316,8 +316,10 @@ export default function CanvasEditorSSRFixed({
       gridLines.push(line)
     }
 
-    gridLines.forEach(line => canvas.add(line))
-    canvas.sendToBack(...gridLines)
+    gridLines.forEach(line => {
+      canvas.add(line)
+      canvas.sendObjectToBack(line)
+    })
   }
 
   /**

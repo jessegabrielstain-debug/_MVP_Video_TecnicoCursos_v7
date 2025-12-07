@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     if (extractionResult.assets.images.length > 0) {
       const firstImage = extractionResult.assets.images[0]
       if (firstImage.s3Url) {
-        thumbnailUrl = firstImage.s3Url
+        thumbnailUrl = firstImage.s3Url as string
       }
     }
 

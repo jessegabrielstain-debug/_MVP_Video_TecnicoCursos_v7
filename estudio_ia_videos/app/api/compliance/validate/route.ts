@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // Salvar resultado no banco
     const { error: insertError } = await supabase
-      .from('nr_compliance_records')
+      .from('nr_compliance_records' as any)
       .insert({
         project_id: projectId,
         nr: nrType,
@@ -165,7 +165,7 @@ export async function GET(request: NextRequest) {
 
     // Buscar validações
     const { data: validations, error: fetchError } = await supabase
-      .from('nr_compliance_records')
+      .from('nr_compliance_records' as any)
       .select('*')
       .eq('project_id', projectId)
       .order('validated_at', { ascending: false })

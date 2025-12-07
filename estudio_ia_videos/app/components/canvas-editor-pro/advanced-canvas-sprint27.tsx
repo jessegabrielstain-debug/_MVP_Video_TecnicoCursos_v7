@@ -163,7 +163,7 @@ export default function AdvancedCanvasEditorSprint27({
           img.scaleToHeight(height)
           img.selectable = false
           canvas.add(img)
-          canvas.sendToBack(img)
+          canvas.sendObjectToBack(img)
         })
       }
 
@@ -386,7 +386,7 @@ export default function AdvancedCanvasEditorSprint27({
   const moveLayerUp = (layerId: string) => {
     const layer = layers.find(l => l.id === layerId)
     if (layer && canvas) {
-      canvas.bringForward(layer.object)
+      canvas.bringObjectForward(layer.object)
       canvas.renderAll()
       updateLayers()
     }
@@ -398,7 +398,7 @@ export default function AdvancedCanvasEditorSprint27({
   const moveLayerDown = (layerId: string) => {
     const layer = layers.find(l => l.id === layerId)
     if (layer && canvas) {
-      canvas.sendBackwards(layer.object)
+      canvas.sendObjectBackwards(layer.object)
       canvas.renderAll()
       updateLayers()
     }

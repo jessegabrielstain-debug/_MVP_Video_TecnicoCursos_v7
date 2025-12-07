@@ -27,6 +27,8 @@ interface FabricCanvas {
   renderAll: () => void;
   on: (event: string, handler: (e: { target: FabricObject }) => void) => void;
   off: (event: string, handler: (e: { target: FabricObject }) => void) => void;
+  width?: number;
+  height?: number;
 }
 
 interface SmartGuidesProps {
@@ -141,8 +143,8 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
           // Criar linha usando API genérica de canvas
           if (canvas.add) {
             const lineCoords = guide.type === 'vertical' 
-              ? [guide.position, 0, guide.position, canvas.getHeight?.() || 600]
-              : [0, guide.position, canvas.getWidth?.() || 800, guide.position]
+              ? [guide.position, 0, guide.position, canvas.height || 600]
+              : [0, guide.position, canvas.width || 800, guide.position]
             
             // Implementação genérica sem dependência do Fabric.js específico
             const line = {

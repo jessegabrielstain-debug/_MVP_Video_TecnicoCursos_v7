@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
       width: config?.width || 1920,
       height: config?.height || 1080,
       fps: config?.fps || 30,
-      quality: config?.quality || 'high',
+      quality: (config?.quality as any) || 'high',
       format: config?.format || 'mp4',
       codec: config?.codec || 'h264',
       bitrate: config?.bitrate || '5000k',
@@ -206,8 +206,9 @@ export async function POST(req: NextRequest) {
     };
 
     // Validar slides
-    const validatedSlides: RenderSlide[] = slides.map((slide: Record<string, unknown>, index: number) => ({
+    const validatedSlides = slides.map((slide: Record<string, unknown>, index: number) => ({
       id: (slide.id as string) || `slide_${index}`,
+      order_index: index,
       imageUrl: (slide.imageUrl as string) || '',
       audioUrl: slide.audioUrl as string | undefined,
       duration: (slide.duration as number) || 5,
@@ -238,8 +239,8 @@ export async function POST(req: NextRequest) {
     await addVideoJob({
       jobId: dbJobId,
       projectId,
-      slides: validatedSlides,
-      config: renderConfig,
+      slides: validatedSlides as any,
+      config: renderConfig as any,
       userId: user.id
     });
 

@@ -311,13 +311,13 @@ export default function AdvancedCanvasEditor({
   // Bring to front/back
   const bringToFront = useCallback(() => {
     if (!fabricRef.current || !selectedObject) return;
-    fabricRef.current.bringToFront(selectedObject);
+    fabricRef.current.bringObjectToFront(selectedObject);
     fabricRef.current.renderAll();
   }, [selectedObject]);
 
   const sendToBack = useCallback(() => {
     if (!fabricRef.current || !selectedObject) return;
-    fabricRef.current.sendToBack(selectedObject);
+    fabricRef.current.sendObjectToBack(selectedObject);
     fabricRef.current.renderAll();
   }, [selectedObject]);
 

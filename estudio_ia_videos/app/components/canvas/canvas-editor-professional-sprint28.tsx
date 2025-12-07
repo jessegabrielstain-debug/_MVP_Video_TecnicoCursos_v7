@@ -241,7 +241,7 @@ export default function CanvasEditorProfessionalSprint28({
         grid: true
       })
       canvas.add(line)
-      canvas.sendToBack(line)
+      canvas.sendObjectToBack(line)
     }
 
     // Draw horizontal lines
@@ -255,7 +255,7 @@ export default function CanvasEditorProfessionalSprint28({
         grid: true
       })
       canvas.add(line)
-      canvas.sendToBack(line)
+      canvas.sendObjectToBack(line)
     }
 
     canvas.renderAll()
@@ -293,7 +293,7 @@ export default function CanvasEditorProfessionalSprint28({
           // @ts-ignore
           img.id = 'background'
           canvas.add(img)
-          canvas.sendToBack(img)
+          canvas.sendObjectToBack(img)
         })
       }
 
@@ -569,9 +569,9 @@ export default function CanvasEditorProfessionalSprint28({
     if (!layer || !canvas) return
 
     if (direction === 'up') {
-      canvas.bringForward(layer.object)
+      canvas.bringObjectForward(layer.object)
     } else {
-      canvas.sendBackwards(layer.object)
+      canvas.sendObjectBackwards(layer.object)
     }
 
     canvas.renderAll()

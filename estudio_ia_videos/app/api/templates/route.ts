@@ -232,7 +232,7 @@ export async function GET(request: NextRequest) {
             isFavorite: false,
             isCustom: true,
             createdAt: new Date(p.created_at),
-            updatedAt: new Date(p.updated_at),
+            updatedAt: p.updated_at ? new Date(p.updated_at) : new Date(p.created_at),
             author: user.email || 'User',
             version: p.current_version || '1.0',
             downloads: 0,

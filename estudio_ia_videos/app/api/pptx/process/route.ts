@@ -9,6 +9,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { workflowManager } from '@/lib/workflow/unified-workflow-manager'
+// @ts-ignore
 import formidable from 'formidable'
 import fs from 'fs'
 import path from 'path'

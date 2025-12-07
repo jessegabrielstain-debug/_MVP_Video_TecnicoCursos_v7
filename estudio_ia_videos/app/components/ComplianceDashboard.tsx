@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -16,14 +16,17 @@ import {
   Download,
   TrendingUp,
   Clock,
-  Users,
-  FileText,
   Zap,
   Target,
   BarChart3,
   Activity
 } from 'lucide-react';
-import { useComplianceAnalyzer, ComplianceAnalysisResult, ComplianceIssue } from '@/hooks/useComplianceAnalyzer';
+import { 
+  useComplianceAnalyzer, 
+  ComplianceReport, 
+  ComplianceViolation,
+  ComplianceProjectData
+} from '@/hooks/useComplianceAnalyzer';
 import { Template } from '@/types/templates';
 
 interface ComplianceDashboardProps {
@@ -39,54 +42,86 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
 }) => {
   const {
     isAnalyzing,
-    analysisResult,
-    error,
-    analyzeTemplate,
-    reanalyze,
-    getIssuesByType,
-    resolveIssue,
-    autoFixIssue,
-    applySuggestion,
-    dismissSuggestion,
-    startRealTimeAnalysis,
-    stopRealTimeAnalysis,
-    generateComplianceReport
+    currentReport,
+    analyzeProject,
+    applyFix,
+    implementRecommendation,
+    startMonitoring,
+    stopMonitoring,
+    generateReport
   } = useComplianceAnalyzer();
 
   const [activeTab, setActiveTab] = useState('overview');
   const [isRealTimeActive, setIsRealTimeActive] = useState(false);
   const [autoFixing, setAutoFixing] = useState<string | null>(null);
   const [applyingSuggestion, setApplyingSuggestion] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (template && !analysisResult) {
-      analyzeTemplate(template);
-    }
-  }, [template, analyzeTemplate, analysisResult]);
+  // Helper to convert Template to ComplianceProjectData
+  const projectData: ComplianceProjectData | undefined = useMemo(() => {
+    if (!template) return undefined;
+    return {
+      id: template.id,
+      metadata: {
+        name: template.name,
+        description: template.description,
+        category: template.category,
+        ...template.metadata
+      },
+      content: template.content as any, // Casting as any for now, ideally map to OptimizableContentInput
+      assets: template.content.assets as any
+    };
+  }, [template]);
 
-  useEffect(() => {
-    if (showRealTime && template && isRealTimeActive) {
-      startRealTimeAnalysis(template);
-    } else {
-      stopRealTimeAnalysis();
-    }
-
-    return () => stopRealTimeAnalysis();
-  }, [showRealTime, template, isRealTimeActive, startRealTimeAnalysis, stopRealTimeAnalysis]);
-
-  const handleAutoFix = async (issueId: string) => {
-    setAutoFixing(issueId);
+  const handleAnalyze = async () => {
+    if (!projectData) return;
+    setError(null);
     try {
-      await autoFixIssue(issueId);
+      await analyzeProject(projectData);
+    } catch (err) {
+      console.error('Error analyzing compliance:', err);
+      setError('Falha ao analisar compliance. Tente novamente.');
+    }
+  };
+
+  useEffect(() => {
+    if (projectData && !currentReport) {
+      handleAnalyze();
+    }
+  }, [projectData, currentReport]);
+
+  useEffect(() => {
+    if (showRealTime && isRealTimeActive) {
+      startMonitoring({ realTimeAnalysis: true });
+    } else {
+      stopMonitoring();
+    }
+
+    return () => stopMonitoring();
+  }, [showRealTime, isRealTimeActive, startMonitoring, stopMonitoring]);
+
+  const handleAutoFix = async (violationId: string) => {
+    setAutoFixing(violationId);
+    try {
+      await applyFix(violationId);
+      // Re-analyze after fix
+      await handleAnalyze();
+    } catch (err) {
+      console.error('Error applying fix:', err);
+      setError('Falha ao aplicar correção.');
     } finally {
       setAutoFixing(null);
     }
   };
 
-  const handleApplySuggestion = async (suggestionId: string) => {
-    setApplyingSuggestion(suggestionId);
+  const handleApplySuggestion = async (recommendationId: string) => {
+    setApplyingSuggestion(recommendationId);
     try {
-      await applySuggestion(suggestionId);
+      await implementRecommendation(recommendationId);
+      await handleAnalyze();
+    } catch (err) {
+      console.error('Error applying suggestion:', err);
+      setError('Falha ao aplicar sugestão.');
     } finally {
       setApplyingSuggestion(null);
     }
@@ -94,39 +129,49 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
 
   const handleDownloadReport = async () => {
     if (template) {
-      const blob = await generateComplianceReport(template);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `compliance-report-${template.name}-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      try {
+        const report = await generateReport(template.id);
+        const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `compliance-report-${template.name}-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Error downloading report:', err);
+        setError('Falha ao gerar relatório.');
+      }
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'compliant': return 'text-green-600 bg-green-50 border-green-200';
-      case 'warning': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'non-compliant': return 'text-red-600 bg-red-50 border-red-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
+  const getStatusColor = (score: number) => {
+    if (score >= 90) return 'text-green-600 bg-green-50 border-green-200';
+    if (score >= 70) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+    return 'text-red-600 bg-red-50 border-red-200';
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'compliant': return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case 'warning': return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
-      case 'non-compliant': return <XCircle className="h-5 w-5 text-red-600" />;
-      default: return <Shield className="h-5 w-5 text-gray-600" />;
-    }
+  const getStatusIcon = (score: number) => {
+    if (score >= 90) return <CheckCircle className="h-5 w-5 text-green-600" />;
+    if (score >= 70) return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
+    return <XCircle className="h-5 w-5 text-red-600" />;
   };
 
-  const criticalIssues = getIssuesByType('critical');
-  const warningIssues = getIssuesByType('warning');
-  const infoIssues = getIssuesByType('info');
+  // Helper to filter violations
+  const getViolationsBySeverity = (severity: 'critical' | 'high' | 'medium' | 'low') => {
+    return currentReport?.violations.filter(v => v.severity === severity) || [];
+  };
+
+  const criticalIssues = getViolationsBySeverity('critical');
+  const highIssues = getViolationsBySeverity('high');
+  const mediumIssues = getViolationsBySeverity('medium');
+  const lowIssues = getViolationsBySeverity('low');
+  
+  // Group warnings (high/medium) and info (low)
+  const warningIssues = [...highIssues, ...mediumIssues];
+  const infoIssues = lowIssues;
 
   if (error) {
     return (
@@ -162,17 +207,17 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={reanalyze}
+            onClick={handleAnalyze}
             disabled={isAnalyzing}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isAnalyzing ? 'animate-spin' : ''}`} />
-            Reanalizar
+            Reanalisar
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleDownloadReport}
-            disabled={!analysisResult}
+            disabled={!currentReport}
           >
             <Download className="h-4 w-4 mr-2" />
             Relatório
@@ -181,7 +226,7 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
       </div>
 
       {/* Loading State */}
-      {isAnalyzing && !analysisResult && (
+      {isAnalyzing && !currentReport && (
         <Card>
           <CardContent className="flex items-center justify-center py-12">
             <div className="text-center">
@@ -193,20 +238,20 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
       )}
 
       {/* Analysis Results */}
-      {analysisResult && (
+      {currentReport && (
         <>
           {/* Overview Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className={`border-2 ${getStatusColor(analysisResult.status)}`}>
+            <Card className={`border-2 ${getStatusColor(currentReport.overallScore)}`}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Score de Compliance</p>
-                    <p className="text-3xl font-bold">{Math.round(analysisResult.score)}%</p>
+                    <p className="text-3xl font-bold">{Math.round(currentReport.overallScore)}%</p>
                   </div>
-                  {getStatusIcon(analysisResult.status)}
+                  {getStatusIcon(currentReport.overallScore)}
                 </div>
-                <Progress value={analysisResult.score} className="mt-3" />
+                <Progress value={currentReport.overallScore} className="mt-3" />
               </CardContent>
             </Card>
 
@@ -238,13 +283,12 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Requisitos Atendidos</p>
-                    <p className="text-3xl font-bold text-green-600">
-                      {analysisResult.requirements.filter(r => r.status === 'met').length}/
-                      {analysisResult.requirements.length}
+                    <p className="text-sm font-medium text-gray-600">Recomendações</p>
+                    <p className="text-3xl font-bold text-blue-600">
+                      {currentReport.recommendations.length}
                     </p>
                   </div>
-                  <Target className="h-8 w-8 text-green-600" />
+                  <Target className="h-8 w-8 text-blue-600" />
                 </div>
               </CardContent>
             </Card>
@@ -275,13 +319,13 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
                         <Badge variant="destructive">{criticalIssues.length}</Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Avisos</span>
+                        <span className="text-sm text-gray-600">Avisos (Alto/Médio)</span>
                         <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                           {warningIssues.length}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Informativos</span>
+                        <span className="text-sm text-gray-600">Informativos (Baixo)</span>
                         <Badge variant="outline">{infoIssues.length}</Badge>
                       </div>
                     </div>
@@ -297,7 +341,7 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-gray-600">
-                      {analysisResult.lastAnalyzed.toLocaleString('pt-BR')}
+                      {new Date(currentReport.timestamp).toLocaleString('pt-BR')}
                     </p>
                     {isRealTimeActive && (
                       <Badge variant="outline" className="mt-2 bg-green-50 text-green-700 border-green-200">
@@ -311,7 +355,7 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
             </TabsContent>
 
             <TabsContent value="issues" className="space-y-4">
-              {analysisResult.issues.length === 0 ? (
+              {currentReport.violations.length === 0 ? (
                 <Card>
                   <CardContent className="text-center py-12">
                     <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
@@ -325,41 +369,42 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {analysisResult.issues.map((issue) => (
-                    <Card key={issue.id} className={`border-l-4 ${
-                      issue.type === 'critical' ? 'border-l-red-500' :
-                      issue.type === 'warning' ? 'border-l-yellow-500' : 'border-l-blue-500'
+                  {currentReport.violations.map((violation) => (
+                    <Card key={violation.id} className={`border-l-4 ${
+                      violation.severity === 'critical' ? 'border-l-red-500' :
+                      (violation.severity === 'high' || violation.severity === 'medium') ? 'border-l-yellow-500' : 'border-l-blue-500'
                     }`}>
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <Badge variant={
-                                issue.type === 'critical' ? 'destructive' :
-                                issue.type === 'warning' ? 'secondary' : 'outline'
+                                violation.severity === 'critical' ? 'destructive' :
+                                (violation.severity === 'high' || violation.severity === 'medium') ? 'secondary' : 'outline'
                               }>
-                                {issue.type === 'critical' ? 'Crítico' :
-                                 issue.type === 'warning' ? 'Aviso' : 'Info'}
+                                {violation.severity === 'critical' ? 'Crítico' :
+                                 violation.severity === 'high' ? 'Alto' :
+                                 violation.severity === 'medium' ? 'Médio' : 'Baixo'}
                               </Badge>
-                              <Badge variant="outline">{issue.category}</Badge>
+                              <Badge variant="outline">{violation.ruleId}</Badge>
                             </div>
-                            <h4 className="font-semibold text-gray-900 mb-1">{issue.title}</h4>
-                            <p className="text-gray-600 text-sm">{issue.description}</p>
-                            {issue.element && (
+                            <h4 className="font-semibold text-gray-900 mb-1">{violation.message}</h4>
+                            <p className="text-gray-600 text-sm">{violation.suggestedFix}</p>
+                            {violation.location?.elementId && (
                               <p className="text-xs text-gray-500 mt-2">
-                                Elemento: {issue.element}
+                                Elemento: {violation.location.elementId}
                               </p>
                             )}
                           </div>
                           <div className="flex gap-2 ml-4">
-                            {issue.autoFixAvailable && (
+                            {violation.autoFixable && (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleAutoFix(issue.id)}
-                                disabled={autoFixing === issue.id}
+                                onClick={() => handleAutoFix(violation.id)}
+                                disabled={autoFixing === violation.id}
                               >
-                                {autoFixing === issue.id ? (
+                                {autoFixing === violation.id ? (
                                   <RefreshCw className="h-4 w-4 animate-spin" />
                                 ) : (
                                   <Zap className="h-4 w-4" />
@@ -367,13 +412,6 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
                                 Corrigir
                               </Button>
                             )}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => resolveIssue(issue.id)}
-                            >
-                              Resolver
-                            </Button>
                           </div>
                         </div>
                       </CardContent>
@@ -384,7 +422,7 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
             </TabsContent>
 
             <TabsContent value="suggestions" className="space-y-4">
-              {analysisResult.suggestions.length === 0 ? (
+              {currentReport.recommendations.length === 0 ? (
                 <Card>
                   <CardContent className="text-center py-12">
                     <TrendingUp className="h-12 w-12 text-blue-600 mx-auto mb-4" />
@@ -398,49 +436,40 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {analysisResult.suggestions.map((suggestion) => (
-                    <Card key={suggestion.id}>
+                  {currentReport.recommendations.map((recommendation) => (
+                    <Card key={recommendation.id}>
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <Badge variant="outline">{suggestion.type}</Badge>
+                              <Badge variant="outline">{recommendation.type}</Badge>
                               <Badge variant={
-                                suggestion.impact === 'high' ? 'destructive' :
-                                suggestion.impact === 'medium' ? 'secondary' : 'outline'
+                                recommendation.impact === 'high' ? 'destructive' :
+                                recommendation.impact === 'medium' ? 'secondary' : 'outline'
                               }>
-                                Impacto: {suggestion.impact === 'high' ? 'Alto' :
-                                         suggestion.impact === 'medium' ? 'Médio' : 'Baixo'}
+                                Impacto: {recommendation.impact === 'high' ? 'Alto' :
+                                         recommendation.impact === 'medium' ? 'Médio' : 'Baixo'}
                               </Badge>
                               <Badge variant="outline">
-                                Esforço: {suggestion.effort === 'high' ? 'Alto' :
-                                         suggestion.effort === 'medium' ? 'Médio' : 'Baixo'}
+                                Esforço: {recommendation.effort === 'high' ? 'Alto' :
+                                         recommendation.effort === 'medium' ? 'Médio' : 'Baixo'}
                               </Badge>
                             </div>
-                            <h4 className="font-semibold text-gray-900 mb-1">{suggestion.title}</h4>
-                            <p className="text-gray-600 text-sm">{suggestion.description}</p>
+                            <h4 className="font-semibold text-gray-900 mb-1">{recommendation.title}</h4>
+                            <p className="text-gray-600 text-sm">{recommendation.description}</p>
                           </div>
                           <div className="flex gap-2 ml-4">
-                            {suggestion.autoApplyAvailable && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleApplySuggestion(suggestion.id)}
-                                disabled={applyingSuggestion === suggestion.id}
-                              >
-                                {applyingSuggestion === suggestion.id ? (
-                                  <RefreshCw className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Zap className="h-4 w-4" />
-                                )}
-                                Aplicar
-                              </Button>
-                            )}
                             <Button
                               size="sm"
-                              variant="ghost"
-                              onClick={() => dismissSuggestion(suggestion.id)}
+                              onClick={() => handleApplySuggestion(recommendation.id)}
+                              disabled={applyingSuggestion === recommendation.id}
                             >
-                              Dispensar
+                              {applyingSuggestion === recommendation.id ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Zap className="h-4 w-4" />
+                              )}
+                              Aplicar
                             </Button>
                           </div>
                         </div>
@@ -453,50 +482,29 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
 
             <TabsContent value="requirements" className="space-y-4">
               <div className="space-y-4">
-                {analysisResult.requirements.map((reqStatus) => (
-                  <Card key={reqStatus.requirement.id}>
+                {Object.entries(currentReport.nrStandardsCompliance || {}).map(([standard, score]) => (
+                  <Card key={standard}>
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <Badge variant={
-                              reqStatus.status === 'met' ? 'default' :
-                              reqStatus.status === 'partial' ? 'secondary' : 'destructive'
+                              score >= 100 ? 'default' :
+                              score >= 50 ? 'secondary' : 'destructive'
                             }>
-                              {reqStatus.status === 'met' ? 'Atendido' :
-                               reqStatus.status === 'partial' ? 'Parcial' : 'Não Atendido'}
+                              {score >= 100 ? 'Atendido' :
+                               score >= 50 ? 'Parcial' : 'Não Atendido'}
                             </Badge>
-                            {reqStatus.requirement.mandatory && (
-                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                Obrigatório
-                              </Badge>
-                            )}
                           </div>
                           <h4 className="font-semibold text-gray-900 mb-1">
-                            {reqStatus.requirement.title}
+                            {standard}
                           </h4>
-                          <p className="text-gray-600 text-sm mb-3">
-                            {reqStatus.requirement.description}
-                          </p>
-                          <Progress value={reqStatus.progress} className="mb-2" />
+                          <Progress value={score} className="mb-2" />
                           <p className="text-xs text-gray-500">
-                            Progresso: {reqStatus.progress}%
+                            Conformidade: {score}%
                           </p>
                         </div>
                       </div>
-                      {reqStatus.issues.length > 0 && (
-                        <div className="border-t pt-4">
-                          <h5 className="text-sm font-medium text-gray-900 mb-2">Problemas:</h5>
-                          <ul className="text-sm text-gray-600 space-y-1">
-                            {reqStatus.issues.map((issue, index) => (
-                              <li key={index} className="flex items-center gap-2">
-                                <XCircle className="h-3 w-3 text-red-500 flex-shrink-0" />
-                                {issue}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 ))}

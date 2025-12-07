@@ -1,1 +1,0 @@
-{"timestamp":"2025-12-07T14:09:43.921Z","status":"warning","score":69,"health":{"redis":{"status":"healthy","score":100,"latency":2},"memory":{"status":"healthy","score":37.49,"usage":62.51}},"system":{"uptime":19.8239163,"nodeVersion":"v20.18.0","platform":"win32"}}

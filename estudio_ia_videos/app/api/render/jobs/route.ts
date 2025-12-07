@@ -178,10 +178,12 @@ export async function POST(request: NextRequest) {
 
     // Settings for queue
     const queueSettings = {
-      resolution: '1920x1080',
+      resolution: '1080p' as const,
       fps: 30,
-      quality: 'high',
-      format: 'mp4'
+      quality: 'high' as const,
+      format: 'mp4' as const,
+      includeAudio: true,
+      includeSubtitles: false
     }
 
     // Insert job
