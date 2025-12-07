@@ -91,14 +91,14 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
     'NR-36', 'NR-37', 'CUSTOM'
   ];
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | number | boolean | string[]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const handleContentChange = (field: string, value: any) => {
+  const handleContentChange = (field: string, value: unknown) => {
     setFormData(prev => ({
       ...prev,
       content: {
@@ -108,7 +108,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
     }));
   };
 
-  const handleSettingsChange = (field: string, value: any) => {
+  const handleSettingsChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({
       ...prev,
       content: {
@@ -152,7 +152,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
     handleContentChange('slides', formData.content.slides.filter(slide => slide.id !== slideId));
   };
 
-  const handleSlideChange = (slideId: string, field: string, value: any) => {
+  const handleSlideChange = (slideId: string, field: string, value: string | number | boolean) => {
     const updatedSlides = formData.content.slides.map(slide =>
       slide.id === slideId ? { ...slide, [field]: value } : slide
     );

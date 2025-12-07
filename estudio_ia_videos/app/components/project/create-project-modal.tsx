@@ -86,9 +86,10 @@ export default function CreateProjectModal({ open, onOpenChange }: CreateProject
       } else {
         throw new Error('Project ID not returned')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error processing PPTX:', error)
-      toast.error(error.message || 'Erro ao processar PPTX', { id: 'upload-pptx' })
+      const message = error instanceof Error ? error.message : 'Erro ao processar PPTX'
+      toast.error(message, { id: 'upload-pptx' })
       setLoading(false)
     }
   }
@@ -119,9 +120,10 @@ export default function CreateProjectModal({ open, onOpenChange }: CreateProject
       } else {
         throw new Error('Project ID not returned')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating project:', error)
-      toast.error(error.message || 'Erro ao criar projeto', { id: 'create-project' })
+      const message = error instanceof Error ? error.message : 'Erro ao criar projeto'
+      toast.error(message, { id: 'create-project' })
       setLoading(false)
     }
   }

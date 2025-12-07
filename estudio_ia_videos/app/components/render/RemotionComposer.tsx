@@ -49,14 +49,14 @@ interface RemotionComposition {
   fps: number;
   width: number;
   height: number;
-  props: any;
+  props: Record<string, unknown>;
 }
 
 interface RemotionSequence {
   from: number;
   durationInFrames: number;
   component: string;
-  props: any;
+  props: Record<string, unknown>;
 }
 
 interface GeneratedCode {

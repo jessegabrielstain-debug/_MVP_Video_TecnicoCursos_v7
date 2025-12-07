@@ -83,7 +83,7 @@ export default function CommentsPanel({
       
       const data = await response.json()
       setComments(data.comments || [])
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao carregar comentários:', error)
       toast.error('Erro ao carregar comentários')
     } finally {
@@ -111,7 +111,7 @@ export default function CommentsPanel({
       setComments([data.comment, ...comments])
       setNewComment('')
       toast.success('Comentário criado!')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao criar comentário:', error)
       toast.error('Erro ao criar comentário')
     }
@@ -135,7 +135,7 @@ export default function CommentsPanel({
       setReplyText('')
       setReplyingTo(null)
       toast.success('Resposta enviada!')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao responder:', error)
       toast.error('Erro ao responder comentário')
     }
@@ -153,7 +153,7 @@ export default function CommentsPanel({
 
       await loadComments()
       toast.success(resolve ? 'Comentário resolvido!' : 'Comentário reaberto!')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao resolver:', error)
       toast.error('Erro ao atualizar comentário')
     }
@@ -170,7 +170,7 @@ export default function CommentsPanel({
       if (!response.ok) throw new Error('Erro ao adicionar reação')
 
       await loadComments()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao adicionar reação:', error)
       toast.error('Erro ao adicionar reação')
     }
@@ -188,7 +188,7 @@ export default function CommentsPanel({
 
       await loadComments()
       toast.success('Comentário deletado!')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao deletar:', error)
       toast.error('Erro ao deletar comentário')
     }

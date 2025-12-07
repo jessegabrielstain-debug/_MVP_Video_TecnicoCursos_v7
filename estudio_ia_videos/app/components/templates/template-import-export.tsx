@@ -27,12 +27,24 @@ import {
 } from 'lucide-react';
 import { Template } from '@/types/templates';
 
+/** Dados exportados em diferentes formatos */
+type ExportData = string;
+
+/** Resultado de validação de template */
+interface ValidationResult {
+  index: number;
+  template: Template;
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
 interface TemplateImportExportProps {
   mode: 'import' | 'export';
   template?: Template;
   onClose: () => void;
   onImport?: (templates: Template[]) => void;
-  onExport?: (format: string, data: any) => void;
+  onExport?: (format: string, data: ExportData) => void;
 }
 
 export const TemplateImportExport: React.FC<TemplateImportExportProps> = ({
@@ -48,7 +60,7 @@ export const TemplateImportExport: React.FC<TemplateImportExportProps> = ({
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
-  const [validationResults, setValidationResults] = useState<any[]>([]);
+  const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const exportFormats = [
@@ -132,7 +144,7 @@ export const TemplateImportExport: React.FC<TemplateImportExportProps> = ({
     setMessage('Importação ZIP ainda não implementada');
   };
 
-  const validateTemplates = (templates: any[]) => {
+  const validateTemplates = (templates: Partial<Template>[]) => {
     const results = templates.map((template, index) => {
       const errors = [];
       const warnings = [];
@@ -204,7 +216,7 @@ export const TemplateImportExport: React.FC<TemplateImportExportProps> = ({
   };
 
   const completeExport = () => {
-    let exportData: any;
+    let exportData: ExportData = '';
     let filename = '';
 
     switch (exportFormat) {
@@ -239,20 +251,20 @@ export const TemplateImportExport: React.FC<TemplateImportExportProps> = ({
     onExport?.(exportFormat, exportData);
   };
 
-  const convertToXml = (template: any) => {
+  const convertToXml = (tpl: Template | undefined): string => {
     // Implementação simplificada
     return `<?xml version="1.0" encoding="UTF-8"?>
 <template>
-  <name>${template?.name || ''}</name>
-  <description>${template?.description || ''}</description>
-  <category>${template?.category || ''}</category>
+  <name>${tpl?.name || ''}</name>
+  <description>${tpl?.description || ''}</description>
+  <category>${tpl?.category || ''}</category>
 </template>`;
   };
 
-  const createZipPackage = (template: any) => {
+  const createZipPackage = (tpl: Template | undefined): string => {
     // Implementação simplificada - retorna JSON por enquanto
     return JSON.stringify({
-      template,
+      template: tpl,
       assets: [],
       metadata: {
         exportedAt: new Date().toISOString(),
@@ -261,8 +273,8 @@ export const TemplateImportExport: React.FC<TemplateImportExportProps> = ({
     }, null, 2);
   };
 
-  const generateShareUrl = (template: any) => {
-    const encoded = btoa(JSON.stringify(template));
+  const generateShareUrl = (tpl: Template | undefined): string => {
+    const encoded = btoa(JSON.stringify(tpl));
     return `${window.location.origin}/templates/shared?data=${encoded}`;
   };
 

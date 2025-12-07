@@ -34,10 +34,21 @@ import {
 } from 'lucide-react';
 import { useHybridRendering, HybridRenderSettings } from '@/hooks/useHybridRendering';
 
+interface TimelineData {
+  duration: number;
+  tracks: Array<{ id: string; type: string; elements: unknown[] }>;
+}
+
+interface AssetData {
+  images: Array<{ id: string; url: string }>;
+  audio: Array<{ id: string; url: string }>;
+  video: Array<{ id: string; url: string }>;
+}
+
 interface HybridRenderPanelProps {
   projectId: string;
-  timeline: any;
-  assets: any;
+  timeline: TimelineData;
+  assets: AssetData;
   onRenderComplete?: (outputUrl: string) => void;
 }
 

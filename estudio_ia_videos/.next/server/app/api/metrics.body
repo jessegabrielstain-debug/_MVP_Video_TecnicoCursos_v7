@@ -1,6 +1,6 @@
 # HELP app_uptime_seconds Application uptime in seconds
 # TYPE app_uptime_seconds gauge
-app_uptime_seconds 21
+app_uptime_seconds 18
 # HELP app_build_info Build info
 # TYPE app_build_info gauge
 app_build_info{version="unknown"} 1

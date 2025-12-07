@@ -34,11 +34,17 @@ import {
   Layers
 } from 'lucide-react'
 
+interface TimelineExportData {
+  tracks: TimelineTrack[];
+  duration: number;
+  fps: number;
+}
+
 interface AdvancedTimelineKeyframesProps {
   projectId?: string
-  initialData?: any
-  onSave?: (timelineData: any) => void
-  onRender?: (timelineData: any) => void
+  initialData?: TimelineExportData
+  onSave?: (timelineData: TimelineExportData) => void
+  onRender?: (timelineData: TimelineExportData) => void
 }
 
 export default function AdvancedTimelineKeyframes({

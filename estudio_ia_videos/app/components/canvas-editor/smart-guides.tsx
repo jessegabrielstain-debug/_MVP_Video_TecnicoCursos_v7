@@ -10,8 +10,27 @@ interface Guide {
   color: string
 }
 
+/** Interface para objeto Fabric.js */
+interface FabricObject {
+  id?: string;
+  name?: string;
+  getBoundingRect: () => { left: number; top: number; width: number; height: number };
+  set: (props: Record<string, number>) => void;
+  render: (ctx: CanvasRenderingContext2D) => void;
+}
+
+/** Interface para Canvas Fabric.js */
+interface FabricCanvas {
+  getObjects: () => FabricObject[];
+  add: (obj: unknown) => void;
+  remove: (obj: unknown) => void;
+  renderAll: () => void;
+  on: (event: string, handler: (e: { target: FabricObject }) => void) => void;
+  off: (event: string, handler: (e: { target: FabricObject }) => void) => void;
+}
+
 interface SmartGuidesProps {
-  canvas: any;
+  canvas: FabricCanvas | null;
   enabled: boolean;
   snapDistance: number;
 }
@@ -23,15 +42,15 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
   useEffect(() => {
     if (!canvas || !enabled) return
     
-    const handleObjectMoving = (e: { target: any }) => {
+    const handleObjectMoving = (e: { target: FabricObject }) => {
       const movingObject = e.target
       if (!movingObject) return
       
       const guides: Guide[] = []
-      const objects = canvas.getObjects().filter((obj: any) => obj !== movingObject)
+      const objects = canvas.getObjects().filter((obj) => obj !== movingObject)
       
       // Calcular guides horizontais e verticais
-      objects.forEach((obj: any) => {
+      objects.forEach((obj) => {
         const objBounds = obj.getBoundingRect()
         const movingBounds = movingObject.getBoundingRect()
         
@@ -152,8 +171,8 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
     const clearGuides = () => {
       try {
         if (canvas.getObjects) {
-          const guides = canvas.getObjects().filter((obj: any) => obj.name === 'smart-guide')
-          guides.forEach((guide: any) => {
+          const guides = canvas.getObjects().filter((obj) => obj.name === 'smart-guide')
+          guides.forEach((guide) => {
             if (canvas.remove) {
               canvas.remove(guide)
             }
@@ -182,7 +201,7 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
 }
 
 // Hook para usar smart guides
-export function useSmartGuides(canvas: any) {
+export function useSmartGuides(canvas: FabricCanvas | null) {
   const [enabled, setEnabled] = useState(true)
   const [snapDistance, setSnapDistance] = useState(5)
   

@@ -26,12 +26,24 @@ interface CacheStats {
   entryCount: number
 }
 
+/** Interface para objeto Fabric.js */
+interface FabricObject {
+  id?: string;
+  getBoundingRect: () => { left: number; top: number; width: number; height: number };
+  render: (ctx: CanvasRenderingContext2D) => void;
+}
+
+/** Interface para Canvas Fabric.js */
+interface FabricCanvas {
+  getObjects: () => FabricObject[];
+}
+
 interface UseCanvasCacheReturn {
-  cacheObject: (objectId: string, canvas: any) => void
+  cacheObject: (objectId: string, canvas: FabricCanvas) => void
   renderFromCache: (objectId: string) => ImageData | string | null
   clearCache: () => void
   getCacheStats: () => CacheStats
-  preloadObjects: (objects: any[]) => void
+  preloadObjects: (objects: FabricObject[]) => void
 }
 
 export function useCanvasCache(maxCacheSize: number = 50 * 1024 * 1024): UseCanvasCacheReturn {
@@ -70,11 +82,11 @@ export function useCanvasCache(maxCacheSize: number = 50 * 1024 * 1024): UseCanv
     }
   }, [])
 
-  const cacheObject = useCallback((objectId: string, canvas: any) => {
+  const cacheObject = useCallback((objectId: string, canvas: FabricCanvas) => {
     if (!canvas || !objectId) return
     
     try {
-      const obj = canvas.getObjects().find((o: any) => o.id === objectId)
+      const obj = canvas.getObjects().find((o) => o.id === objectId)
       if (!obj) return
       
       // Get object bounds for caching

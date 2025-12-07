@@ -5,14 +5,19 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 
+/** Tipos de seleção de data */
+type DateSelection = Date | Date[] | { from: Date; to: Date } | undefined;
+
+/** Mapa de classes CSS customizadas */
+type ClassNamesMap = Record<string, string>;
+
 export type CalendarProps = React.HTMLAttributes<HTMLDivElement> & {
   mode?: 'single' | 'multiple' | 'range';
-  selected?: Date | Date[] | { from: Date; to: Date } | undefined;
-  onSelect?: (date: any) => void;
+  selected?: DateSelection;
+  onSelect?: (date: DateSelection) => void;
   className?: string;
-  classNames?: any;
+  classNames?: ClassNamesMap;
   showOutsideDays?: boolean;
-  [key: string]: any;
 };
 
 function Calendar({

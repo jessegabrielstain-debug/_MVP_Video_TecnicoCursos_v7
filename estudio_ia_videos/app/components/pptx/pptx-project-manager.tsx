@@ -29,14 +29,54 @@ import {
 } from 'lucide-react'
 import { useToast } from '../ui/use-toast'
 
+/** Slide processado do PPTX */
+interface PPTXSlide {
+  slideNumber: number;
+  title?: string;
+  content?: string;
+  notes?: string;
+  background?: string;
+  elements?: unknown[];
+}
+
+/** Configuração de narração */
+interface NarrationConfig {
+  slideNumber: number;
+  text: string;
+  duration?: number;
+}
+
+/** Configuração de voz TTS */
+interface VoiceConfig {
+  voiceId?: string;
+  provider?: string;
+  speed?: number;
+  pitch?: number;
+}
+
+/** Configuração de avatar */
+interface AvatarConfig {
+  avatarId?: string;
+  provider?: string;
+  position?: string;
+}
+
+/** Metadados do projeto */
+interface ProjectMetadata {
+  createdAt?: Date;
+  updatedAt?: Date;
+  version?: string;
+  source?: string;
+}
+
 interface PPTXProjectData {
   title: string
   description: string
-  slides: any[]
-  narration: any[]
-  voiceConfig: any
-  avatarConfig: any
-  metadata: any
+  slides: PPTXSlide[]
+  narration: NarrationConfig[]
+  voiceConfig: VoiceConfig
+  avatarConfig: AvatarConfig
+  metadata: ProjectMetadata
 }
 
 interface PPTXProjectManagerProps {
@@ -86,7 +126,7 @@ export function PPTXProjectManager({ onProjectReady, onBack }: PPTXProjectManage
   }
 
   // Handle slide updates
-  const handleSlideUpdate = (slideId: string, updates: any) => {
+  const handleSlideUpdate = (slideId: string, updates: Partial<PPTXSlide>) => {
     if (!projectData) return
 
     setProjectData(prev => ({
