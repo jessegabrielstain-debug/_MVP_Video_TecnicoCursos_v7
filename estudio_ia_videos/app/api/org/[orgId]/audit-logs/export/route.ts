@@ -9,7 +9,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getOrgContext, hasPermission } from '@/lib/multi-tenancy/org-context';
 import { getAuditLogs } from '@/lib/billing/audit-logger';
-// @ts-expect-error - json2csv não tem tipos disponíveis
 import { Parser } from 'json2csv';
 
 export async function GET(

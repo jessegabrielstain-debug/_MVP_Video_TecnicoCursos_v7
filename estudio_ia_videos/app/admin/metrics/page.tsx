@@ -52,9 +52,9 @@ export default async function MetricsPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{render.basic.total_jobs}</div>
+            <div className="text-2xl font-bold">{render.basic.total_renders}</div>
             <p className="text-xs text-muted-foreground">
-              {render.basic.completed_jobs} concluídos
+              {render.basic.successful_renders} concluídos
             </p>
           </CardContent>
         </Card>
@@ -66,10 +66,10 @@ export default async function MetricsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(render.basic.success_rate * 100).toFixed(1)}%
+              {render.basic.success_rate.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground">
-              {render.basic.failed_jobs} falhas registradas
+              {render.basic.failed_renders} falhas registradas
             </p>
           </CardContent>
         </Card>
@@ -81,10 +81,10 @@ export default async function MetricsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatDuration(render.performance.avg_render_time_ms)}
+              {formatDuration(render.basic.avg_render_time * 1000)}
             </div>
             <p className="text-xs text-muted-foreground">
-              P95: {formatDuration(render.performance.p95_render_time_ms)}
+              P95: {formatDuration((render.performance.p95_render_time ?? 0) * 1000)}
             </p>
           </CardContent>
         </Card>
@@ -95,9 +95,9 @@ export default async function MetricsPage() {
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{render.queue.pending}</div>
+            <div className="text-2xl font-bold">{render.queue.current_queue_length}</div>
             <p className="text-xs text-muted-foreground">
-              {render.queue.processing} processando agora
+              {render.queue.processing_jobs} processando agora
             </p>
           </CardContent>
         </Card>
@@ -114,35 +114,39 @@ export default async function MetricsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {Object.entries(render.errors).length === 0 ? (
+              {render.errors.length === 0 ? (
                 <div className="flex items-center justify-center h-32 text-muted-foreground">
                   Nenhum erro registrado no período.
                 </div>
               ) : (
-                Object.entries(render.errors)
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([category, count]) => (
-                    <div key={category} className="flex items-center">
-                      <div className="w-full space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium capitalize">
-                            {category}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {count} ({((count / render.basic.failed_jobs) * 100).toFixed(0)}%)
-                          </span>
-                        </div>
-                        <div className="h-2 w-full rounded-full bg-secondary">
-                          <div
-                            className="h-2 rounded-full bg-destructive"
-                            style={{
-                              width: `${(count / render.basic.failed_jobs) * 100}%`,
-                            }}
-                          />
+                render.errors
+                  .sort((a, b) => b.count - a.count)
+                  .map((error) => {
+                    const totalFailed = render.basic.failed_renders || 1;
+                    const percentage = (error.count / totalFailed) * 100;
+                    return (
+                      <div key={error.category} className="flex items-center">
+                        <div className="w-full space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium capitalize">
+                              {error.category}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {error.count} ({percentage.toFixed(0)}%)
+                            </span>
+                          </div>
+                          <div className="h-2 w-full rounded-full bg-secondary">
+                            <div
+                              className="h-2 rounded-full bg-destructive"
+                              style={{
+                                width: `${percentage}%`,
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
               )}
             </div>
           </CardContent>
