@@ -1,0 +1,1 @@
+{"timestamp":"2025-12-07T13:42:40.406Z","redis":{"health":{"healthy":true,"latency":2,"timestamp":"2025-12-07T13:42:40.404Z"},"metrics":{"connected":true,"keys":0,"expired":0},"status":"healthy"}}
