@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2025-12-07T13:25:22.960Z",
-  "totalFilesScanned": 1563,
-  "totalFindings": 1496,
+  "generatedAt": "2025-12-07T13:31:26.016Z",
+  "totalFilesScanned": 1562,
+  "totalFindings": 1495,
   "anyCount": 1494,
-  "tsNoCheckCount": 2,
+  "tsNoCheckCount": 1,
   "findings": [
     {
       "file": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\.venv\\Lib\\site-packages\\playwright\\driver\\package\\types\\protocol.d.ts",
@@ -8542,12 +8542,6 @@
       "line": 153,
       "snippet": "slide4.addTable(tableData as any, {",
       "type": "any"
-    },
-    {
-      "file": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\estudio_ia_videos\\app\\scripts\\initialize-unified-system.ts",
-      "line": 1,
-      "snippet": "// @ts-nocheck",
-      "type": "ts-nocheck"
     },
     {
       "file": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\estudio_ia_videos\\app\\src\\components\\AvatarLibrary.tsx",
