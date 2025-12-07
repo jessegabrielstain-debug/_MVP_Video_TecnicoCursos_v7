@@ -8,16 +8,46 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Upload, FileText, X, CheckCircle, AlertCircle, Loader2, Sparkles, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { Logger } from '@/lib/logger';
+
+const logger = new Logger('PPTXUpload');
 
 const MAX_FILE_SIZE_MB = 50;
 
-interface ProcessingResult {
+/**
+ * Resultado do processamento PPTX
+ */
+export interface ProcessingResult {
   projectId?: string;
   slidesCount?: number;
   estimatedDuration?: number;
+  /** Dados completos retornados pela API */
+  rawData?: Record<string, unknown>;
 }
 
-export default function PPTXUploadComponent() {
+/**
+ * Props do componente PPTXUploadComponent
+ */
+export interface PPTXUploadComponentProps {
+  /** Callback chamado quando o processamento é concluído com sucesso */
+  onProcessComplete?: (result: ProcessingResult) => void;
+  /** Callback chamado quando o usuário cancela */
+  onCancel?: () => void;
+  /** Se true, não redireciona automaticamente para o editor */
+  disableAutoRedirect?: boolean;
+  /** Tamanho máximo do arquivo em MB (padrão: 50) */
+  maxFileSizeMB?: number;
+  /** Classes CSS adicionais */
+  className?: string;
+}
+
+export default function PPTXUploadComponent({
+  onProcessComplete,
+  onCancel,
+  disableAutoRedirect = false,
+  maxFileSizeMB = MAX_FILE_SIZE_MB,
+  className
+}: PPTXUploadComponentProps = {}) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -33,12 +63,12 @@ export default function PPTXUploadComponent() {
 
   const isValidSize = useCallback((targetFile: File) => {
     const sizeInMb = targetFile.size / (1024 * 1024);
-    if (sizeInMb > MAX_FILE_SIZE_MB) {
-      toast.error(`Arquivo excede o limite de ${MAX_FILE_SIZE_MB}MB`);
+    if (sizeInMb > maxFileSizeMB) {
+      toast.error(`Arquivo excede o limite de ${maxFileSizeMB}MB`);
       return false;
     }
     return true;
-  }, []);
+  }, [maxFileSizeMB]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -73,7 +103,7 @@ export default function PPTXUploadComponent() {
 
     if (!isValidSize(file)) {
       setStatus('error');
-      setErrorMessage(`Arquivo excede o limite de ${MAX_FILE_SIZE_MB}MB`);
+      setErrorMessage(`Arquivo excede o limite de ${maxFileSizeMB}MB`);
       return;
     }
 
@@ -121,22 +151,31 @@ export default function PPTXUploadComponent() {
       
       setProgress(100);
       setStatus('success');
-      setProcessingResult({
+      
+      const processedResult: ProcessingResult = {
         projectId: result.projectId || result.data?.projectId,
         slidesCount: result.slidesCount || result.data?.slidesCount,
-        estimatedDuration: result.estimatedDuration || result.data?.estimatedDuration
-      });
+        estimatedDuration: result.estimatedDuration || result.data?.estimatedDuration,
+        rawData: result
+      };
+      
+      setProcessingResult(processedResult);
+      
+      // Chama callback se fornecido
+      if (onProcessComplete) {
+        onProcessComplete(processedResult);
+      }
       
       toast.success('Arquivo processado com sucesso!', {
         description: `${result.slidesCount || 0} slides extraídos`,
-        action: result.projectId ? {
+        action: (!disableAutoRedirect && result.projectId) ? {
           label: 'Abrir Editor',
           onClick: () => router.push(`/editor/pptx?project=${result.projectId}`)
         } : undefined
       });
 
     } catch (error) {
-      console.error('[PPTX Upload] Error:', error);
+      logger.error('Upload failed', error instanceof Error ? error : new Error(String(error)), { fileName: file?.name });
       setStatus('error');
       setErrorMessage(error instanceof Error ? error.message : 'Erro desconhecido no processamento');
       toast.error('Erro ao processar arquivo', {
@@ -155,6 +194,13 @@ export default function PPTXUploadComponent() {
     setProcessingResult(null);
   };
 
+  const handleCancel = () => {
+    removeFile();
+    if (onCancel) {
+      onCancel();
+    }
+  };
+
   const goToEditor = () => {
     if (processingResult?.projectId) {
       router.push(`/editor/pptx?project=${processingResult.projectId}`);
@@ -162,7 +208,7 @@ export default function PPTXUploadComponent() {
   };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto border-2 border-dashed border-gray-200 bg-gray-50/50 transition-all duration-300 hover:border-blue-300">
+    <Card className={`w-full max-w-3xl mx-auto border-2 border-dashed border-gray-200 bg-gray-50/50 transition-all duration-300 hover:border-blue-300 ${className || ''}`}>
       <CardContent className="p-8">
         {!file ? (
           <div
@@ -182,7 +228,7 @@ export default function PPTXUploadComponent() {
             </p>
             <div className="flex items-center gap-2 text-xs text-gray-400 bg-white px-3 py-1 rounded-full border">
               <FileText className="h-3 w-3" />
-              Suporta apenas arquivos .pptx até {MAX_FILE_SIZE_MB}MB
+              Suporta apenas arquivos .pptx até {maxFileSizeMB}MB
             </div>
           </div>
         ) : (
@@ -268,7 +314,7 @@ export default function PPTXUploadComponent() {
               <div className="flex justify-end gap-3">
                 <Button 
                   variant="outline" 
-                  onClick={removeFile} 
+                  onClick={handleCancel} 
                   disabled={uploading || status === 'processing'}
                 >
                   Cancelar

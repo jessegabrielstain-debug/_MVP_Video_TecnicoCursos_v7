@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ProductionPPTXUpload from '@/components/pptx/production-pptx-upload';
+import PPTXUploadComponent, { ProcessingResult } from '@/components/pptx/PPTXUploadComponent';
 import { AnimakerEditorV2 as AnimakerEditor } from '@/components/editor/animaker-editor-v2';
 import { 
   Upload, 
@@ -41,16 +41,16 @@ const ProductionPPTXPage: React.FC = () => {
   const [projects, setProjects] = useState<ProjectData[]>([]);
 
   // Handler para upload concluído
-  const handleUploadComplete = (processedData: any) => {
+  const handleUploadComplete = (processedData: ProcessingResult) => {
     const newProject: ProjectData = {
-      id: processedData.projectInfo.id,
-      name: processedData.projectInfo.name,
-      slides: processedData.slides.length,
-      assets: processedData.assets.length,
-      duration: processedData.timeline.totalDuration,
-      compliance: processedData.compliance?.nrType,
+      id: processedData.projectId || `proj-${Date.now()}`,
+      name: `Projeto ${projects.length + 1}`,
+      slides: processedData.slidesCount || 0,
+      assets: 0, // Será atualizado após carregar do banco
+      duration: processedData.estimatedDuration || 0,
+      compliance: undefined,
       status: 'ready',
-      createdAt: processedData.projectInfo.createdAt,
+      createdAt: new Date().toISOString(),
       lastModified: new Date().toISOString()
     };
 
@@ -246,10 +246,10 @@ const ProductionPPTXPage: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ProductionPPTXUpload
-                onUploadComplete={handleUploadComplete}
-                maxFileSize={100} // 100MB
-                maxFiles={5}
+              <PPTXUploadComponent
+                onProcessComplete={handleUploadComplete}
+                maxFileSizeMB={100}
+                disableAutoRedirect
               />
             </CardContent>
           </Card>

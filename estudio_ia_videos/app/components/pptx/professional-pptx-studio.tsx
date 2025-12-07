@@ -32,7 +32,7 @@ import {
 import { useSearchParams } from 'next/navigation'
 
 // Import components
-import { EnhancedPPTXUpload, ProcessedResult } from './enhanced-pptx-upload'
+import PPTXUploadComponent, { ProcessingResult } from './PPTXUploadComponent'
 import { FabricCanvasEditor } from './fabric-canvas-editor'
 import ProfessionalTimelineEditor from '../timeline/professional-timeline-editor'
 import { ElevenLabsVoiceSelector } from '../tts/elevenlabs-voice-selector'
@@ -191,7 +191,7 @@ export function ProfessionalPPTXStudio() {
   }
   
   // Handle upload completion
-  const handleUploadComplete = (uploadResult: ProcessedResult) => {
+  const handleUploadComplete = (uploadResult: ProcessingResult) => {
     addLog(`✅ Upload concluído: Projeto ${uploadResult.projectId}`)
     
     setProjectState(prev => ({
@@ -205,7 +205,8 @@ export function ProfessionalPPTXStudio() {
     
     // Reload project data to get fresh database info
     if (uploadResult.projectId) {
-      setTimeout(() => loadProjectData(uploadResult.projectId), 1000)
+      const projectIdToLoad = uploadResult.projectId
+      setTimeout(() => loadProjectData(projectIdToLoad), 1000)
     }
   }
   
@@ -412,8 +413,9 @@ export function ProfessionalPPTXStudio() {
           </TabsList>
 
           <TabsContent value="upload" className="space-y-6">
-            <EnhancedPPTXUpload 
+            <PPTXUploadComponent 
               onProcessComplete={handleUploadComplete}
+              disableAutoRedirect
             />
           </TabsContent>
 
