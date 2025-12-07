@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { fabric } from 'fabric'
+import * as fabric from 'fabric'
 
 type CanvasEditorProps = {
   slide: any
@@ -28,7 +28,7 @@ export function CanvasEditor({ slide, onChange }: CanvasEditorProps) {
       }
     })
     canvas.on('object:modified', () => {
-      const objs = canvas.getObjects().map(o => ({ type: o.type, left: o.left, top: o.top, angle: (o as any).angle, text: (o as any).text }))
+      const objs = canvas.getObjects().map((o: any) => ({ type: o.type, left: o.left, top: o.top, angle: (o as any).angle, text: (o as any).text }))
       onChange({ elements: objs })
     })
     return () => {

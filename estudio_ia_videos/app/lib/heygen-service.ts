@@ -114,7 +114,7 @@ export class HeyGenService {
   async generateVideo(request: HeyGenVideoRequest): Promise<string> {
     console.log('🎬 Starting HeyGen video generation...');
     
-    const data = await this.request('video/generate', 'POST', request);
+    const data = await this.request('video/generate', 'POST', request as unknown as Record<string, unknown>);
     
     if (!data.data || !data.data.video_id) {
       throw new Error('Failed to get video_id from HeyGen response');

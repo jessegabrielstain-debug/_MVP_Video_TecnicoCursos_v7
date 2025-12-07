@@ -79,7 +79,7 @@ test.describe('Jornada do Usuário Real', () => {
     // Navegar para dashboard
     await page.goto('/dashboard')
     await page.waitForLoadState('networkidle')
-    expect(page.url()).toContain('dashboard') || expect(page.url()).toContain('login')
+    expect(page.url()).toMatch(/dashboard|login/)
     
     // Navegar para PPTX
     await page.goto('/pptx')

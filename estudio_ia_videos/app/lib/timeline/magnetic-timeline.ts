@@ -367,7 +367,7 @@ export class MagneticTimelineEngine {
 
     this.state = {
       ...this.state,
-      magneticZones: [...this.state.magneticZones, zone]
+      magneticZones: [...(this.state.magneticZones || []), zone]
     };
 
     return this.state;
@@ -379,7 +379,7 @@ export class MagneticTimelineEngine {
   removeMagneticZone(zoneId: string): TimelineState {
     this.state = {
       ...this.state,
-      magneticZones: this.state.magneticZones.filter(z => z.id !== zoneId)
+      magneticZones: (this.state.magneticZones || []).filter(z => z.id !== zoneId)
     };
 
     return this.state;

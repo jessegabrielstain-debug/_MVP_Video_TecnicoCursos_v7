@@ -65,7 +65,7 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
           guides.push({
             type: 'vertical',
             position: objBounds.left,
-            objects: [obj.id, movingObject.id],
+            objects: [obj.id || '', movingObject.id || ''],
             color: '#ff6b6b'
           })
           movingObject.set({ left: objBounds.left })
@@ -74,7 +74,7 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
           guides.push({
             type: 'vertical',
             position: objBounds.left + objBounds.width/2,
-            objects: [obj.id, movingObject.id],
+            objects: [obj.id || '', movingObject.id || ''],
             color: '#4ecdc4'
           })
           movingObject.set({ left: centerX })
@@ -83,7 +83,7 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
           guides.push({
             type: 'vertical',
             position: objBounds.left + objBounds.width,
-            objects: [obj.id, movingObject.id],
+            objects: [obj.id || '', movingObject.id || ''],
             color: '#45b7d1'
           })
           movingObject.set({ left: rightX })
@@ -98,7 +98,7 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
           guides.push({
             type: 'horizontal',
             position: objBounds.top,
-            objects: [obj.id, movingObject.id],
+            objects: [obj.id || '', movingObject.id || ''],
             color: '#ff6b6b'
           })
           movingObject.set({ top: objBounds.top })
@@ -107,7 +107,7 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
           guides.push({
             type: 'horizontal',
             position: objBounds.top + objBounds.height/2,
-            objects: [obj.id, movingObject.id],
+            objects: [obj.id || '', movingObject.id || ''],
             color: '#4ecdc4'
           })
           movingObject.set({ top: centerY })
@@ -116,7 +116,7 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
           guides.push({
             type: 'horizontal',
             position: objBounds.top + objBounds.height,
-            objects: [obj.id, movingObject.id],
+            objects: [obj.id || '', movingObject.id || ''],
             color: '#45b7d1'
           })
           movingObject.set({ top: bottomY })

@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs/promises';
+// @ts-ignore
 import { createWorker } from 'tesseract.js';
 
 const execAsync = promisify(exec);
@@ -127,7 +128,7 @@ export class TranscriptionService {
       return transcription;
     } catch (error) {
       console.error('Transcription error:', error);
-      throw new Error(`Failed to transcribe audio: ${error.message}`);
+      throw new Error(`Failed to transcribe audio: ${(error as Error).message}`);
     }
   }
 
@@ -406,7 +407,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
       };
     } catch (error) {
       console.error('Translation error:', error);
-      throw new Error(`Failed to translate transcription: ${error.message}`);
+      throw new Error(`Failed to translate transcription: ${(error as Error).message}`);
     }
   }
 

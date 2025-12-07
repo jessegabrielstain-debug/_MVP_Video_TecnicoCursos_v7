@@ -41,7 +41,7 @@ export class QueueManager extends EventEmitter {
         ...config,
       };
     }
-    this.redis = new Redis(this.config.redisUrl);
+    this.redis = new Redis(this.config.redisUrl || 'redis://localhost:6379');
     this.startProcessingLoop();
   }
 
@@ -181,7 +181,7 @@ export class QueueManager extends EventEmitter {
 
       job.status = 'completed';
       job.completedAt = new Date();
-      job.result = result;
+      job.result = result as any;
       this.emit('job:completed', job);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

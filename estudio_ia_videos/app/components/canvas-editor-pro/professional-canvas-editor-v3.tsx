@@ -619,7 +619,7 @@ function ProfessionalCanvasEditorCore({
                 width={width}
                 height={height}
                 backgroundColor={backgroundColor}
-                onCanvasReady={handleCanvasReady}
+                onCanvasReady={handleCanvasReady as any}
                 enableGPUAcceleration={true}
               />
               

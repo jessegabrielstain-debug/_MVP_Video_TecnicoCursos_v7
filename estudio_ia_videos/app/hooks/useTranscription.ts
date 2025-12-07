@@ -50,11 +50,12 @@ export const useTranscription = (options: UseTranscriptionOptions = {}) => {
     audioPath: string,
     onProgress?: (progress: number) => void
   ): Promise<TranscriptionResult | null> => {
+    let progressInterval: NodeJS.Timeout | undefined;
     try {
       setState(prev => ({ ...prev, isTranscribing: true, progress: 0, error: null }));
 
       // Simulate progress updates
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setState(prev => {
           const newProgress = Math.min(prev.progress + 10, 90);
           onProgress?.(newProgress);

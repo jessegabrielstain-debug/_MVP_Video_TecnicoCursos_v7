@@ -259,8 +259,8 @@ export const MagneticTimelinePanel: React.FC<MagneticTimelinePanelProps> = ({
               id="audio-upload"
             />
             <label htmlFor="audio-upload">
-              <Button variant="outline" as="span">
-                Escolher Áudio
+              <Button variant="outline" asChild>
+                <span>Escolher Áudio</span>
               </Button>
             </label>
             

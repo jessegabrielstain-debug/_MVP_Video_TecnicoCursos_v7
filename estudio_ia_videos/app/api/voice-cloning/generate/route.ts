@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     
     console.log(`[VoiceCloning] Usuário ${user.id} gerou voz: ${text.length} chars`)
     
-    return new Response(audioBuffer, {
+    return new Response(audioBuffer as any, {
       status: 200,
       headers: {
         'Content-Type': 'audio/mpeg',

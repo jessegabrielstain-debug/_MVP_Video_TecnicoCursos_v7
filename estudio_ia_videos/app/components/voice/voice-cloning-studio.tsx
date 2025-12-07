@@ -199,11 +199,7 @@ export default function VoiceCloningStudio() {
           speed: 1.0,
           pitch_adjustment: 0
         },
-        output_format: {
-          format: 'mp3',
-          sample_rate: 44100,
-          bit_depth: 16
-        }
+        output_format: 'mp3'
       })
 
       setSynthesizedAudio(synthesis.audio_url)

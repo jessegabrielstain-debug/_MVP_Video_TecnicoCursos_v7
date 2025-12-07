@@ -129,7 +129,7 @@ export class IntegratedPipeline {
         currentData = await stage.execute(currentData) as PipelineInput;
       }
       
-      job.output = currentData || {
+      job.output = (currentData as unknown as Record<string, unknown>) || {
         audio_url: 'mock_audio.mp3',
         video_url: 'mock_video.mp4',
         thumbnail_url: 'mock_thumb.jpg',

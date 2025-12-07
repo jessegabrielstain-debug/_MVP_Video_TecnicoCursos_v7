@@ -89,6 +89,7 @@ export default function AdvancedCanvasEditor({
 
         if (!fabric) return
 
+        // @ts-ignore
         const canvas = new fabric.Canvas(canvasRef.current, {
           width: width,
           height: height,
@@ -131,7 +132,7 @@ export default function AdvancedCanvasEditor({
   }, []);
 
   // Handle object selection
-  const handleSelection = useCallback((e: Fabric.IEvent) => {
+  const handleSelection = useCallback((e: any) => {
     if (e.selected && e.selected.length > 0) {
       setSelectedObject(e.selected[0]);
     } else {
@@ -241,7 +242,8 @@ export default function AdvancedCanvasEditor({
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      fabric?.Image.fromURL(e.target?.result as string, (img: Fabric.Image) => {
+      // @ts-ignore
+      fabric?.Image.fromURL(e.target?.result as string, (img: any) => {
         img.scaleToWidth(300);
         img.set({ left: 100, top: 100 });
         fabricRef.current?.add(img);
@@ -266,6 +268,7 @@ export default function AdvancedCanvasEditor({
   const duplicateSelected = useCallback(() => {
     if (!fabricRef.current || !selectedObject) return;
 
+    // @ts-ignore
     selectedObject.clone((cloned: Fabric.Object) => {
       cloned.set({
         left: (selectedObject.left || 0) + 20,

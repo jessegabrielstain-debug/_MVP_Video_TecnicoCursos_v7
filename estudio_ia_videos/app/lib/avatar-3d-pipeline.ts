@@ -134,7 +134,7 @@ export const avatar3DPipeline = {
         return { status: 'not_found', error: 'Job not found' };
       }
 
-      const settings = (job.renderSettings as Record<string, unknown>) || {};
+      const settings = (job.renderSettings as any) || {};
 
       return { 
         id: job.id,

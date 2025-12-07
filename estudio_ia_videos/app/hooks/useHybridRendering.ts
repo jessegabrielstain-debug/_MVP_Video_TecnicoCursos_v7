@@ -223,7 +223,7 @@ export function useHybridRendering(): UseHybridRenderingReturn {
               toast({
                 title: 'Renderização concluída',
                 description: 'Seu vídeo de alta qualidade está pronto!',
-                variant: 'success',
+                variant: 'default',
               });
               break;
             case 'failed':

@@ -122,10 +122,10 @@ export class TTSManager {
   async getVoices(providerName: 'elevenlabs' | 'azure'): Promise<Voice[]> {
     if (providerName === 'elevenlabs') {
       if (!this.elevenlabs) throw new Error('ElevenLabs provider not configured');
-      return await this.elevenlabs.getVoices() as Voice[];
+      return await this.elevenlabs.getVoices() as unknown as Voice[];
     } else if (providerName === 'azure') {
       if (!this.azure) throw new Error('Azure provider not configured');
-      return await this.azure.getVoices() as Voice[];
+      return await this.azure.getVoices() as unknown as Voice[];
     }
     throw new Error(`Unknown provider: ${providerName}`);
   }

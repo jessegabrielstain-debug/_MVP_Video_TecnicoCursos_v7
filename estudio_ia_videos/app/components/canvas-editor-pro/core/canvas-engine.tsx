@@ -97,7 +97,7 @@ export default function CanvasEngine({
       }
 
       // Performance event listeners
-      fabricCanvas.on('object:modified', (e: Fabric.IEvent) => {
+      fabricCanvas.on('object:modified', (e: any) => {
         const obj = e.target
         if (obj) {
           // Cache modified object for performance
@@ -107,7 +107,7 @@ export default function CanvasEngine({
         }
       })
 
-      fabricCanvas.on('object:added', (e: Fabric.IEvent) => {
+      fabricCanvas.on('object:added', (e: any) => {
         const obj = e.target
         if (obj && !obj.id) {
           // @ts-ignore - id property exists in Fabric objects but might not be in type definition

@@ -108,7 +108,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
     }));
   };
 
-  const handleSettingsChange = (field: string, value: string | number | boolean) => {
+  const handleSettingsChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       content: {

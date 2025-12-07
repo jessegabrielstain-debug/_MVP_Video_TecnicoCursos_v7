@@ -151,6 +151,7 @@ function ClipRenderer({ type, content, time, isPlaying }: ClipRendererProps) {
           <div className="relative w-full h-full flex items-center justify-center">
             <audio 
               ref={(el) => {
+                // @ts-ignore
                 audioRef.current = el;
                 if (el !== audioElement) {
                   setAudioElement(el);

@@ -168,14 +168,14 @@ export const TemplateImportExport: React.FC<TemplateImportExportProps> = ({
       };
     });
 
-    setValidationResults(results);
+    setValidationResults(results as any);
     
     const validTemplates = results.filter(r => r.valid).map(r => r.template);
     
     if (validTemplates.length > 0) {
       setStatus('success');
       setMessage(`${validTemplates.length} template(s) importado(s) com sucesso`);
-      onImport?.(validTemplates);
+      onImport?.(validTemplates as any);
     } else {
       setStatus('error');
       setMessage('Nenhum template válido encontrado');

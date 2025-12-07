@@ -12,6 +12,8 @@ export interface PPTXSlide {
   background?: PPTXBackground;
   layout: PPTXLayout;
   metadata: PPTXSlideMetadata;
+  bullets?: string[];
+  images?: string[];
 }
 
 export interface PPTXElement {

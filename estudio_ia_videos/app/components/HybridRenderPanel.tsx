@@ -24,7 +24,7 @@ import {
 import { 
   Play, 
   Pause, 
-  Stop, 
+  Square as Stop, 
   Download, 
   Settings, 
   Clock,

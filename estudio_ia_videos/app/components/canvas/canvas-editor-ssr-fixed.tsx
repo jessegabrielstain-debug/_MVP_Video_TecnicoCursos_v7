@@ -161,7 +161,7 @@ export default function CanvasEditorSSRFixed({
       })
 
       // Enable snap to grid
-      newCanvas.on('object:moving', (e: Fabric.IEvent) => {
+      newCanvas.on('object:moving', (e: any) => {
         if (snapToGrid && e.target) {
           const obj = e.target
           obj.set({
@@ -187,14 +187,14 @@ export default function CanvasEditorSSRFixed({
         saveHistory(newCanvas)
       })
 
-      newCanvas.on('selection:created', (e: Fabric.IEvent) => {
+      newCanvas.on('selection:created', (e: any) => {
         if (e.selected && e.selected[0]) {
           // @ts-ignore
           setSelectedLayer(e.selected[0].id || null)
         }
       })
 
-      newCanvas.on('selection:updated', (e: Fabric.IEvent) => {
+      newCanvas.on('selection:updated', (e: any) => {
         if (e.selected && e.selected[0]) {
           // @ts-ignore
           setSelectedLayer(e.selected[0].id || null)
@@ -798,7 +798,7 @@ export default function CanvasEditorSSRFixed({
                   onClick={() => {
                     layer.object.set('visible', !layer.visible)
                     canvas?.renderAll()
-                    updateLayers(canvas)
+                    if (canvas) updateLayers(canvas)
                   }}
                 >
                   {layer.visible ? (

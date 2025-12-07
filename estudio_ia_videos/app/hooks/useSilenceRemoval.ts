@@ -41,6 +41,13 @@ export interface SilenceRemovalState {
   processedFile: File | null;
 }
 
+  const formatTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toFixed(3).padStart(6, '0')}`;
+  };
+
 export const useSilenceRemoval = () => {
   const [state, setState] = useState<SilenceRemovalState>({
     isProcessing: false,
@@ -238,9 +245,9 @@ export const useSilenceRemoval = () => {
         mimeType = 'text/csv';
         break;
       case 'srt':
-        content = state.result.segments
+        content = state.result!.segments
           .map((seg, index) => 
-            `${index + 1}\n${this.formatTime(seg.start)} --> ${this.formatTime(seg.end)}\n${seg.type} (${seg.confidence.toFixed(2)})\n`
+            `${index + 1}\n${formatTime(seg?.start || 0)} --> ${formatTime(seg?.end || 0)}\n${seg?.type || ''} (${(seg?.confidence || 0).toFixed(2)})\n`
           )
           .join('\n');
         filename = 'silence_segments.srt';
@@ -264,13 +271,6 @@ export const useSilenceRemoval = () => {
 
     toast.success(`Exported as ${format.toUpperCase()}`);
   }, [state.result]);
-
-  const formatTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toFixed(3).padStart(6, '0')}`;
-  };
 
   return {
     ...state,

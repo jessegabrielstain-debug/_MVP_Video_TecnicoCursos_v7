@@ -148,10 +148,11 @@ export function ProjectManagement() {
   }
 
   const getProjectProgress = (project: UnifiedProject) => {
-    if (project.status === 'completed') return 100
-    if (project.status === 'in-progress') return 60
-    if (project.status === 'review') return 80
-    if (project.status === 'draft') return 20
+    const p = project as any
+    if (p.status === 'completed') return 100
+    if (p.status === 'in-progress') return 60
+    if (p.status === 'review') return 80
+    if (p.status === 'draft') return 20
     return 0
   }
 
@@ -243,7 +244,7 @@ export function ProjectManagement() {
 
               <div className="space-y-2">
                 <Label htmlFor="project-type">Type</Label>
-                <Select value={newProject.type} onValueChange={(value: string) => setNewProject({ ...newProject, type: value })}>
+                <Select value={newProject.type} onValueChange={(value: string) => setNewProject({ ...newProject, type: value as "pptx" })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -292,10 +293,10 @@ export function ProjectManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {projects.filter((p: UnifiedProject) => p.status === 'in-progress').length}
+              {projects.filter((p: any) => p.status === 'in-progress').length}
             </div>
             <div className="text-xs text-muted-foreground">
-              {projects.filter((p: UnifiedProject) => p.status === 'completed').length} completed
+              {projects.filter((p: any) => p.status === 'completed').length} completed
             </div>
           </CardContent>
         </Card>
@@ -307,7 +308,7 @@ export function ProjectManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {projects.filter((p: UnifiedProject) => p.status === 'draft').length}
+              {projects.filter((p: any) => p.status === 'draft').length}
             </div>
             <div className="text-xs text-muted-foreground">
               Waiting to start
@@ -322,7 +323,7 @@ export function ProjectManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {projects.reduce((acc: number, p: UnifiedProject) => acc + (p.collaborators?.length || 0), 0)}
+              {projects.reduce((acc: number, p: any) => acc + (p.collaborators?.length || 0), 0)}
             </div>
             <div className="text-xs text-muted-foreground">
               across all projects
@@ -333,7 +334,8 @@ export function ProjectManagement() {
 
       {/* Projects Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {projects.map((project: UnifiedProject) => {
+        {projects.map((project: any) => {
+          const p = project as any
           const progress = getProjectProgress(project)
 
           return (
@@ -390,11 +392,11 @@ export function ProjectManagement() {
 
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Badge className={statusColors[project.status as keyof typeof statusColors] || 'bg-gray-500'}>
-                    {project.status}
+                  <Badge className={statusColors[p.status as keyof typeof statusColors] || 'bg-gray-500'}>
+                    {p.status}
                   </Badge>
-                  <Badge className={priorityColors[project.metadata?.priority as keyof typeof priorityColors] || 'text-gray-600 bg-gray-100'}>
-                    {project.metadata?.priority || 'medium'}
+                  <Badge className={priorityColors[p.metadata?.priority as keyof typeof priorityColors] || 'text-gray-600 bg-gray-100'}>
+                    {p.metadata?.priority || 'medium'}
                   </Badge>
                 </div>
 
@@ -409,11 +411,11 @@ export function ProjectManagement() {
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center space-x-1">
                     <Clock className="h-3 w-3" />
-                    <span>{formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}</span>
+                    <span>{formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <Users className="h-3 w-3" />
-                    <span>{project.collaborators?.length || 0}</span>
+                    <span>{p.collaborators?.length || 0}</span>
                   </div>
                 </div>
               </CardContent>

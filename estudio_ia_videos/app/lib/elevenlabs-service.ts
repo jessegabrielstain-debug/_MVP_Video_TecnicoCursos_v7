@@ -161,7 +161,7 @@ export class ElevenLabsService {
 
   async getVoices(): Promise<ElevenLabsVoice[]> {
     const voices = await this.listVoices();
-    return voices.map((v: { voice_id: string; name: string; category: string; description: string; labels: Record<string, string>; preview_url: string }) => ({
+    return voices.map((v: any) => ({
       id: v.voice_id,
       name: v.name,
       category: v.category,

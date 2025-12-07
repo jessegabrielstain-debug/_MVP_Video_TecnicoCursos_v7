@@ -130,7 +130,7 @@ export class AINarrator {
       };
     } catch (error) {
       console.error('Narration generation error:', error);
-      throw new Error(`Failed to generate narration: ${error.message}`);
+      throw new Error(`Failed to generate narration: ${(error as Error).message}`);
     }
   }
 
@@ -360,7 +360,7 @@ export class AINarrator {
   }
 
   private selectVoice(language: string, tone: string): string {
-    const voiceMap: { [key: string]: string } = {
+    const voiceMap: { [key: string]: { [key: string]: string } } = {
       'pt-BR': {
         'formal': 'pt-BR-Wavenet-A',
         'casual': 'pt-BR-Wavenet-B',

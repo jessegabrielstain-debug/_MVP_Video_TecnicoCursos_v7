@@ -17,6 +17,12 @@ export const AggregationPeriod = {
 
 export type AggregationPeriod = typeof AggregationPeriod[keyof typeof AggregationPeriod];
 
+interface MetricDefinition {
+  [key: string]: any;
+}
+
+// Removed duplicate MetricValue interface
+
 export interface AnalyticsEvent {
   id: string;
   type: string;

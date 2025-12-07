@@ -146,7 +146,7 @@ export default function LMSIntegration() {
       setExportProgress({ step: 'Pacote', progress: 60, message: 'Criando pacote SCORM...', completed: false })
       
       const scormResult = await SCORMEngine.generateSCORMPackage(
-        selectedProject,
+        selectedProject as unknown as Record<string, unknown>,
         {
           version: lmsConfig.scorm_version,
           mastery_score: lmsConfig.mastery_score,
@@ -192,7 +192,7 @@ export default function LMSIntegration() {
     // Gerar statements xAPI de exemplo
     const statements = SCORMEngine.generatexAPIStatements(
       'user-demo-123',
-      selectedProject,
+      selectedProject as unknown as Record<string, unknown>,
       {
         start_time: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
         end_time: new Date().toISOString(),

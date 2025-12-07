@@ -77,9 +77,9 @@ export class AvatarClientHelper {
 
     Object.entries(map).forEach(([name, value]) => {
       if (value !== undefined) {
-        const index = mesh.morphTargetDictionary[name];
+        const index = mesh.morphTargetDictionary![name];
         if (index !== undefined) {
-          mesh.morphTargetInfluences[index] = value;
+          mesh.morphTargetInfluences![index] = value;
         }
       }
     });
@@ -91,6 +91,8 @@ export class AvatarClientHelper {
   }
 
   private static applyEmotion(mesh: ThreeMesh, emotion: string, intensity: number) {
+    if (!mesh.morphTargetDictionary || !mesh.morphTargetInfluences) return;
+
     // Standard ARKit blend shapes for basic emotions
     const emotionMap: Record<string, Record<string, number>> = {
       happy: {
@@ -137,10 +139,10 @@ export class AvatarClientHelper {
     const shapes = emotionMap[emotion];
     if (shapes) {
       Object.entries(shapes).forEach(([shapeName, targetValue]) => {
-        const index = mesh.morphTargetDictionary[shapeName];
+        const index = mesh.morphTargetDictionary![shapeName];
         if (index !== undefined) {
-          const existing = mesh.morphTargetInfluences[index];
-          mesh.morphTargetInfluences[index] = Math.min(1.0, existing + (targetValue * intensity));
+          const existing = mesh.morphTargetInfluences![index];
+          mesh.morphTargetInfluences![index] = Math.min(1.0, existing + (targetValue * intensity));
         }
       });
     }

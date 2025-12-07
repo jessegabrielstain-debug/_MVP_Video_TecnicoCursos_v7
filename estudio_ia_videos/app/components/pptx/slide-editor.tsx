@@ -31,9 +31,9 @@ import { PPTXSlide } from '@/types/pptx-types'
 
 interface SlideEditorProps {
   slide: PPTXSlide
-  sceneMapping: Record<string, unknown>
-  narrationResult: Record<string, unknown>
-  availableTemplates: Record<string, unknown>[]
+  sceneMapping: any
+  narrationResult: any
+  availableTemplates: any[]
   onSlideUpdate: (slideId: string, updates: Partial<PPTXSlide>) => void
   onTemplateChange: (slideId: string, templateId: string) => void
   onPreview: (slideId: string) => void
@@ -200,7 +200,7 @@ export function SlideEditor({
                 slide={slide}
                 onChange={(updates) => {
                   setLocalSlide((prev: PPTXSlide) => ({ ...prev, elements: updates.elements }))
-                  onSlideUpdate(slide.slideNumber.toString(), { elements: updates.elements })
+                  onSlideUpdate(slide.slideNumber.toString(), { elements: updates.elements } as any)
                 }}
               />
             </div>

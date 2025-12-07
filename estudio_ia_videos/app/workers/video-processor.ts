@@ -5,6 +5,7 @@ import { RenderTaskPayload, RenderTaskResult } from '@/lib/queue/types';
 import { logger } from '@/lib/services/logger-service-centralized';
 
 const workerHandler = async (job: Job<RenderTaskPayload, RenderTaskResult>) => {
+  const startTime = Date.now();
   const { projectId } = job.data;
   const jobId = job.id!;
 
@@ -32,6 +33,7 @@ const workerHandler = async (job: Job<RenderTaskPayload, RenderTaskResult>) => {
       outputUrl,
       metadata: {
         completedAt: new Date().toISOString(),
+        renderTime: Date.now() - startTime,
       },
     };
   } catch (error) {

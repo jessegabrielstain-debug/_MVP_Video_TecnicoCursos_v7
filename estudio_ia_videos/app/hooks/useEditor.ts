@@ -141,7 +141,7 @@ export function useEditor(projectId?: string) {
       selectedElements: [element.id],
     }));
 
-    addToHistory('createElement', element, `Created ${type} element`);
+    addToHistory('createElement', element as unknown as Record<string, unknown>, `Created ${type} element`);
     return element.id;
   }, [addToHistory]);
 
@@ -225,7 +225,7 @@ export function useEditor(projectId?: string) {
       layers: [...prev.layers, layer],
     }));
 
-    addToHistory('createLayer', layer, `Created layer: ${layer.name}`);
+    addToHistory('createLayer', layer as unknown as Record<string, unknown>, `Created layer: ${layer.name}`);
     return layer.id;
   }, [addToHistory]);
 
@@ -383,7 +383,7 @@ export function useEditor(projectId?: string) {
       selectedElements: pastedElements.map(el => el.id),
     }));
 
-    addToHistory('pasteElements', pastedElements, `Pasted elements`);
+    addToHistory('pasteElements', pastedElements as unknown as Record<string, unknown>, `Pasted elements`);
   }, [state.clipboard, addToHistory]);
 
   // Project management

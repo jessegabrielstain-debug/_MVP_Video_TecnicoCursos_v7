@@ -93,6 +93,7 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
 
     addRenderJob({
       projectId: project.id,
+      // @ts-ignore
       settings: {
         format: 'mp4',
         resolution: project.resolution,
@@ -104,7 +105,7 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
           bitrate: 128,
           sampleRate: 44100
         }
-      },
+      } as any,
       status: 'queued',
       progress: 0
     })

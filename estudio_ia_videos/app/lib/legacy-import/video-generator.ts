@@ -151,7 +151,7 @@ export class VideoGenerator {
       };
     } catch (error) {
       console.error('Video generation error:', error);
-      throw new Error(`Failed to generate video: ${error.message}`);
+      throw new Error(`Failed to generate video: ${(error as Error).message}`);
     }
   }
 
@@ -266,7 +266,7 @@ export class VideoGenerator {
     await execAsync(command);
   }
 
-  private calculateTextPosition(element: PDFElement, layout: PDFPage['layout']): { x: number; y: number } {
+  private calculateTextPosition(element: any, layout: PDFPage['layout']): { x: number; y: number } {
     // Scale PDF coordinates to video resolution
     const scaleX = 1920 / layout.width;
     const scaleY = 1080 / layout.height;
@@ -277,7 +277,7 @@ export class VideoGenerator {
     };
   }
 
-  private getTextStyle(element: PDFElement): {
+  private getTextStyle(element: any): {
     fontFamily: string;
     fontSize: number;
     color: string;

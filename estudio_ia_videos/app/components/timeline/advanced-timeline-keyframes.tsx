@@ -168,7 +168,7 @@ export default function AdvancedTimelineKeyframes({
 
   const handleSave = async () => {
     try {
-      const timelineData = exportData()
+      const timelineData = { ...exportData(), fps: 30 }
       if (onSave) {
         onSave(timelineData)
       }
@@ -199,7 +199,7 @@ export default function AdvancedTimelineKeyframes({
 
   const handleRender = async () => {
     try {
-      const timelineData = exportData()
+      const timelineData = { ...exportData(), fps: 30 }
       if (onRender) {
         onRender(timelineData)
       }

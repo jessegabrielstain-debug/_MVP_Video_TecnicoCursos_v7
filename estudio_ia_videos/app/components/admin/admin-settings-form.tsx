@@ -237,14 +237,14 @@ export default function AdminSettingsForm({ initialSettings }: AdminSettingsForm
             <TabsContent value="logo" className="space-y-6">
               <LogoUploader
                 currentLogo={settings.logoUrl}
-                onLogoChange={(url) => updateSetting('logoUrl', url)}
+                onLogoChange={(url) => updateSetting('logoUrl', url || '')}
                 type="logo"
                 title="Logo Principal"
               />
               
               <LogoUploader
                 currentLogo={settings.faviconUrl}
-                onLogoChange={(url) => updateSetting('faviconUrl', url)}
+                onLogoChange={(url) => updateSetting('faviconUrl', url || '')}
                 type="favicon"
                 title="Favicon"
                 maxSize={512 * 1024} // 512KB for favicon

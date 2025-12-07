@@ -82,12 +82,12 @@ export function PerformanceDashboard() {
       setAlerts(prev => [...newAlerts, ...prev].slice(0, 50)); // Últimos 50 alertas
     };
 
-    performanceMonitor.on('metrics', handleMetrics);
-    performanceMonitor.on('alerts', handleAlerts);
+    performanceMonitor.on('metrics', handleMetrics as any);
+    performanceMonitor.on('alerts', handleAlerts as any);
 
     return () => {
-      performanceMonitor.off('metrics', handleMetrics);
-      performanceMonitor.off('alerts', handleAlerts);
+      performanceMonitor.off('metrics', handleMetrics as any);
+      performanceMonitor.off('alerts', handleAlerts as any);
     };
   }, []);
 

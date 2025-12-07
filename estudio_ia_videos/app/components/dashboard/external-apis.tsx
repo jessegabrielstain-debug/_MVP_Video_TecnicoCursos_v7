@@ -35,6 +35,7 @@ import {
   Download, 
   Search, 
   Eye, 
+  FileText,
   CheckCircle, 
   XCircle, 
   AlertTriangle,
@@ -182,9 +183,10 @@ export function ExternalAPIs() {
   }
 
   const getProviderStatus = (provider: TTSProvider | MediaProvider | NRComplianceProvider) => {
-    if (!provider.api_key) return 'inactive'
-    if (provider.last_error) return 'error'
-    if (provider.rate_limit_exceeded) return 'warning'
+    const p = provider as any
+    if (!p.api_key) return 'inactive'
+    if (p.last_error) return 'error'
+    if (p.rate_limit_exceeded) return 'warning'
     return 'active'
   }
 
@@ -457,8 +459,9 @@ export function ExternalAPIs() {
                             <h4 className="text-sm font-medium line-clamp-1">{result.title || 'Untitled'}</h4>
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
                               <span>{result.author || 'Unknown'}</span>
-                              <span>{result.size || 'N/A'}</span>
-                            </div>
+                                                          <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span>{(result as any).size || 'N/A'}</span>
+                          </div>
                             <div className="flex space-x-2">
                               <Button size="sm" variant="outline" className="flex-1">
                                 <Eye className="mr-1 h-3 w-3" />
@@ -643,7 +646,7 @@ export function ExternalAPIs() {
       <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Configure {selectedProvider?.provider_name}</DialogTitle>
+            <DialogTitle>Configure {(selectedProvider as any)?.provider_name}</DialogTitle>
             <DialogDescription>
               Update API keys and configuration settings
             </DialogDescription>
@@ -655,7 +658,7 @@ export function ExternalAPIs() {
                 id="api-key"
                 type="password"
                 placeholder="Enter API key..."
-                defaultValue={selectedProvider?.api_key}
+                defaultValue={(selectedProvider as any)?.api_key}
               />
             </div>
             <div className="space-y-2">
@@ -663,7 +666,7 @@ export function ExternalAPIs() {
               <Input
                 id="endpoint"
                 placeholder="https://api.example.com"
-                defaultValue={selectedProvider?.endpoint_url}
+                defaultValue={(selectedProvider as any)?.endpoint_url}
               />
             </div>
             <div className="space-y-2">
@@ -672,7 +675,7 @@ export function ExternalAPIs() {
                 id="rate-limit"
                 type="number"
                 placeholder="1000"
-                defaultValue={selectedProvider?.rate_limit}
+                defaultValue={(selectedProvider as any)?.rate_limit}
               />
             </div>
             <div className="flex items-center space-x-2">
@@ -687,7 +690,7 @@ export function ExternalAPIs() {
             <Button variant="outline" onClick={() => setIsConfigDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => handleUpdateConfig(selectedProvider?.id, {})}>
+            <Button onClick={() => handleUpdateConfig(selectedProvider?.id || '', {})}>
               Save Configuration
             </Button>
           </DialogFooter>

@@ -46,6 +46,7 @@ export const TranscriptionPanel: React.FC<TranscriptionPanelProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [enableKaraoke, setEnableKaraoke] = useState(false);
   const [targetLanguage, setTargetLanguage] = useState('en');
   
   const {

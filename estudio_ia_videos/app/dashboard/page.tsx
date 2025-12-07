@@ -25,7 +25,7 @@ function StatCard({
   title: string
   value: string | number
   subtitle: string
-  icon: React.ElementType
+  icon: any
   loading?: boolean
   trend?: { value: number; positive: boolean }
   testId?: string

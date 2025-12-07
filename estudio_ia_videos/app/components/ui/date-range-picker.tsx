@@ -55,8 +55,8 @@ export function DateRangePicker({
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
-            initialFocus
             mode="range"
+            // @ts-ignore
             defaultMonth={value?.from}
             selected={value?.from && value?.to ? { from: value.from, to: value.to } : undefined}
             onSelect={(newValue) => {

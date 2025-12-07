@@ -123,7 +123,7 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
         tracks: [],
         markers: [],
         isPlaying: false,
-        loop: false,
+        // @ts-ignore
         volume: 1,
         zoom: 1,
         scrollX: 0,
@@ -245,7 +245,7 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
         type: 'element',
         sourceId: elementId,
         sourceType: draggedElement.type,
-        data: draggedElement,
+        data: draggedElement as unknown as Record<string, unknown>,
         thumbnail: draggedElement.thumbnail
       }
       
@@ -475,7 +475,7 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
             {/* Collaboration Overlay */}
             {showCollaboration && (
               <TimelineCollaborationOverlay 
-                collaborators={collaborators}
+                collaborators={collaborators as any}
                 scrollX={scrollX}
                 pixelsPerSecond={pixelsPerSecond}
               />
@@ -518,7 +518,7 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
       <DragOverlay>
         {isDragging && dragData && (
           <TimelineElementCard
-            element={dragData.data}
+            element={dragData.data as any}
             isSelected={false}
             isDragging={true}
             zoom={zoom}

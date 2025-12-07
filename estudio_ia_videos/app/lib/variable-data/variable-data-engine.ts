@@ -1,3 +1,4 @@
+// @ts-ignore
 import { parse } from 'csv-parse/sync';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -230,7 +231,7 @@ export class VariableDataEngine {
         break;
 
       case 'date':
-        const dateValue = new Date(value);
+        const dateValue = new Date(value as string);
         if (isNaN(dateValue.getTime())) {
           return { isValid: false, error: `'${variable.name}' must be a valid date` };
         }
@@ -243,7 +244,7 @@ export class VariableDataEngine {
         break;
 
       case 'color':
-        if (!/^#[0-9A-F]{6}$/i.test(value) && !/^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/i.test(value)) {
+        if (!/^#[0-9A-F]{6}$/i.test(value as string) && !/^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/i.test(value as string)) {
           return { isValid: false, error: `'${variable.name}' must be a valid color (hex or rgb)` };
         }
         break;

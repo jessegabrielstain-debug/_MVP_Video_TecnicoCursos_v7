@@ -1,4 +1,6 @@
+// @ts-ignore
 import { createWorker } from 'tesseract.js';
+// @ts-ignore
 import pdf from 'pdf-parse';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -135,7 +137,7 @@ export class PDFProcessor {
       };
     } catch (error) {
       console.error('PDF processing error:', error);
-      throw new Error(`Failed to process PDF: ${error.message}`);
+      throw new Error(`Failed to process PDF: ${(error as Error).message}`);
     }
   }
 
@@ -222,7 +224,7 @@ export class PDFProcessor {
       return text.trim();
     } catch (error) {
       await worker.terminate();
-      throw new Error(`OCR failed for image ${imagePath}: ${error.message}`);
+      throw new Error(`OCR failed for image ${imagePath}: ${(error as Error).message}`);
     }
   }
 

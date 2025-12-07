@@ -193,9 +193,9 @@ export class AvatarEngine {
 
     Object.entries(map).forEach(([name, value]) => {
       if (value !== undefined) {
-        const index = mesh.morphTargetDictionary[name];
+        const index = mesh.morphTargetDictionary![name];
         if (index !== undefined) {
-          mesh.morphTargetInfluences[index] = value;
+          mesh.morphTargetInfluences![index] = value;
         }
       }
     });
@@ -207,6 +207,8 @@ export class AvatarEngine {
   }
 
   private applyEmotion(mesh: ThreeMesh, emotion: string, intensity: number) {
+    if (!mesh.morphTargetDictionary || !mesh.morphTargetInfluences) return;
+
     // Standard ARKit blend shapes for basic emotions
     const emotionMap: Record<string, Record<string, number>> = {
       happy: {
@@ -253,7 +255,7 @@ export class AvatarEngine {
     const shapes = emotionMap[emotion];
     if (shapes) {
       Object.entries(shapes).forEach(([shapeName, targetValue]) => {
-        const index = mesh.morphTargetDictionary[shapeName];
+        const index = mesh.morphTargetDictionary![shapeName];
         if (index !== undefined) {
           // We add to existing value or overwrite? 
           // Usually for emotions we want to blend on top.
@@ -261,10 +263,10 @@ export class AvatarEngine {
           // Simple approach: Max(existing, new) or weighted average.
           // Let's use a simple addition with clamping for now, or just overwrite if not set by lip sync.
           
-          const existing = mesh.morphTargetInfluences[index];
+          const existing = mesh.morphTargetInfluences![index];
           // Blend: existing (from lip sync) + emotion * intensity
           // For smiles, lip sync might set mouthSmile. We want to enhance it.
-          mesh.morphTargetInfluences[index] = Math.min(1.0, existing + (targetValue * intensity));
+          mesh.morphTargetInfluences![index] = Math.min(1.0, existing + (targetValue * intensity));
         }
       });
     }

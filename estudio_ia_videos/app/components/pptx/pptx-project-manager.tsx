@@ -34,12 +34,17 @@ const logger = new Logger('PPTXProjectManager')
 
 /** Slide processado do PPTX */
 interface PPTXSlide {
+  id?: string;
   slideNumber: number;
   title?: string;
   content?: string;
   notes?: string;
   background?: string;
   elements?: unknown[];
+  layout?: any;
+  metadata?: any;
+  bullets?: string[];
+  images?: string[];
 }
 
 /** Configuração de narração */
@@ -47,6 +52,8 @@ interface NarrationConfig {
   slideNumber: number;
   text: string;
   duration?: number;
+  segments?: any[];
+  totalDuration?: number;
 }
 
 /** Configuração de voz TTS */
@@ -62,6 +69,7 @@ interface AvatarConfig {
   avatarId?: string;
   provider?: string;
   position?: string;
+  enabled?: boolean;
 }
 
 /** Metadados do projeto */
@@ -70,6 +78,10 @@ interface ProjectMetadata {
   updatedAt?: Date;
   version?: string;
   source?: string;
+  totalDuration?: number;
+  qualityScore?: number;
+  sceneMappings?: any[];
+  sourceFile?: string;
 }
 
 interface PPTXProjectData {
@@ -361,11 +373,11 @@ export function PPTXProjectManager({ onProjectReady, onBack }: PPTXProjectManage
           {projectData.slides.map((slide, index) => (
             <SlideEditor
               key={slide.slideNumber}
-              slide={slide}
-              sceneMapping={projectData.metadata.sceneMappings?.[index]}
-              narrationResult={projectData.narration[index]}
+              slide={slide as any}
+              sceneMapping={projectData.metadata.sceneMappings?.[index] || {}}
+              narrationResult={(projectData.narration[index] as any) || {}}
               availableTemplates={availableTemplates}
-              onSlideUpdate={handleSlideUpdate}
+              onSlideUpdate={handleSlideUpdate as any}
               onTemplateChange={handleTemplateChange}
               onPreview={handleSlidePreview}
             />
@@ -436,7 +448,7 @@ export function PPTXProjectManager({ onProjectReady, onBack }: PPTXProjectManage
                 <Label>Arquivo Original</Label>
                 <p className="text-sm font-medium">{projectData.metadata.sourceFile}</p>
                 <p className="text-xs text-gray-600">
-                  Processado em: {new Date(projectData.metadata.createdAt).toLocaleString('pt-BR')}
+                  Processado em: {projectData.metadata.createdAt ? new Date(projectData.metadata.createdAt).toLocaleString('pt-BR') : 'N/A'}
                 </p>
               </div>
             </CardContent>

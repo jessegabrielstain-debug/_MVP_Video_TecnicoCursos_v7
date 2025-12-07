@@ -28,7 +28,7 @@ export interface CursorPosition {
 export interface RenderJob {
   id: string;
   projectId: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled';
   progress?: number;
   outputUrl?: string;
   error?: string;

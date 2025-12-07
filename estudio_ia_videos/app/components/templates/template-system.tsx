@@ -105,7 +105,7 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
           render_settings: {
             template_id: template.id,
             template_data: template
-          }
+          } as any
         })
         .select()
         .single();

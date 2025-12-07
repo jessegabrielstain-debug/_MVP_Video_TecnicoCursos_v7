@@ -558,7 +558,7 @@ export default function AvatarStudioComplete({
             <div className="flex-1 overflow-auto">
               <TabsContent value="generator" className="h-full m-0 p-6">
                 <Avatar3DGeneratorReal
-                  onAvatarGenerated={handleAvatarUpdate}
+                  onAvatarGenerated={(avatar: any) => handleAvatarUpdate(avatar)}
                 />
               </TabsContent>
 
@@ -566,14 +566,14 @@ export default function AvatarStudioComplete({
                 <AppearanceCustomization
                   avatarId={currentProject?.avatar?.id || 'default'}
                   initialSettings={selectedAvatar?.appearance}
-                  onAppearanceChange={(s: AvatarAppearance) => handleAvatarUpdate({ appearance: s })}
+                  onAppearanceChange={(s: any) => handleAvatarUpdate({ appearance: s })}
                 />
               </TabsContent>
 
               <TabsContent value="personality" className="h-full m-0 p-6">
                 <PersonalityPresets
                   avatarId={selectedAvatar?.id || 'default'}
-                  onPersonalityChange={handlePersonalityUpdate}
+                  onPersonalityChange={(p: any) => handlePersonalityUpdate(p)}
                   currentPersonality={currentPersonality}
                 />
               </TabsContent>
@@ -595,7 +595,7 @@ export default function AvatarStudioComplete({
               <TabsContent value="expressions" className="h-full m-0 p-6">
                 <ExpressionsLibrary
                   avatarId={currentProject?.avatar?.id || 'default'}
-                  onExpressionSelected={(expression: AvatarAnimation) => setCurrentAnimation(expression)}
+                  onExpressionSelected={(expression: any) => setCurrentAnimation(expression)}
                 />
               </TabsContent>
 
@@ -610,7 +610,7 @@ export default function AvatarStudioComplete({
                 <AvatarExportSystem
                   avatarId={currentProject?.avatar?.id || 'default'}
                   avatarData={currentProject}
-                  onExportComplete={(format: string) => {
+                  onExportComplete={(format: any) => {
                     console.log('Exporting format:', format);
                     toast.success(`Exportando em ${format}...`);
                   }}
