@@ -43,24 +43,46 @@ import {
   ZoomOut
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import type * as Fabric from 'fabric'
 
 // Fabric.js import
-let fabric: any = null
+let fabric: typeof Fabric | null = null
 
 interface Layer {
   id: string
   name: string
-  object: any
+  object: Fabric.Object
   visible: boolean
   locked: boolean
   order: number
 }
 
+interface CanvasSlideElement {
+  type: string
+  content?: string
+  src?: string
+  x?: number
+  y?: number
+  fontSize?: number
+  color?: string
+  fontFamily?: string
+  id?: string
+  scaleX?: number
+  scaleY?: number
+  [key: string]: unknown
+}
+
+interface CanvasSlideData {
+  backgroundImage?: string
+  elements?: CanvasSlideElement[]
+  [key: string]: unknown
+}
+
 interface CanvasEditorProps {
   width?: number
   height?: number
-  initialSlide?: any
-  onSave?: (data: any) => void
+  initialSlide?: CanvasSlideData
+  onSave?: (data: Record<string, unknown>) => void
 }
 
 export default function CanvasEditorProfessionalSprint28({
@@ -71,7 +93,7 @@ export default function CanvasEditorProfessionalSprint28({
 }: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [canvas, setCanvas] = useState<any>(null)
+  const [canvas, setCanvas] = useState<Fabric.Canvas | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   
   // History for undo/redo
@@ -101,8 +123,8 @@ export default function CanvasEditorProfessionalSprint28({
       try {
         if (!fabric) {
           // ✅ CORRIGIDO: Usa FabricManager singleton
-          const { default: FabricManager } = await import('@/lib/fabric-singleton')
-          fabric = await FabricManager.getInstance()
+          const { FabricManager } = await import('@/lib/fabric-singleton')
+          fabric = FabricManager.getInstance()
         }
         initializeCanvas()
       } catch (error) {
@@ -130,12 +152,12 @@ export default function CanvasEditorProfessionalSprint28({
     })
 
     // Enable snap to grid
-    newCanvas.on('object:moving', (e: any) => {
-      if (snapToGrid) {
+    newCanvas.on('object:moving', (e: Fabric.IEvent) => {
+      if (snapToGrid && e.target) {
         const obj = e.target
         obj.set({
-          left: Math.round(obj.left / gridSize) * gridSize,
-          top: Math.round(obj.top / gridSize) * gridSize
+          left: Math.round((obj.left || 0) / gridSize) * gridSize,
+          top: Math.round((obj.top || 0) / gridSize) * gridSize
         })
       }
     })
@@ -156,15 +178,17 @@ export default function CanvasEditorProfessionalSprint28({
       saveHistory()
     })
 
-    newCanvas.on('selection:created', (e: any) => {
+    newCanvas.on('selection:created', (e: Fabric.IEvent) => {
       if (e.selected && e.selected[0]) {
-        setSelectedLayer(e.selected[0].id || null)
+        const selectedObj = e.selected[0] as Fabric.Object & { id?: string }
+        setSelectedLayer(selectedObj.id || null)
       }
     })
 
-    newCanvas.on('selection:updated', (e: any) => {
+    newCanvas.on('selection:updated', (e: Fabric.IEvent) => {
       if (e.selected && e.selected[0]) {
-        setSelectedLayer(e.selected[0].id || null)
+        const selectedObj = e.selected[0] as Fabric.Object & { id?: string }
+        setSelectedLayer(selectedObj.id || null)
       }
     })
 
@@ -195,15 +219,15 @@ export default function CanvasEditorProfessionalSprint28({
   /**
    * Draw grid on canvas
    */
-  const drawGrid = (canvas: any) => {
-    if (!canvas) return
+  const drawGrid = (canvas: Fabric.Canvas) => {
+    if (!canvas || !fabric) return
 
-    const gridWidth = canvas.width
-    const gridHeight = canvas.height
+    const gridWidth = canvas.width || 0
+    const gridHeight = canvas.height || 0
 
     // Remove existing grid lines
-    canvas.getObjects('line').forEach((obj: any) => {
-      if (obj.grid) canvas.remove(obj)
+    canvas.getObjects('line').forEach((obj: Fabric.Object) => {
+      if ((obj as any).grid) canvas.remove(obj)
     })
 
     // Draw vertical lines
@@ -213,6 +237,7 @@ export default function CanvasEditorProfessionalSprint28({
         strokeWidth: 1,
         selectable: false,
         evented: false,
+        // @ts-ignore
         grid: true
       })
       canvas.add(line)
@@ -226,6 +251,7 @@ export default function CanvasEditorProfessionalSprint28({
         strokeWidth: 1,
         selectable: false,
         evented: false,
+        // @ts-ignore
         grid: true
       })
       canvas.add(line)
@@ -241,11 +267,11 @@ export default function CanvasEditorProfessionalSprint28({
   const toggleGrid = () => {
     setShowGrid(!showGrid)
     if (!showGrid) {
-      drawGrid(canvas)
+      if (canvas) drawGrid(canvas)
     } else {
       // Remove grid lines
-      canvas?.getObjects('line').forEach((obj: any) => {
-        if (obj.grid) canvas.remove(obj)
+      canvas?.getObjects('line').forEach((obj: Fabric.Object) => {
+        if ((obj as any).grid) canvas.remove(obj)
       })
       canvas?.renderAll()
     }
@@ -254,16 +280,17 @@ export default function CanvasEditorProfessionalSprint28({
   /**
    * Load slide data
    */
-  const loadSlideData = (canvas: any, slide: any) => {
-    if (!canvas) return
+  const loadSlideData = (canvas: Fabric.Canvas, slide: CanvasSlideData) => {
+    if (!canvas || !fabric) return
 
     try {
       // Load background
       if (slide.backgroundImage) {
-        fabric.Image.fromURL(slide.backgroundImage, (img: any) => {
+        fabric.Image.fromURL(slide.backgroundImage, (img: Fabric.Image) => {
           img.scaleToWidth(width)
           img.scaleToHeight(height)
           img.selectable = false
+          // @ts-ignore
           img.id = 'background'
           canvas.add(img)
           canvas.sendToBack(img)
@@ -272,24 +299,26 @@ export default function CanvasEditorProfessionalSprint28({
 
       // Load objects
       if (slide.elements) {
-        slide.elements.forEach((element: any) => {
+        slide.elements.forEach((element: CanvasSlideElement) => {
           if (element.type === 'text') {
-            const text = new fabric.IText(element.content || 'Text', {
+            const text = new fabric!.IText(element.content || 'Text', {
               left: element.x || 100,
               top: element.y || 100,
               fontSize: element.fontSize || 40,
               fill: element.color || '#000000',
               fontFamily: element.fontFamily || 'Arial',
+              // @ts-ignore
               id: element.id || generateId()
             })
             canvas.add(text)
           } else if (element.type === 'image' && element.src) {
-            fabric.Image.fromURL(element.src, (img: any) => {
+            fabric!.Image.fromURL(element.src, (img: Fabric.Image) => {
               img.set({
                 left: element.x || 100,
                 top: element.y || 100,
                 scaleX: element.scaleX || 1,
                 scaleY: element.scaleY || 1,
+                // @ts-ignore
                 id: element.id || generateId()
               })
               canvas.add(img)
@@ -384,38 +413,42 @@ export default function CanvasEditorProfessionalSprint28({
    * Add image to canvas
    */
   const addImage = () => {
-    if (!canvas) return
+    if (!canvas || !fabric) return
 
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
     
-    input.onchange = (e: any) => {
-      const file = e.target.files[0]
+    input.onchange = (e: Event) => {
+      const target = e.target as HTMLInputElement
+      const file = target.files?.[0]
       if (!file) return
 
       const reader = new FileReader()
-      reader.onload = (event: any) => {
-        fabric.Image.fromURL(event.target.result, (img: any) => {
-          // Scale to fit canvas
-          const scale = Math.min(
-            canvas.width / img.width * 0.5,
-            canvas.height / img.height * 0.5
-          )
-          
-          img.set({
-            left: canvas.width / 2 - (img.width * scale) / 2,
-            top: canvas.height / 2 - (img.height * scale) / 2,
-            scaleX: scale,
-            scaleY: scale,
-            id: generateId()
-          })
+      reader.onload = (event: ProgressEvent<FileReader>) => {
+        if (event.target?.result && typeof event.target.result === 'string') {
+          fabric!.Image.fromURL(event.target.result, (img: Fabric.Image) => {
+            // Scale to fit canvas
+            const scale = Math.min(
+              (canvas.width || 800) / (img.width || 1) * 0.5,
+              (canvas.height || 600) / (img.height || 1) * 0.5
+            )
+            
+            img.set({
+              left: (canvas.width || 800) / 2 - ((img.width || 0) * scale) / 2,
+              top: (canvas.height || 600) / 2 - ((img.height || 0) * scale) / 2,
+              scaleX: scale,
+              scaleY: scale,
+              // @ts-ignore
+              id: generateId()
+            })
 
-          canvas.add(img)
-          canvas.setActiveObject(img)
-          saveHistory()
-          toast.success('Imagem adicionada')
-        })
+            canvas.add(img)
+            canvas.setActiveObject(img)
+            saveHistory()
+            toast.success('Imagem adicionada')
+          })
+        }
       }
       reader.readAsDataURL(file)
     }
@@ -435,7 +468,7 @@ export default function CanvasEditorProfessionalSprint28({
       return
     }
 
-    activeObjects.forEach((obj: any) => {
+    activeObjects.forEach((obj: Fabric.Object) => {
       canvas.remove(obj)
     })
 
@@ -488,9 +521,12 @@ export default function CanvasEditorProfessionalSprint28({
   const updateLayers = () => {
     if (!canvas) return
 
-    const objects = canvas.getObjects().filter((obj: any) => obj.id && !obj.grid)
-    const layersList: Layer[] = objects.map((obj: any, index: number) => ({
-      id: obj.id,
+    // @ts-ignore - id and grid properties
+    const objects = canvas.getObjects().filter((obj: Fabric.Object) => (obj as any).id && !(obj as any).grid)
+    const layersList: Layer[] = objects.map((obj: Fabric.Object, index: number) => ({
+      // @ts-ignore
+      id: (obj as any).id,
+      // @ts-ignore
       name: obj.type === 'i-text' ? 'Texto' : obj.type === 'image' ? 'Imagem' : obj.type,
       object: obj,
       visible: obj.visible !== false,
@@ -560,8 +596,9 @@ export default function CanvasEditorProfessionalSprint28({
       toast.success('Canvas exportado (JSON)')
     } else {
       // Remove grid before export
-      const gridLines = canvas.getObjects('line').filter((obj: any) => obj.grid)
-      gridLines.forEach((line: any) => canvas.remove(line))
+      // @ts-ignore
+      const gridLines = canvas.getObjects('line').filter((obj: Fabric.Object) => (obj as any).grid)
+      gridLines.forEach((line: Fabric.Object) => canvas.remove(line))
 
       const dataURL = canvas.toDataURL({
         format: format === 'png' ? 'png' : 'jpeg',

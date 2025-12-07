@@ -18,7 +18,7 @@ import {
 import { toast } from 'react-hot-toast'
 
 interface UploadPrototypeProps {
-  onComplete?: (result: any) => void
+  onComplete?: (result: Record<string, unknown>) => void
 }
 
 export function UploadPrototype({ onComplete }: UploadPrototypeProps) {

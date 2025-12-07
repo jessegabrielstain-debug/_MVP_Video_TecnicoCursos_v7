@@ -7,9 +7,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { PPTXProcessor } from '@/lib/pptx/pptx-processor'
 import { S3StorageService } from '@/lib/s3-storage'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const supabase = getSupabaseForRequest(request)
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Usuário não autenticado' },
+        { status: 401 }
+      )
+    }
+
     const { s3Key, jobId } = await request.json()
     
     if (!s3Key || !jobId) {
@@ -34,22 +46,25 @@ export async function POST(request: NextRequest) {
     // Process PPTX content
     console.log('🔍 Processing PPTX content...')
     const { pptxProcessor } = await import('@/lib/pptx/pptx-real-processor');
-    const processingResult = await pptxProcessor.processBuffer(downloadResult.buffer, s3Key)
+    const processingResult = await pptxProcessor.processBuffer(downloadResult.buffer, {
+      extractImages: true,
+      extractNotes: true
+    })
     
-    if (!processingResult.success || !processingResult.slides) {
-      throw new Error(`Processing failed: ${processingResult.error}`)
+    if (!processingResult.slides) {
+      throw new Error(`Processing failed: No slides found`)
     }
     
     console.log(`✅ Processing successful: ${processingResult.slides.length} slides`)
     
     // Calculate metrics
-    const totalDuration = processingResult.slides.reduce((acc, slide) => acc + (slide.duration || 5), 0)
-    const totalImages = processingResult.slides.reduce((acc, slide) => acc + slide.images.length, 0)
-    const hasAnimations = processingResult.slides.some(slide => slide.animations && slide.animations.length > 0)
+    const totalDuration = processingResult.slides.reduce((acc: any, slide: any) => acc + (slide.duration || 5), 0)
+    const totalImages = processingResult.slides.reduce((acc: any, slide: any) => acc + slide.images.length, 0)
+    const hasAnimations = processingResult.slides.some((slide: any) => slide.animations && slide.animations.length > 0)
     
     // Format response
     const processedData = {
-      slides: processingResult.slides.map(slide => ({
+      slides: processingResult.slides.map((slide: any) => ({
         id: slide.id,
         title: slide.title,
         content: slide.textContent || slide.content,

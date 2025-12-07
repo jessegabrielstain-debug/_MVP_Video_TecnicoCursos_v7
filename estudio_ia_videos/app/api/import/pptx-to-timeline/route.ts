@@ -5,40 +5,46 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { createRateLimiter, rateLimitPresets } from '@/lib/utils/rate-limit-middleware';
+
+const rateLimiter = createRateLimiter(rateLimitPresets.upload);
 
 export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-    }
+  return rateLimiter(req, async (req) => {
+    try {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+      }
 
-    const body = await req.json();
-    const { pptxId, projectName, slides, config } = body;
+      const body = await req.json();
+      const { pptxId, projectName, slides, config } = body;
 
-    if (!pptxId || !projectName || !slides) {
-      return NextResponse.json(
-        { error: 'Dados incompletos' },
-        { status: 400 }
-      );
-    }
+      if (!pptxId || !projectName || !slides) {
+        return NextResponse.json(
+          { error: 'Dados incompletos' },
+          { status: 400 }
+        );
+      }
 
-    // Criar projeto
-    const project = await prisma.project.create({
-      data: {
-        name: projectName,
-        description: `Importado de PPTX (${slides.length} slides)`,
-        type: 'pptx-import',
-        userId: session.user.id,
-        status: 'DRAFT',
-        totalSlides: slides.length,
-        slidesData: {
-          pptxId,
-          importConfig: config,
-          slides: slides.length,
-        },
+      // Criar projeto
+      const project = await prisma.project.create({
+        data: {
+          title: projectName,
+          description: `Importado de PPTX (${slides.length} slides)`,
+          userId: session.user.id,
+          status: 'DRAFT',
+          totalSlides: slides.length,
+          slidesData: {
+            pptxId,
+            importConfig: config,
+            slides: slides.length,
+          },
+          settings: {
+            type: 'pptx-import'
+          }
       },
     });
 
@@ -125,11 +131,6 @@ export async function POST(req: NextRequest) {
         projectId: project.id,
         tracks: timelineData,
         totalDuration: Math.round(currentTime * 1000), // converter para milliseconds
-        settings: {
-          resolution: '1080p',
-          fps: 30,
-          duration: currentTime,
-        },
       },
     });
 
@@ -137,9 +138,8 @@ export async function POST(req: NextRequest) {
     await prisma.analyticsEvent.create({
       data: {
         userId: session.user.id,
-        category: 'pptx',
-        action: 'import',
-        metadata: {
+        eventType: 'pptx_import',
+        eventData: {
           projectId: project.id,
           timelineId: timeline.id,
           slidesCount: slides.length,
@@ -163,4 +163,7 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }
+
+

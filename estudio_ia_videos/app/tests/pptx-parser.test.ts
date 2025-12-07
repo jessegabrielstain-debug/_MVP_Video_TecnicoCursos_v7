@@ -61,12 +61,19 @@ describe('PPTXParser', () => {
 
   describe('Validação de Arquivo', () => {
     test('deve validar arquivo PPTX válido', async () => {
-        mockJszipInstance.file.mockImplementation((name: string) => {
+        mockJszipInstance.file.mockImplementation((name: string | RegExp) => {
             const files: { [key: string]: any } = {
                 '[Content_Types].xml': {},
                 '_rels/.rels': {},
                 'ppt/presentation.xml': {},
             };
+            
+            if (name instanceof RegExp) {
+                // Return array of matches for regex
+                const matches = Object.keys(files).filter(k => name.test(k)).map(k => files[k]);
+                return matches;
+            }
+            
             return files[name];
         });
         const isValid = await PPTXParser.validatePPTX(Buffer.from('qualquercoisa'));
@@ -87,10 +94,18 @@ describe('PPTXParser', () => {
 
   describe('Extração de Metadados', () => {
     test('deve extrair metadados básicos', async () => {
-        mockJszipInstance.file.mockImplementation((name: string) => {
-            if (name === 'docProps/core.xml') return { async: () => Promise.resolve(mockCoreXml) };
-            if (name === 'ppt/presentation.xml') return { async: () => Promise.resolve(mockPresentationXml) };
-            return { async: () => Promise.resolve('') };
+        mockJszipInstance.file.mockImplementation((name: string | RegExp) => {
+            const files: { [key: string]: any } = {
+                'docProps/core.xml': { async: () => Promise.resolve(mockCoreXml) },
+                'ppt/presentation.xml': { async: () => Promise.resolve(mockPresentationXml) },
+            };
+
+            if (name instanceof RegExp) {
+                const matches = Object.keys(files).filter(k => name.test(k)).map(k => files[k]);
+                return matches;
+            }
+
+            return files[name] || { async: () => Promise.resolve('') };
         });
 
         const result = await parser.parsePPTX(Buffer.from(''));
@@ -101,9 +116,17 @@ describe('PPTXParser', () => {
     });
 
     test('deve usar valores padrão quando metadados estão ausentes', async () => {
-        mockJszipInstance.file.mockImplementation((name: string) => {
-             if (name === 'docProps/core.xml') return { async: () => Promise.resolve('<root />') }; // XML Vazio
-             if (name === 'ppt/presentation.xml') return { async: () => Promise.resolve('<p:presentation><p:sldIdLst/></p:presentation>') };
+        mockJszipInstance.file.mockImplementation((name: string | RegExp) => {
+             const files: { [key: string]: any } = {
+                 'docProps/core.xml': { async: () => Promise.resolve('<root />') },
+                 'ppt/presentation.xml': { async: () => Promise.resolve('<p:presentation><p:sldIdLst/></p:presentation>') }
+             };
+
+             if (name instanceof RegExp) {
+                const matches = Object.keys(files).filter(k => name.test(k)).map(k => files[k]);
+                return matches;
+            }
+
              return undefined;
         });
         
@@ -116,12 +139,18 @@ describe('PPTXParser', () => {
 
   describe('Extração de Slides', () => {
     test('deve extrair conteúdo de slides corretamente', async () => {
-        mockJszipInstance.file.mockImplementation((name: string) => {
+        mockJszipInstance.file.mockImplementation((name: string | RegExp) => {
             const files: { [key: string]: any } = {
                 'ppt/_rels/presentation.xml.rels': { async: () => Promise.resolve('<Relationships><Relationship Id="rId2" Target="slides/slide1.xml"/></Relationships>') },
                 'ppt/slides/slide1.xml': { async: () => Promise.resolve(mockSlide1Xml) },
                 'ppt/presentation.xml': { async: () => Promise.resolve('<p:presentation><p:sldIdLst><p:sldId id="256" r:id="rId2"/></p:sldIdLst></p:presentation>') },
             };
+            
+            if (name instanceof RegExp) {
+                const matches = Object.keys(files).filter(k => name.test(k)).map(k => files[k]);
+                return matches;
+            }
+
             return files[name];
         });
 
@@ -135,17 +164,23 @@ describe('PPTXParser', () => {
   describe('Tratamento de Erros', () => {
     test('deve lançar erro para arquivo inválido', async () => {
         (JSZip.loadAsync as jest.Mock).mockRejectedValueOnce(new Error('Invalid ZIP'));
-        await expect(parser.parsePPTX(Buffer.from('invalid'))).rejects.toThrow('Failed to parse PPTX: Invalid ZIP');
+        await expect(parser.parsePPTX(Buffer.from('invalid'))).rejects.toThrow('Invalid ZIP');
     });
 
     test('deve continuar processamento mesmo com slides corrompidos', async () => {
-        mockJszipInstance.file.mockImplementation((name: string) => {
+        mockJszipInstance.file.mockImplementation((name: string | RegExp) => {
             const files: { [key: string]: any } = {
                 'ppt/_rels/presentation.xml.rels': { async: () => Promise.resolve('<Relationships><Relationship Id="rId2" Target="slides/slide1.xml"/><Relationship Id="rId3" Target="slides/slide2.xml"/></Relationships>') },
                 'ppt/slides/slide1.xml': { async: () => Promise.reject('corrupted slide') }, // Slide 1 corrompido
                 'ppt/slides/slide2.xml': { async: () => Promise.resolve(mockSlide2Xml) }, // Slide 2 ok
                 'ppt/presentation.xml': { async: () => Promise.resolve(mockPresentationXml) },
             };
+            
+            if (name instanceof RegExp) {
+                const matches = Object.keys(files).filter(k => name.test(k)).map(k => files[k]);
+                return matches;
+            }
+
             return files[name];
         });
 

@@ -464,7 +464,7 @@ export default function CloudStorageManager({
       }));
       
       const currentJob = uploadJobs.find(j => j.id === job.id);
-      if (currentJob?.progress >= 100) {
+      if ((currentJob?.progress || 0) >= 100) {
         clearInterval(interval);
         
         // Add file to files list
@@ -699,7 +699,7 @@ export default function CloudStorageManager({
 
       {/* Main Content */}
       <div className="flex-1">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="h-full">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'files' | 'upload' | 'providers' | 'sync' | 'cdn')} className="h-full">
           {/* Tabs Navigation */}
           <div className="bg-gray-800 border-b border-gray-700 px-6">
             <TabsList className="bg-gray-700">

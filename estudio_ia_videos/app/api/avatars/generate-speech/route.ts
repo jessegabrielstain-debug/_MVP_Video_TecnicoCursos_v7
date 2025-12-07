@@ -1,4 +1,3 @@
-
 /**
  * 🎤 API: Generate Speech for Avatar V2
  * Gera áudio TTS para sincronização com avatar 3D
@@ -22,6 +21,18 @@ interface EnhancedTTSConfig {
   lipSyncPrecision?: string;
 }
 
+interface TTSResult {
+  success: boolean;
+  audioUrl?: string;
+  duration?: number;
+  provider?: string;
+  quality?: number;
+  phonemes?: unknown[];
+  lipSyncData?: Record<string, unknown>;
+  cacheHit?: boolean;
+  error?: string;
+}
+
 class EnhancedTTSService {
   private static instance: EnhancedTTSService;
   
@@ -32,7 +43,7 @@ class EnhancedTTSService {
     return this.instance;
   }
   
-  async synthesizeSpeech(config: EnhancedTTSConfig) {
+  async synthesizeSpeech(config: EnhancedTTSConfig): Promise<TTSResult> {
     // Simulate TTS processing
     await new Promise(resolve => setTimeout(resolve, 1000));
     
@@ -51,7 +62,7 @@ class EnhancedTTSService {
 
 class UnifiedAvatarPipeline {
   private static instance: UnifiedAvatarPipeline;
-  private jobs: Map<string, any> = new Map();
+  private jobs: Map<string, Record<string, unknown>> = new Map();
   
   static getInstance(): UnifiedAvatarPipeline {
     if (!this.instance) {
@@ -60,10 +71,10 @@ class UnifiedAvatarPipeline {
     return this.instance;
   }
   
-  async createRenderJob(text: string, config: any, metadata?: any): Promise<string> {
+  async createRenderJob(text: string, config: Record<string, unknown>, metadata?: Record<string, unknown>): Promise<string> {
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    const job = {
+    const job: Record<string, unknown> = {
       id: jobId,
       status: 'pending',
       progress: 0,
@@ -90,7 +101,7 @@ class UnifiedAvatarPipeline {
         updatedJob.output = {
           audioUrl: `/api/audio/generated/${jobId}.mp3`,
           videoUrl: `/api/video/generated/${jobId}.mp4`,
-          duration: estimateDuration(text, config.tts?.speed || 1.0)
+          duration: estimateDuration(text, (config.tts as { speed?: number })?.speed || 1.0)
         };
       }
     }, 5000);
@@ -130,8 +141,8 @@ interface GenerateSpeechResponse {
   text?: string;
   voiceId?: string;
   jobId?: string; // Para pipeline unificado
-  phonemes?: any[];
-  lipSyncData?: any;
+  phonemes?: unknown[];
+  lipSyncData?: Record<string, unknown>;
   metadata?: {
     quality: number;
     processingTime: number;
@@ -159,7 +170,7 @@ const DEFAULT_CONFIG = {
 };
 
 // Validações
-function validateRequest(body: any): { isValid: boolean; errors: string[] } {
+function validateRequest(body: Partial<GenerateSpeechRequest>): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
   
   // Validar texto
@@ -516,3 +527,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

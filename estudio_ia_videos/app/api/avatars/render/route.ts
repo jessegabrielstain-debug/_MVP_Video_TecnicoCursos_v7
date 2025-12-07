@@ -185,10 +185,10 @@ class Avatar3DRenderer {
         completedAt: new Date()
       })
 
-    } catch (error: any) {
+    } catch (error) {
       await this.updateRenderJob(jobId, {
         status: 'failed',
-        errorMessage: error.message,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
         currentStage: 'Erro na renderização do avatar'
       })
       throw error
@@ -596,11 +596,11 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Avatar render API error:', error)
     return NextResponse.json({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }
@@ -646,11 +646,11 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Avatar render status API error:', error)
     return NextResponse.json({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }

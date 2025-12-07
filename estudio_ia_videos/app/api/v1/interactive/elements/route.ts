@@ -1,13 +1,19 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+interface InteractiveElement {
+  id?: string
+  type: string
+  [key: string]: unknown
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { elements, settings } = body;
 
     // Simulate interactive elements processing
-    const processedElements = elements.map((element: any) => ({
+    const processedElements = elements.map((element: InteractiveElement) => ({
       ...element,
       id: element.id || `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       processedAt: new Date().toISOString(),
@@ -38,10 +44,10 @@ export async function POST(request: NextRequest) {
       metadata: {
         totalElements: processedElements.length,
         elementTypes: {
-          quiz: processedElements.filter((e: any) => e.type === 'quiz').length,
-          hotspot: processedElements.filter((e: any) => e.type === 'hotspot').length,
-          button: processedElements.filter((e: any) => e.type === 'button').length,
-          form: processedElements.filter((e: any) => e.type === 'form').length
+          quiz: processedElements.filter((e: InteractiveElement) => e.type === 'quiz').length,
+          hotspot: processedElements.filter((e: InteractiveElement) => e.type === 'hotspot').length,
+          button: processedElements.filter((e: InteractiveElement) => e.type === 'button').length,
+          form: processedElements.filter((e: InteractiveElement) => e.type === 'form').length
         },
         estimatedEngagement: Math.floor(Math.random() * 20) + 80, // 80-100%
         complexity: processedElements.length > 10 ? 'high' : processedElements.length > 5 ? 'medium' : 'low'
@@ -267,3 +273,4 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+

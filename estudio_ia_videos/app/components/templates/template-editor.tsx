@@ -50,6 +50,13 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
       slides: [],
       animations: [],
       assets: [],
+      interactions: [],
+      compliance: {
+        nrCategory: 'NR-01',
+        requirements: [],
+        checkpoints: [],
+        certifications: []
+      },
       settings: {
         resolution: { width: 1920, height: 1080 },
         frameRate: 30,
@@ -128,6 +135,8 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
   const handleAddSlide = () => {
     const newSlide: TemplateSlide = {
       id: `slide-${Date.now()}`,
+      type: 'content',
+      layout: 'default',
       title: `Slide ${formData.content.slides.length + 1}`,
       content: '',
       duration: 5,
@@ -164,12 +173,27 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
         rating: 0,
         isFavorite: false,
         metadata: {
+          difficulty: 'beginner' as const,
+          estimatedDuration: 60,
+          targetAudience: ['General'],
+          learningObjectives: [],
+          prerequisites: [],
+          language: 'pt-BR',
+          accessibility: {
+            screenReader: true,
+            highContrast: false,
+            keyboardNavigation: true,
+            closedCaptions: false,
+            audioDescription: false,
+            signLanguage: false,
+          },
           compliance: {
             nrCategories: [formData.category],
             requirements: [],
             certifications: [],
             lastAudit: new Date(),
             status: 'compliant' as const,
+            auditScore: 100,
           },
           performance: {
             renderTime: 0,

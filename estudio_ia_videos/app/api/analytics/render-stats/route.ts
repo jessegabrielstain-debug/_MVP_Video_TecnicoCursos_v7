@@ -16,11 +16,25 @@ import { RenderStatsQuerySchema, type RenderStatsQuery } from '@/lib/validation/
 const MAX_ROWS = 5000
 const cache = getInMemoryCache({ ttl: 30000 })
 
-type TimeRange = RenderAnalyticsQuery['timeRange']
+type TimeRange = RenderStatsQuery['timeRange']
 
 type RenderJobRow = BasicRenderJob & {
   user_id?: string
   project_type?: string
+}
+
+type RenderJobWithProject = {
+  id: string
+  created_at: string
+  started_at: string | null
+  completed_at: string | null
+  status: string
+  error_message: string | null
+  render_settings: any
+  projects: {
+    user_id: string
+    type: string
+  } | null
 }
 
 type RenderStatsPayload = {
@@ -30,7 +44,7 @@ type RenderStatsPayload = {
     filters: {
       userId: string | null
       projectType: string | null
-      status: RenderAnalyticsQuery['status']
+      status: RenderStatsQuery['status']
     }
     row_count: number
     truncated: boolean
@@ -80,11 +94,11 @@ export async function GET(req: NextRequest) {
   }
 
   const params = parsed.data
-  const admin = supabaseAdmin()
+  const admin = supabaseAdmin
   let query = admin
     .from('render_jobs')
     .select(
-      'id, created_at, started_at, completed_at, status, error_message, render_settings, user_id, project_type',
+      'id, created_at, started_at, completed_at, status, error_message, render_settings, projects!inner(user_id, type)',
       { count: 'exact' }
     )
     .gte('created_at', getTimeRangeFilter(params.timeRange).toISOString())
@@ -92,11 +106,11 @@ export async function GET(req: NextRequest) {
     .limit(MAX_ROWS)
 
   if (params.userId) {
-    query = query.eq('user_id', params.userId)
+    query = query.eq('projects.user_id', params.userId)
   }
 
   if (params.projectType) {
-    query = query.eq('project_type', params.projectType)
+    query = query.eq('projects.type', params.projectType)
   }
 
   if (params.status !== 'all') {
@@ -110,7 +124,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch render jobs' }, { status: 500 })
   }
 
-  const jobs = (data ?? []) as RenderJobRow[]
+  const rawJobs = (data as unknown) as RenderJobWithProject[]
+  
+  const jobs: RenderJobRow[] = rawJobs.map(job => ({
+    id: job.id,
+    created_at: job.created_at,
+    started_at: job.started_at,
+    completed_at: job.completed_at,
+    status: job.status,
+    error_message: job.error_message,
+    render_settings: job.render_settings,
+    user_id: job.projects?.user_id,
+    project_type: job.projects?.type
+  }))
+
   const totalCount = typeof count === 'number' ? count : jobs.length
   const truncated = totalCount > jobs.length || jobs.length === MAX_ROWS
 
@@ -145,3 +172,4 @@ export async function GET(req: NextRequest) {
   response.headers.set('X-Cache', 'MISS')
   return response
 }
+

@@ -74,7 +74,7 @@ interface RenderJob {
   output?: {
     videoUrl: string;
     audioUrl: string;
-    lipSyncData: any;
+    lipSyncData: Record<string, unknown>;
     thumbnailUrl: string;
     fileSize: number;
     duration: number;
@@ -87,6 +87,48 @@ interface RenderJob {
     frameRate: number;
     memoryUsage: number;
     gpuUsage: number;
+  };
+}
+
+interface ApiJob {
+  id: string;
+  avatarId: string;
+  avatarName?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  progress?: number;
+  createdAt: string;
+  completedAt?: string;
+  estimatedTime: number;
+  elapsedTime?: number;
+  settings: {
+    text: string;
+    animation?: string;
+    resolution: string;
+    quality: string;
+    language: string;
+    rayTracing: boolean;
+    realTimeLipSync: boolean;
+    audio2FaceEnabled: boolean;
+    voiceCloning: boolean;
+    cameraAngle?: string;
+    lighting?: string;
+  };
+  output?: {
+    videoUrl: string;
+    audioUrl: string;
+    lipSyncData: Record<string, unknown>;
+    thumbnailUrl: string;
+    fileSize: number;
+    duration: number;
+  };
+  error?: string;
+  logs?: string[];
+  metrics?: {
+    renderTime?: number;
+    lipSyncAccuracy?: number;
+    frameRate?: number;
+    memoryUsage?: number;
+    gpuUsage?: number;
   };
 }
 
@@ -169,7 +211,7 @@ export default function RenderMonitor({
       
       if (data.success) {
         // Mapear dados da API v2 para o formato do componente
-        const mappedJobs = data.data.jobs.map((job: any) => ({
+        const mappedJobs = (data.data.jobs as ApiJob[]).map((job) => ({
           id: job.id,
           avatarId: job.avatarId,
           avatarName: job.avatarName || 'Avatar Desconhecido',

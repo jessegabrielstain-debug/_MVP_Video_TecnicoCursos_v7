@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { watermarkSystem, WatermarkConfig } from '@/lib/watermark-intelligent-real';
+import { watermarkSystem, WatermarkOptions } from '@/lib/watermark-intelligent-real';
 import * as fs from 'fs/promises';
 
 export async function POST(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { imagePath, config } = body as {
       imagePath: string;
-      config: WatermarkConfig;
+      config: any;
     };
 
     if (!imagePath) {
@@ -40,8 +40,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Ler arquivo
+    const buffer = await fs.readFile(imagePath);
+
+    // Configurar opções
+    const options: WatermarkOptions = {
+      type: 'logo',
+      imagePath: config.logoPath,
+      position: config.position || 'bottom-right',
+      opacity: config.opacity || 0.8,
+      scale: config.scale || 0.2,
+    };
+
     // Aplicar watermark
-    const result = await watermarkSystem.applyWatermark(imagePath, config);
+    const result = await watermarkSystem.applyToImage(buffer, options);
 
     return NextResponse.json({
       success: true,
@@ -59,3 +71,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

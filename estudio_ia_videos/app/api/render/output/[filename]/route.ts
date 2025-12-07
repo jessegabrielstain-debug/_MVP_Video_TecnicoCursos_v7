@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { renderJobManager } from '../../../../lib/render/job-manager';
+import { jobManager as renderJobManager } from '@/lib/render/job-manager';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -26,7 +26,7 @@ export async function GET(
     const jobId = filename.split('.')[0];
     
     // Verificar se job existe e foi concluído
-    const job = renderJobManager.getJob(jobId);
+    const job = await renderJobManager.getJob(jobId);
     if (!job || job.status !== 'completed') {
       return NextResponse.json(
         { error: 'Arquivo não disponível' },
@@ -48,7 +48,7 @@ export async function GET(
       const contentType = getContentType(filename);
 
       // Retornar arquivo
-      return new NextResponse(fileBuffer, {
+      return new NextResponse(new Uint8Array(fileBuffer), {
         status: 200,
         headers: {
           'Content-Type': contentType,

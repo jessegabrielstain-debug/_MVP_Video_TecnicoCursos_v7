@@ -50,7 +50,7 @@ import {
   ZoomOut,
   Save,
   FileVideo,
-  Waveform,
+  AudioLines,
   Sparkles,
   Target,
   Clock,
@@ -219,7 +219,7 @@ const DraggableTimelineItem: React.FC<{
 
   return (
     <div
-      ref={drag}
+      ref={drag as unknown as React.LegacyRef<HTMLDivElement>}
       className={cn(
         "absolute top-2 rounded-lg border-2 transition-all duration-200 cursor-pointer group",
         "hover:shadow-lg hover:scale-105",
@@ -306,7 +306,7 @@ const DroppableTrack: React.FC<{
       }
 
       newStart = Math.max(0, newStart)
-      onItemMove(track.id, item.id, newStart)
+      onItemMove(track.id, (item as { id: string }).id, newStart)
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
@@ -315,7 +315,7 @@ const DroppableTrack: React.FC<{
 
   return (
     <div
-      ref={drop}
+      ref={drop as unknown as React.LegacyRef<HTMLDivElement>}
       id={`track-${track.id}`}
       className={cn(
         "relative border-b border-gray-700 transition-colors",

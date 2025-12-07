@@ -171,9 +171,8 @@ describe('PPTXTextParser', () => {
       expect(result[0].formatting).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            text: 'Formatted Text',
-            font: 'Arial',
-            size: 24,
+            fontFamily: 'Arial',
+            fontSize: 24,
             bold: true,
             italic: true,
             underline: true,
@@ -279,10 +278,11 @@ describe('PPTXTextParser', () => {
       const result = await parser.extractText(mockZip);
 
       expect(result[0].hyperlinks).toEqual([
-        {
+        expect.objectContaining({
           text: 'Click here',
-          url: 'https://example.com'
-        }
+          url: 'https://example.com',
+          target: '_blank'
+        })
       ]);
     });
   });

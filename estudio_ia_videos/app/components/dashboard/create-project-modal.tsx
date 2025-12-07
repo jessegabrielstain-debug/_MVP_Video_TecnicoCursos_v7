@@ -8,7 +8,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Textarea } from '../ui/textarea'
-import { VideoProject } from '../../lib/types'
+import { Project as VideoProject } from '../../hooks/use-projects'
 import { useToast } from '../../hooks/use-toast'
 import { PPTXUploadModal } from '../pptx/pptx-upload-modal'
 
@@ -23,7 +23,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    type: 'basic' // 'basic' | 'template' | 'pptx'
+    type: 'custom' // 'custom' | 'template' | 'pptx'
   })
   const [pptxModalOpen, setPptxModalOpen] = useState(false)
   const { toast } = useToast()
@@ -47,6 +47,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       })
+
 
       if (response.ok) {
         const data = await response.json()
@@ -130,9 +131,9 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
               <div className="grid grid-cols-3 gap-3 mt-2">
                 <button
                   type="button"
-                  onClick={() => handleChange('type', 'basic')}
+                  onClick={() => handleChange('type', 'custom')}
                   className={`p-4 border rounded-lg flex flex-col items-center space-y-2 transition-colors ${
-                    formData.type === 'basic' 
+                    formData.type === 'custom' 
                       ? 'border-blue-500 bg-blue-50' 
                       : 'border-gray-200 hover:border-gray-300'
                   }`}

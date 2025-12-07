@@ -124,16 +124,18 @@ export async function POST(request: NextRequest) {
       }
     })
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Timeline generation error:', error)
+    const message = error instanceof Error ? error.message : 'Erro interno do servidor';
     
     return NextResponse.json(
       { 
         success: false,
-        error: error.message || 'Erro interno do servidor' 
+        error: message 
       },
       { status: 500 }
     )
   }
 }
+
 

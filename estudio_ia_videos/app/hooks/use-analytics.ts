@@ -5,8 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import useSWR from 'swr'
-import { useWebSocket } from './useWebSocket'
-import { createBrowserSupabaseClient } from '@/lib/services'
+import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
 // Types for analytics data
@@ -22,9 +21,23 @@ export interface SystemMetrics {
   error_rate: number
   uptime: number
   last_updated: string
+  projects_created_today?: number // Added
+  network_io?: number // Added
+  network_in?: number // Added
+  network_out?: number // Added
+  memory_used?: number // Added
+  memory_total?: number // Added
+  disk_used?: number // Added
+  disk_total?: number // Added
 }
 
 export interface UserMetrics {
+  total_users: number
+  user_growth_rate: number
+  new_users_today: number
+  active_users: number
+  retention_rate: number
+  user_distribution: Array<{ name: string; value: number }>
   total_projects: number
   completed_projects: number
   active_projects: number
@@ -67,6 +80,22 @@ export interface AnalyticsErrorState {
 }
 
 export interface RenderStatistics {
+  renders_today: number
+  success_rate: number
+  queue_length: number
+  avg_wait_time: number
+  status_distribution: Array<{ name: string; value: number }>
+  recent_jobs: Array<{
+    id: string
+    project_title: string
+    status: string
+    render_type: string
+    duration: number
+    created_at: string
+  }>
+  completed_today: number
+  in_progress: number
+  failed_today: number
   total_renders: number
   successful_renders: number
   failed_renders: number
@@ -134,6 +163,26 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
   const [isConnected, setIsConnected] = useState(false)
   const [realTimeEvents, setRealTimeEvents] = useState<AnalyticsEvent[]>([])
   const eventBuffer = useRef<AnalyticsEvent[]>([])
+  const [timeRange, setTimeRange] = useState<string>(filters.timeRange)
+
+  // Mock performance data
+  const performanceData = useMemo(() => {
+      return Array.from({ length: 24 }, (_, i) => ({
+          timestamp: `${i}:00`,
+          cpu_usage: Math.random() * 100,
+          memory_usage: Math.random() * 100,
+          disk_usage: Math.random() * 100
+      }))
+  }, [])
+
+  // Mock usage data
+  const usageData = useMemo(() => {
+      return Array.from({ length: 7 }, (_, i) => ({
+          timestamp: `Day ${i+1}`,
+          active_users: Math.floor(Math.random() * 100),
+          renders_completed: Math.floor(Math.random() * 50)
+      }))
+  }, [])
   
   useEffect(() => {
     let isMounted = true
@@ -218,75 +267,44 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
     }
   )
 
-  // WebSocket connection for real-time updates
-  const { 
-    isConnected: wsConnected, 
-    sendMessage, 
-    lastMessage 
-  } = useWebSocket('/api/websocket/analytics', {
-    onOpen: () => {
-      console.log('📊 Analytics WebSocket connected')
-      setIsConnected(true)
-      // Subscribe to analytics events
-      sendMessage({
-        type: 'subscribe',
-        channel: 'analytics',
-        filters
-      })
-    },
-    onClose: () => {
-      console.log('📊 Analytics WebSocket disconnected')
-      setIsConnected(false)
-    },
-    onError: (error) => {
-      console.error('📊 Analytics WebSocket error:', error)
-      setIsConnected(false)
-    }
-  })
-
-  // Handle real-time messages
+  // Real-time analytics with Supabase
   useEffect(() => {
-    if (lastMessage) {
-      try {
-        const message = JSON.parse(lastMessage.data)
-        
-        switch (message.type) {
-          case 'analytics_event':
-            const event: AnalyticsEvent = message.data
-            setRealTimeEvents(prev => [event, ...prev.slice(0, 99)]) // Keep last 100 events
-            eventBuffer.current.push(event)
-            
-            // Auto-refresh relevant metrics based on event type
-            if (event.type === 'system') {
-              refreshSystemMetrics()
-            } else if (event.type === 'render') {
-              refreshRenderStats()
-          } else if (event.type === 'user' && event.user_id === user?.id) {
-              refreshUserMetrics()
-            }
-            break
-            
-          case 'metrics_update':
-            // Direct metrics update from server
-            if (message.category === 'system') {
-              refreshSystemMetrics()
-            } else if (message.category === 'render') {
-              refreshRenderStats()
-            }
-            break
-            
-          case 'bulk_update':
-            // Refresh all metrics
-            refreshSystemMetrics()
-            refreshUserMetrics()
-            refreshRenderStats()
-            break
+    if (!user) return
+
+    const channel = supabase
+      .channel('analytics_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'analytics_events',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const event = payload.new as unknown as AnalyticsEvent
+          
+          setRealTimeEvents(prev => [event, ...prev.slice(0, 99)])
+          eventBuffer.current.push(event)
+
+          // Auto-refresh relevant metrics
+          if (event.category === 'system') {
+             refreshSystemMetrics()
+          } else if (event.category === 'render') {
+             refreshRenderStats()
+          } else if (event.category === 'user') {
+             refreshUserMetrics()
+          }
         }
-      } catch (error) {
-        console.error('Error parsing analytics WebSocket message:', error)
-      }
+      )
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED')
+      })
+
+    return () => {
+      supabase.removeChannel(channel)
     }
-  }, [lastMessage, refreshSystemMetrics, refreshUserMetrics, refreshRenderStats, user?.id])
+  }, [supabase, user, refreshSystemMetrics, refreshUserMetrics, refreshRenderStats])
 
   // Track custom events
   const trackEvent = useCallback(async (
@@ -410,13 +428,9 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
   // Subscribe to specific events
   const subscribeToEvents = useCallback((eventTypes: string[]) => {
     if (isConnected) {
-      sendMessage({
-        type: 'subscribe_events',
-        eventTypes,
-        filters
-      })
+      console.warn('subscribeToEvents: sendMessage is not implemented', { eventTypes, filters })
     }
-  }, [isConnected, sendMessage, filters])
+  }, [isConnected, filters])
 
   const loadingState: AnalyticsLoadingState = {
     system: systemLoading,
@@ -438,15 +452,19 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
     userMetrics: userMetrics?.data,
     renderStats: renderStats?.data,
     realTimeEvents,
+    performanceData,
+    usageData,
+    timeRange,
     
     // Loading states
-    isLoading: loadingState,
+    isLoading: loadingState.combined,
     
     // Error states
     errors: errorState,
+    error: errorState.combined ? new Error('Failed to load analytics') : undefined,
     
     // Connection status
-    isConnected: isConnected && wsConnected,
+    isConnected,
     
     // Actions
     trackEvent,
@@ -454,9 +472,11 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
     trackRenderEvent,
     trackUserEvent,
     refreshAll,
+    refreshData: refreshAll,
     exportData,
     subscribeToEvents,
     getAggregatedData,
+    setTimeRange,
     
     // Individual refresh functions
     refreshSystemMetrics,

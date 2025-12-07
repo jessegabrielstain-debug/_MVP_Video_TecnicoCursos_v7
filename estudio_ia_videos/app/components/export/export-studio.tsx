@@ -272,7 +272,7 @@ export default function ExportStudio({ projectId, projectData }: ExportStudioPro
                   <label className="text-sm font-medium">Formato de Exportação</label>
                   <Select 
                     value={configuration.export_format}
-                    onValueChange={(value) => setConfiguration(prev => ({...prev, export_format: value}))}
+                    onValueChange={(value) => setConfiguration(prev => ({...prev, export_format: value as ExportConfiguration['export_format']}))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -294,7 +294,7 @@ export default function ExportStudio({ projectId, projectData }: ExportStudioPro
                       value={configuration.quality_settings?.resolution}
                       onValueChange={(value) => setConfiguration(prev => ({
                         ...prev, 
-                        quality_settings: {...prev.quality_settings!, resolution: value}
+                        quality_settings: {...prev.quality_settings!, resolution: value as ExportConfiguration['quality_settings']['resolution']}
                       }))}
                     >
                       <SelectTrigger>
@@ -367,7 +367,7 @@ export default function ExportStudio({ projectId, projectData }: ExportStudioPro
                     value={configuration.quality_settings?.audio_quality}
                     onValueChange={(value) => setConfiguration(prev => ({
                       ...prev, 
-                      quality_settings: {...prev.quality_settings!, audio_quality: value}
+                      quality_settings: {...prev.quality_settings!, audio_quality: value as ExportConfiguration['quality_settings']['audio_quality']}
                     }))}
                   >
                     <SelectTrigger>

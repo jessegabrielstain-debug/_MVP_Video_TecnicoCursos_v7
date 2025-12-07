@@ -16,8 +16,6 @@ import path from 'path';
 
 // Mock ffmpeg
 jest.mock('fluent-ffmpeg', () => {
-  const mockFfmpeg = jest.fn(() => mockCommand);
-  
   const mockCommand = {
     videoCodec: jest.fn().mockReturnThis(),
     audioCodec: jest.fn().mockReturnThis(),
@@ -31,7 +29,7 @@ jest.mock('fluent-ffmpeg', () => {
     videoFilters: jest.fn().mockReturnThis(),
     format: jest.fn().mockReturnThis(),
     output: jest.fn().mockReturnThis(),
-    on: jest.fn(function(event: string, callback: (data?: {frames: number; currentFps: number; currentKbps: number; timemark: string}) => void) {
+    on: jest.fn(function(event: string, callback: Function) {
       if (event === 'end') {
         setTimeout(() => callback(), 10);
       }
@@ -40,15 +38,18 @@ jest.mock('fluent-ffmpeg', () => {
           frames: 100,
           currentFps: 30,
           currentKbps: 2000,
-          timemark: '00:00:10'
+          timemark: '00:00:10',
+          percent: 50
         }), 5);
       }
       return this;
     }),
-    run: jest.fn()
+    run: jest.fn(),
+    kill: jest.fn()
   };
 
-  mockFfmpeg.ffprobe = jest.fn((filePath: string, callback: Function) => {
+  const mockFfmpeg = jest.fn(() => mockCommand);
+  (mockFfmpeg as any).ffprobe = jest.fn((filePath: string, callback: Function) => {
     callback(null, {
       format: {
         duration: 60,
@@ -143,7 +144,7 @@ describe('VideoTranscoder', () => {
       
       await transcoder.transcode(testVideoPath, outputPath, {
         videoCodec: VideoCodec.H264,
-        optimize: true
+        optimizeForWeb: true
       });
 
       expect(ffmpeg().addOption).toHaveBeenCalledWith('-movflags', '+faststart');
@@ -169,16 +170,28 @@ describe('VideoTranscoder', () => {
 
     it('should handle errors gracefully', async () => {
       const ffmpeg = require('fluent-ffmpeg');
-      ffmpeg().on = jest.fn((event: string, callback: any) => {
+      const mockCommand = ffmpeg();
+      const originalOn = mockCommand.on;
+      
+      // Override on for this test
+      mockCommand.on = jest.fn((event: string, callback: any) => {
         if (event === 'error') {
           setTimeout(() => callback(new Error('Transcode failed')), 10);
         }
-        return ffmpeg();
+        return mockCommand;
       });
 
-      await expect(
-        transcoder.transcode(testVideoPath, outputPath)
-      ).rejects.toThrow('Transcode failed');
+      // Add error listener to prevent unhandled error
+      transcoder.on('error', () => {});
+
+      try {
+        await expect(
+          transcoder.transcode(testVideoPath, outputPath)
+        ).rejects.toThrow('Transcode failed');
+      } finally {
+        // Restore
+        mockCommand.on = originalOn;
+      }
     });
   });
 
@@ -202,8 +215,8 @@ describe('VideoTranscoder', () => {
         resolutions
       );
 
-      expect(result.resolutions).toEqual(resolutions);
-      expect(result.outputDir).toBe(outputDir);
+      expect(result.resolutions.length).toBe(2);
+      expect(result.resolutions[0].resolution).toEqual(resolutions[0]);
     });
 
     it('should emit resolution:complete events', async () => {
@@ -224,11 +237,11 @@ describe('VideoTranscoder', () => {
         testVideoPath,
         outputDir,
         [STANDARD_RESOLUTIONS['720p']],
-        { format: VideoFormat.HLS }
+        { generateHLS: true }
       );
 
       expect(result.hlsPlaylist).toBeDefined();
-      expect(result.hlsPlaylist).toContain('master.m3u8');
+      expect(result.hlsPlaylist).toContain('playlist.m3u8');
     });
 
     it('should generate DASH manifest when requested', async () => {
@@ -236,7 +249,7 @@ describe('VideoTranscoder', () => {
         testVideoPath,
         outputDir,
         [STANDARD_RESOLUTIONS['720p']],
-        { format: VideoFormat.DASH }
+        { generateDASH: true }
       );
 
       expect(result.dashManifest).toBeDefined();

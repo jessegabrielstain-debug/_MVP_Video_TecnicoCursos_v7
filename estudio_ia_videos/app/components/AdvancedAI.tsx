@@ -16,20 +16,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
-interface AIModel {
-  id: string;
-  name: string;
-  provider?: string;
-  [key: string]: unknown;
-}
-
-interface GenerationHistoryItem {
-  id: string;
-  type: string;
-  timestamp: number;
-  content?: unknown;
-  [key: string]: unknown;
-}
+import { 
+  useAdvancedAI, 
+  ContentGenerationRequest, 
+  AIInsight, 
+  SentimentAnalysisResult, 
+  ContentOptimization,
+  AIModel,
+  ContentGenerationResult as GenerationHistoryItem
+} from '@/hooks/useAdvancedAI';
 
 import { 
   Brain, 
@@ -69,7 +64,6 @@ import {
   DollarSign,
   Activity
 } from 'lucide-react';
-import { useAdvancedAI, ContentGenerationRequest, AIInsight, SentimentAnalysisResult, ContentOptimization } from '@/hooks/useAdvancedAI';
 
 const CONTENT_TYPE_OPTIONS = ['text', 'image', 'audio', 'video_script', 'slide_content', 'quiz_questions'] as const;
 type ContentTypeOption = (typeof CONTENT_TYPE_OPTIONS)[number];
@@ -149,7 +143,9 @@ export const AdvancedAI: React.FC = () => {
     if (!analysisContent.trim()) return;
     
     const result = await optimizeContent(analysisContent);
-    setOptimizationResult(result);
+    if (result && typeof result === 'object' && 'score' in result) {
+      setOptimizationResult(result as ContentOptimization);
+    }
   }, [analysisContent, optimizeContent]);
 
   // Handle smart suggestions

@@ -5,11 +5,28 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
+
+interface Clip {
+  trackIndex: number
+  startTime: number
+  duration: number
+  type: string
+  source?: string
+  content?: string
+  style?: {
+    fontSize?: number
+    color?: string
+    position?: string
+  }
+  metadata?: {
+    provider?: string
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
@@ -18,8 +35,8 @@ export async function POST(req: NextRequest) {
     const { timelineId, clips, duration, settings } = body;
 
     // Organizar clips por track e ordem
-    const trackGroups: { [key: number]: any[] } = {};
-    clips.forEach((clip: any) => {
+    const trackGroups: { [key: number]: Clip[] } = {};
+    clips.forEach((clip: Clip) => {
       if (!trackGroups[clip.trackIndex]) {
         trackGroups[clip.trackIndex] = [];
       }
@@ -46,7 +63,7 @@ export async function POST(req: NextRequest) {
           
           // Aplicar transições se houver
           const transition = clips.find(
-            (c: any) => c.type === 'transition' && 
+            (c: Clip) => c.type === 'transition' && 
             c.startTime >= clip.startTime && 
             c.startTime < clip.startTime + clip.duration
           );
@@ -142,3 +159,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+

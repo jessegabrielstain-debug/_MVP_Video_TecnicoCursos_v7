@@ -643,7 +643,7 @@ Second subtitle
           (call: any[]) => call[0] === 'end'
         );
         if (endCall && endCall[1]) {
-          setImmediate(() => endCall[1]());
+          setTimeout(() => endCall[1](), 0);
         }
       });
     });
@@ -669,7 +669,8 @@ Second subtitle
       });
 
       expect(result.hasSubtitles).toBe(true);
-      expect(mockFfmpegInstance.input).toHaveBeenCalled();
+      // ffmpeg(videoPath) is called, not .input()
+      expect(mockFfmpeg).toHaveBeenCalledWith('./input.mp4');
     });
 
     it('should emit embed events', async () => {

@@ -1,5 +1,3 @@
-
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -92,12 +90,18 @@ interface CertificateVerification {
   warnings?: string[]
 }
 
+interface IssuanceProgress {
+  step: string
+  progress: number
+  error?: string
+}
+
 export default function CertificationCenter() {
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [verificationInput, setVerificationInput] = useState('')
   const [verificationResult, setVerificationResult] = useState<CertificateVerification | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
-  const [issuanceProgress, setIssuanceProgress] = useState<unknown>(null)
+  const [issuanceProgress, setIssuanceProgress] = useState<IssuanceProgress | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState('')
 
   useEffect(() => {
@@ -535,7 +539,7 @@ export default function CertificationCenter() {
                 
                 <Button 
                   onClick={handleIssueCertificate}
-                  disabled={!selectedTemplate || issuanceProgress?.step}
+                  disabled={!selectedTemplate || !!issuanceProgress}
                   className="w-full"
                 >
                   <Award className="h-4 w-4 mr-2" />

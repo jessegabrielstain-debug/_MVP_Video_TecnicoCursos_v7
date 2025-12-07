@@ -384,7 +384,7 @@ const RealTimeCollaborationHub = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="h-full flex flex-col">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'workspace' | 'comments' | 'versions' | 'insights')} className="h-full flex flex-col">
           <TabsList className="w-full">
             <TabsTrigger value="workspace" className="flex-1">Workspace</TabsTrigger>
             <TabsTrigger value="comments" className="flex-1">

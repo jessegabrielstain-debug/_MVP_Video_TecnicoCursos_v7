@@ -24,6 +24,7 @@ const initialState: EditorState = {
       opacity: 1,
       blendMode: 'normal',
       expanded: true,
+      elements: [],
     },
     {
       id: 'layer-2',
@@ -33,6 +34,7 @@ const initialState: EditorState = {
       opacity: 1,
       blendMode: 'normal',
       expanded: true,
+      elements: [],
     },
   ],
   timeline: {
@@ -43,7 +45,7 @@ const initialState: EditorState = {
     keyframes: [],
     markers: [],
   },
-  selectedElementId: null,
+  selectedElements: [],
   clipboard: [],
   history: [],
   historyIndex: -1,
@@ -112,31 +114,31 @@ export function useEditor(projectId?: string) {
   }, []);
 
   // Element management
-  type ElementOverrides = Partial<Omit<EditorElement, 'id' | 'type' | 'name'>>;
+  type ElementProperties = Record<string, any>;
 
-  const createElement = useCallback((type: EditorElement['type'], properties: ElementOverrides = {}) => {
+  const createElement = useCallback((type: EditorElement['type'], props: ElementProperties = {}) => {
     const element: EditorElement = {
       id: `element-${Date.now()}`,
       type,
       name: `${type} ${Date.now()}`,
-      x: 100,
-      y: 100,
-      width: 200,
-      height: 100,
+      layerId: 'layer-2',
+      position: { x: 100, y: 100, z: 0 },
+      size: { width: 200, height: 100 },
       rotation: 0,
       opacity: 1,
       visible: true,
       locked: false,
-      layerId: 'layer-2',
-      style: {},
-      ...getDefaultProperties(type),
-      ...properties,
+      animations: [],
+      properties: {
+        ...getDefaultProperties(type),
+        ...props,
+      },
     };
 
     setState(prev => ({
       ...prev,
       elements: [...prev.elements, element],
-      selectedElementId: element.id,
+      selectedElements: [element.id],
     }));
 
     addToHistory('createElement', element, `Created ${type} element`);
@@ -158,7 +160,7 @@ export function useEditor(projectId?: string) {
     setState(prev => ({
       ...prev,
       elements: prev.elements.filter(element => element.id !== elementId),
-      selectedElementId: prev.selectedElementId === elementId ? null : prev.selectedElementId,
+      selectedElements: prev.selectedElements.filter(id => id !== elementId),
     }));
 
     addToHistory('deleteElement', { elementId }, `Deleted element`);
@@ -169,18 +171,21 @@ export function useEditor(projectId?: string) {
       const element = prev.elements.find(el => el.id === elementId);
       if (!element) return prev;
 
-      const duplicated = {
+      const duplicated: EditorElement = {
         ...element,
         id: `element-${Date.now()}`,
         name: `${element.name} Copy`,
-        x: element.x + 20,
-        y: element.y + 20,
+        position: {
+          ...element.position,
+          x: element.position.x + 20,
+          y: element.position.y + 20,
+        },
       };
 
       return {
         ...prev,
         elements: [...prev.elements, duplicated],
-        selectedElementId: duplicated.id,
+        selectedElements: [duplicated.id],
       };
     });
 
@@ -191,14 +196,14 @@ export function useEditor(projectId?: string) {
   const selectElement = useCallback((elementId: string) => {
     setState(prev => ({
       ...prev,
-      selectedElementId: elementId,
+      selectedElements: [elementId],
     }));
   }, []);
 
   const clearSelection = useCallback(() => {
     setState(prev => ({
       ...prev,
-      selectedElementId: null,
+      selectedElements: [],
     }));
   }, []);
 
@@ -212,6 +217,7 @@ export function useEditor(projectId?: string) {
       opacity: 1,
       blendMode: 'normal',
       expanded: true,
+      elements: [],
     };
 
     setState(prev => ({
@@ -244,9 +250,7 @@ export function useEditor(projectId?: string) {
         ...prev,
         layers: prev.layers.filter(l => l.id !== layerId),
         elements: remainingElements,
-        selectedElementId: elementsToDelete.some(el => el.id === prev.selectedElementId) 
-          ? null 
-          : prev.selectedElementId,
+        selectedElements: prev.selectedElements.filter(id => !elementsToDelete.some(el => el.id === id)),
       };
     });
 
@@ -348,36 +352,38 @@ export function useEditor(projectId?: string) {
 
   // Clipboard operations
   const copyElements = useCallback(() => {
-    if (!state.selectedElementId) return;
+    if (state.selectedElements.length === 0) return;
     
-    const elementToCopy = state.elements.find(el => el.id === state.selectedElementId);
-    if (elementToCopy) {
+    const elementsToCopy = state.elements.filter(el => state.selectedElements.includes(el.id));
+    if (elementsToCopy.length > 0) {
       setState(prev => ({
         ...prev,
-        clipboard: [elementToCopy],
+        clipboard: elementsToCopy,
       }));
     }
-  }, [state.selectedElementId, state.elements]);
+  }, [state.selectedElements, state.elements]);
 
   const pasteElements = useCallback(() => {
     if (state.clipboard.length === 0) return;
 
-    const elementToPaste = state.clipboard[0];
-    const pastedElement = {
+    const pastedElements = state.clipboard.map(elementToPaste => ({
       ...elementToPaste,
-      id: `element-${Date.now()}`,
+      id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: `${elementToPaste.name} Copy`,
-      x: elementToPaste.x + 20,
-      y: elementToPaste.y + 20,
-    };
+      position: {
+        ...elementToPaste.position,
+        x: elementToPaste.position.x + 20,
+        y: elementToPaste.position.y + 20,
+      },
+    }));
 
     setState(prev => ({
       ...prev,
-      elements: [...prev.elements, pastedElement],
-      selectedElementId: pastedElement.id,
+      elements: [...prev.elements, ...pastedElements],
+      selectedElements: pastedElements.map(el => el.id),
     }));
 
-    addToHistory('pasteElements', [pastedElement], `Pasted element`);
+    addToHistory('pasteElements', pastedElements, `Pasted elements`);
   }, [state.clipboard, addToHistory]);
 
   // Project management
@@ -498,7 +504,7 @@ export function useEditor(projectId?: string) {
   };
 }
 
-function getDefaultProperties(type: EditorElement['type']): ElementOverrides {
+function getDefaultProperties(type: EditorElement['type']): Record<string, any> {
   switch (type) {
     case 'text':
       return {

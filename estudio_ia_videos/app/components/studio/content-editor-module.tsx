@@ -120,6 +120,7 @@ export default function ContentEditorModule({
       slideNumber: insertIndex + 1,
       title: `Slide ${insertIndex + 1}`,
       content: '',
+      type: 'content',
       duration: 5,
       notes: '',
       animations: [],
@@ -224,7 +225,7 @@ export default function ContentEditorModule({
   }
 
   // Calculate total duration
-  const totalDuration = slides.reduce((total, slide) => total + slide.duration, 0)
+  const totalDuration = slides.reduce((total, slide) => total + (slide.duration || 0), 0)
 
   // Handle execute step
   const handleExecuteStep = async () => {
@@ -464,7 +465,7 @@ export default function ContentEditorModule({
                     min={1}
                     max={30}
                     step={1}
-                    value={[currentSlide.duration]}
+                    value={[currentSlide.duration || 5]}
                     onValueChange={([value]) => updateSlide(currentSlideIndex, { duration: value })}
                     className="mt-2"
                   />

@@ -40,7 +40,7 @@ import {
   Video,
   Users,
 } from 'lucide-react'
-import { io, Socket } from 'socket.io-client'
+import { getBrowserClient } from '@/lib/supabase/browser'
 
 // ============================================================================
 // TIPOS
@@ -56,6 +56,7 @@ type NotificationType =
   | 'info'
   | 'warning'
   | 'error'
+  | 'success' // Added to match manager
 
 interface Notification {
   id: string
@@ -94,8 +95,10 @@ const NotificationIcon: React.FC<{ type: NotificationType }> = ({ type }) => {
 
   switch (type) {
     case 'render_complete':
+    case 'success':
       return <CheckCircle {...iconProps} className="w-5 h-5 text-green-500" />
     case 'render_failed':
+    case 'error':
       return <AlertCircle {...iconProps} className="w-5 h-5 text-red-500" />
     case 'comment':
       return <MessageSquare {...iconProps} className="w-5 h-5 text-blue-500" />
@@ -105,8 +108,6 @@ const NotificationIcon: React.FC<{ type: NotificationType }> = ({ type }) => {
       return <Users {...iconProps} className="w-5 h-5 text-indigo-500" />
     case 'warning':
       return <AlertCircle {...iconProps} className="w-5 h-5 text-yellow-500" />
-    case 'error':
-      return <AlertCircle {...iconProps} className="w-5 h-5 text-red-500" />
     default:
       return <Info {...iconProps} className="w-5 h-5 text-gray-500" />
   }
@@ -128,16 +129,15 @@ const NotificationItem: React.FC<{
 
   return (
     <div
-      className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${
-        !notification.read ? 'bg-blue-50' : ''
-      }`}
+      className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${!notification.read ? 'bg-blue-50' : ''
+        }`}
       onClick={() => onClick(notification)}
     >
       <div className="flex items-start gap-3">
         <div className="mt-1">
           <NotificationIcon type={notification.type} />
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <h4 className="font-semibold text-gray-900 text-sm">
@@ -147,7 +147,7 @@ const NotificationItem: React.FC<{
               {timeAgo(notification.createdAt)}
             </span>
           </div>
-          
+
           <p className="text-sm text-gray-600 mt-1 line-clamp-2">
             {notification.message}
           </p>
@@ -165,7 +165,7 @@ const NotificationItem: React.FC<{
                 Marcar como lida
               </button>
             )}
-            
+
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -223,45 +223,75 @@ export default function NotificationsCenter() {
     system: true,
   })
 
-  const socketRef = useRef<Socket | null>(null)
+  const supabase = getBrowserClient()
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const unreadCount = notifications.filter(n => !n.read).length
 
   // ============================================================================
-  // WEBSOCKET & REAL-TIME
+  // WEBSOCKET & REAL-TIME (SUPABASE)
   // ============================================================================
 
   useEffect(() => {
-    // Conectar ao WebSocket
-    socketRef.current = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000', {
-      path: '/api/socket',
-    })
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
 
-    socketRef.current.on('notification', (notification: Notification) => {
-      setNotifications(prev => [notification, ...prev])
-      
-      // Som de notificação
-      if (preferences.sound && audioRef.current) {
-        audioRef.current.play().catch(() => {})
+      // Carregar notificações iniciais
+      fetchNotifications()
+
+      // Inscrever no canal de notificações
+      const channel = supabase
+        .channel(`notifications:${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'analytics_events',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            const newEvent = payload.new as any
+            if (newEvent.event_type === 'notification') {
+              const notification: Notification = {
+                id: newEvent.id,
+                type: newEvent.event_data.type,
+                title: newEvent.event_data.title,
+                message: newEvent.event_data.message,
+                read: newEvent.event_data.read,
+                createdAt: newEvent.created_at,
+                metadata: {
+                  url: newEvent.event_data.actionUrl
+                }
+              }
+
+              setNotifications(prev => [notification, ...prev])
+
+              // Som de notificação
+              if (preferences.sound && audioRef.current) {
+                audioRef.current.play().catch(() => { })
+              }
+
+              // Desktop notification
+              if (preferences.push && 'Notification' in window && Notification.permission === 'granted') {
+                new Notification(notification.title, {
+                  body: notification.message,
+                  icon: '/icon-192.png',
+                })
+              }
+            }
+          }
+        )
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
       }
-
-      // Desktop notification
-      if (preferences.push && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/icon-192.png',
-        })
-      }
-    })
-
-    // Carregar notificações existentes
-    fetchNotifications()
-
-    return () => {
-      socketRef.current?.disconnect()
     }
-  }, [])
+
+    setupRealtime()
+  }, [supabase, preferences])
 
   // ============================================================================
   // API CALLS
@@ -270,8 +300,10 @@ export default function NotificationsCenter() {
   const fetchNotifications = async () => {
     try {
       const response = await fetch('/api/notifications')
-      const data = await response.json()
-      setNotifications(data)
+      if (response.ok) {
+        const data = await response.json()
+        setNotifications(data)
+      }
     } catch (error) {
       console.error('Erro ao carregar notificações:', error)
     }

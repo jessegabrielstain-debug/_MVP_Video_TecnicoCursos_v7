@@ -28,7 +28,52 @@ import {
   Sparkles,
   Crown
 } from 'lucide-react'
-import ElevenLabsService, { ElevenLabsVoice, VoiceSettings } from '@/lib/elevenlabs-service'
+
+// Interfaces defined locally to avoid importing server-side dependencies
+interface VoiceSettings {
+  stability: number;
+  similarity_boost: number;
+  style?: number;
+  use_speaker_boost?: boolean;
+}
+
+interface ElevenLabsVoice {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+  labels?: Record<string, string>;
+  preview_url?: string;
+  settings?: VoiceSettings;
+  language?: string;
+  gender?: string;
+  accent?: string;
+}
+
+interface UserInfo {
+  subscription: {
+    tier: string;
+    character_count: number;
+    character_limit: number;
+    can_extend_character_limit: boolean;
+    allowed_to_extend_character_limit: boolean;
+    next_character_count_reset_unix: number;
+    voice_limit: number;
+    max_voice_add_edits: number;
+    voice_add_edit_counter: number;
+    professional_voice_limit: number;
+    can_use_instant_voice_cloning: boolean;
+    can_use_professional_voice_cloning: boolean;
+    currency: string;
+    status: string;
+    billing_period: string;
+  };
+  is_new_user: boolean;
+  xi_api_key_preview: string;
+  can_use_delayed_payment_methods: boolean;
+  is_onboarding_completed: boolean;
+  first_name?: string;
+}
 
 interface AudioState {
   isPlaying: boolean
@@ -70,9 +115,7 @@ export default function ProfessionalVoiceStudioV3() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
   // Estados de informação do usuário
-  const [userInfo, setUserInfo] = useState<unknown>(null)
-
-  const elevenLabsService = ElevenLabsService.getInstance()
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
 
   // Carregar vozes e informações do usuário
   useEffect(() => {
@@ -81,10 +124,29 @@ export default function ProfessionalVoiceStudioV3() {
         setIsLoading(true)
         setError(null)
         
-        const [voicesData, userData] = await Promise.all([
-          elevenLabsService.getVoices(),
-          elevenLabsService.getUserInfo().catch(() => null)
-        ])
+        // Fetch voices from API
+        const voicesRes = await fetch('/api/tts/elevenlabs/voices')
+        const voicesDataJson = await voicesRes.json()
+        
+        if (!voicesDataJson.success) {
+            throw new Error(voicesDataJson.error || 'Failed to fetch voices')
+        }
+        const voicesData: ElevenLabsVoice[] = voicesDataJson.voices
+
+        // Fetch user info from API (Assuming endpoint exists, or skip if not)
+        // Since I didn't verify /api/tts/elevenlabs/user, I'll try it or mock it
+        let userData: UserInfo | null = null
+        try {
+            const userRes = await fetch('/api/tts/elevenlabs/user')
+            if (userRes.ok) {
+                const userDataJson = await userRes.json()
+                if (userDataJson.success) {
+                    userData = userDataJson.userInfo
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to fetch user info', e)
+        }
         
         setVoices(voicesData)
         setUserInfo(userData)
@@ -121,12 +183,22 @@ export default function ProfessionalVoiceStudioV3() {
     try {
       setIsGenerating(true)
       
-      const audioBuffer = await elevenLabsService.generateSpeech({
-        text: text.trim(),
-        voice_id: selectedVoice.id,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: voiceSettings
+      const response = await fetch('/api/tts/elevenlabs/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: text.trim(),
+          voice_id: selectedVoice.id,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: voiceSettings
+        })
       })
+
+      if (!response.ok) throw new Error('Falha na geração do áudio')
+      
+      const audioBuffer = await response.arrayBuffer()
 
       // Criar URL do áudio e reproduzir
       const blob = new Blob([audioBuffer], { type: 'audio/mpeg' })
@@ -253,11 +325,11 @@ export default function ProfessionalVoiceStudioV3() {
                 <div className="flex items-center gap-2">
                   <Zap className="h-4 w-4 text-yellow-500" />
                   <span className="text-sm font-medium">
-                    Caracteres: {userInfo.character_count.toLocaleString()} / {userInfo.character_limit.toLocaleString()}
+                    Caracteres: {userInfo.subscription.character_count.toLocaleString()} / {userInfo.subscription.character_limit.toLocaleString()}
                   </span>
                 </div>
                 <Progress 
-                  value={(userInfo.character_count / userInfo.character_limit) * 100} 
+                  value={(userInfo.subscription.character_count / userInfo.subscription.character_limit) * 100} 
                   className="w-32"
                 />
               </div>
@@ -454,7 +526,7 @@ export default function ProfessionalVoiceStudioV3() {
                     <div className="space-y-2">
                       <Label className="text-xs">Estilo: {voiceSettings.style}</Label>
                       <Slider
-                        value={[voiceSettings.style]}
+                        value={[voiceSettings.style || 0]}
                         onValueChange={([value]) => setVoiceSettings(prev => ({
                           ...prev,
                           style: value

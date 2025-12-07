@@ -1,15 +1,15 @@
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { getBrowserClient } from './browser'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/supabase'
+import type { Database } from '@/lib/supabase/database.types'
 
 type AppSupabaseClient = SupabaseClient<Database>
 
-export type UserProfile = Database['public']['Tables']['user_profiles']['Row']
+export type UserProfile = Database['public']['Tables']['users']['Row']
 
 export const createBrowserClient = (): AppSupabaseClient => {
-  return createClientComponentClient<Database>()
+  return getBrowserClient()
 }
 
 const getRedirectUrl = (path: string) => {
@@ -21,10 +21,8 @@ const getRedirectUrl = (path: string) => {
   return `${origin}${path}`
 }
 
-const DEFAULT_PROFILE_VALUES: Pick<UserProfile, 'role' | 'credits' | 'subscription_tier' | 'metadata'> = {
+const DEFAULT_PROFILE_VALUES: Pick<UserProfile, 'role' | 'metadata'> = {
   role: 'user',
-  credits: 100,
-  subscription_tier: 'free',
   metadata: {},
 }
 
@@ -102,16 +100,22 @@ export async function getCurrentUser() {
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
   const supabase = createBrowserClient()
   const { data, error } = await supabase
-    .from('user_profiles')
+    .from('users')
     .select('*')
     .eq('id', userId)
     .single()
 
   if (error) {
-    if (error.code === 'PGRST116' || error.message?.toLowerCase().includes('no rows')) {
+    const msg = (error.message || '').toLowerCase()
+    if (
+      error.code === 'PGRST116' ||
+      msg.includes('no rows') ||
+      msg.includes('jwt expired') ||
+      error.code === 'PGRST303'
+    ) {
+      // Trata como sessão inválida/expirada ou perfil inexistente
       return null
     }
-
     console.error('Error fetching user profile:', error)
     return null
   }
@@ -124,8 +128,8 @@ export async function updateUserProfile(
   updates: Partial<Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>>
 ) {
   const supabase = createBrowserClient()
-  const { data, error } = await supabase
-    .from('user_profiles')
+  let { data, error } = await supabase
+    .from('users')
     .update({
       ...updates,
       updated_at: new Date().toISOString(),
@@ -135,6 +139,22 @@ export async function updateUserProfile(
     .single()
 
   if (error) {
+    const msg = (error.message || '').toLowerCase()
+    if (msg.includes("could not find the 'role' column") || msg.includes('column role')) {
+      // Fallback: remover campos não existentes e tentar novamente
+      const { role, metadata, ...rest } = updates as Record<string, unknown>
+      const retry = await supabase
+        .from('users')
+        .update({
+          ...rest,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId)
+        .select()
+        .single()
+      if (retry.error) throw new Error(retry.error.message)
+      return retry.data as UserProfile
+    }
     throw new Error(error.message)
   }
 
@@ -149,8 +169,8 @@ export async function ensureUserProfile(userId: string, email: string) {
 
   const supabase = createBrowserClient()
   const timestamp = new Date().toISOString()
-  const { data, error } = await supabase
-    .from('user_profiles')
+  let { data, error } = await supabase
+    .from('users')
     .insert({
       id: userId,
       email,
@@ -162,6 +182,21 @@ export async function ensureUserProfile(userId: string, email: string) {
     .single()
 
   if (error) {
+    const msg = (error.message || '').toLowerCase()
+    if (msg.includes("could not find the 'role' column") || msg.includes('column role')) {
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          email,
+          created_at: timestamp,
+          updated_at: timestamp,
+        })
+        .select()
+        .single()
+      if (fallbackError) throw new Error(fallbackError.message)
+      return fallbackData as UserProfile
+    }
     throw new Error(error.message)
   }
 

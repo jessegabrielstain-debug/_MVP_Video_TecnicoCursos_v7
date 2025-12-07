@@ -1,6 +1,8 @@
 // Cliente Supabase
-export * from './client';
+export { supabase, createClient, isAuthenticated } from './client';
+export { supabase as supabaseClient } from './client';
 export * from './server';
+export * from './service';
 
 // Autenticação
 export * from './auth';

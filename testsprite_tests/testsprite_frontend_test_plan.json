@@ -1,0 +1,478 @@
+[
+  {
+    "id": "TC001",
+    "title": "User login via email authentication",
+    "description": "Verify that users can successfully log in using valid email and password credentials and that session is established.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login page"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid email and password"
+      },
+      {
+        "type": "action",
+        "description": "Submit login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is authenticated and redirected to dashboard"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "User login via social authentication providers",
+    "description": "Confirm that users can successfully log in using supported social login options (e.g., Google, Facebook) and that session is established correctly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login page"
+      },
+      {
+        "type": "action",
+        "description": "Choose a social login provider and complete authentication flow"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is authenticated and redirected to dashboard"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Login failure with invalid credentials",
+    "description": "Ensure system displays appropriate error when user attempts to log in with incorrect email or password.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login page"
+      },
+      {
+        "type": "action",
+        "description": "Enter invalid email or incorrect password"
+      },
+      {
+        "type": "action",
+        "description": "Submit login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify error message is displayed and login is not successful"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Role-based access control enforcement",
+    "description": "Verify that users only have access to dashboard features permitted by their RBAC roles.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in as user with restricted role"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to access admin-only features"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access is denied with appropriate message"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Upload and parse a valid PPTX file",
+    "description": "Validate that uploading a medium-sized PowerPoint file is processed correctly within 5 seconds extracting text, images, layouts, and animations.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in and navigate to video project creation"
+      },
+      {
+        "type": "action",
+        "description": "Upload a valid medium-sized PPTX file"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify parsing is completed within 5 seconds"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify extracted slide contents, images, animations are correctly displayed in preview"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Handle corrupted PPTX upload gracefully",
+    "description": "Ensure system detects corrupted or unsupported PPTX files and displays appropriate error without crashing.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to upload corrupted or unsupported PPTX file"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify system shows error message indicating invalid file"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Drag-and-drop slide rearrangement in video editor",
+    "description": "Confirm that users can rearrange slides via drag-and-drop in the visual editor with immediate preview update and state persistence.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open an existing video project in the editor"
+      },
+      {
+        "type": "action",
+        "description": "Drag a slide to a new position"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify slide order updates immediately in preview"
+      },
+      {
+        "type": "assertion",
+        "description": "Refresh page and verify the reordered slides persist"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Edit slide text and narration properties",
+    "description": "Validate editing textual content and narration metadata per slide with instant reflection in the preview mode.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Select a slide in video editor"
+      },
+      {
+        "type": "action",
+        "description": "Modify text contents and narration parameters"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify changes are previewed instantly"
+      },
+      {
+        "type": "assertion",
+        "description": "Save project and reload editor to confirm changes persist"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Select and preview multiple TTS voice providers",
+    "description": "Verify user can select voices from ElevenLabs, Azure, Google, and Edge, adjust speed, and play preview audio for slides.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open TTS settings in video editor"
+      },
+      {
+        "type": "action",
+        "description": "Select each TTS provider voice and adjust speed settings"
+      },
+      {
+        "type": "action",
+        "description": "Play audio preview for each selection"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify preview audio plays correctly without lag or error"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "TTS audio generation completes within target time",
+    "description": "Ensure text-to-speech audio generation completes within 12 seconds for various voice selections.",
+    "category": "performance",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Request TTS audio generation for sample slide text with different voices"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify audio is generated and available within 12 seconds"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Start video rendering job and track progress",
+    "description": "Validate the asynchronous video rendering pipeline triggers job, sends real-time progress updates, and handles multiple resolutions/codecs.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Initiate video render job for a project"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify rendering job starts successfully and real-time progress updates are received"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify output video is generated in selected resolution and codec formats"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Cancel rendering job and verify cleanup",
+    "description": "Ensure user can cancel an ongoing render job and that system terminates processing and frees resources.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Start a render job for a video project"
+      },
+      {
+        "type": "action",
+        "description": "Trigger cancel operation for the render job"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify rendering stops and no partial files remain"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is notified of cancellation"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "User project lifecycle: create, edit, duplicate, share, delete",
+    "description": "Verify full management of video projects via dashboard including project creation, editing, duplication, sharing (with link), and deletion.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create a new video project"
+      },
+      {
+        "type": "action",
+        "description": "Edit the project's slides and settings"
+      },
+      {
+        "type": "action",
+        "description": "Duplicate the project"
+      },
+      {
+        "type": "action",
+        "description": "Generate a shareable public link for the project"
+      },
+      {
+        "type": "action",
+        "description": "Delete the original project"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify each operation completes correctly and project state updates accordingly"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Compliance template enforcement for Brazilian NRs",
+    "description": "Confirm that selecting any of the 12 supported NR templates enforces regulatory compliance data entry and generates valid certificates.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Select each of the 12 NR templates"
+      },
+      {
+        "type": "action",
+        "description": "Input required company and compliance data"
+      },
+      {
+        "type": "action",
+        "description": "Generate compliant video project and certificate"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify generated certificate matches NR legal requirements"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Analytics dashboard displays accurate usage and system metrics",
+    "description": "Validate that the analytics interface shows correct and up-to-date usage statistics and system health metrics, including error classification.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Access analytics dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify usage data matches recorded user activity"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify system health indicators and error classifications are current and accurate"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "File storage integration for upload and public sharing",
+    "description": "Ensure rendered videos can be uploaded to storage, downloaded by the user, and shared via public URLs securely.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Upload rendered video to storage system"
+      },
+      {
+        "type": "action",
+        "description": "Generate public sharing link from dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Access and download the video using generated link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify files are accessible, downloadable, and secure as per permissions"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "System availability and recovery under load",
+    "description": "Test platform uptime and quick recovery within defined RTO (Recovery Time Objective) during simulated load and failure conditions ensuring 99.5% availability.",
+    "category": "performance",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Simulate system load with multiple concurrent users and render jobs"
+      },
+      {
+        "type": "action",
+        "description": "Introduce controlled failure and monitor system recovery"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify system availability meets 99.5% uptime and recovers within RTO"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Security standards enforcement including RLS, JWT, HTTPS, input sanitation",
+    "description": "Verify all security measures including row-level security enforcement, JWT authentication tokens, HTTPS usage, input validation and sanitation, and rate limiting are enforced throughout the platform.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt unauthorized data access to validate RLS restrictions"
+      },
+      {
+        "type": "action",
+        "description": "Intercept requests to check JWT token requirements and validations"
+      },
+      {
+        "type": "action",
+        "description": "Access platform via HTTP and confirm redirection/enforcement of HTTPS"
+      },
+      {
+        "type": "action",
+        "description": "Attempt injection attacks or malformed input submissions on forms"
+      },
+      {
+        "type": "action",
+        "description": "Simulate high-frequency requests to test rate limiting"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify security defenses block unauthorized access and invalid inputs appropriately"
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Video editor UI responsiveness and error handling",
+    "description": "Validate the video editor interface handles edge cases like very large slide decks and unsupported slide elements gracefully without crashes and provides user guidance on errors.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Load a video project with a very large number of slides"
+      },
+      {
+        "type": "action",
+        "description": "Include slides with unsupported or corrupted elements"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify editor remains responsive and displays appropriate error or warnings"
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Codebase test coverage and lint compliance",
+    "description": "Ensure automated unit and integration tests cover over 85% of the codebase and that code complies with TypeScript strictness and linting rules.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Run test coverage report against codebase"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify coverage exceeds 85%"
+      },
+      {
+        "type": "action",
+        "description": "Run linting and TypeScript checks"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no lint errors and compliance with strict TypeScript setting"
+      }
+    ]
+  }
+]

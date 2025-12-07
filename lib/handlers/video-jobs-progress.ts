@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { JobStatusEnum, VideoJobProgressSchema } from '../validation/schemas'
 
-const progressStatusAllowList = new Set(['processing', 'completed', 'failed'] as const)
+const progressStatusAllowList = new Set(['processing', 'completed', 'failed', 'queued', 'cancelled'] as const)
 
 const UpdateProgressSchema = z.preprocess((value: unknown) => {
   if (typeof value === 'object' && value !== null) {

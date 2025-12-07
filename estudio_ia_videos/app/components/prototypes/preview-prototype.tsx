@@ -22,7 +22,7 @@ import {
 import { toast } from 'react-hot-toast'
 
 interface PreviewPrototypeProps {
-  project?: any
+  project?: Record<string, unknown>
   onExport?: () => void
 }
 

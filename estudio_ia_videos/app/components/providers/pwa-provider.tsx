@@ -11,7 +11,7 @@ import { pwaManager } from '@/lib/pwa/pwa-manager';
 import { PublicOnboarding } from '@/components/onboarding/public-onboarding';
 import { ProductTour, editorTourSteps } from '@/components/tour/product-tour';
 import { OfflineIndicator } from '@/components/pwa/offline-indicator';
-import { createBrowserSupabaseClient } from '@/lib/services';
+import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export function PWAProvider({ children }: { children: React.ReactNode }) {

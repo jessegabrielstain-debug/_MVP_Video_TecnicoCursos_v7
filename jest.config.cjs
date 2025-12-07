@@ -1,21 +1,21 @@
 const { pathsToModuleNameMapper } = require('ts-jest');
-// Leia o tsconfig do diretório correto
-const { compilerOptions } = require('./estudio_ia_videos/app/tsconfig.json');
+const path = require('path');
+
+// Caminho absoluto para babel.config.cjs
+const babelConfigPath = path.resolve(__dirname, 'babel.config.cjs');
 
 /** @type {import('jest').Config} */
 module.exports = {
-  // ... (o resto do arquivo permanece o mesmo)
   rootDir: '.',
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
 
-  // Use o pathsToModuleNameMapper para converter os paths do tsconfig
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/estudio_ia_videos/app/$1',
     '^dnd-core$': 'dnd-core/dist/cjs',
     '^react-dnd$': 'react-dnd/dist/cjs',
     '^react-dnd-html5-backend$': 'react-dnd-html5-backend/dist/cjs',
-    '^@prisma/client$': '<rootDir>/node_modules/@prisma/client',
+    '^@prisma/client$': '<rootDir>/estudio_ia_videos/node_modules/@prisma/client',
   },
 
   transform: {
@@ -30,25 +30,19 @@ module.exports = {
           skipLibCheck: true,
           target: 'ES2020',
           module: 'commonjs',
-        },
-        babelConfig: {
-          presets: [
-            ['@babel/preset-env', { targets: { node: 'current' } }],
-            ['@babel/preset-react', { runtime: 'automatic' }],
-            '@babel/preset-typescript',
-          ],
-          plugins: [
-            '@babel/plugin-transform-runtime',
-          ],
+          moduleResolution: 'node',
+          resolveJsonModule: true,
+          isolatedModules: true,
         },
       },
     ],
+    '^.+\\.(js|jsx|mjs)$': ['babel-jest', { configFile: babelConfigPath }],
   },
 // ... (o resto do arquivo permanece o mesmo)
 
 
   transformIgnorePatterns: [
-    '/node_modules/(?!bullmq|msgpackr|dnd-core|react-dnd|react-dnd-html5-backend).+\\.(js|jsx|mjs|cjs|ts|tsx)$',
+    '/node_modules/(?!bullmq|msgpackr|jose|@supabase/auth-helpers-shared|@supabase/auth-helpers-nextjs|dnd-core|react-dnd|react-dnd-html5-backend).+\\.(js|jsx|mjs|cjs|ts|tsx)$',
   ],
 
   testMatch: [

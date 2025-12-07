@@ -1,3 +1,4 @@
+// TODO: Fix getVideoJobStatus signature
 /**
  * Export API Endpoints
  * POST /api/v1/export - Criar novo job de exportação
@@ -31,61 +32,8 @@ function validateExportSettings(settings: Partial<ExportSettings>): ExportSettin
   }
 }
 
-/**
- * POST /api/v1/export
- * Cria novo job de exportação
- */
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { userId, projectId, timelineId, settings, timelineData } = body
+// POST handler removed as it belongs to collection route
 
-    // Validação básica
-    if (!userId || !projectId || !timelineId) {
-      return NextResponse.json(
-        { error: 'Missing required fields: userId, projectId, timelineId' },
-        { status: 400 }
-      )
-    }
-
-    // Criar job
-    const jobId = uuidv4()
-    const validatedSettings = validateExportSettings(settings || {})
-
-    const job: ExportJob = {
-      id: jobId,
-      userId,
-      projectId,
-      timelineId,
-      status: ExportStatus.PENDING,
-      progress: 0,
-      settings: validatedSettings,
-      createdAt: new Date(),
-    }
-
-    // Adicionar à fila
-    const queue = getExportQueue()
-    queue.addJob(job)
-
-    console.log(`[Export API] Created job ${jobId} for user ${userId}`)
-
-    return NextResponse.json(
-      {
-        success: true,
-        jobId,
-        status: job.status,
-        message: 'Export job created successfully',
-      },
-      { status: 201 }
-    )
-  } catch (error) {
-    console.error('[Export API] Error creating job:', error)
-    return NextResponse.json(
-      { error: 'Failed to create export job', details: String(error) },
-      { status: 500 }
-    )
-  }
-}
 
 /**
  * GET /api/v1/export/:id
@@ -103,7 +51,7 @@ export async function GET(
     }
 
     const queue = getExportQueue()
-    const job = queue.getJob(jobId)
+    const job = await queue.getJob(jobId)
 
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 })
@@ -159,7 +107,7 @@ export async function DELETE(
     }
 
     const queue = getExportQueue()
-    const success = queue.cancelJob(jobId)
+    const success = await queue.cancelJob(jobId)
 
     if (!success) {
       return NextResponse.json(

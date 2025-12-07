@@ -1,10 +1,12 @@
-import type { Project } from '../supabase'
+import { Database } from '../supabase'
+
+export type Project = Database['public']['Tables']['projects']['Row']
 
 export type CreateProjectInput = {
   ownerId: string
   name: string
   description?: string | null
-  settings?: Project['settings']
+  settings?: Project['metadata']
 }
 
 export type ProjectWithSummary = Project & {

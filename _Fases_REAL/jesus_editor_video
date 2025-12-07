@@ -1,0 +1,550 @@
+# 🚀 **ROADMAP DE EVOLUÇÃO — ESTÚDIO DE VÍDEO IA (V7 ➔ V8)**
+
+**Data de Atualização:** 04 de Dezembro de 2025  
+**Status Geral:** ✅ V7 Production Ready (100%) | 🚧 V8 Em Desenvolvimento
+
+---
+
+## 📋 **Índice**
+
+1. [Visão Geral e Status](#1-visão-geral-e-status)
+2. [Sprint 1: Integração Base + Canvas (Concluído)](#2-sprint-1-integração-base--canvas-✅)
+3. [Sprint 2: Timeline + Assets (Concluído)](#3-sprint-2-timeline--assets-✅)
+4. [Sprint 3: TTS + Avatar (Parcial)](#4-sprint-3-tts--avatar-🔄)
+5. [Sprint 4: Animações + Efeitos (Concluído)](#5-sprint-4-animações--efeitos-✅)
+6. [Sprint 5: Renderização + Exportação (Concluído)](#6-sprint-5-renderização--exportação-✅)
+7. [Sprint 6: UX, Templates e QA (Concluído)](#7-sprint-6-ux-templates-e-qa-✅)
+8. [🚀 ROADMAP V8 (Novas Funcionalidades)](#8-🚀-roadmap-v8-novas-funcionalidades)
+9. [📅 Plano de Implementação Detalhado (V8)](#9-📅-plano-de-implementação-detalhado-v8)
+10. [🛠️ Especificação Técnica: Otimização de Fluxo e Continuidade (Smart Flow)](#10-🛠️-especificação-técnica-otimização-de-fluxo-e-continuidade-smart-flow)
+11. [📐 Especificações Detalhadas V8 (Funcionalidades-Chave)](#11-📐-especificações-detalhadas-v8-funcionalidades-chave)
+12. [✅ Padrões de Qualidade e Compatibilidade (V8)](#12-✅-padrões-de-qualidade-e-compatibilidade-v8)
+13. [🧪 Plano de Testes Expandido (Unit/Integration)](#13-🧪-plano-de-testes-expandido-unitintegration)
+14. [⚙️ Benchmarks e Metas de Performance](#14-⚙️-benchmarks-e-metas-de-performance)
+15. [📦 Entregáveis e Versionamento](#15-📦-entregáveis-e-versionamento)
+
+---
+
+## 1. **Visão Geral e Status**
+
+O projeto alcançou o marco **V7 Production Ready** com 100% das funcionalidades core implementadas, documentadas e testadas. Este documento reflete o status atual de conclusão das fases originais e estabelece o roadmap para a versão V8 (Fase de Evolução).
+
+### **Fluxo de Arquitetura Atual (V7)**
+```mermaid
+graph TD
+    A[PPTX Upload] -->|Parser| B(Editor Canvas)
+    B -->|Edição| C{Timeline}
+    C -->|Assets| D[Áudio/TTS]
+    C -->|Animação| E[Preview]
+    E -->|Render| F[Worker FFmpeg]
+    F -->|Export| G[MP4 Final]
+```
+
+### **Legenda de Status**
+* ✅ **[CONCLUÍDO]**: Implementado, testado e em produção.
+* 🔄 **[EM PROGRESSO]**: Em desenvolvimento ativo.
+* 📅 **[PLANEJADO]**: Mapeado para sprints futuros (V8).
+
+---
+
+## 2. **Sprint 1: Integração Base + Canvas** ✅
+
+### **US-01: Canvas Profissional**
+*   ✅ Configurar canvas com Fabric.js (WebGL-accelerated)
+*   ✅ Criar sistema de coordenadas responsivo
+*   ✅ Implementar snap-to-grid e guides inteligentes
+*   ✅ Adicionar histórico de ações (Undo/Redo com Zustand)
+*   ✅ Atalhos de teclado (Ctrl+Z, Ctrl+C, Del)
+
+### **US-02: Upload de Imagens e Vídeos**
+*   ✅ Componente de upload (Drag & Drop)
+*   ✅ Compressão automática e inserção no canvas
+*   ✅ Suporte a PNG/JPG/WEBP e MP4/WEBM
+
+### **US-03: Importar PPTX**
+*   ✅ Parser de slides (8 parsers especializados)
+*   ✅ Extração de layers (título, corpo, imagem)
+*   ✅ Conversão automática para cenas do editor
+
+---
+
+## 3. **Sprint 2: Timeline + Assets** ✅
+
+### **US-04: Timeline Profissional**
+*   ✅ Timeline horizontal com miniaturas
+*   ✅ Drag & drop entre cenas
+*   ✅ Ajuste de duração e reordenação
+
+### **US-05: Biblioteca de Músicas e SFX**
+*   ✅ Player de áudio com prévia
+*   ✅ Controle de volume e mixagem
+*   ✅ Fade in/out automático
+
+### **US-06: Asset Library**
+*   ✅ UI de biblioteca lateral
+*   ✅ Categorias e busca de assets
+*   ✅ Integração com Supabase Storage
+
+---
+
+## 4. **Sprint 3: TTS + Avatar** 🔄
+
+### **US-07: Múltiplos provedores de TTS** ✅
+*   ✅ Integração ElevenLabs (29 vozes premium)
+*   ✅ Integração Azure/Edge TTS (Vozes PT-BR)
+*   ✅ Controle de velocidade e pitch
+*   ✅ Cache de áudio automático
+
+### **US-08: Avatar 3D (falante)** 📅 *(Movido para V8)*
+*   📅 Viewer 3D (Three.js + R3F)
+*   📅 Integração HeyGen/Vidnoz (Em planejamento)
+*   📅 Controle de gestos e expressões
+
+### **US-09: Sincronização Labial (Lip-Sync)** 📅 *(Movido para V8)*
+*   📅 Mapa de visemes automático
+*   📅 Animação de blendshapes em tempo real
+
+---
+
+## 5. **Sprint 4: Animações + Efeitos** ✅
+
+### **US-10: Animações de Texto**
+*   ✅ Presets de animação (Fade, Slide, Zoom)
+*   ✅ Integração com Framer Motion
+*   ✅ Preview em tempo real no Canvas
+
+### **US-11: Transições entre cenas**
+*   ✅ Transições básicas (Corte, Fade)
+*   ✅ Aplicação via Remotion/FFmpeg
+
+### **US-12: Efeitos Visuais**
+*   ✅ Filtros CSS aplicáveis a objetos
+*   ✅ Renderização fiel no vídeo final
+
+---
+
+## 6. **Sprint 5: Renderização + Exportação** ✅
+
+### **US-13: Render Pipeline**
+*   ✅ Worker FFmpeg com BullMQ
+*   ✅ Renderização 720p/1080p/4K
+*   ✅ Barra de progresso via WebSocket/SSE
+*   ✅ Logs estruturados e métricas de erro
+
+### **US-14: Exportar MP4**
+*   ✅ Upload automático para S3/Supabase Storage
+*   ✅ Histórico de versões e downloads seguros
+*   ✅ Thumbnails automáticas
+
+---
+
+## 7. **Sprint 6: UX, Templates e QA** ✅
+
+### **US-15: Templates prontos de vídeo NR**
+*   ✅ 12 Templates de Normas Regulamentadoras (NR12, NR35, etc.)
+*   ✅ Sistema de duplicação de projetos
+*   ✅ Validação de compliance NR
+
+### **US-16: Colaboração em tempo real** 📅 *(Movido para V8)*
+*   📅 Presença (cursor realtime)
+*   📅 Edição simultânea (Yjs/CRDT)
+
+### **US-17: Performance e QA**
+*   ✅ Testes E2E (Playwright) e Unitários (Jest) > 89% Coverage
+*   ✅ Monitoramento Sentry configurado
+*   ✅ Otimização de performance (Lighthouse scores)
+
+---
+
+## 8. 🚀 **ROADMAP V8 (Novas Funcionalidades)**
+
+Estas funcionalidades estão planejadas para a próxima fase de evolução do produto.
+
+### **EPIC: Imersão e Interatividade (V8.1)**
+*   [ ] **Avatares 3D Hiper-realistas**: Integração nativa com modelos ReadyPlayerMe ou HeyGen API.
+*   [ ] **Lip-Sync Neural**: Sincronia labial baseada em IA generativa para qualquer idioma.
+*   [ ] **Gestos Automáticos**: Animação de mãos e corpo baseada na análise do texto (sentiment analysis).
+
+### **EPIC: Ecossistema Mobile e LMS (V8.2)**
+*   [ ] **App Mobile (React Native)**: Visualização de vídeos, aprovação de projetos e dashboard.
+*   [ ] **Exportação SCORM/xAPI**: Pacotes compatíveis com Moodle, Cornerstone e outros LMS.
+*   [ ] **Quiz Interativo no Vídeo**: Parada automática para perguntas durante a reprodução.
+
+### **EPIC: Colaboração Enterprise (V8.3)**
+*   [ ] **Edição Multiplayer**: Vários usuários editando o mesmo slide simultaneamente.
+*   [ ] **Comentários e Aprovações**: Fluxo de revisão tipo Frame.io dentro do editor.
+*   [ ] **White-label**: Personalização da interface para grandes clientes corporativos.
+
+---
+
+## 9. 📅 **Plano de Implementação Detalhado (V8)**
+
+Baseado na pesquisa de mercado e dores dos clientes, a implementação da V8 será dividida em 3 fases estratégicas para maximizar valor imediato.
+
+### **Fase 1: Performance e Acessibilidade (Mês 1-2)**
+**Foco:** Resolver a barreira de hardware e facilitar o acesso.
+
+*   **1.1 Cloud Rendering Híbrido**
+    *   *O que:* Usuário edita "proxies" leves no navegador; servidor GPU renderiza o 4K.
+    *   *Impacto:* Permite edição 4K em notebooks i5/8GB (padrão BR).
+*   **1.2 Timeline Magnética Inteligente**
+    *   *O que:* Auto-ajuste de clipes ao deletar/mover (sem "buracos" na timeline).
+    *   *Impacto:* Reduz curva de aprendizado para RH/Marketing.
+*   **1.3 Legendas Automáticas (Karaokê)**
+    *   *O que:* Transcrição automática PT-BR com animação palavra-por-palavra.
+    *   *Impacto:* Aumenta retenção em mobile/social media.
+
+### **Fase 2: Automação de Conteúdo (Mês 3-4)**
+**Foco:** Escala de produção e "reciclagem" de ativos.
+
+*   **2.1 "Corte Mágico" (Silence Removal)**
+    *   *O que:* Detecta e remove silêncios/respirações em videoaulas automaticamente.
+    *   *Impacto:* Reduz tempo de edição de brutos em 80%.
+*   **2.2 Importador de Legado (PDF/PPT Antigo)**
+    *   *O que:* Converte PDFs estáticos em vídeo com narração IA.
+    *   *Impacto:* Moderniza biblioteca de treinamento legada instantaneamente.
+*   **2.3 Personalização em Massa (Variable Data)**
+    *   *O que:* Gera 100 variações de vídeo via CSV (ex: "Olá [Nome] da filial [Cidade]").
+    *   *Impacto:* Humanização em escala para grandes empresas.
+
+### **Fase 3: Colaboração e Distribuição (Mês 5-6)**
+**Foco:** Fluxo de aprovação e integração corporativa.
+
+*   **3.1 Aprovação "Zap-Friendly"**
+    *   *O que:* Link temporário leve para aprovação via WhatsApp.
+    *   *Impacto:* Agiliza feedback com gestores que não usam PC.
+*   **3.2 Quiz Interativo Integrado**
+    *   *O que:* Pausa o vídeo para perguntas obrigatórias.
+    *   *Impacto:* Garante e comprova o aprendizado (Compliance).
+*   **3.3 Exportação LMS (SCORM 1.2/2004)**
+    *   *O que:* Empacota vídeo + quiz para Moodle/Cornerstone.
+    *   *Impacto:* Integração nativa com ecossistema de T&D.
+
+---
+
+**Nota:** Este documento é vivo e deve ser atualizado a cada sprint. Para detalhes técnicos da implementação atual, consulte `STATUS_FINAL_100_COMPLETO.md` e `PRD_ESTUDIO_IA_VIDEOS_2025.md`.
+
+---
+
+## 10. 🛠️ **Especificação Técnica: Otimização de Fluxo e Continuidade (Smart Flow)**
+
+Esta especificação detalha melhorias focadas em **ritmo** e **continuidade visual**, visando resolver a dor de "Falta de Expertise" e elevar a qualidade final dos vídeos automaticamente.
+
+### **10.1 Funções de Ajuste Automático de Ritmo (Auto-Pacing)**
+*   **Detecção de Batidas (Beat Detection):**
+    *   *Algoritmo:* Análise de espectro (spectral flux) para identificar BPM e onsets (picos de energia) com *peak picking* robusto.
+    *   *Ação:* Gera marcadores magnéticos na timeline ("Snap-to-Beat") e sugere pontos de corte naturais.
+*   **Suavização de Transições (Smart Crossfade):**
+    *   *Lógica:* Aplica *J-cuts* ou *L-cuts* automaticamente (áudio antecipa/estende sobre o vídeo) considerando conteúdo visual e temporal.
+    *   *Tech:* FFmpeg `acrossfade/afade` com parâmetros adaptativos.
+*   **Velocidade Variável (Time Remapping):**
+    *   *Slow Motion:* 0.25x a 0.75x com *minterpolate* (motion‑compensated) para suavidade.
+    *   *Time‑lapse:* 2x a 10x via `setpts` com amostragem inteligente.
+    *   *Curvas:* Curvas Bézier para aceleração/desaceleração personalizadas.
+
+### **10.2 Melhorias na Continuidade Visual**
+*   **Correção de Cor Automática (Color Match):**
+    *   *Análise:* Balanço de brancos, exposição, tons de pele e histograma geral.
+    *   *Aplicação:* Ajustes via `eq/colorbalance/lut3d`; preserva tons de pele com máscara suave.
+*   **Transições Inteligentes:**
+    *   *Base:* Reconhecimento de objetos em movimento, correspondência de planos de fundo e fluxo óptico entre cenas.
+    *   *Sugestão:* Escolha de transição (cut/fade/wipe) conforme direção/velocidade do movimento e continuidade.
+*   **Alinhamento Espacial (Auto-Reframing):**
+    *   *Parâmetros:* Perspectiva da câmera, posicionamento de objetos principais e linhas de horizonte.
+    *   *IA/Heurística:* Detecção de sujeito e horizonte; fallback por regras geométricas.
+
+### **10.3 Interface de Usuário Aprimorada**
+*   **Timeline de Ritmo:** Visualização gráfica de intensidade; overlay de batidas detectadas; marcadores de pontos de corte sugeridos.
+*   **Controles Profissionais:** Ajuste milimétrico de sincronização AV, fine‑tuning de transições, balanceamento de continuidade visual.
+*   **Preview Realtime:** Renderização acelerada por GPU; modo comparação antes/depois; baixa latência com prefetch.
+
+### **10.4 Requisitos Técnicos**
+*   **Compatibilidade:** Formatos MP4/MOV/AVI/MKV; codecs H.264/H.265/ProRes/DNxHD; resoluções até 8K.
+*   **Performance:** Suporte a timelines com 100+ faixas, efeitos em tempo real e projetos > 4 horas.
+*   **Robustez:** Histórico 100+ ações com Undo/Redo, salvamento automático de versões e recuperação de sessões.
+
+### **10.5 Plano de Testes Obrigatórios**
+| Cenário | Teste | Critério de Aceite |
+| :--- | :--- | :--- |
+| **Estilos Variados** | Entrevistas, videoclipes musicais, documentários, vlogs. | Batidas/cortes sugeridos precisos; transições naturais; continuidade preservada. |
+| **Multitrack Complexo** | 5+ faixas de vídeo simultâneas; 8+ faixas de áudio; efeitos aninhados. | Playback sem drop frames; UI responsiva; operações fluídas. |
+| **Exportação Completa** | Todos formatos (MP4/MOV/AVI/MKV) e codecs; bitrate variável; metadados; legendas; capas. | Arquivos válidos; sync perfeito; sem artefatos; metadados e legendas embutidos. |
+
+### **10.6 Compatibilidade e Exportação**
+*   **Bitrate Variável:** Presets por perfil (qualidade/arquivo) com validação por conteúdo.
+*   **Metadados Personalizados:** Título, autor, descrição, palavras‑chave; carimbo de versão.
+*   **Legendas Embutidas:** SRT/WEBVTT convertidas e embutidas (`mov_text`/`subtitles`).
+*   **Capas Personalizadas:** Imagem anexada ao container suportado (quando aplicável).
+
+### **10.7 Performance Extrema**
+*   **Virtualização:** Lista/timeline virtualizada para 100+ faixas.
+*   **Workers Dedicados:** Áudio/visão em WebWorkers; priorização de tarefas; cache incremental.
+*   **Degradação Elegante:** Proxies de preview e qualidade adaptativa conforme carga.
+
+### **10.8 Histórico e Recuperação**
+*   **Undo/Redo 100+:** Snapshots incrementais com compressão de diffs.
+*   **Auto‑Save:** Versões automáticas por tempo/ação; restauração pós‑falha.
+*   **Checkpoints:** Em operações longas (render/analyses) para retomada segura.
+
+### **10.9 Matriz de Validação**
+*   **Precisão de Ritmo:** >= 90% de coincidência de batidas em clipes musicais.
+*   **Continuidade Visual:** Redução de discrepâncias de cor em > 80% dos pares de clipes.
+*   **Desempenho:** Playback fluido em projetos > 4h com 100+ faixas; latência de preview baixa.
+
+### **10.10 Ritmo Contínuo (Continuous Flow)**
+*   **Objetivo:** Manter o impulso narrativo e musical ao longo da edição, alinhando cortes, transições e dinâmica de velocidade ao BPM e ao conteúdo.
+*   **Grade de Batidas:** Calcular BPM e onsets por faixa de áudio, gerar grade dinâmica de batidas com tolerância configurável (ms) e marcadores magnéticos.
+*   **Snapping de Cortes:** Bordas de clipes se alinham ao beat mais próximo; exceções para fala são priorizadas no fim de frase (detecção de pausas/energia vocal).
+*   **Crossfade Adaptativo:** Duração das transições de áudio entre 0.25× e 0.5× do período da batida (ajuste automático por BPM).
+*   **Sidechain de Música:** Compressão sutil do fundo musical em transições com fala para preservar inteligibilidade (`sidechaincompress`).
+*   **Velocidade Contínua:** Curvas Bézier garantem aceleração/desaceleração suaves; slow motion com `minterpolate` e time‑lapse com `setpts` evitam artefatos.
+*   **Continuidade de Movimento:** Preferir transições que respeitam direção/velocidade do objeto (via fluxo óptico); micro‑ajustes de pan/zoom para continuidade visual.
+*   **UI de Modo Contínuo:** Toggle "Ritmo Contínuo" com slider de estrita aderência ao BPM; indicadores visuais de conformidade de cortes e transições.
+
+**Exemplos de Pipeline (FFmpeg):**
+*   `acrossfade=duration=0.25*beat_period,afade=t=in:st=0:d=0.05`
+*   `minterpolate=fps=60:mi_mode=mci` + `setpts=PTS/0.5` (time‑lapse 2×)
+*   `sidechaincompress=threshold=0.015:ratio=4` para ducking leve em diálogo
+
+**Critérios de Aceite (Ritmo Contínuo):**
+*   Cortes e transições alinhados à grade de batidas sem perda de sincronização AV.
+*   Fala permanece clara durante transições com música de fundo.
+*   Mudanças de velocidade não introduzem tremores ou ghosting perceptível.
+
+#### **10.10.1 Configuração de Job (JSON)**
+```json
+{
+  "flow": {
+    "enabled": true,
+    "bpmSource": "auto",
+    "bpmManual": null,
+    "beatToleranceMs": 25,
+    "crossfadeRatio": 0.35,
+    "sidechain": { "threshold": 0.015, "ratio": 4 },
+    "snapping": "strict",
+    "speedCurves": [
+      { "clipId": "clip-123", "curve": "bezier", "points": [[0,0],[0.3,0.6],[0.7,0.4],[1,1]] }
+    ],
+    "opticalFlow": "auto"
+  }
+}
+```
+
+#### **10.10.2 Modelo de Dados da Timeline**
+*   **Track/Clip:** Clipes com `in/out`, transições e meta de continuidade.
+*   **Markers:** `beat`, `cutSuggestion` com `time` e `confidence`.
+*   **Transition:** Duração relativa ao período da batida (`beat_period * crossfadeRatio`).
+*   **Indicators:** Sinalização visual de conformidade ao BPM e continuidade de movimento.
+
+#### **10.10.3 Pseudocódigo do Detector de Batidas**
+```
+audio = load_waveform(track)
+stft = compute_stft(audio)
+flux = spectral_flux(stft)
+threshold = adaptive_threshold(flux)
+peaks = peak_pick(flux, threshold)
+bpm = estimate_bpm(peaks) // autocorrelation
+beats = align_to_timeline(peaks, bpm)
+return beats
+```
+
+#### **10.10.4 Interações de UI/UX**
+*   Toggle "Ritmo Contínuo" e slider de aderência ao BPM.
+*   Overlay de batidas e marcadores de corte sugeridos.
+*   Controles de fine‑tuning de transições e sincronização AV.
+
+#### **10.10.5 Telemetria e Logs**
+*   Métricas: `beat_detection_precision`, `crossfade_alignment_error_ms`, `playback_drop_frames`.
+*   Eventos de progresso: SSE/WebSocket com estados da análise e render.
+*   Logs estruturados com parâmetros aplicados (BPM, tolerâncias, curvas).
+
+#### **10.10.6 Failover e Degradação Elegante**
+*   Fallback heurístico quando visão/fluxo óptico indisponível.
+*   Proxies de preview sob carga para manter baixa latência.
+*   Desabilitar sidechain em containers sem suporte; preservar integridade de export.
+
+#### **10.10.7 Presets e Parâmetros Efetivos**
+| Parâmetro | Valor padrão | Faixa | Observações |
+| :--- | :---: | :---: | :--- |
+| `beatToleranceMs` | 25 | 10–50 | Ajusta snapping; maior tolerância reduz estrita aderência. |
+| `crossfadeRatio` | 0.35 | 0.25–0.5 | Proporção do período da batida; música mais rápida pede menor valor. |
+| `sidechain.threshold` | 0.015 | 0.01–0.03 | Sensibilidade do ducking; ajustar conforme mix. |
+| `sidechain.ratio` | 4 | 2–6 | Intensidade do ducking; maior ratio reduz música mais agressivamente. |
+| `minterpolate.fps` | 60 | 48–120 | FPS alvo para slow motion suave; custo computacional aumenta com FPS. |
+| `timeLapseFactor` | 2 | 2–10 | Multiplicador de velocidade para time‑lapse; usar amostragem inteligente. |
+
+#### **10.10.8 Integração com Worker (FFmpeg/BullMQ)**
+*   Mapear `flow` do job JSON para filtros FFmpeg e sequenciamento.
+*   Validar codec/container e suportes (H.264/H.265/ProRes/DNxHD; MP4/MOV/AVI/MKV).
+*   Ajustar ordem dos filtros: análise → transições → velocidade → cor → legendas → metadados → capa.
+*   Em casos 8K ou 100+ faixas, habilitar presets de desempenho e proxies.
+
+#### **10.10.9 Monitoramento e QA Contínuo**
+*   Thresholds: `beat_detection_precision >= 0.9`, `alignment_error_ms <= 30`, `drop_frames == 0` em preview padrão.
+*   Relatórios: logs por job com parâmetros aplicados e métricas agregadas por projeto.
+*   Alarmes: latência de preview alta, instabilidade de FPS, falhas de encode em presets específicos.
+
+#### **10.10.10 Cenários de Validação Exemplares**
+*   **Videoclipe Musical:** Cortes em batidas, transições curtas, sidechain desabilitado. Esperado: alto dinamismo sem perda de sync.
+*   **Entrevista:** Snapping flexível priorizando fim de frase; crossfade suave; sidechain ativo. Esperado: fala inteligível com música discreta.
+*   **Documentário:** Transições context‑aware por movimento de cena; color match consistente. Esperado: continuidade e narrativa fluida.
+*   **Vlog:** Time‑lapse em trechos de deslocamento; slow motion em destaques. Esperado: ritmo variado e engajamento visual.
+
+#### **10.10.11 Riscos e Mitigações Específicos**
+*   **Custo de Optical Flow:** Usar presets e permitir desativação em 8K.
+*   **Codecs/Containers Limitados:** Tabelas de compatibilidade e fallback automático.
+*   **Carga de Multitrack Pesada:** Virtualização, workers dedicados e cache incremental.
+
+---
+
+## 11. 📐 **Especificações Detalhadas V8 (Funcionalidades-Chave)**
+
+### 11.1 Cloud Rendering Híbrido
+- Especificação: edição com proxies leves no navegador; renderização final 1080p/4K/8K em servidor GPU.
+- Comportamento esperado:
+  - Cliente gera/consome proxies (`720p`, bitrate reduzido); tarefas de render sobem como `job JSON`.
+  - Progresso via `SSE/WebSocket` com estados: `queued`, `analyzing`, `rendering`, `uploading`, `completed`, `failed`.
+- Diretrizes técnicas:
+  - Worker `FFmpeg` orquestrado por `BullMQ` e `Redis`.
+  - Storage: `Supabase Storage` ou `S3` para assets, proxies e finais.
+  - Job schema mínimo:
+    ```json
+    {
+      "id":"job-uuid",
+      "projectId":"proj-123",
+      "preset":"1080p",
+      "timeline":"/projects/proj-123/timeline.json",
+      "flow": { "enabled": true },
+      "outputs": [{"format":"mp4","codec":"h264","bitrate":"8M"}]
+    }
+    ```
+- Dependências/Integrações: `FFmpeg`, `BullMQ`, `Redis`, `Supabase/S3`, `SSE/WebSocket`, `CUDA/NVENC` quando disponível.
+- Erros/Edge cases: desconexão de cliente; falta de GPU; codecs não suportados; reprocesso com fallback `x264`.
+- Testes:
+  - Unit: mapeamento de `timeline.json` → filtros FFmpeg; recuperação de estados de fila.
+  - Integração: worker + storage + SSE; tolerância a quedas de rede; reintentos configuráveis.
+
+### 11.2 Timeline Magnética Inteligente
+- Especificação: auto-ripple, fechamento de gaps e snapping inteligente a batidas/pausas de fala.
+- Comportamento esperado:
+  - Ao deletar/mover clipes, a timeline se recompacta sem buracos (respeitando locks).
+  - Snapping a `markers: beat | cutSuggestion | speechPause` com tolerância configurável.
+- Diretrizes técnicas:
+  - Modelo: `Track/Clip` com `in/out`, `locked`, `transition`, `markers`.
+  - Algoritmo ripple: varrer trilha respeitando `locked` e transições; impedir sobreposição ilegal.
+- Dependências: `Zustand`/store atual, eventos de UI; integração com detectores de batida (Seção 10).
+- Erros/Edge cases: transições longas; clipes linkados AV; trilhas com prioridade; locks hierárquicos.
+- Testes:
+  - Unit: função de snapping com tolerâncias; ripple sob estados variados.
+  - Integração: operações de drag/drop + preview consistente; sem perda de sync.
+
+### 11.3 Legendas Automáticas (Karaokê)
+- Especificação: transcrição PT-BR com marcação palavra‑por‑palavra; destaque sincronizado no player.
+- Comportamento esperado: geração de `SRT/WEBVTT` + `word-timings.json`; overlay com animação de preenchimento.
+- Diretrizes técnicas:
+  - ASR: `Azure Speech` ou `Whisper` (server-side) com normalização de texto.
+  - Alinhamento: `CTC forced alignment` ou heurística de distribuição por sílabas.
+  - Export: embutir legendas (`mov_text`) quando aplicável.
+- Dependências: `Azure Cognitive Services` ou modelo local; `FFmpeg` para mux; player com overlay.
+- Erros/Edge cases: ruído alto; código‑switching; nomes próprios; latência; fallback a frase por frase.
+- Testes:
+  - Unit: parser SRT/VTT; gerador de word timings; sincronização de highlight.
+  - Integração: ASR → overlay → export; precisão mínima documentada.
+
+### 11.4 "Corte Mágico" (Silence Removal)
+- Especificação: detecção de silêncios/respirações e remoção com crossfades sutis.
+- Comportamento esperado: redução automática de trechos sem fala; preserva ritmo por batidas (quando música presente).
+- Diretrizes técnicas:
+  - VAD: `webrtcvad`/`silencedetect` (FFmpeg) com thresholds adaptativos.
+  - Transições: `afade/acrossfade` conforme `beat_period` (ver 10.10).
+- Dependências: `FFmpeg`, VAD lib; integração com `Smart Flow`.
+- Erros/Edge cases: fala sussurrada; ruído constante; cortes em meio à palavra; rollback por usuário.
+- Testes:
+  - Unit: detecção de silêncio; cálculo de janelas; aplicação de fades.
+  - Integração: pipeline completo com música de fundo; validação auditiva objetiva/subjectiva.
+
+### 11.5 Importador de Legado (PDF/PPT → Vídeo)
+- Especificação: converter PDFs/PPTs em cenas com narração IA e transições básicas.
+- Comportamento esperado: extração de títulos/corpo/imagens; mapeamento para `timeline.json` com estilos.
+- Diretrizes técnicas:
+  - Parser: reutilizar parsers de PPTX (V7) + OCR quando necessário.
+  - TTS: `Azure/Edge TTS` com vozes PT‑BR; cache automático.
+- Dependências: `Supabase Storage` para assets; `Azure TTS`; `OCR` opcional.
+- Erros/Edge cases: fontes incomuns; slides com fundo imagem; tabelas complexas; páginas longas → dividir.
+- Testes:
+  - Unit: parse de layouts; normalização de texto.
+  - Integração: import → timeline → preview → export; consistência visual.
+
+### 11.6 Personalização em Massa (Variable Data)
+- Especificação: gerar N variações via `CSV` com placeholders em texto/voz/imagens.
+- Comportamento esperado: substituição de `[Nome]`, `[Cidade]` etc.; render em lote com fila e rate‑limit.
+- Diretrizes técnicas:
+  - Template: definir `placeholders` no projeto; injeção segura de dados; validação de schema.
+  - Render: lote com `BullMQ`; isolação de estado por variação.
+- Dependências: `CSV parser`, `BullMQ`, `Redis`, `TTS` quando necessário.
+- Erros/Edge cases: campos faltantes; caracteres especiais; nomes muito longos; colisão de assets.
+- Testes:
+  - Unit: mapeamento de placeholders; sanitização.
+  - Integração: lote end‑to‑end; métricas de throughput/erros.
+
+---
+
+## 12. ✅ **Padrões de Qualidade e Compatibilidade (V8)**
+- Backward compatibility:
+  - Todos os recursos V8 são opt‑in por `feature flags` em `project.json`.
+  - Preservar exportação e preview existentes quando `flags` desativados.
+- Estilo e consistência:
+  - Manter padrões de estado com `Zustand`; nomenclatura de `Track/Clip/Marker` conforme V7.
+  - Tipos fortes em `timeline.json` e schemas validados.
+- Segurança:
+  - Sanitização de inputs (CSV/ASR/Uploads); quotas e rate‑limits; isolamento de jobs.
+- Observabilidade:
+  - Logs estruturados por job; métricas (latência, erros, drop frames); traços por render.
+- Resiliência:
+  - Reintentos exponenciais; checkpoints em operações longas; fallback de codecs.
+
+---
+
+## 13. 🧪 **Plano de Testes Expandido (Unit/Integration)**
+- Unit Tests por funcionalidade:
+  - Cloud Rendering: mapeamento de presets, ordem de filtros, estados de fila.
+  - Timeline Magnética: snapping e ripple com tolerâncias e locks.
+  - Legendas Karaokê: parsing SRT/VTT e sincronização de palavra.
+  - Corte Mágico: detecção e fades; preservação de ritmo.
+  - Importador Legado: extração e normalização de estruturas.
+  - Personalização em Massa: placeholders e sanitização.
+- Integration Tests:
+  - Worker + Storage + SSE com falhas simuladas (rede, GPU indisponível).
+  - Editor → Timeline → Preview → Render → Upload.
+  - Batch render com CSV (10, 100, 500 variações) medindo throughput.
+- Documentação de casos e resultados esperados:
+  - Tabelas por cenário com critérios de aceite claros (precisão, latência, consistência visual/AV).
+
+---
+
+## 14. ⚙️ **Benchmarks e Metas de Performance**
+- Cloud Rendering:
+  - `1080p` render NVENC: 1.2× tempo real médio; fallback `x264`: 2.0×.
+  - Latência de fila `< 5s` sob carga média; upload final `< 8s` para arquivos ≤ 500MB.
+- Timeline/Preview:
+  - Preview sem drop frames em 60 FPS até 20 faixas; virtualização > 100 faixas (ver 10.7).
+- Legendas/Karaokê:
+  - ASR PT‑BR WER ≤ 12% em áudio limpo; alinhamento palavra com erro ≤ 80ms.
+- Corte Mágico:
+  - Redução ≥ 70% de trechos silenciosos sem artefatos audíveis.
+- Lote/CSV:
+  - Throughput: 30 renders/h por nó GPU (1080p), erros ≤ 2% com reintentos.
+
+---
+
+## 15. 📦 **Entregáveis e Versionamento**
+- Implementação documental:
+  - Especificações completas por funcionalidade (Seção 11).
+  - Diretrizes técnicas, dependências e edge cases.
+  - Plano de testes e benchmarks (Seções 13–14).
+- Test suite:
+  - Catalogação de casos unitários e de integração; critérios de aceite anexos.
+- Documentação:
+  - Atualização do `Índice`, referências cruzadas e schemas de job/timeline.
+- Commit sugerido:
+  - `docs(v8): especificações detalhadas + testes + benchmarks para Cloud Rendering, Timeline Magnética, Karaokê, Corte Mágico, Importador Legado e Personalização em Massa`

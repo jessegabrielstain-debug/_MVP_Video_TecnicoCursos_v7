@@ -1,4 +1,7 @@
 /**
+ * @jest-environment node
+ */
+/**
  * Testes Unitários - WebSocket Server
  * 
  * Testa:

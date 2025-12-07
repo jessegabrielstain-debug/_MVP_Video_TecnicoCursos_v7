@@ -1,4 +1,4 @@
-
+// TODO: Fixar tipo unknown no ReactNode do loading
 'use client'
 
 /**
@@ -27,12 +27,12 @@ const CanvasEditorSSRFixed = dynamic(
       </div>
     )
   }
-)
+) as React.ComponentType<any>
 
 export default function CanvasEditorDemoSprint29() {
-  const [canvasData, setCanvasData] = useState<unknown>(null)
+  const [canvasData, setCanvasData] = useState<any>(null)
 
-  const handleSave = (data: any) => {
+  const handleSave = (data: Record<string, any>) => {
     setCanvasData(data)
     console.log('Canvas data saved:', data)
   }

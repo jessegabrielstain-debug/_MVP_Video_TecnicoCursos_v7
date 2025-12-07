@@ -49,7 +49,7 @@ interface LayoutElement {
   width: number
   height: number
   content?: string
-  style?: any
+  style?: React.CSSProperties
 }
 
 interface LayoutSettings {

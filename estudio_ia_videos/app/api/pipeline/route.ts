@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { integratedPipeline, PipelineInput } from '@/lib/pipeline/integrated-pipeline'
 import { Logger } from '@/lib/logger'
 
@@ -19,15 +19,15 @@ const PipelineInputSchema = z.object({
   voice_config: z.object({
     engine: z.enum(['elevenlabs', 'google', 'azure', 'aws']),
     voice_id: z.string(),
-    settings: z.record(z.any()).optional()
+    settings: z.record(z.unknown()).optional()
   }),
   avatar_config: z.object({
     model_url: z.string().url(),
     animations: z.array(z.string()).optional(),
-    materials: z.array(z.any()).optional(),
-    lighting: z.any().optional(),
-    camera: z.any().optional(),
-    environment: z.any().optional()
+    materials: z.array(z.unknown()).optional(),
+    lighting: z.unknown().optional(),
+    camera: z.unknown().optional(),
+    environment: z.unknown().optional()
   }),
   render_settings: z.object({
     width: z.number().min(480).max(4096),
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
-    logger.error('Pipeline creation failed', { error })
+    logger.error('Pipeline creation failed', error instanceof Error ? error : new Error(String(error)))
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Failed to get pipeline status', { error })
+    logger.error('Failed to get pipeline status', error instanceof Error ? error : new Error(String(error)))
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
 /**
  * Verificar limites do usuário
  */
-async function checkUserLimits(userId: string, supabase: any) {
+async function checkUserLimits(userId: string, supabase: SupabaseClient) {
   try {
     // Verificar jobs ativos
     const { data: activeJobs } = await supabase
@@ -256,7 +256,7 @@ async function checkUserLimits(userId: string, supabase: any) {
     }
 
   } catch (error) {
-    logger.error('Failed to check user limits', { userId, error })
+    logger.error('Failed to check user limits', error instanceof Error ? error : new Error(String(error)), { userId })
     return {
       canProcess: true, // Permitir em caso de erro
       activeJobs: 0,
@@ -284,7 +284,7 @@ function getDefaultLimits(plan: string) {
 /**
  * Obter estatísticas do usuário
  */
-async function getUserStats(userId: string, supabase: any) {
+async function getUserStats(userId: string, supabase: SupabaseClient) {
   try {
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -335,7 +335,7 @@ async function getUserStats(userId: string, supabase: any) {
     }
 
   } catch (error) {
-    logger.error('Failed to get user stats', { userId, error })
+    logger.error('Failed to get user stats', error instanceof Error ? error : new Error(String(error)), { userId })
     return {
       total_jobs: 0,
       jobs_by_status: {},
@@ -349,7 +349,7 @@ async function getUserStats(userId: string, supabase: any) {
 /**
  * Verificar permissão de admin
  */
-async function checkAdminPermission(userId: string, supabase: any): Promise<boolean> {
+async function checkAdminPermission(userId: string, supabase: SupabaseClient): Promise<boolean> {
   try {
     const { data } = await supabase
       .from('user_profiles')
@@ -366,7 +366,7 @@ async function checkAdminPermission(userId: string, supabase: any): Promise<bool
 /**
  * Obter estatísticas gerais (apenas admins)
  */
-async function getGeneralStats(supabase: any) {
+async function getGeneralStats(supabase: SupabaseClient) {
   try {
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
@@ -414,7 +414,7 @@ async function getGeneralStats(supabase: any) {
     }
 
   } catch (error) {
-    logger.error('Failed to get general stats', { error })
+    logger.error('Failed to get general stats', error instanceof Error ? error : new Error(String(error)))
     return {
       total_jobs: 0,
       recent_jobs: 0,

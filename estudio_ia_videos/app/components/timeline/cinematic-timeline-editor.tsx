@@ -66,8 +66,16 @@ interface Keyframe {
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out'
 }
 
+interface Scene {
+  id?: string
+  name?: string
+  duration?: number
+  thumbnail?: string
+  [key: string]: unknown
+}
+
 interface CinematicTimelineEditorProps {
-  scenes?: unknown[]
+  scenes?: Scene[]
   onSceneUpdate?: (sceneId: string, data: unknown) => void
   onExportTimeline?: (timeline: unknown) => void
   onPreview?: (timeline: unknown) => void

@@ -19,7 +19,7 @@ import {
   Zap,
   RotateCcw,
   FileAudio,
-  Waveform,
+  Activity,
   Clock,
   User,
   Globe,

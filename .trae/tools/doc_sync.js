@@ -29,7 +29,7 @@ const REQUIRED_DOCS = [
 function readFileSafe(filePath) {
   try {
     return fs.readFileSync(filePath, 'utf8');
-  } catch (_) {
+  } catch {
     return '';
   }
 }

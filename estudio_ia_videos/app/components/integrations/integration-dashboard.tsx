@@ -1,6 +1,4 @@
 
-// @ts-nocheck
-
 /**
  * 🔗 Estúdio IA de Vídeos - Sprint 8
  * Dashboard de Integrações Externas
@@ -39,47 +37,86 @@ import {
   Copy,
   Trash2,
   Plus,
-  Globe
+  Globe,
+  type LucideIcon
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-export default function IntegrationDashboard() {
-  const [integrations, setIntegrations] = useState<any[]>([]);
-  const [publications, setPublications] = useState<any[]>([]);
-  const [stats, setStats] = useState<unknown>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedIntegration, setSelectedIntegration] = useState<unknown>(null);
+interface Integration {
+  id: string;
+  name: string;
+  type: string;
+  enabled: boolean;
+  status: string;
+  lastSync?: string;
+  settings?: Record<string, unknown>;
+}
 
-  const integrationTypes = [
-    { 
-      type: 'youtube', 
-      name: 'YouTube', 
-      icon: Youtube, 
-      color: 'text-red-600',
-      description: 'Publicação automática no YouTube'
-    },
-    { 
-      type: 'vimeo', 
-      name: 'Vimeo', 
-      icon: Video, 
-      color: 'text-blue-600',
-      description: 'Upload para Vimeo Business'
-    },
-    { 
-      type: 'moodle', 
-      name: 'Moodle', 
-      icon: GraduationCap, 
-      color: 'text-orange-600',
-      description: 'Integração com LMS Moodle'
-    },
-    { 
-      type: 'teams', 
-      name: 'Microsoft Teams', 
-      icon: MessageSquare, 
-      color: 'text-purple-600',
-      description: 'Compartilhamento via Teams'
-    }
-  ];
+interface Publication {
+  metadata?: {
+    title?: string;
+  };
+  targets?: string[];
+  status?: string;
+  results?: {
+    integrationId: string;
+    status: string;
+    url?: string;
+    error?: string;
+  }[];
+}
+
+interface Stats {
+  total: number;
+  successRate: number;
+  failed: number;
+}
+
+interface IntegrationTypeDefinition {
+  type: string;
+  name: string;
+  icon: LucideIcon;
+  color: string;
+  description: string;
+}
+
+const INTEGRATION_TYPES: IntegrationTypeDefinition[] = [
+  {
+    type: 'youtube',
+    name: 'YouTube',
+    icon: Youtube,
+    color: 'text-red-600',
+    description: 'Publicação automática no YouTube'
+  },
+  {
+    type: 'vimeo',
+    name: 'Vimeo',
+    icon: Video,
+    color: 'text-blue-600',
+    description: 'Upload para Vimeo Business'
+  },
+  {
+    type: 'moodle',
+    name: 'Moodle',
+    icon: GraduationCap,
+    color: 'text-orange-600',
+    description: 'Integração com LMS Moodle'
+  },
+  {
+    type: 'teams',
+    name: 'Microsoft Teams',
+    icon: MessageSquare,
+    color: 'text-purple-600',
+    description: 'Compartilhamento via Teams'
+  }
+];
+
+export default function IntegrationDashboard() {
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [publications, setPublications] = useState<Publication[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
 
   useEffect(() => {
     loadIntegrations();
@@ -125,7 +162,7 @@ export default function IntegrationDashboard() {
     }
   };
 
-  const publishVideo = async (videoData: any) => {
+  const publishVideo = async (videoData: Record<string, unknown>) => {
     try {
       const response = await fetch('/api/integrations/publish', {
         method: 'POST',
@@ -146,7 +183,7 @@ export default function IntegrationDashboard() {
     }
   };
 
-  const configureIntegration = async (integrationId: string, credentials: any, settings: any) => {
+  const configureIntegration = async (integrationId: string, credentials: Record<string, unknown>, settings: Record<string, unknown>) => {
     try {
       const response = await fetch('/api/integrations/configure', {
         method: 'POST',
@@ -281,7 +318,7 @@ export default function IntegrationDashboard() {
           {/* Tab: Integrações */}
           <TabsContent value="integrations" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {integrationTypes.map((type) => {
+              {INTEGRATION_TYPES.map((type) => {
                 const integration = integrations.find(i => i.type === type.type);
                 const IconComponent = type.icon;
                 
@@ -443,6 +480,7 @@ export default function IntegrationDashboard() {
             <VideoPublisher 
               integrations={integrations.filter(i => i.enabled)}
               onPublish={publishVideo}
+              integrationTypes={INTEGRATION_TYPES}
             />
           </TabsContent>
         </Tabs>
@@ -461,14 +499,20 @@ export default function IntegrationDashboard() {
 }
 
 // Componente para publicar vídeos
-function VideoPublisher({ integrations, onPublish }) {
+interface VideoPublisherProps {
+  integrations: Integration[];
+  onPublish: (data: Record<string, unknown>) => void;
+  integrationTypes: IntegrationTypeDefinition[];
+}
+
+function VideoPublisher({ integrations, onPublish, integrationTypes }: VideoPublisherProps) {
   const [videoFile, setVideoFile] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
   const [category, setCategory] = useState('Education');
   const [privacy, setPrivacy] = useState('unlisted');
-  const [selectedIntegrations, setSelectedIntegrations] = useState([]);
+  const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>([]);
 
   const handlePublish = () => {
     if (!videoFile || !title || selectedIntegrations.length === 0) {
@@ -629,11 +673,17 @@ function VideoPublisher({ integrations, onPublish }) {
 }
 
 // Modal de configuração de integração
-function IntegrationConfigModal({ integration, onSave, onClose }) {
-  const [credentials, setCredentials] = useState({});
-  const [settings, setSettings] = useState(integration.settings || {});
+interface IntegrationConfigModalProps {
+  integration: Integration;
+  onSave: (id: string, credentials: Record<string, unknown>, settings: Record<string, unknown>) => void;
+  onClose: () => void;
+}
 
-  const credentialFields = {
+function IntegrationConfigModal({ integration, onSave, onClose }: IntegrationConfigModalProps) {
+  const [credentials, setCredentials] = useState<Record<string, string>>({});
+  const [settings, setSettings] = useState<Record<string, unknown>>(integration.settings || {});
+
+  const credentialFields: Record<string, { key: string; label: string; type: string }[]> = {
     youtube: [
       { key: 'clientId', label: 'Client ID', type: 'text' },
       { key: 'clientSecret', label: 'Client Secret', type: 'password' },
@@ -679,7 +729,7 @@ function IntegrationConfigModal({ integration, onSave, onClose }) {
                   <Input
                     type={field.type}
                     value={credentials[field.key] || ''}
-                    onChange={(e) => setCredentials(prev => ({
+                    onChange={(e) => setCredentials((prev: Record<string, string>) => ({
                       ...prev,
                       [field.key]: e.target.value
                     }))}
@@ -698,8 +748,8 @@ function IntegrationConfigModal({ integration, onSave, onClose }) {
                 <span className="text-sm">Publicação Automática</span>
                 <input
                   type="checkbox"
-                  checked={settings.autoPublish || false}
-                  onChange={(e) => setSettings(prev => ({
+                  checked={(settings.autoPublish as boolean) || false}
+                  onChange={(e) => setSettings((prev) => ({
                     ...prev,
                     autoPublish: e.target.checked
                   }))}
@@ -710,8 +760,8 @@ function IntegrationConfigModal({ integration, onSave, onClose }) {
               <div>
                 <label className="block text-sm font-medium mb-2">Privacidade Padrão</label>
                 <select
-                  value={settings.defaultPrivacy || 'unlisted'}
-                  onChange={(e) => setSettings(prev => ({
+                  value={(settings.defaultPrivacy as string) || 'unlisted'}
+                  onChange={(e) => setSettings((prev) => ({
                     ...prev,
                     defaultPrivacy: e.target.value
                   }))}

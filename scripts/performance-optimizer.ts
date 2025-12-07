@@ -493,7 +493,7 @@ export function withApiCache(
     }
 
     // Gerar chave de cache baseada na URL
-    const cacheKey = `\${options.keyPrefix || 'api'}:\${url}`;
+    const cacheKey = \`\${options.keyPrefix || 'api'}:\${url}\`;
 
     // Tentar pegar do cache
     const cached = cache.get<unknown>(cacheKey);

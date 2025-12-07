@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/services'
-import { logger } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
 const logContext = { component: 'AdminUserRolesAPI' }
@@ -34,7 +34,7 @@ export async function POST(
     }
 
     const { role } = validation.data
-    const supabase = createServerClient()
+    const supabase = getSupabaseForRequest(req)
 
     // Verificar se role existe
     const { data: roleData, error: roleError } = await supabase
@@ -76,7 +76,7 @@ export async function POST(
       })
 
     if (insertError) {
-      contextLogger.error('Failed to assign role', { error: insertError })
+      contextLogger.error('Failed to assign role', undefined, { error: insertError })
       return NextResponse.json(
         { error: 'Falha ao atribuir role', details: insertError.message },
         { status: 500 }
@@ -91,7 +91,7 @@ export async function POST(
       role: roleData.name
     })
   } catch (error) {
-    contextLogger.error('Unexpected error in POST /api/admin/users/[id]/roles', { error })
+    contextLogger.error('Unexpected error in POST /api/admin/users/[id]/roles', error as Error)
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

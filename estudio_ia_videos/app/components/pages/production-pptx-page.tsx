@@ -332,7 +332,7 @@ const ProductionPPTXPage: React.FC = () => {
                     title: currentProject.name,
                     author: 'Estúdio IA',
                     created: new Date().toISOString(),
-                    totalSlides: currentProject.slides,
+                    slideCount: currentProject.slides,
                     slideSize: { width: 1920, height: 1080 },
                     theme: 'default'
                   },
@@ -343,16 +343,7 @@ const ProductionPPTXPage: React.FC = () => {
                   statistics: {
                     totalElements: 0,
                     elementsByType: {},
-                    totalAssets: 0,
-                    estimatedFileSize: 0,
                     editableElements: 0
-                  },
-                  processing: {
-                    parserId: 'mock-parser',
-                    version: '2.0.0',
-                    timestamp: new Date().toISOString(),
-                    warnings: [],
-                    errors: []
                   }
                 }}
               />

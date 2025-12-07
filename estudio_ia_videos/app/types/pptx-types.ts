@@ -330,7 +330,7 @@ export interface PPTXTemplateVariable {
   type: 'text' | 'image' | 'number' | 'date' | 'boolean' | 'list';
   description: string;
   required: boolean;
-  defaultValue?: any;
+  defaultValue?: string | number | boolean | string[];
   validation?: PPTXValidationRule;
 }
 

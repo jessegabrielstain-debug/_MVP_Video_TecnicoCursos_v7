@@ -1,0 +1,3 @@
+app/components/editor/timeline-editor-pro.tsx(52,1): error TS1003: Identifier expected.
+app/components/editor/timeline-editor-pro.tsx(52,8): error TS1005: ',' expected.
+app/components/editor/timeline-editor-pro.tsx(57,3): error TS1005: ';' expected.

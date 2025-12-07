@@ -25,7 +25,7 @@ import {
   FileText,
   Zap
 } from 'lucide-react'
-import { SCORMEngine } from '../../lib/lms/scorm-engine'
+import { SCORMEngine, SCORMPackage } from '../../lib/lms/scorm-engine'
 
 interface LMSConfig {
   lms_type: 'moodle' | 'blackboard' | 'canvas' | 'brightspace' | 'generic'
@@ -66,12 +66,6 @@ export default function LMSIntegration() {
     quiz_questions?: unknown[];
     completion_rate?: number;
     last_updated?: string;
-  }
-  
-  interface SCORMPackage {
-    id: string;
-    manifest: unknown;
-    resources: unknown[];
   }
   
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
@@ -183,7 +177,7 @@ export default function LMSIntegration() {
   }
 
   const handleDownloadSCORM = () => {
-    if (!scormPackage) return
+    if (!scormPackage || !selectedProject) return
 
     // Simular download
     const link = document.createElement('a')
@@ -408,7 +402,7 @@ export default function LMSIntegration() {
                   value={selectedProject?.id || ''}
                   onValueChange={(value) => {
                     const project = projects.find(p => p.id === value)
-                    setSelectedProject(project)
+                    setSelectedProject(project || null)
                   }}
                 >
                   <SelectTrigger>

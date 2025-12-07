@@ -1,6 +1,8 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { prisma } from '@/lib/db';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
@@ -15,7 +17,7 @@ import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
  */
 async function getHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -45,8 +47,7 @@ async function getHandler(req: NextRequest) {
     }
 
     const whereClause = {
-      createdAt: { gte: startDate },
-      ...(organizationId && { organizationId })
+      createdAt: { gte: startDate }
     };
 
     // Utilitários locais para acessar metadados e normalizar números
@@ -66,7 +67,7 @@ async function getHandler(req: NextRequest) {
       errorEvents,
       eventsByCategory,
       eventsByAction,
-      recentEvents,
+      recentEventsRaw,
       timelineData,
       performanceData,
       userBehaviorData,
@@ -83,26 +84,34 @@ async function getHandler(req: NextRequest) {
         }
       }),
 
-      // Eventos de erro
+      // Eventos de erro (status inside eventData)
       prisma.analyticsEvent.count({
-        where: { ...whereClause, status: 'error' }
+        where: { 
+          ...whereClause, 
+          eventData: {
+            path: ['status'],
+            equals: 'error'
+          }
+        }
       }),
 
       // Eventos agrupados por categoria
-      prisma.analyticsEvent.groupBy({
-        by: ['category'],
-        where: whereClause,
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } }
-      }),
+      prisma.$queryRaw<Array<{ category: string, count: bigint }>>`
+        SELECT event_data->>'category' as category, COUNT(*) as count
+        FROM analytics_events
+        WHERE created_at >= ${startDate}
+        GROUP BY event_data->>'category'
+        ORDER BY count DESC
+      `,
 
       // Eventos agrupados por ação
-      prisma.analyticsEvent.groupBy({
-        by: ['action'],
-        where: whereClause,
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } }
-      }),
+      prisma.$queryRaw<Array<{ action: string, count: bigint }>>`
+        SELECT event_data->>'action' as action, COUNT(*) as count
+        FROM analytics_events
+        WHERE created_at >= ${startDate}
+        GROUP BY event_data->>'action'
+        ORDER BY count DESC
+      `,
 
       // Eventos recentes
       prisma.analyticsEvent.findMany({
@@ -111,83 +120,92 @@ async function getHandler(req: NextRequest) {
         take: 20,
         select: {
           id: true,
-          category: true,
-          action: true,
-          label: true,
-          status: true,
-          duration: true,
-          fileSize: true,
+          eventData: true,
           createdAt: true
         }
       }),
 
       // Dados da timeline (eventos por dia)
-      prisma.$queryRaw`
+      prisma.$queryRaw<Array<{ date: Date, events: bigint, errors: bigint, users: bigint }>>`
         SELECT 
           DATE(created_at) as date,
           COUNT(*) as events,
-          COUNT(CASE WHEN status = 'error' THEN 1 END) as errors,
+          COUNT(CASE WHEN event_data->>'status' = 'error' THEN 1 END) as errors,
           COUNT(DISTINCT user_id) as users
-        FROM analytics_event 
+        FROM analytics_events 
         WHERE created_at >= ${startDate}
-        ${organizationId ? prisma.$queryRaw`AND organization_id = ${organizationId}` : prisma.$queryRaw``}
         GROUP BY DATE(created_at)
         ORDER BY date DESC
         LIMIT 30
       `,
 
       // Dados de performance
-      prisma.analyticsEvent.aggregate({
-        where: {
-          ...whereClause,
-          duration: { not: null }
-        },
-        _avg: {
-          duration: true,
-          fileSize: true
-        },
-        _max: {
-          duration: true
-        },
-        _min: {
-          duration: true
-        }
-      }),
+      prisma.$queryRaw<Array<{ avg_duration: number, max_duration: number, min_duration: number }>>`
+        SELECT 
+          AVG((event_data->>'duration')::numeric) as avg_duration,
+          MAX((event_data->>'duration')::numeric) as max_duration,
+          MIN((event_data->>'duration')::numeric) as min_duration
+        FROM analytics_events
+        WHERE created_at >= ${startDate}
+        AND event_data->>'duration' IS NOT NULL
+      `,
 
-      // Dados de comportamento do usuário
-      prisma.analyticsEvent.groupBy({
-        by: ['metadata'],
-        where: whereClause,
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-        take: 10
-      }),
+      // Dados de comportamento do usuário (agrupado por metadata?? metadata is inside eventData)
+      // Assuming grouping by some metadata field, but the original code grouped by 'metadata' which was wrong.
+      // Let's skip this one or group by event_type as a proxy for behavior
+      prisma.$queryRaw<Array<{ type: string, count: bigint }>>`
+        SELECT event_type as type, COUNT(*) as count
+        FROM analytics_events
+        WHERE created_at >= ${startDate}
+        GROUP BY event_type
+        ORDER BY count DESC
+        LIMIT 10
+      `,
 
       // Dados de projetos
       prisma.project.count({
         where: {
-          createdAt: { gte: startDate },
-          ...(organizationId && { organizationId })
+          createdAt: { gte: startDate }
         }
       })
     ]);
+
+    // Map recent events
+    const recentEvents = recentEventsRaw.map(e => {
+      const data = e.eventData as Record<string, unknown> || {};
+      return {
+        id: e.id,
+        category: data.category as string,
+        action: data.action as string,
+        label: data.label as string,
+        status: data.status as string,
+        duration: data.duration as number,
+        fileSize: data.fileSize as number,
+        createdAt: e.createdAt
+      };
+    });
 
     // Calcular métricas derivadas
     const errorRate = totalEvents > 0 ? ((errorEvents / totalEvents) * 100).toFixed(2) : '0';
     
     // Processar dados de categoria com percentuais
-    const totalCategoryEvents = eventsByCategory.reduce((sum, item) => sum + item._count.id, 0);
-    const processedEventsByCategory = eventsByCategory.map(item => ({
+    const eventsByCategoryList = eventsByCategory.map(item => ({
+      category: item.category || 'Unknown',
+      count: Number(item.count)
+    }));
+    
+    const totalCategoryEvents = eventsByCategoryList.reduce((sum, item) => sum + item.count, 0);
+    const processedEventsByCategory = eventsByCategoryList.map(item => ({
       category: item.category,
-      count: item._count.id,
+      count: item.count,
       percentage: totalCategoryEvents > 0 ? 
-        ((item._count.id / totalCategoryEvents) * 100).toFixed(1) : '0'
+        ((item.count / totalCategoryEvents) * 100).toFixed(1) : '0'
     }));
 
     // Processar dados de ação
     const processedEventsByAction = eventsByAction.map(item => ({
-      action: item.action,
-      count: item._count.id
+      action: item.action || 'Unknown',
+      count: Number(item.count)
     }));
 
     // Simular dados de usuários ativos (seria melhor ter uma tabela de sessões)
@@ -201,116 +219,85 @@ async function getHandler(req: NextRequest) {
     });
 
       // ✅ REAL - Dados de performance de endpoints (via metadata)
-      // Usar cast via unknown para manter tipagem sem any
-      const endpointPerformance = await (prisma.analyticsEvent.groupBy as unknown as typeof prisma.analyticsEvent.groupBy)({
-      by: ['metadata'],
-      where: {
-        ...whereClause,
-        duration: { not: null },
-        metadata: { 
-          path: ['endpoint']
-        }
-      },
-      _avg: {
-        duration: true
-      },
-      _count: {
-        id: true
-      },
-      orderBy: {
-        _avg: {
-          duration: 'desc'
-        }
-      },
-      take: 5
-    });
+      const endpointPerformance = await prisma.$queryRaw<Array<{ endpoint: string, avg_time: number, calls: bigint }>>`
+        SELECT 
+          event_data->'metadata'->>'endpoint' as endpoint,
+          AVG((event_data->>'duration')::numeric) as avg_time,
+          COUNT(*) as calls
+        FROM analytics_events
+        WHERE created_at >= ${startDate}
+        AND event_data->'metadata'->>'endpoint' IS NOT NULL
+        AND event_data->>'duration' IS NOT NULL
+        GROUP BY event_data->'metadata'->>'endpoint'
+        ORDER BY avg_time DESC
+        LIMIT 5
+      `;
 
     const slowestEndpoints = endpointPerformance.map(item => ({
-        endpoint: getMetaString((item as { metadata: unknown }).metadata, 'endpoint') || 'Unknown',
-        avgTime: Math.round(toNumber((item as { _avg: { duration: unknown } })._avg.duration)),
-        calls: (item as { _count: { id: number } })._count.id
+        endpoint: item.endpoint || 'Unknown',
+        avgTime: Math.round(Number(item.avg_time)),
+        calls: Number(item.calls)
     }));
 
       // ✅ REAL - Dados de comportamento do usuário (via metadata)
-      const pageViews = await (prisma.analyticsEvent.groupBy as unknown as typeof prisma.analyticsEvent.groupBy)({
-      by: ['metadata'],
-      where: {
-        ...whereClause,
-        action: 'page_view',
-        metadata: {
-          path: ['page']
-        }
-      },
-      _count: {
-        id: true
-      },
-      _avg: {
-        duration: true
-      },
-      orderBy: {
-        _count: {
-          id: 'desc'
-        }
-      },
-      take: 5
-    });
+      const pageViews = await prisma.$queryRaw<Array<{ page: string, views: bigint, avg_time: number }>>`
+        SELECT 
+          event_data->'metadata'->>'page' as page,
+          COUNT(*) as views,
+          AVG((event_data->>'duration')::numeric) as avg_time
+        FROM analytics_events
+        WHERE created_at >= ${startDate}
+        AND event_data->>'action' = 'page_view'
+        AND event_data->'metadata'->>'page' IS NOT NULL
+        GROUP BY event_data->'metadata'->>'page'
+        ORDER BY views DESC
+        LIMIT 5
+      `;
 
     const topPages = pageViews.map(item => ({
-        page: getMetaString((item as { metadata: unknown }).metadata, 'page') || 'Unknown',
-        views: (item as { _count: { id: number } })._count.id,
-        avgTimeOnPage: Math.round(toNumber((item as { _avg: { duration: unknown } })._avg.duration))
+        page: item.page || 'Unknown',
+        views: Number(item.views),
+        avgTimeOnPage: Math.round(Number(item.avg_time || 0))
     }));
 
       // ✅ REAL - Estatísticas de dispositivos (via metadata)
-      const deviceData = await (prisma.analyticsEvent.groupBy as unknown as typeof prisma.analyticsEvent.groupBy)({
-      by: ['metadata'],
-      where: {
-        ...whereClause,
-        metadata: {
-          path: ['deviceType']
-        }
-      },
-      _count: {
-        id: true
-      },
-      orderBy: {
-        _count: {
-          id: 'desc'
-        }
-      }
-    });
+      const deviceData = await prisma.$queryRaw<Array<{ type: string, count: bigint }>>`
+        SELECT 
+          event_data->'metadata'->>'deviceType' as type,
+          COUNT(*) as count
+        FROM analytics_events
+        WHERE created_at >= ${startDate}
+        AND event_data->'metadata'->>'deviceType' IS NOT NULL
+        GROUP BY event_data->'metadata'->>'deviceType'
+        ORDER BY count DESC
+      `;
 
     const deviceTypes = deviceData.map(item => ({
-        type: getMetaString((item as { metadata: unknown }).metadata, 'deviceType') || 'Unknown',
-        count: (item as { _count: { id: number } })._count.id
+        type: item.type || 'Unknown',
+        count: Number(item.count)
     }));
 
       // ✅ REAL - Estatísticas de navegadores (via metadata)
-      const browserData = await (prisma.analyticsEvent.groupBy as unknown as typeof prisma.analyticsEvent.groupBy)({
-      by: ['metadata'],
-      where: {
-        ...whereClause,
-        metadata: {
-          path: ['browser']
-        }
-      },
-      _count: {
-        id: true
-      },
-      orderBy: {
-        _count: {
-          id: 'desc'
-        }
-      },
-      take: 5
-    });
+      const browserData = await prisma.$queryRaw<Array<{ browser: string, count: bigint }>>`
+        SELECT 
+          event_data->'metadata'->>'browser' as browser,
+          COUNT(*) as count
+        FROM analytics_events
+        WHERE created_at >= ${startDate}
+        AND event_data->'metadata'->>'browser' IS NOT NULL
+        GROUP BY event_data->'metadata'->>'browser'
+        ORDER BY count DESC
+        LIMIT 5
+      `;
 
     const browserStats = browserData.map(item => ({
-        browser: getMetaString((item as { metadata: unknown }).metadata, 'browser') || 'Unknown',
-        count: (item as { _count: { id: number } })._count.id
+        browser: item.browser || 'Unknown',
+        count: Number(item.count)
     }));
 
     // Montar resposta
+    const perf = performanceData[0] || { avg_duration: 0, max_duration: 0, min_duration: 0 };
+    
     const dashboardData = {
       overview: {
         totalEvents,
@@ -324,16 +311,16 @@ async function getHandler(req: NextRequest) {
       },
       eventsByCategory: processedEventsByCategory,
       eventsByAction: processedEventsByAction,
-      timelineData: (timelineData as unknown as Array<Record<string, unknown>>).map(item => ({
+      timelineData: timelineData.map(item => ({
         date: String(item.date),
         events: Number(item.events),
         errors: Number(item.errors),
         users: Number(item.users)
       })),
       performanceMetrics: {
-        avgLoadTime: Math.round(performanceData._avg.duration || 0),
-        avgRenderTime: Math.round((performanceData._avg.duration || 0) * 0.7),
-        avgProcessingTime: Math.round((performanceData._avg.duration || 0) * 1.2),
+        avgLoadTime: Math.round(Number(perf.avg_duration || 0)),
+        avgRenderTime: Math.round(Number(perf.avg_duration || 0) * 0.7),
+        avgProcessingTime: Math.round(Number(perf.avg_duration || 0) * 1.2),
         slowestEndpoints
       },
       userBehavior: {
@@ -361,3 +348,4 @@ async function getHandler(req: NextRequest) {
 
 // Aplicar middleware de performance
 export const GET = withAnalytics(getHandler);
+

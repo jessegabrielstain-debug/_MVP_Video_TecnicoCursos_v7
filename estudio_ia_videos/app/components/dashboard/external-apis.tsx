@@ -6,7 +6,14 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useExternalAPIs } from '@/hooks/use-external-apis'
+import { 
+  useExternalAPIs, 
+  type TTSProvider, 
+  type MediaProvider, 
+  type NRComplianceProvider,
+  type MediaItem,
+  type ComplianceResult
+} from '@/hooks/use-external-apis'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -70,7 +77,7 @@ export function ExternalAPIs() {
   const {
     ttsProviders,
     mediaProviders,
-    complianceServices,
+    complianceProviders: complianceServices,
     usageStats,
     isLoading,
     error,
@@ -80,20 +87,19 @@ export function ExternalAPIs() {
     checkCompliance,
     updateProviderConfig,
     testProvider,
-    getUsageHistory,
     exportUsageData
   } = useExternalAPIs()
 
   const [activeTab, setActiveTab] = useState('tts')
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false)
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false)
-  const [selectedProvider, setSelectedProvider] = useState<unknown>(null)
+  const [selectedProvider, setSelectedProvider] = useState<TTSProvider | MediaProvider | NRComplianceProvider | null>(null)
   const [testInput, setTestInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<any[]>([])
-  const [complianceResults, setComplianceResults] = useState<unknown>(null)
+  const [searchResults, setSearchResults] = useState<MediaItem[]>([])
+  const [complianceResults, setComplianceResults] = useState<ComplianceResult | null>(null)
 
-  const handleUpdateConfig = async (providerId: string, config: any) => {
+  const handleUpdateConfig = async (providerId: string, config: Record<string, unknown>) => {
     try {
       await updateProviderConfig(providerId, config)
       setIsConfigDialogOpen(false)
@@ -103,7 +109,7 @@ export function ExternalAPIs() {
     }
   }
 
-  const handleTestProvider = async (providerId: string, testData: any) => {
+  const handleTestProvider = async (providerId: string, testData: Record<string, unknown>) => {
     try {
       await testProvider(providerId, testData)
       setIsTestDialogOpen(false)
@@ -115,7 +121,13 @@ export function ExternalAPIs() {
 
   const handleGenerateTTS = async (provider: string, text: string, voice: string) => {
     try {
-      const result = await generateTTS({ provider, text, voice })
+      const result = await generateTTS({ 
+        provider, 
+        text, 
+        voice,
+        language: 'pt-BR',
+        settings: {} 
+      })
       toast.success('TTS generated successfully')
       return result
     } catch (error) {
@@ -125,9 +137,14 @@ export function ExternalAPIs() {
 
   const handleSearchMedia = async (provider: string, query: string, type: string) => {
     try {
-      const results = await searchMedia({ provider, query, type })
-      setSearchResults(results.results || [])
-      toast.success(`Found ${results.results?.length || 0} results`)
+      const results = await searchMedia({ 
+        provider, 
+        query, 
+        filters: { category: type },
+        pagination: { page: 1, per_page: 20 }
+      })
+      setSearchResults(results || [])
+      toast.success(`Found ${results?.length || 0} results`)
     } catch (error) {
       toast.error('Failed to search media')
     }
@@ -135,7 +152,7 @@ export function ExternalAPIs() {
 
   const handleDownloadMedia = async (provider: string, mediaId: string) => {
     try {
-      const result = await downloadMedia({ provider, media_id: mediaId })
+      const result = await downloadMedia(mediaId, provider)
       toast.success('Media downloaded successfully')
       return result
     } catch (error) {
@@ -143,9 +160,13 @@ export function ExternalAPIs() {
     }
   }
 
-  const handleCheckCompliance = async (content: any, checks: string[]) => {
+  const handleCheckCompliance = async (content: string | Record<string, unknown>, checks: string[]) => {
     try {
-      const result = await checkCompliance({ content, checks })
+      const result = await checkCompliance({ 
+        content_type: 'text', // Defaulting to text for now
+        content_text: typeof content === 'string' ? content : JSON.stringify(content),
+        checks 
+      })
       setComplianceResults(result)
       toast.success('Compliance check completed')
     } catch (error) {
@@ -160,7 +181,7 @@ export function ExternalAPIs() {
     }).format(amount)
   }
 
-  const getProviderStatus = (provider: any) => {
+  const getProviderStatus = (provider: TTSProvider | MediaProvider | NRComplianceProvider) => {
     if (!provider.api_key) return 'inactive'
     if (provider.last_error) return 'error'
     if (provider.rate_limit_exceeded) return 'warning'

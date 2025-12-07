@@ -1,6 +1,4 @@
 
-// @ts-nocheck
-
 /**
  * ⚙️ Estúdio IA de Vídeos - Sprint 8
  * Workflow Studio - Interface de Automação
@@ -16,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import {
-  Workflow,
+  Workflow as WorkflowIcon,
   Play,
   Square,
   RotateCcw,
@@ -42,13 +40,58 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+interface WorkflowStep {
+  id: string;
+  name: string;
+  type: string;
+  timeout: number;
+  optional?: boolean;
+}
+
+interface WorkflowMetadata {
+  priority: 'high' | 'medium' | 'low';
+  estimatedDuration: number;
+  tags: string[];
+}
+
+interface Workflow {
+  id: string;
+  name: string;
+  description: string;
+  steps: WorkflowStep[];
+  metadata: WorkflowMetadata;
+}
+
+interface ExecutionStep {
+  stepId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+}
+
+interface Execution {
+  id: string;
+  workflowId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  progress: number;
+  startTime: string;
+  endTime?: string;
+  currentStep?: string;
+  steps: ExecutionStep[];
+}
+
+interface Stats {
+  total: number;
+  successRate: number;
+  running: number;
+  averageDuration: number;
+}
+
 export default function WorkflowStudio() {
-  const [workflows, setWorkflows] = useState<any[]>([]);
-  const [executions, setExecutions] = useState<any[]>([]);
-  const [selectedWorkflow, setSelectedWorkflow] = useState<unknown>(null);
-  const [selectedExecution, setSelectedExecution] = useState<unknown>(null);
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [executions, setExecutions] = useState<Execution[]>([]);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
+  const [selectedExecution, setSelectedExecution] = useState<Execution | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState<unknown>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     loadWorkflows();
@@ -184,7 +227,7 @@ export default function WorkflowStudio() {
             <div>
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
-                  <Workflow className="h-6 w-6 text-white" />
+                  <WorkflowIcon className="h-6 w-6 text-white" />
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">Workflow Studio</h1>
@@ -415,7 +458,7 @@ export default function WorkflowStudio() {
               {executions.length === 0 && (
                 <Card className="py-12">
                   <div className="text-center">
-                    <Workflow className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <WorkflowIcon className="h-16 w-16 mx-auto mb-4 text-gray-300" />
                     <h3 className="text-lg font-semibold text-gray-600 mb-2">
                       Nenhuma Execução Encontrada
                     </h3>

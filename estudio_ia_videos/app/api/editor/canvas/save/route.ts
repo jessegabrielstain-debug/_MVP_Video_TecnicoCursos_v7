@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { workflowManager } from '../../unified/route'
+import { workflowManager } from '@/lib/workflow/unified-workflow-manager'
 import { z } from 'zod'
 
 // Schemas de validação
@@ -24,7 +24,7 @@ const CanvasDataSchema = z.object({
       y: z.number(),
       width: z.number(),
       height: z.number(),
-      properties: z.any(),
+      properties: z.record(z.unknown()),
       layer: z.number()
     }))
   }),
@@ -33,7 +33,7 @@ const CanvasDataSchema = z.object({
     elementId: z.string(),
     startTime: z.number(),
     duration: z.number(),
-    animations: z.array(z.any()).optional()
+    animations: z.array(z.record(z.unknown())).optional()
   }))
 })
 
@@ -45,7 +45,7 @@ interface CanvasElement {
   y: number
   width: number
   height: number
-  properties: any
+  properties: Record<string, unknown>
   layer: number
 }
 
@@ -54,7 +54,7 @@ interface TimelineItem {
   elementId: string
   startTime: number
   duration: number
-  animations?: any[]
+  animations?: Record<string, unknown>[]
 }
 
 interface CanvasData {
@@ -64,8 +64,24 @@ interface CanvasData {
   elements: CanvasElement[]
 }
 
+interface SaveCanvasResult {
+  canvas: CanvasData
+  timeline: TimelineItem[]
+  totalDuration: number
+}
+
+interface VideoConfig {
+  resolution: {
+    width: number
+    height: number
+  }
+  background: string
+  scenes: Record<string, unknown>[]
+  totalDuration: number
+}
+
 class CanvasEditor {
-  async saveCanvasData(projectId: string, canvasData: CanvasData, timeline: TimelineItem[]): Promise<any> {
+  async saveCanvasData(projectId: string, canvasData: CanvasData, timeline: TimelineItem[]): Promise<SaveCanvasResult> {
     try {
       // Validar elementos do canvas
       const validatedElements = canvasData.elements.map(element => {
@@ -101,10 +117,14 @@ class CanvasEditor {
       const totalDuration = Math.max(...timeline.map(item => item.startTime + item.duration), 0)
 
       // Salvar no banco
+      const project = await prisma.project.findUnique({ where: { id: projectId } });
+      const currentMetadata = (project?.metadata as any) || {};
+
       await prisma.project.update({
         where: { id: projectId },
         data: {
           metadata: {
+            ...currentMetadata,
             canvas: {
               ...canvasData,
               elements: validatedElements
@@ -128,7 +148,7 @@ class CanvasEditor {
     }
   }
 
-  async generateVideoConfig(canvasData: CanvasData, timeline: TimelineItem[]): Promise<any> {
+  async generateVideoConfig(canvasData: CanvasData, timeline: TimelineItem[]): Promise<VideoConfig> {
     // Converter dados do canvas para configuração de vídeo
     const scenes = timeline.map(item => {
       const element = canvasData.elements.find(el => el.id === item.elementId)
@@ -144,7 +164,7 @@ class CanvasEditor {
         properties: element.properties,
         animations: item.animations || []
       }
-    }).filter(Boolean)
+    }).filter(Boolean) as Record<string, unknown>[]
 
     return {
       resolution: {
@@ -167,14 +187,14 @@ class CanvasEditor {
         throw new Error('Project not found')
       }
 
-      const currentCanvas = project.metadata?.canvas || { elements: [] }
+      const currentCanvas = (project.metadata as any)?.canvas || { elements: [] }
       const updatedElements = [...currentCanvas.elements, element]
 
       await prisma.project.update({
         where: { id: projectId },
         data: {
           metadata: {
-            ...project.metadata,
+            ...(project.metadata as any || {}),
             canvas: {
               ...currentCanvas,
               elements: updatedElements
@@ -319,9 +339,9 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      canvas: project.metadata?.canvas || null,
-      timeline: project.metadata?.timeline || [],
-      totalDuration: project.metadata?.totalDuration || 0
+      canvas: (project.metadata as any)?.canvas || null,
+      timeline: (project.metadata as any)?.timeline || [],
+      totalDuration: (project.metadata as any)?.totalDuration || 0
     })
 
   } catch (error) {

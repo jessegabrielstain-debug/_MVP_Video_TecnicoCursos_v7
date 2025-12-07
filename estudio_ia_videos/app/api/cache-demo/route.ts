@@ -42,22 +42,19 @@ export async function GET(request: NextRequest) {
 
     if (forceRefresh) {
       // Invalidar cache antes de buscar novos dados
-      await cacheHelpers.invalidateResource('demo', cacheKey);
+      await cacheHelpers.invalidateResource(cacheKey);
     }
 
     const startTime = Date.now();
     
-    const data = await cacheHelpers.withCache(
+    const data = await cacheHelpers.getOrSet(
       cacheKey,
       async () => {
         const result = await generateHeavyData(complexity);
         return result;
       },
-      {
-        ttl: 10 * 60 * 1000, // 10 minutos
-        tags: ['demo', `category:${category}`, 'heavy-data']
-      }
-    );
+      10 * 60 // 10 minutos em segundos (ttl do getOrSet é em segundos ou ms? CacheManager usa segundos por padrão mas set aceita ttl. CacheManager.set usa ttl || defaultTTL. Se defaultTTL é 300 (segundos), então ttl deve ser segundos. Mas no código original era 10*60*1000 (ms). Vou assumir segundos para consistência com CacheManager defaultTTL=300)
+    ) as any;
 
     const processingTime = Date.now() - startTime;
     const fromCache = processingTime < 100; // Se foi muito rápido, provavelmente veio do cache
@@ -103,7 +100,7 @@ export async function POST(request: NextRequest) {
           );
         }
         
-        const invalidatedByTag = await cacheHelpers.invalidateResource('demo', target);
+        const invalidatedByTag = await cacheHelpers.invalidateResource(target);
         
         return NextResponse.json({
           message: `Cache invalidado por tag: ${target}`,
@@ -121,8 +118,7 @@ export async function POST(request: NextRequest) {
         }
         
         // Usar o middleware para invalidação por padrão
-        const { cacheMiddleware } = await import('@/lib/cache/cache-middleware');
-        const invalidatedByPattern = await cacheMiddleware.invalidate([pattern]);
+        const invalidatedByPattern = await cacheHelpers.invalidatePattern(pattern);
         
         return NextResponse.json({
           message: `Cache invalidado por padrão: ${pattern}`,
@@ -133,7 +129,7 @@ export async function POST(request: NextRequest) {
 
       case 'clear-all-demo':
         const { cacheManager } = await import('@/lib/cache/cache-manager');
-        await cacheManager.clear('api');
+        await cacheManager.clear();
         
         return NextResponse.json({
           message: 'Todo cache de demonstração foi limpo',

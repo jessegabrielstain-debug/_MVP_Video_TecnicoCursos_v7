@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getBrowserClient } from '../../supabase/browser';
 import { XMLParser } from 'fast-xml-parser';
 
 export interface ImageExtractionOptions {
@@ -94,7 +94,7 @@ export class PPTXImageParser {
 
               // Gerar thumbnail se solicitado
               if (options.generateThumbnails) {
-                const thumbnailBuffer = await this.generateThumbnail(buffer, 300, 225);
+                const thumbnailBuffer = await PPTXImageParser.generateThumbnail(buffer, 300, 225);
                 if (thumbnailBuffer) {
                   const thumbnailUrl = await this.uploadToSupabase(
                     thumbnailBuffer,
@@ -152,7 +152,7 @@ export class PPTXImageParser {
     filename: string,
     mimeType: string
   ): Promise<string> {
-    const supabase = createClientComponentClient();
+    const supabase = getBrowserClient();
     
     const filePath = `${projectId}/${Date.now()}-${filename}`;
     
@@ -173,6 +173,66 @@ export class PPTXImageParser {
       .getPublicUrl(data.path);
 
     return urlData.publicUrl;
+  }
+
+  /**
+   * Método auxiliar para extrair imagens de um slide específico
+   * (interface compatível com o processador principal)
+   */
+  async extractImages(zip: JSZip, slideNumber: number): Promise<ExtractedImage[]> {
+    try {
+      // Ler arquivo de relacionamentos do slide
+      const relsPath = `ppt/slides/_rels/slide${slideNumber}.xml.rels`;
+      const relsFile = zip.file(relsPath);
+      
+      if (!relsFile) {
+        return [];
+      }
+
+      const relsContent = await relsFile.async('text');
+      const parsed = this.xmlParser.parse(relsContent);
+      
+      if (!parsed.Relationships?.Relationship) {
+        return [];
+      }
+
+      const relationships = Array.isArray(parsed.Relationships.Relationship)
+        ? parsed.Relationships.Relationship
+        : [parsed.Relationships.Relationship];
+
+      const images: ExtractedImage[] = [];
+
+      for (const rel of relationships) {
+        const type = rel['@_Type'];
+        const target = rel['@_Target'];
+
+        // Verificar se é uma imagem
+        if (type && type.includes('image') && target) {
+          const imagePath = target.startsWith('../')
+            ? `ppt/${target.substring(3)}`
+            : `ppt/slides/${target}`;
+
+          const imageFile = zip.file(imagePath);
+          if (imageFile) {
+            const buffer = await imageFile.async('nodebuffer');
+            const filename = imagePath.split('/').pop() || `image-${images.length}`;
+            
+            images.push({
+              id: rel['@_Id'] || `img-${images.length}`,
+              filename,
+              buffer,
+              mimeType: this.getMimeType(filename),
+              url: `/temp/images/${filename}`, // URL temporária
+            });
+          }
+        }
+      }
+
+      return images;
+    } catch (error) {
+      console.warn(`Erro ao extrair imagens do slide ${slideNumber}:`, error);
+      return [];
+    }
   }
 
   static async generateThumbnail(buffer: Buffer, width: number, height: number): Promise<Buffer | null> {

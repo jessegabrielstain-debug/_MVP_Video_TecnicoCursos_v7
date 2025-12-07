@@ -31,7 +31,11 @@ export const getCourseById = async (id: string): Promise<CourseWithVideos | null
     .single();
   
   if (error) throw error;
-  return data;
+  if (!data) {
+    return null;
+  }
+
+  return data as unknown as CourseWithVideos;
 };
 
 // Funções para gerenciar vídeos

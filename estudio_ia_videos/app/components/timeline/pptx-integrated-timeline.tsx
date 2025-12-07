@@ -403,7 +403,7 @@ export default function PPTXIntegratedTimeline({
 
     return (
       <motion.div
-        ref={drag}
+        ref={drag as unknown as React.LegacyRef<HTMLDivElement>}
         className={`absolute h-8 bg-opacity-80 rounded border-2 cursor-move overflow-hidden ${
           selectedClips.includes(clip.id) ? 'border-white' : 'border-transparent'
         } ${isDragging ? 'opacity-50' : ''}`}
@@ -485,7 +485,7 @@ export default function PPTXIntegratedTimeline({
           <span className="text-sm font-medium truncate">{track.name}</span>
         </div>
         
-        <div ref={drop} className="relative h-12 bg-background/50">
+        <div ref={drop as unknown as React.LegacyRef<HTMLDivElement>} className="relative h-12 bg-background/50">
           {track.clips.map(clip => (
             <TimelineClipComponent key={clip.id} clip={clip} track={track} />
           ))}

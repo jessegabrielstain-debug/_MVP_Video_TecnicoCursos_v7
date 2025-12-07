@@ -7,7 +7,7 @@
 'use client'
 
 import React, { forwardRef, useImperativeHandle, useRef, useState, useCallback, useEffect } from 'react'
-import { UnifiedSlide, UnifiedElement } from '@/lib/types-unified'
+import { UnifiedSlide, UnifiedElement } from '@/lib/types-unified-v2'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
@@ -265,11 +265,11 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
             <div
               style={{
                 ...baseStyle,
-                fontSize: ((element.properties.fontSize || 16) * zoom) / 100,
-                fontFamily: element.properties.fontFamily,
-                color: element.properties.color,
-                fontWeight: element.properties.fontWeight,
-                textAlign: element.properties.textAlign,
+                fontSize: (((element.properties.fontSize as number) || 16) * zoom) / 100,
+                fontFamily: element.properties.fontFamily as string,
+                color: element.properties.color as string,
+                fontWeight: element.properties.fontWeight as string | number,
+                textAlign: element.properties.textAlign as any,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: element.properties.textAlign === 'center' ? 'center' : 'flex-start',
@@ -279,7 +279,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
               }}
               onMouseDown={(e) => handleMouseDown(e, element.id)}
             >
-              {element.properties.text}
+              {element.properties.text as string}
             </div>
           )
           break
@@ -290,11 +290,11 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
               style={{
                 ...baseStyle,
                 backgroundImage: `url(${element.properties.src})`,
-                backgroundSize: element.properties.fit || 'cover',
+                backgroundSize: (element.properties.fit as string) || 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
                 border: '2px solid transparent',
-                borderRadius: element.properties.borderRadius || 0
+                borderRadius: (element.properties.borderRadius as number) || 0
               }}
               onMouseDown={(e) => handleMouseDown(e, element.id)}
             />
@@ -327,10 +327,10 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
         case 'shape':
           const shapeStyle = {
             ...baseStyle,
-            backgroundColor: element.properties.fill,
-            border: `${element.properties.strokeWidth || 0}px solid ${element.properties.stroke || 'transparent'}`,
-            borderRadius: element.properties.borderRadius || 0,
-            opacity: element.properties.opacity || 1
+            backgroundColor: element.properties.fill as string,
+            border: `${(element.properties.strokeWidth as number) || 0}px solid ${(element.properties.stroke as string) || 'transparent'}`,
+            borderRadius: (element.properties.borderRadius as number) || 0,
+            opacity: (element.properties.opacity as number) || 1
           }
 
           content = (
@@ -468,8 +468,8 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
           <div
             className="absolute inset-0"
             style={{
-              backgroundColor: slide.background?.color || '#ffffff',
-              backgroundImage: slide.background?.image ? `url(${slide.background.image})` : undefined,
+              backgroundColor: (slide['background'] as any)?.color || '#ffffff',
+              backgroundImage: (slide['background'] as any)?.image ? `url(${(slide['background'] as any).image})` : undefined,
               backgroundSize: 'cover',
               backgroundPosition: 'center'
             }}

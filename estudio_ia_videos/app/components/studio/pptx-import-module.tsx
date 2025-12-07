@@ -56,7 +56,7 @@ export default function PPTXImportModule({
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null)
   const [projectName, setProjectName] = useState('')
   const [projectDescription, setProjectDescription] = useState('')
-  const [projectType, setProjectType] = useState<UnifiedProject['type']>('pptx')
+  const [projectType, setProjectType] = useState<UnifiedProject['type']>('presentation')
   const [extractedSlides, setExtractedSlides] = useState<ProjectSlide[]>([])
   const [importSettings, setImportSettings] = useState({
     extractImages: true,
@@ -192,9 +192,25 @@ export default function PPTXImportModule({
         if (onProjectUpdate) {
           onProjectUpdate({
             slides: projectSlides,
-            totalSlides: projectSlides.length,
-            duration: projectSlides.reduce((total, slide) => total + slide.duration, 0),
-            // Add TTS and Avatar data
+            duration: projectSlides.reduce((total, slide) => total + (slide.duration || 5), 0),
+            metadata: {
+              ttsJobs: ttsResult?.ttsJobs || [],
+              avatarJobs: avatarResult?.avatarJobs || [],
+              autoTTSEnabled: importSettings.autoGenerateTTS,
+              autoAvatarEnabled: true,
+              processingStatus: {
+                ttsComplete: !!ttsResult,
+                avatarComplete: !!avatarResult,
+                readyForRender: nextSteps?.readyForRender || false
+              }
+            }
+          })
+        }
+      } else if (project && onProjectUpdate) {
+        onProjectUpdate({
+          slides: projectSlides,
+          duration: projectSlides.reduce((total, slide) => total + (slide.duration || 5), 0),
+          metadata: {
             ttsJobs: ttsResult?.ttsJobs || [],
             avatarJobs: avatarResult?.avatarJobs || [],
             autoTTSEnabled: importSettings.autoGenerateTTS,
@@ -204,22 +220,6 @@ export default function PPTXImportModule({
               avatarComplete: !!avatarResult,
               readyForRender: nextSteps?.readyForRender || false
             }
-          })
-        }
-      } else if (project && onProjectUpdate) {
-        onProjectUpdate({
-          slides: projectSlides,
-          totalSlides: projectSlides.length,
-          duration: projectSlides.reduce((total, slide) => total + slide.duration, 0),
-          // Add TTS and Avatar data
-          ttsJobs: ttsResult?.ttsJobs || [],
-          avatarJobs: avatarResult?.avatarJobs || [],
-          autoTTSEnabled: importSettings.autoGenerateTTS,
-          autoAvatarEnabled: true,
-          processingStatus: {
-            ttsComplete: !!ttsResult,
-            avatarComplete: !!avatarResult,
-            readyForRender: nextSteps?.readyForRender || false
           }
         })
       }
@@ -375,7 +375,7 @@ export default function PPTXImportModule({
                         <span>TTS</span>
                       </div>
                     )}
-                    {slide.avatarConfig && (
+                    {!!slide.avatarConfig && (
                       <div className="flex items-center space-x-1 text-purple-600">
                         <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
                         <span>Avatar</span>
@@ -431,10 +431,9 @@ export default function PPTXImportModule({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pptx">Apresentação PPTX</SelectItem>
-                  <SelectItem value="template-nr">Template NR</SelectItem>
-                  <SelectItem value="talking-photo">Talking Photo</SelectItem>
-                  <SelectItem value="custom">Personalizado</SelectItem>
+                  <SelectItem value="presentation">Apresentação</SelectItem>
+                  <SelectItem value="video">Vídeo</SelectItem>
+                  <SelectItem value="interactive">Interativo</SelectItem>
                 </SelectContent>
               </Select>
             </div>

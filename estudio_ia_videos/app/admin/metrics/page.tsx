@@ -1,53 +1,214 @@
-/**
- * Admin Metrics Page
- */
-
+import { getDashboardData } from '@/lib/monitoring/dashboard-data';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { RefreshButton } from './refresh-button';
+import { Activity, Server, Clock, CheckCircle, Database } from 'lucide-react';
 import { Metadata } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Métricas - Admin',
   description: 'Métricas detalhadas do sistema',
 };
 
-export default function MetricsPage() {
+export default async function MetricsPage() {
+  const data = await getDashboardData();
+  const { render, system, timestamp } = data;
+
+  // Helper to format duration
+  const formatDuration = (ms: number) => {
+    if (ms < 1000) return `${ms.toFixed(0)}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
+
+  // Helper to format bytes
+  const formatBytes = (bytes: number) => {
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(0)} MB`;
+  };
+
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Métricas do Sistema</h1>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Performance</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span>CPU Usage</span>
-              <span className="font-bold">45%</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Memory Usage</span>
-              <span className="font-bold">67%</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Disk Usage</span>
-              <span className="font-bold">23%</span>
-            </div>
-          </div>
+    <div className="p-8 space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard Operacional</h1>
+          <p className="text-muted-foreground">
+            Métricas em tempo real do sistema de renderização e infraestrutura.
+          </p>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">API Metrics</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span>Requests/min</span>
-              <span className="font-bold">1,234</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Avg Response Time</span>
-              <span className="font-bold">245ms</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Error Rate</span>
-              <span className="font-bold text-red-600">0.5%</span>
-            </div>
-          </div>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-muted-foreground">
+            Atualizado: {new Date(timestamp).toLocaleTimeString()}
+          </span>
+          <RefreshButton />
         </div>
+      </div>
+
+      {/* Render Pipeline Overview */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Jobs (24h)</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{render.basic.total_jobs}</div>
+            <p className="text-xs text-muted-foreground">
+              {render.basic.completed_jobs} concluídos
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Taxa de Sucesso</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {(render.basic.success_rate * 100).toFixed(1)}%
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {render.basic.failed_jobs} falhas registradas
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Tempo Médio Render</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatDuration(render.performance.avg_render_time_ms)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              P95: {formatDuration(render.performance.p95_render_time_ms)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Fila Atual</CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{render.queue.pending}</div>
+            <p className="text-xs text-muted-foreground">
+              {render.queue.processing} processando agora
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        {/* Error Analysis */}
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Análise de Erros</CardTitle>
+            <CardDescription>
+              Distribuição de erros por categoria nas últimas 24 horas.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {Object.entries(render.errors).length === 0 ? (
+                <div className="flex items-center justify-center h-32 text-muted-foreground">
+                  Nenhum erro registrado no período.
+                </div>
+              ) : (
+                Object.entries(render.errors)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([category, count]) => (
+                    <div key={category} className="flex items-center">
+                      <div className="w-full space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium capitalize">
+                            {category}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {count} ({((count / render.basic.failed_jobs) * 100).toFixed(0)}%)
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-secondary">
+                          <div
+                            className="h-2 rounded-full bg-destructive"
+                            style={{
+                              width: `${(count / render.basic.failed_jobs) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* System Health */}
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Saúde do Sistema</CardTitle>
+            <CardDescription>
+              Métricas de infraestrutura e runtime.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-8">
+              {system.metrics.filter(m => m.name === 'process_memory_usage_bytes').map((metric, i) => (
+                <div key={i} className="flex items-center">
+                  <Server className="mr-4 h-4 w-4 text-muted-foreground" />
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      Memória (Heap)
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Uso atual do processo Node.js
+                    </p>
+                  </div>
+                  <div className="font-bold">
+                    {formatBytes(metric.value)}
+                  </div>
+                </div>
+              ))}
+
+              {system.metrics.filter(m => m.name === 'process_uptime_seconds').map((metric, i) => (
+                <div key={i} className="flex items-center">
+                  <Clock className="mr-4 h-4 w-4 text-muted-foreground" />
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      Uptime
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Tempo de atividade do serviço
+                    </p>
+                  </div>
+                  <div className="font-bold">
+                    {formatDuration(metric.value * 1000)}
+                  </div>
+                </div>
+              ))}
+              
+              <div className="flex items-center">
+                 <Activity className="mr-4 h-4 w-4 text-muted-foreground" />
+                 <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      Status da API
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Healthcheck interno
+                    </p>
+                 </div>
+                 <div className="font-bold text-green-500">
+                    ONLINE
+                 </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

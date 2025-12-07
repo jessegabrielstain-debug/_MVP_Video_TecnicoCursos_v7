@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { mediaPreprocessor, PreprocessingOptions } from '@/lib/media-preprocessor-real';
+import { mediaPreprocessor, PreprocessOptions } from '@/lib/media-preprocessor-real';
 import * as fs from 'fs/promises';
 
 export async function POST(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { imagePath, options } = body as {
       imagePath: string;
-      options?: PreprocessingOptions;
+      options?: PreprocessOptions;
     };
 
     if (!imagePath) {
@@ -32,8 +32,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Ler arquivo
+    const buffer = await fs.readFile(imagePath);
+
     // Processar imagem
-    const result = await mediaPreprocessor.processImage(imagePath, options);
+    const result = await mediaPreprocessor.preprocessImage(buffer, options || {});
 
     return NextResponse.json({
       success: true,
@@ -70,3 +73,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

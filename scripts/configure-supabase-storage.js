@@ -6,8 +6,12 @@
  * Data: 13/10/2025
  */
 
-const fs = require('fs');
-require('dotenv').config();
+import fs from 'fs';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
+
+dotenv.config();
 
 // Configurações
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -155,9 +159,10 @@ async function configureStorage() {
     if (typeof fetch === 'undefined') {
         log('📦 Instalando node-fetch...', 'yellow');
         try {
-            const { execSync } = require('child_process');
             execSync('npm install node-fetch', { stdio: 'inherit' });
-            global.fetch = require('node-fetch');
+            // Dynamic import for node-fetch in ESM
+            const nodeFetch = await import('node-fetch');
+            global.fetch = nodeFetch.default;
             log('✅ node-fetch instalado', 'green');
         } catch (error) {
             log('❌ Erro ao instalar node-fetch. Use Node.js 18+ ou instale manualmente.', 'red');
@@ -217,11 +222,11 @@ async function configureStorage() {
 }
 
 // Executar se chamado diretamente
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
     configureStorage().catch(error => {
         log(`❌ Erro fatal: ${error.message}`, 'red');
         process.exit(1);
     });
 }
 
-module.exports = { configureStorage };
+export { configureStorage };

@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
-import { createBrowserSupabaseClient } from '@/lib/services';
+import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client';
 
 export interface AnalyticsEvent {
   category: string;

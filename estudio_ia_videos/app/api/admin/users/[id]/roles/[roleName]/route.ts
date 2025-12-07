@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/services'
-import { logger } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 const logContext = { component: 'AdminRemoveUserRoleAPI' }
 
@@ -23,7 +23,7 @@ export async function DELETE(
   try {
     contextLogger.info('Removing role from user')
 
-    const supabase = createServerClient()
+    const supabase = getSupabaseForRequest(req)
 
     // Buscar role ID
     const { data: roleData, error: roleError } = await supabase
@@ -48,7 +48,7 @@ export async function DELETE(
       .eq('role_id', roleData.id)
 
     if (deleteError) {
-      contextLogger.error('Failed to remove role', { error: deleteError })
+      contextLogger.error('Failed to remove role', undefined, { error: deleteError })
       return NextResponse.json(
         { error: 'Falha ao remover role', details: deleteError.message },
         { status: 500 }
@@ -63,7 +63,7 @@ export async function DELETE(
       role: roleData.name
     })
   } catch (error) {
-    contextLogger.error('Unexpected error in DELETE /api/admin/users/[id]/roles/[roleName]', { error })
+    contextLogger.error('Unexpected error in DELETE /api/admin/users/[id]/roles/[roleName]', error as Error)
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

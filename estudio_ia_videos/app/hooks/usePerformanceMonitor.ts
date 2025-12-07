@@ -486,8 +486,8 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
     
     if (periodMetrics.length > 0) {
       const metricKeys = Object.keys(periodMetrics[0]).filter(
-        key => typeof periodMetrics[0][key as keyof PerformanceMetrics] === 'number'
-      ) as Array<keyof PerformanceMetrics>;
+        key => key !== 'timestamp' && typeof periodMetrics[0][key as keyof PerformanceMetrics] === 'number'
+      ) as Array<Exclude<keyof PerformanceMetrics, 'timestamp'>>;
       
       metricKeys.forEach(key => {
         const values = periodMetrics.map(m => m[key] as number);

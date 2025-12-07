@@ -10,8 +10,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import Image from 'next/image'
 
 interface LogoUploaderProps {
-  currentLogo?: string | null
-  onLogoChange: (logoUrl: string | null) => void
+  currentLogo?: string | null | undefined
+  onLogoChange: (logoUrl: string | undefined) => void
   type: 'logo' | 'favicon'
   title: string
   maxSize?: number
@@ -85,7 +85,7 @@ export default function LogoUploader({
   })
 
   const removeLogo = () => {
-    onLogoChange(null)
+    onLogoChange(undefined)
     setError(null)
   }
 

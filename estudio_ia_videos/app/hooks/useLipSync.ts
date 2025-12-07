@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { LipSyncFrame, avatarEngine } from '@/lib/avatar-engine';
+import { LipSyncFrame, AvatarClientHelper } from '@/lib/avatar-client-logic';
 
 export interface LipSyncState {
   isPlaying: boolean;
@@ -20,9 +20,10 @@ export interface UseLipSyncOptions {
   audioUrl: string;
   onComplete?: () => void;
   onError?: (error: Error) => void;
+  externalAudio?: HTMLAudioElement | null;
 }
 
-export function useLipSync({ text, audioUrl, onComplete, onError }: UseLipSyncOptions) {
+export function useLipSync({ text, audioUrl, onComplete, onError, externalAudio }: UseLipSyncOptions) {
   const [state, setState] = useState<LipSyncState>({
     isPlaying: false,
     currentTime: 0,
@@ -42,40 +43,101 @@ export function useLipSync({ text, audioUrl, onComplete, onError }: UseLipSyncOp
   useEffect(() => {
     if (!audioUrl || !text) return;
 
-    const audio = new Audio(audioUrl);
+    let audio: HTMLAudioElement;
+    
+    if (externalAudio) {
+      audio = externalAudio;
+      // Se já estiver carregado, configura duração
+      if (audio.duration) {
+        setState(prev => ({ ...prev, duration: audio.duration * 1000 }));
+      }
+    } else {
+      audio = new Audio(audioUrl);
+    }
+    
     audioRef.current = audio;
 
-    // Quando o áudio carregar, gera os frames
-    audio.addEventListener('loadedmetadata', () => {
+    const handleLoadedMetadata = async () => {
       const duration = audio.duration * 1000; // Converter para ms
       setState(prev => ({ ...prev, duration }));
 
       // Gera frames de sincronização labial
-      const frames = avatarEngine.generateLipSyncFrames(text, audioUrl, audio.duration);
-      framesRef.current = frames;
-    });
+      try {
+        // Em produção, isso deveria chamar uma API Route:
+        // const res = await fetch('/api/lipsync', { body: JSON.stringify({ text, audioUrl }) });
+        // const frames = await res.json();
+        
+        // Por enquanto, usando fallback cliente para evitar erros de build com 'fs'
+        const frames = AvatarClientHelper.generateFallbackFrames(audio.duration);
+        framesRef.current = frames;
+      } catch (error) {
+        console.error('Error generating lip sync frames:', error);
+        onError?.(error as Error);
+      }
+    };
 
-    audio.addEventListener('ended', () => {
+    const handleEnded = () => {
       setState(prev => ({ ...prev, isPlaying: false, progress: 100 }));
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
       onComplete?.();
-    });
+    };
 
-    audio.addEventListener('error', (e) => {
+    const handleError = (e: Event) => {
       const error = new Error(`Erro ao carregar áudio: ${e.type}`);
       onError?.(error);
-    });
+    };
+    
+    // Listeners para sincronizar estado se o áudio for externo
+    const handlePlay = () => {
+       // Inicia loop de animação se não formos nós que chamamos play()
+       if (!state.isPlaying) {
+         startTimeRef.current = performance.now() - (audio.currentTime * 1000);
+         setState(prev => ({ ...prev, isPlaying: true }));
+         animationFrameRef.current = requestAnimationFrame(updateFrame);
+       }
+    };
 
-    return () => {
-      audio.pause();
-      audio.remove();
+    const handlePause = () => {
+      setState(prev => ({ ...prev, isPlaying: false }));
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [audioUrl, text, onComplete, onError]);
+
+    // Adiciona listeners
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+    
+    if (externalAudio) {
+      audio.addEventListener('play', handlePlay);
+      audio.addEventListener('pause', handlePause);
+      // Se já tiver metadados carregados (ex: re-mount), dispara handler manualmente
+      if (audio.readyState >= 1) {
+        handleLoadedMetadata();
+      }
+    }
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+      
+      if (externalAudio) {
+        audio.removeEventListener('play', handlePlay);
+        audio.removeEventListener('pause', handlePause);
+      } else {
+        audio.pause();
+        audio.remove();
+      }
+      
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [audioUrl, text, onComplete, onError, externalAudio]);
 
   /**
    * Loop de atualização de frame
@@ -90,7 +152,7 @@ export function useLipSync({ text, audioUrl, onComplete, onError }: UseLipSyncOp
     const audioTime = audio.currentTime * 1000;
 
     // Busca o frame correspondente ao tempo atual
-    const frame = avatarEngine.getLipSyncFrameAtTime(framesRef.current, audioTime);
+    const frame = AvatarClientHelper.getLipSyncFrameAtTime(framesRef.current, audioTime);
 
     if (frame) {
       setState(prev => ({

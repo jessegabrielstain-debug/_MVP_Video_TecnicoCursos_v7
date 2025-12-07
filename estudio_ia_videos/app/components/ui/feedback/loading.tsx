@@ -42,8 +42,8 @@ export interface LoadingProps
   fullScreen?: boolean;
 }
 
-const Dot = ({ className }: { className?: string }) => (
-  <div className={cn('h-2 w-2 rounded-full bg-current animate-bounce', className)} />
+const Dot = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
+  <div className={cn('h-2 w-2 rounded-full bg-current animate-bounce', className)} style={style} />
 );
 
 export function Loading({

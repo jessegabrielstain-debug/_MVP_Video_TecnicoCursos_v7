@@ -1,6 +1,7 @@
+// TODO: Fix ~lib alias and imports
 import { NextResponse } from 'next/server'
 import { getSupabaseForRequest, logger } from '@/lib/services'
-import { getMetricsSnapshot } from '~lib/utils/metrics'
+import { getMetricsSnapshot } from '@/lib/utils/metrics'
 
 export async function GET(req: Request) {
   try {
@@ -11,7 +12,7 @@ export async function GET(req: Request) {
     }
 
     // A função is_admin() deve ser definida no seu banco de dados Supabase.
-    const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin');
+    const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin' as any);
     
     if (isAdminError || !isAdminData) {
         return NextResponse.json({ code: 'FORBIDDEN', message: 'Acesso negado. Recurso disponível apenas para administradores.' }, { status: 403 });
@@ -32,3 +33,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ code: 'UNEXPECTED', message: 'Erro ao obter métricas', details: (err as Error).message }, { status: 500 })
   }
 }
+

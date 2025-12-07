@@ -1,3 +1,4 @@
+// TODO: Script - fix types
 
 /**
  * 🌱 Database Seed Script - Inicialização do banco de dados
@@ -14,23 +15,26 @@ async function main() {
     // Create default system settings
     console.log('📄 Creating default system settings...')
     
-    const existingSettings = await prisma.systemSettings.findFirst({
-      where: { isActive: true }
+    const existingSettings = await prisma.systemSettings.findUnique({
+      where: { key: 'theme_config' }
     })
 
     if (!existingSettings) {
       await prisma.systemSettings.create({
         data: {
-          primaryColor: "#0066cc",
-          secondaryColor: "#f0f0f0",
-          backgroundColor: "#ffffff",
-          textColor: "#333333",
-          companyName: "Estúdio IA de Vídeos",
-          subtitle: "Transforme apresentações em vídeos inteligentes",
-          fontFamily: "Inter",
-          documentTitle: "Estúdio IA de Vídeos",
-          version: "1.0",
-          isActive: true
+          key: 'theme_config',
+          value: {
+            primaryColor: "#0066cc",
+            secondaryColor: "#f0f0f0",
+            backgroundColor: "#ffffff",
+            textColor: "#333333",
+            companyName: "Estúdio IA de Vídeos",
+            subtitle: "Transforme apresentações em vídeos inteligentes",
+            fontFamily: "Inter",
+            documentTitle: "Estúdio IA de Vídeos",
+            version: "1.0",
+            isActive: true
+          }
         }
       })
       console.log('✅ Default system settings created')

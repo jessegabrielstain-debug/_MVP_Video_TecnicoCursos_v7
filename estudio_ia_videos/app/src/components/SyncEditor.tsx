@@ -1,3 +1,4 @@
+// TODO: Fixar audio element ref types
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -17,7 +18,7 @@ import {
   SkipForward,
   Volume2,
   VolumeX,
-  Waveform,
+  Activity as Waveform,
   Eye,
   Settings,
   Download,
@@ -306,6 +307,13 @@ export default function SyncEditor() {
       audio.removeEventListener('ended', handleEnded);
     };
   }, [audioData]);
+
+  // Atualizar volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
 
   // Renderizar timeline
   const renderTimeline = () => {
@@ -745,7 +753,6 @@ export default function SyncEditor() {
         <audio
           ref={audioRef}
           src={audioData.url}
-          volume={isMuted ? 0 : volume}
           onLoadedMetadata={() => {
             if (audioRef.current) {
               setCurrentTime(0);

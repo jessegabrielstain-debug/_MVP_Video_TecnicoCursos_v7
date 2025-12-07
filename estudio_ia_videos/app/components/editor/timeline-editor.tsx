@@ -30,7 +30,7 @@ import {
   Lock,
   Unlock
 } from 'lucide-react'
-import { UnifiedSlide } from '@/lib/types-unified'
+import { UnifiedSlide } from '@/lib/types-unified-v2'
 
 interface TimelineTrack {
   id: string
@@ -96,10 +96,10 @@ export const TimelineEditor = forwardRef<TimelineEditorRef, TimelineEditorProps>
           locked: false,
           items: scenes.map((scene, index) => ({
             id: scene.id,
-            name: scene.title,
-            startTime: index > 0 ? scenes.slice(0, index).reduce((acc, s) => acc + s.duration, 0) : 0,
-            duration: scene.duration,
-            endTime: scenes.slice(0, index + 1).reduce((acc, s) => acc + s.duration, 0),
+            name: scene.title || `Cena ${index + 1}`,
+            startTime: index > 0 ? scenes.slice(0, index).reduce((acc, s) => acc + (s.duration || 0), 0) : 0,
+            duration: scene.duration || 0,
+            endTime: scenes.slice(0, index + 1).reduce((acc, s) => acc + (s.duration || 0), 0),
             thumbnail: `/api/thumbnail/${scene.id}.jpg`,
             color: '#3b82f6',
             type: 'scene'

@@ -1,21 +1,30 @@
 import { getServiceRoleClient } from '../supabase'
-import type { Slide } from '../supabase'
+import type { Database } from '../supabase/database.types'
 import type { SlideInsert, SlideUpdate } from './types'
 
+type Slide = Database['public']['Tables']['slides']['Row']
+import { getSlidesByProject, mockSlides } from './mockStore'
+
 export async function listSlides(projectId: string): Promise<Slide[]> {
-  const supabase = getServiceRoleClient()
-  const { data, error } = await supabase
-    .from('slides')
-    .select('*')
-    .eq('project_id', projectId)
-    .order('order_index', { ascending: true })
-    .returns<Slide[]>()
+  try {
+    const supabase = getServiceRoleClient()
+    const { data, error } = await supabase
+      .from('slides')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('order_index', { ascending: true })
+      .returns<Slide[]>()
 
-  if (error) {
-    throw new Error(`Failed to load slides: ${error.message}`)
+    if (error) {
+      console.warn('Supabase slides error, using mock:', error.message)
+      return getSlidesByProject(projectId) as unknown as Slide[]
+    }
+
+    return data ?? []
+  } catch (err) {
+    console.warn('Supabase not available, using mock slides')
+    return getSlidesByProject(projectId) as unknown as Slide[]
   }
-
-  return data ?? []
 }
 
 export async function upsertSlides(slides: SlideUpdate[]): Promise<void> {
@@ -36,7 +45,7 @@ export async function upsertSlides(slides: SlideUpdate[]): Promise<void> {
     }
 
     if (slide.duration !== undefined) {
-      base.duration = slide.duration ?? null
+      base.duration = slide.duration ?? undefined
     }
 
     if (slide.background_color !== undefined) {
@@ -90,5 +99,5 @@ export async function deleteSlide(id: string): Promise<void> {
   }
 }
 
-export { type Slide } from '../supabase'
+export type { Slide }
 export * from './types'

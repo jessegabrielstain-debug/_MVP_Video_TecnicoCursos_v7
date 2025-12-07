@@ -1,3 +1,4 @@
+// TODO: Fixar filters.rating undefined e sort string types
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -222,8 +223,8 @@ export default function AvatarLibrary() {
     if (filters.license) {
       filtered = filtered.filter(avatar => avatar.license === filters.license);
     }
-    if (filters.rating) {
-      filtered = filtered.filter(avatar => avatar.rating >= filters.rating);
+    if (filters.rating !== undefined) {
+      filtered = filtered.filter(avatar => avatar.rating >= (filters.rating || 0));
     }
 
     // Ordenação
@@ -352,7 +353,7 @@ export default function AvatarLibrary() {
         </div>
         
         <div className="flex gap-2">
-          <Select value={sortBy} onValueChange={(value: string) => setSortBy(value)}>
+          <Select value={sortBy} onValueChange={(value: string) => setSortBy(value as any)}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>

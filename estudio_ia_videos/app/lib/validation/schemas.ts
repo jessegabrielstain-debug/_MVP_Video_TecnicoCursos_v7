@@ -59,9 +59,12 @@ export const VideoJobMetricsSchema = z.object({
 export type VideoJobMetrics = z.infer<typeof VideoJobMetricsSchema>;
 
 export const RenderStatsQuerySchema = z.object({
-  period: z.enum(['24h', '7d', '30d', 'all']).default('7d'),
-  includeErrors: z.coerce.boolean().default(true),
-  includePerformance: z.coerce.boolean().default(true),
+  timeRange: z.enum(['1h', '24h', '7d', '30d', '90d']).default('24h'),
+  status: z.enum(['all', 'queued', 'pending', 'processing', 'completed', 'failed']).default('all'),
+  userId: z.string().uuid().optional(),
+  projectType: z.string().optional(),
+  includeErrors: z.coerce.boolean().default(false),
+  includePerformance: z.coerce.boolean().default(false),
 });
 
 export type RenderStatsQuery = z.infer<typeof RenderStatsQuerySchema>;

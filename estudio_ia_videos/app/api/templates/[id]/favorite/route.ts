@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface Template {
+  id: string
+  isFavorite: boolean
+  updatedAt: Date
+  metadata: {
+    usage: {
+      likes: number
+    }
+  }
+  [key: string]: unknown
+}
+
 // Mock database - em produção, usar banco de dados real
-let templates: any[] = [];
+let templates: Template[] = [];
 
 // POST - Adicionar/remover template dos favoritos
 export async function POST(

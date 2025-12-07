@@ -100,7 +100,9 @@ export function TimelineEditor({
     });
 
     if (currentElement) {
-      const newStartTime = Math.max(0, currentElement.startTime + timeDelta);
+      const el = currentElement as any;
+      const currentStart = el.startTime ?? el.start ?? 0;
+      const newStartTime = Math.max(0, currentStart + timeDelta);
       
       // Check if dropped on a different layer
       const targetLayer = timeline.project.layers.find(layer => layer.id === overId);
@@ -128,14 +130,14 @@ export function TimelineEditor({
         case 'Delete':
         case 'Backspace':
           e.preventDefault();
-          timeline.project.selectedElementIds.forEach(id => {
+          (timeline.project.selectedElementIds || []).forEach(id => {
             timeline.removeElement(id);
           });
           break;
         case 'c':
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
-            timeline.copyElements(timeline.project.selectedElementIds);
+            timeline.copyElements(timeline.project.selectedElementIds || []);
           }
           break;
         case 'v':
@@ -199,12 +201,16 @@ export function TimelineEditor({
         currentTime={timeline.project.currentTime}
         duration={timeline.project.duration}
         zoomLevel={timeline.project.zoomLevel}
+        showKeyframes={false}
         onPlay={timeline.play}
         onPause={timeline.pause}
+        onPlayPause={() => timeline.isPlaying ? timeline.pause() : timeline.play()}
         onStop={timeline.stop}
         onSeek={timeline.seek}
         onZoomIn={timeline.zoomIn}
         onZoomOut={timeline.zoomOut}
+        onZoomChange={timeline.setZoom}
+        onShowKeyframes={() => {}}
         onExport={onExport}
         onImport={onImport}
       />
@@ -261,29 +267,24 @@ export function TimelineEditor({
               />
 
               {/* Layers */}
-              {timeline.project.layers.map((layer, layerIndex) => (
-                <motion.div
-                  key={layer.id}
-                  className="relative border-b border-gray-700"
-                  style={{ height: layer.height }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: layerIndex * 0.1 }}
-                >
-                  <SortableContext items={layer.elements.map(el => el.id)}>
-                    <TimelineCanvas
-                      layer={layer}
-                      pixelsPerMs={pixelsPerMs}
-                      selectedElementIds={timeline.project.selectedElementIds}
-                      onElementSelect={timeline.selectElement}
-                      onElementsSelect={timeline.selectElements}
-                      onElementUpdate={timeline.updateElement}
-                      onElementMove={timeline.moveElement}
-                      onElementResize={timeline.resizeElement}
-                    />
-                  </SortableContext>
-                </motion.div>
-              ))}
+              <div className="relative min-h-full">
+                <TimelineCanvas
+                  project={timeline.project}
+                  currentTime={timeline.project.currentTime}
+                  zoom={timeline.project.zoomLevel}
+                  scrollX={0}
+                  pixelsPerSecond={pixelsPerMs * 1000}
+                  selection={{
+                    elementIds: timeline.project.selectedElementIds || [],
+                    layerIds: [],
+                    startTime: 0,
+                    endTime: 0
+                  }}
+                  onElementClick={(id, e) => timeline.selectElement(id)}
+                  onTimelineClick={(e) => timeline.clearSelection()}
+                  showKeyframes={false}
+                />
+              </div>
 
               {/* Drop zones for new layers */}
               <div className="h-16 bg-gray-800/50 border-2 border-dashed border-gray-600 rounded-lg m-2 flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-400 transition-colors">
@@ -316,7 +317,7 @@ export function TimelineEditor({
           <span>Zoom: {Math.round(timeline.project.zoomLevel * 100)}%</span>
         </div>
         <div className="flex items-center space-x-4">
-          <span>{timeline.project.selectedElementIds.length} selected</span>
+          <span>{(timeline.project.selectedElementIds || []).length} selected</span>
           <span>{timeline.project.layers.reduce((acc, layer) => acc + layer.elements.length, 0)} elements</span>
           <span>{timeline.project.resolution.width}x{timeline.project.resolution.height}</span>
           <span>{timeline.project.fps} fps</span>

@@ -8,6 +8,24 @@ import * as historyRoute from '../api/v1/timeline/multi-track/history/route'
 import * as snapshotRoute from '../api/v1/timeline/multi-track/snapshot/route'
 import * as restoreRoute from '../api/v1/timeline/multi-track/restore/route'
 
+jest.mock('next/server', () => {
+  return {
+    NextRequest: jest.fn().mockImplementation((url, init) => ({
+      url,
+      method: init?.method || 'GET',
+      headers: new Map(Object.entries(init?.headers || {})),
+      json: async () => init?.body ? JSON.parse(init.body) : {},
+      nextUrl: new URL(url)
+    })),
+    NextResponse: {
+      json: jest.fn().mockImplementation((body, init) => ({
+        status: init?.status || 200,
+        json: async () => body
+      }))
+    }
+  }
+})
+
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     project: { 

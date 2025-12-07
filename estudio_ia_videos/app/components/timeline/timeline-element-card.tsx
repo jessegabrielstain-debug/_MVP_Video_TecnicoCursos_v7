@@ -195,10 +195,10 @@ export const TimelineElementCard: React.FC<TimelineElementCardProps> = ({
       <div className={`absolute left-0 top-0 bottom-0 w-1 ${getElementColor()}`} />
 
       {/* Thumbnail (if available) */}
-      {element.thumbnail && showDetails && (
+      {!!element.data?.thumbnail && showDetails && (
         <div className="absolute left-2 top-1 w-8 h-8 rounded overflow-hidden bg-black/20">
           <img
-            src={element.thumbnail}
+            src={element.data?.thumbnail as string}
             alt={element.name}
             className="w-full h-full object-cover"
           />
@@ -216,7 +216,7 @@ export const TimelineElementCard: React.FC<TimelineElementCardProps> = ({
         <div className="flex-1 min-w-0">
           {showElementName && (
             <div className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-              {getTruncatedText(element.name, elementWidth - 40)}
+              {getTruncatedText(element.name || 'Element', elementWidth - 40)}
             </div>
           )}
           
@@ -236,13 +236,19 @@ export const TimelineElementCard: React.FC<TimelineElementCardProps> = ({
         {showDetails && (
           <div className="flex-shrink-0 flex items-center space-x-1 ml-1">
             {element.muted && (
-              <VolumeX size={10} className="text-red-500" title="Muted" />
+              <div title="Muted">
+                <VolumeX size={10} className="text-red-500" />
+              </div>
             )}
             {!element.visible && (
-              <EyeOff size={10} className="text-gray-500" title="Hidden" />
+              <div title="Hidden">
+                <EyeOff size={10} className="text-gray-500" />
+              </div>
             )}
             {element.locked && (
-              <Lock size={10} className="text-yellow-500" title="Locked" />
+              <div title="Locked">
+                <Lock size={10} className="text-yellow-500" />
+              </div>
             )}
           </div>
         )}
@@ -286,7 +292,7 @@ export const TimelineElementCard: React.FC<TimelineElementCardProps> = ({
       )}
 
       {/* Keyframes Indicator */}
-      {element.properties.some(prop => prop.keyframes.length > 0) && showDetails && (
+      {(element.keyframes?.length ?? 0) > 0 && showDetails && (
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-yellow-400 to-orange-400" />
       )}
 

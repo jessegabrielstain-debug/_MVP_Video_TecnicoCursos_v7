@@ -4,14 +4,14 @@
  * Testes completos para o módulo de validação de vídeos com mocks adequados
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import path from 'path';
 import VideoValidator, {
   createNRValidator,
   createShortVideoValidator,
   createStrictNRValidator,
   create4KValidator,
   createYouTubeValidator
-} from '../../../lib/video/validator';
+} from '@/lib/video/validator';
 
 // Mocking modules
 jest.mock('fluent-ffmpeg');
@@ -22,11 +22,14 @@ import fs from 'fs/promises';
 
 describe('VideoValidator', () => {
   let validator: VideoValidator;
+  const testVideoPath = 'test-video.mp4';
 
   // Helper function to create mock probe data
   interface ProbeDataOverrides {
     format?: Partial<{ format_name: string; duration: number; bit_rate: number; size: number; }>;
     video?: Partial<{ codec_type: string; codec_name: string; width: number; height: number; r_frame_rate: string; bit_rate: number; }>;
+    audio?: Partial<{ codec_type: string; codec_name: string; channels: number; sample_rate: number; bit_rate: number; }>;
+    subtitle?: boolean;
     noAudio?: boolean;
   }
   const createMockProbeData = (overrides: ProbeDataOverrides = {}) => ({

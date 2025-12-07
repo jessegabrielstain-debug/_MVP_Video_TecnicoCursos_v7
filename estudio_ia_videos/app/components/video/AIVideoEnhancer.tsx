@@ -179,7 +179,7 @@ interface EnhancementLog {
   level: 'info' | 'warning' | 'error' | 'success';
   message: string;
   progress?: number;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 type EnhancementStatus = 'pending' | 'analyzing' | 'processing' | 'finalizing' | 'completed' | 'failed' | 'cancelled';
@@ -701,7 +701,7 @@ export default function AIVideoEnhancer({
 
       {/* Main Content */}
       <div className="flex-1">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="h-full">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)} className="h-full">
           {/* Tabs Navigation */}
           <div className="bg-gray-800 border-b border-gray-700 px-6">
             <TabsList className="bg-gray-700">

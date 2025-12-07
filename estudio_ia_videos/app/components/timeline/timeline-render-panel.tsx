@@ -137,7 +137,7 @@ export function TimelineRenderPanel({
                 <Label>Resolução</Label>
                 <Select
                   value={settings.resolution}
-                  onValueChange={(value: string) => setSettings({ ...settings, resolution: value })}
+                  onValueChange={(value: string) => setSettings({ ...settings, resolution: value as '720p' | '1080p' | '4k' })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -171,7 +171,7 @@ export function TimelineRenderPanel({
                 <Label>Formato</Label>
                 <Select
                   value={settings.format}
-                  onValueChange={(value: string) => setSettings({ ...settings, format: value })}
+                  onValueChange={(value: string) => setSettings({ ...settings, format: value as 'mp4' | 'webm' | 'mov' })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -188,7 +188,7 @@ export function TimelineRenderPanel({
                 <Label>Qualidade</Label>
                 <Select
                   value={settings.quality}
-                  onValueChange={(value: string) => setSettings({ ...settings, quality: value })}
+                  onValueChange={(value: string) => setSettings({ ...settings, quality: value as 'low' | 'medium' | 'high' | 'ultra' })}
                 >
                   <SelectTrigger>
                     <SelectValue />

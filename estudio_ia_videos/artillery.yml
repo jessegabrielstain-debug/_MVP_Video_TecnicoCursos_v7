@@ -1,0 +1,37 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp up load"
+    - duration: 600
+      arrivalRate: 50
+      name: "Sustained load"
+  plugins:
+    ensure: {}
+    apdex: {}
+    metrics-by-endpoint: {}
+  ensure:
+    p95: 500
+    maxErrorRate: 1
+
+scenarios:
+  - name: "Render Start API Load Test"
+    flow:
+      - post:
+          url: "/api/render/start"
+          json:
+            projectId: "load-test-project"
+            slides: 
+              - id: "slide-1"
+                content: "Load Test Slide"
+            config:
+              test: true
+          capture:
+            - json: "$.error"
+              as: "error"
+      - log: "Response error: {{error}}"

@@ -119,7 +119,7 @@ export async function GET(
     return NextResponse.json(response)
 
   } catch (error) {
-    logger.error('Failed to get job status', { id: params.id, error })
+    logger.error('Failed to get job status', error instanceof Error ? error : new Error(String(error)), { id: params.id })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -242,7 +242,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    logger.error('Failed to cancel job', { id: params.id, error })
+    logger.error('Failed to cancel job', error instanceof Error ? error : new Error(String(error)), { id: params.id })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -359,7 +359,7 @@ export async function PATCH(
     })
 
   } catch (error) {
-    logger.error('Failed to update job priority', { id: params.id, error })
+    logger.error('Failed to update job priority', error instanceof Error ? error : new Error(String(error)), { id: params.id })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -370,7 +370,27 @@ export async function PATCH(
 /**
  * Gerar timeline do job
  */
-function generateJobTimeline(job: any) {
+interface TimelineJob {
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+  status: string;
+  error?: string;
+  progress: {
+    stage: string;
+    stages_completed: string[];
+    percentage: number;
+    estimated_remaining: number;
+  };
+  metadata: {
+    text_length: number;
+    estimated_duration: number;
+    complexity_score: number;
+    performance_target: number;
+  };
+}
+
+function generateJobTimeline(job: TimelineJob) {
   const timeline = []
 
   // Job criado

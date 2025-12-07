@@ -12,7 +12,7 @@ class MonitoringService {
     return this.instance;
   }
   
-  logEvent(event: string, data: any) {
+  logEvent(event: string, data: Record<string, unknown>) {
     console.log(`📊 [${event}]`, data);
   }
 }
@@ -20,10 +20,10 @@ class MonitoringService {
 // Interface para entrada de cache
 interface CacheEntry {
   key: string;
-  value: any;
+  value: unknown;
   ttl?: number;
   tags?: string[];
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 // Interface para estatísticas de cache
@@ -40,7 +40,7 @@ interface CacheStats {
 // Simulação de cache multi-camada
 class IntelligentCacheSystem {
   private static instance: IntelligentCacheSystem;
-  private memoryCache: Map<string, any> = new Map();
+  private memoryCache: Map<string, unknown> = new Map();
   private cacheStats: CacheStats = {
     hits: 0,
     misses: 0,
@@ -56,7 +56,7 @@ class IntelligentCacheSystem {
     return IntelligentCacheSystem.instance;
   }
 
-  async get(key: string): Promise<any> {
+  async get(key: string): Promise<unknown> {
     // Tentar cache de memória primeiro
     if (this.memoryCache.has(key)) {
       this.cacheStats.hits++;
@@ -90,7 +90,7 @@ class IntelligentCacheSystem {
     return null;
   }
 
-  async set(key: string, value: any, ttl: number = 3600): Promise<void> {
+  async set(key: string, value: unknown, ttl: number = 3600): Promise<void> {
     // Salvar em todas as camadas
     this.memoryCache.set(key, value);
     await this.setToRedis(key, value, ttl);
@@ -138,13 +138,13 @@ class IntelligentCacheSystem {
   }
 
   // Métodos simulados para Redis
-  private async getFromRedis(key: string): Promise<any> {
+  private async getFromRedis(key: string): Promise<unknown> {
     // Simular latência do Redis
     await new Promise(resolve => setTimeout(resolve, 5));
     return null; // Simulado
   }
 
-  private async setToRedis(key: string, value: any, ttl: number = 3600): Promise<void> {
+  private async setToRedis(key: string, value: unknown, ttl: number = 3600): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 5));
   }
 
@@ -157,12 +157,12 @@ class IntelligentCacheSystem {
   }
 
   // Métodos simulados para cache de arquivo
-  private async getFromFile(key: string): Promise<any> {
+  private async getFromFile(key: string): Promise<unknown> {
     await new Promise(resolve => setTimeout(resolve, 20));
     return null; // Simulado
   }
 
-  private async setToFile(key: string, value: any): Promise<void> {
+  private async setToFile(key: string, value: unknown): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 20));
   }
 
@@ -271,13 +271,13 @@ export async function GET(request: NextRequest) {
         );
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erro ao consultar cache:', error);
     
     return NextResponse.json(
       { 
         error: 'Erro ao consultar cache',
-        message: error.message 
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
     monitoring.logEvent('cache_set', {
       key,
       ttl,
-      size: cacheEntry.metadata.size,
+      size: cacheEntry.metadata?.size,
       tags,
       timestamp: new Date().toISOString()
     });
@@ -328,18 +328,18 @@ export async function POST(request: NextRequest) {
         key,
         stored: true,
         ttl,
-        size: cacheEntry.metadata.size,
+        size: cacheEntry.metadata?.size,
         timestamp: new Date().toISOString()
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erro ao armazenar no cache:', error);
     
     return NextResponse.json(
       { 
         error: 'Erro ao armazenar no cache',
-        message: error.message 
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -403,13 +403,13 @@ export async function DELETE(request: NextRequest) {
         );
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erro ao deletar do cache:', error);
     
     return NextResponse.json(
       { 
         error: 'Erro ao deletar do cache',
-        message: error.message 
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -466,13 +466,13 @@ export async function PUT(request: NextRequest) {
         );
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erro ao configurar cache:', error);
     
     return NextResponse.json(
       { 
         error: 'Erro ao configurar cache',
-        message: error.message 
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );

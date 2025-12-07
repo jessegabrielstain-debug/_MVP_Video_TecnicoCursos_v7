@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
       name: string;
       type: BatchJobType;
       userId: string;
-      tasks: any[];
-      config?: any;
+      tasks: Record<string, unknown>[];
+      config?: Record<string, unknown>;
     };
 
     if (!name || !type || !userId || !tasks || tasks.length === 0) {
@@ -113,3 +113,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

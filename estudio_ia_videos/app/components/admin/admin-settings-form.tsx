@@ -1,4 +1,4 @@
-
+// TODO: Alinhar SystemSettingsData com SystemSettings interface
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -50,8 +50,8 @@ export default function AdminSettingsForm({ initialSettings }: AdminSettingsForm
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const updateSetting = (key: keyof SystemSettingsData, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }))
+  const updateSetting = (key: keyof SystemSettingsData, value: string | number | boolean) => {
+    setSettings((prev) => ({ ...prev, [key]: value }))
     setError(null)
     setSuccess(false)
   }

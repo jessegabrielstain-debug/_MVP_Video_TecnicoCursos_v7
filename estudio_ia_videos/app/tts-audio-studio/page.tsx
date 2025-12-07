@@ -1,5 +1,6 @@
 
 'use client'
+export const dynamic = 'force-dynamic';
 
 import { Suspense } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -17,8 +18,8 @@ import {
 
 // Importar componentes
 import ProfessionalVoiceStudioV3 from '@/components/tts/professional-voice-studio-v3'
-import VoiceCloningStudio from '@/components/tts/voice-cloning-studio'
-import AudioTimelineEditor from '@/components/tts/audio-timeline-editor'
+// import VoiceCloningStudio from '@/components/tts/voice-cloning-studio'
+// import AudioTimelineEditor from '@/components/tts/audio-timeline-editor'
 
 function LoadingCard({ title, description }: { title: string; description: string }) {
   return (
@@ -124,6 +125,9 @@ export default function TTSAudioStudioPage() {
             />
           }>
             <ProfessionalVoiceStudioV3 />
+            {/* <div className="p-4 border rounded bg-muted/10">
+                <h3 className="text-lg font-semibold">Voice Studio (Temporarily Disabled for Debugging)</h3>
+            </div> */}
           </Suspense>
         </TabsContent>
 
@@ -135,7 +139,10 @@ export default function TTSAudioStudioPage() {
               description="Preparando sistema de clonagem de voz por IA"
             />
           }>
-            <VoiceCloningStudio />
+            {/* <VoiceCloningStudio /> */}
+            <div className="p-4 border rounded bg-muted/10">
+                <h3 className="text-lg font-semibold">Voice Cloning (Temporarily Disabled for Debugging)</h3>
+            </div>
           </Suspense>
         </TabsContent>
 
@@ -147,7 +154,10 @@ export default function TTSAudioStudioPage() {
               description="Inicializando timeline profissional multi-track"
             />
           }>
-            <AudioTimelineEditor />
+            {/* <AudioTimelineEditor /> */}
+            <div className="p-4 border rounded bg-muted/10">
+                <h3 className="text-lg font-semibold">Audio Timeline (Temporarily Disabled for Debugging)</h3>
+            </div>
           </Suspense>
         </TabsContent>
       </Tabs>

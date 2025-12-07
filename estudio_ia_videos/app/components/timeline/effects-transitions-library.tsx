@@ -47,13 +47,11 @@ import {
   Waves,
   Zap as Lightning,
   Sparkle,
-  Blur,
   Focus,
   Maximize2,
   Minimize2,
   Move,
   RotateCcw as Rotate,
-  Flip,
   Scale,
   Crop
 } from 'lucide-react';
@@ -695,7 +693,7 @@ export function EffectsTransitionsLibrary() {
               Preview
             </Button>
 
-            <Select value={realTimeQuality} onValueChange={(value: string) => setRealTimeQuality(value)}>
+            <Select value={realTimeQuality} onValueChange={(value) => setRealTimeQuality(value as 'low' | 'medium' | 'high')}>
               <SelectTrigger className="w-32 bg-gray-700 border-gray-600">
                 <SelectValue />
               </SelectTrigger>
@@ -847,7 +845,7 @@ export function EffectsTransitionsLibrary() {
                                   ...effect,
                                   parameters: effect.parameters.map(param => ({
                                     ...param,
-                                    value: preset.parameters[param.id] ?? param.value
+                                    value: (preset.parameters[param.id] as EffectParameterValue) ?? param.value
                                   }))
                                 };
                                 applyEffect(effectWithPreset);
@@ -1065,7 +1063,7 @@ export function EffectsTransitionsLibrary() {
                             {param.type === 'range' && (
                               <div className="space-y-1">
                                 <Slider
-                                  value={[appliedEffect.parameters[param.id] || param.defaultValue]}
+                                  value={[Number(appliedEffect.parameters[param.id] ?? param.defaultValue)]}
                                   onValueChange={([value]) => updateEffectParameter(appliedEffect.id, param.id, value)}
                                   min={param.min}
                                   max={param.max}
@@ -1075,7 +1073,7 @@ export function EffectsTransitionsLibrary() {
                                 <div className="flex justify-between text-xs text-gray-400">
                                   <span>{param.min}{param.unit}</span>
                                   <span className="font-medium">
-                                    {appliedEffect.parameters[param.id] || param.defaultValue}{param.unit}
+                                    {String(appliedEffect.parameters[param.id] ?? param.defaultValue)}{param.unit}
                                   </span>
                                   <span>{param.max}{param.unit}</span>
                                 </div>
@@ -1085,7 +1083,7 @@ export function EffectsTransitionsLibrary() {
                             {param.type === 'color' && (
                               <Input
                                 type="color"
-                                value={appliedEffect.parameters[param.id] || param.defaultValue}
+                                value={String(appliedEffect.parameters[param.id] ?? param.defaultValue)}
                                 onChange={(e) => updateEffectParameter(appliedEffect.id, param.id, e.target.value)}
                                 className="w-full h-8 bg-gray-700 border-gray-600"
                               />
@@ -1093,7 +1091,7 @@ export function EffectsTransitionsLibrary() {
 
                             {param.type === 'select' && (
                               <Select
-                                value={appliedEffect.parameters[param.id] || param.defaultValue}
+                                value={String(appliedEffect.parameters[param.id] ?? param.defaultValue)}
                                 onValueChange={(value) => updateEffectParameter(appliedEffect.id, param.id, value)}
                               >
                                 <SelectTrigger className="bg-gray-700 border-gray-600">
@@ -1116,14 +1114,14 @@ export function EffectsTransitionsLibrary() {
                                 onClick={() => updateEffectParameter(
                                   appliedEffect.id, 
                                   param.id, 
-                                  !appliedEffect.parameters[param.id]
+                                  !Boolean(appliedEffect.parameters[param.id] ?? param.defaultValue)
                                 )}
-                                className={appliedEffect.parameters[param.id] 
+                                className={Boolean(appliedEffect.parameters[param.id] ?? param.defaultValue)
                                   ? 'bg-green-600 text-white' 
                                   : 'text-gray-300 border-gray-600'
                                 }
                               >
-                                {appliedEffect.parameters[param.id] ? 'ON' : 'OFF'}
+                                {Boolean(appliedEffect.parameters[param.id] ?? param.defaultValue) ? 'ON' : 'OFF'}
                               </Button>
                             )}
                           </div>

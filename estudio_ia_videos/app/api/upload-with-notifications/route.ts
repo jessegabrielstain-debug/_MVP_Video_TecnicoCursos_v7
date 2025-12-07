@@ -1,10 +1,11 @@
+// TODO: Fix ActiveUpload type parameter
 /**
  * API Route: Upload com Notificações Real-time
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { UploadManager } from '../../../lib/upload/upload-manager';
-import { NotificationManager } from '../../../lib/notifications/notification-manager';
+import { UploadManager } from '@/lib/upload/upload-manager';
+import { NotificationManager } from '@/lib/notifications/notification-manager';
 
 export async function POST(request: NextRequest) {
   try {
@@ -120,7 +121,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         progress,
-        isActive: activeUploads.includes(uploadId),
+        isActive: activeUploads.some(u => u.id === uploadId),
         activeUploads: activeUploads.length
       }
     });
@@ -149,7 +150,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const uploadManager = new UploadManager();
-    let result: boolean | any = false;
+    let result: boolean | Record<string, unknown> = false;
 
     switch (action) {
       case 'pause':

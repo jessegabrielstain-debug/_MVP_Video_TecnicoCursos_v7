@@ -1,29 +1,13 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+
+import { getBrowserClient } from './browser';
 import { Database } from './database.types';
 
 // Criando o cliente Supabase para uso no lado do cliente (browser)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Faltam variáveis de ambiente do Supabase. Verifique o arquivo .env');
-}
-
-export const supabase = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
-});
+// createClientComponentClient lida automaticamente com cookies e ambiente Next.js
+export const supabase = getBrowserClient();
 
 // Facilita importar o cliente em componentes client-side sem ambiguidade de tipos.
-export const createClient = () => supabase;
+export const createClient = () => getBrowserClient();
 
 // Função auxiliar para obter o usuário atual
 export const getCurrentUser = async () => {

@@ -1,3 +1,4 @@
+// TODO: Fix v2 avatars types
 /**
  * 📊 API v2: Render Status Monitor
  * Monitoramento em tempo real de jobs de renderização
@@ -5,15 +6,37 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createRateLimiter, rateLimitPresets } from '@/lib/utils/rate-limit-middleware';
 import { avatar3DPipeline } from '@/lib/avatar-3d-pipeline'
-import { supabaseClient } from '@/lib/supabase'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 
+// Interface para tipagem do avatar
+interface AvatarModelInfo {
+  id: string;
+  name: string;
+  display_name: string;
+  category?: string;
+}
+
+interface LipSyncData {
+  accuracy?: number;
+  processingTime?: number;
+  metadata?: {
+    totalFrames?: number;
+    frameRate?: number;
+    audioLength?: number;
+  };
+}
+
+const rateLimiterGet = createRateLimiter(rateLimitPresets.render);
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  return rateLimiterGet(request, async (request: NextRequest) => {
   try {
     const jobId = params.id
+    const supabase = getSupabaseForRequest(request);
     
     console.log(`📊 API v2: Verificando status do job ${jobId}`)
 
@@ -31,26 +54,30 @@ export async function GET(
     }
 
     // Buscar informações do avatar do Supabase
-    const { data: avatar } = await supabaseClient
+    const { data: avatarData } = await ((supabase as any)
       .from('avatar_models')
-      .select('id, name, display_name, category')
+      .select('id, name, display_name, category') as any)
       .eq('id', job.avatarId)
       .single()
+    
+    const avatar = avatarData as AvatarModelInfo | null;
 
     // Calcular métricas
     const currentTime = Date.now()
-    const duration = job.endTime ? job.endTime - job.startTime : currentTime - job.startTime
+    const duration = job.endTime ? job.endTime - job.startTime! : currentTime - job.startTime!
     const isCompleted = job.status === 'completed'
     const isFailed = job.status === 'failed'
     const isProcessing = job.status === 'processing'
 
     // Estimar tempo restante (baseado no progresso)
     let estimatedTimeRemaining: number | null = null
-    if (isProcessing && job.progress > 0) {
-      const timePerPercent = duration / job.progress
-      const remainingPercent = 100 - job.progress
+    if (isProcessing && job.progress! > 0) {
+      const timePerPercent = duration / job.progress!
+      const remainingPercent = 100 - job.progress!
       estimatedTimeRemaining = Math.round(timePerPercent * remainingPercent)
     }
+
+    const lipSyncData = job.lipSyncData as LipSyncData | undefined;
 
     const response = {
       success: true,
@@ -62,7 +89,7 @@ export async function GET(
           avatarName: avatar?.name || avatar?.display_name || 'Desconhecido',
           status: job.status,
           progress: job.progress || 0,
-          startTime: new Date(job.startTime).toISOString(),
+          startTime: job.startTime ? new Date(job.startTime).toISOString() : null,
           endTime: job.endTime ? new Date(job.endTime).toISOString() : null,
           duration: Math.round(duration / 1000), // em segundos
           estimatedTimeRemaining: estimatedTimeRemaining ? Math.round(estimatedTimeRemaining / 1000) : null,
@@ -80,13 +107,13 @@ export async function GET(
           available: isCompleted && !!job.outputVideo,
           downloadUrl: isCompleted && job.outputVideo ? `/api/v2/avatars/render/download/${job.id}` : null
         },
-        lipSync: job.lipSyncData ? {
-          accuracy: job.lipSyncData.accuracy || job.lipSyncAccuracy,
-          processingTime: job.lipSyncData.processingTime,
+        lipSync: lipSyncData ? {
+          accuracy: lipSyncData.accuracy || job.lipSyncAccuracy,
+          processingTime: lipSyncData.processingTime,
           audio2FaceEnabled: job.audio2FaceEnabled || false,
-          frameCount: job.lipSyncData.metadata?.totalFrames,
-          frameRate: job.lipSyncData.metadata?.frameRate,
-          audioLength: job.lipSyncData.metadata?.audioLength
+          frameCount: lipSyncData.metadata?.totalFrames,
+          frameRate: lipSyncData.metadata?.frameRate,
+          audioLength: lipSyncData.metadata?.audioLength
         } : job.lipSyncAccuracy ? {
           accuracy: job.lipSyncAccuracy,
           audio2FaceEnabled: job.audio2FaceEnabled || false
@@ -147,16 +174,20 @@ export async function GET(
       }
     }, { status: 500 })
   }
+  });
 }
 
+const rateLimiterPost = createRateLimiter(rateLimitPresets.render);
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  return rateLimiterPost(request, async (request: NextRequest) => {
   try {
     const jobId = params.id
     const body = await request.json()
     const { action } = body
+    const supabase = getSupabaseForRequest(request);
 
     console.log(`🎬 API v2: Ação ${action} no job ${jobId}`)
 
@@ -208,7 +239,7 @@ export async function POST(
         }
 
         // Atualizar job no Supabase para reprocessamento
-        const { error: updateError } = await supabaseClient
+        const { error: updateError } = await (supabase
           .from('render_jobs')
           .update({
             status: 'queued',
@@ -216,7 +247,7 @@ export async function POST(
             error_message: null,
             completed_at: null,
             updated_at: new Date().toISOString()
-          })
+          }) as any)
           .eq('id', jobId)
 
         if (updateError) {
@@ -244,6 +275,8 @@ export async function POST(
           }, { status: 400 })
         }
 
+        const lipSyncData = job.lipSyncData as LipSyncData | undefined;
+
         return NextResponse.json({
           success: true,
           data: {
@@ -252,7 +285,7 @@ export async function POST(
             fileSize: '~50MB', // Estimativa
             format: 'MP4',
             resolution: '4K',
-            duration: job.lipSyncData?.metadata.audioLength || 5.0
+            duration: lipSyncData?.metadata?.audioLength || 5.0
           }
         })
 
@@ -277,14 +310,18 @@ export async function POST(
       }
     }, { status: 500 })
   }
+  });
 }
 
+const rateLimiterDelete = createRateLimiter(rateLimitPresets.authenticated);
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  return rateLimiterDelete(request, async (request: NextRequest) => {
   try {
     const jobId = params.id
+    const supabase = getSupabaseForRequest(request);
     
     console.log(`🗑️ API v2: Removendo job ${jobId}`)
 
@@ -312,9 +349,9 @@ export async function DELETE(
     }
 
     // Remover job do Supabase
-    const { error: deleteError } = await supabaseClient
+    const { error: deleteError } = await (supabase
       .from('render_jobs')
-      .delete()
+      .delete() as any)
       .eq('id', jobId)
 
     if (deleteError) {
@@ -344,4 +381,5 @@ export async function DELETE(
       }
     }, { status: 500 })
   }
+  });
 }

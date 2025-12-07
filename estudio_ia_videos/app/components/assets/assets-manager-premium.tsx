@@ -1,4 +1,4 @@
-
+// TODO: Verificar módulo assets-manager e fixar tipos
 /**
  * 🎨 Assets Manager Premium - Interface Completa de Gerenciamento
  * Unsplash (50M+ imagens), Freesound (música/SFX), uploads customizados
@@ -200,7 +200,7 @@ export default function AssetsManagerPremium({
       const favorites = await manager.getFavorites('current-user')
       
       setCollections([]) // Mock collections por enquanto
-      setFavoriteAssets(Array.isArray(favorites) ? favorites.map(f => typeof f === 'string' ? f : f.id) : [])
+      setFavoriteAssets(Array.isArray(favorites) ? favorites : [])
       
       // Carregar busca padrão se não há filtro específico
       if (!filterType) {
@@ -242,7 +242,7 @@ export default function AssetsManagerPremium({
     const preset = SEARCH_PRESETS[presetKey as keyof typeof SEARCH_PRESETS]
     if (preset) {
       setSearchQuery(preset.query)
-      setFilters(prev => ({ ...prev, ...preset.filters } as SearchFilters))
+      setFilters((prev: any) => ({ ...prev, ...preset.filters } as SearchFilters))
     }
   }
 
@@ -646,7 +646,7 @@ export default function AssetsManagerPremium({
                 <div className="flex items-center space-x-2">
                   <Switch
                     checked={filters.safeSearch}
-                    onCheckedChange={(checked) => setFilters(prev => ({ ...prev, safeSearch: checked }))}
+                    onCheckedChange={(checked) => setFilters((prev: any) => ({ ...prev, safeSearch: checked }))}
                     id="safe-search"
                   />
                   <Label htmlFor="safe-search" className="text-xs">Safe Search</Label>

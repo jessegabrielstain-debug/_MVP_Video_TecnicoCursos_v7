@@ -1,4 +1,3 @@
-
 /**
  * ⏱️ Timeline Editor v2.0 - Multi-Track Professional
  * Timeline com camadas independentes, keyframes, e controles avançados
@@ -69,6 +68,15 @@ interface Keyframe {
   property: string
   value: unknown
   easing: string
+}
+
+interface ElementAnimation {
+  id: string;
+  delay: number;
+  duration: number;
+  type: string;
+  easing: string;
+  [key: string]: unknown;
 }
 
 interface TimelineEditorProps {
@@ -142,7 +150,8 @@ const TimelineEditorV2 = forwardRef<TimelineEditorHandle, TimelineEditorProps>((
     const elementTracks: TimelineTrack[] = []
     slides.forEach(slide => {
       slide.elements.forEach(element => {
-        if (element.animations.length > 0) {
+        const animations = element.animations as unknown as ElementAnimation[];
+        if (animations.length > 0) {
           const trackType = ['text', 'video', 'audio'].includes(element.type) ? element.type as 'text' | 'video' | 'audio' : 'effects'
           elementTracks.push({
             id: `element-${element.id}`,
@@ -157,9 +166,9 @@ const TimelineEditorV2 = forwardRef<TimelineEditorHandle, TimelineEditorProps>((
               name: element.content || element.type,
               elementId: element.id,
               startTime: 0, // TODO: Calcular com base nas animações
-              duration: element.animations[0]?.duration || 2,
+              duration: animations[0]?.duration || 2,
               color: getElementColor(element.type),
-              keyframes: element.animations.map(anim => ({
+              keyframes: animations.map(anim => ({
                 id: `kf-${anim.id}`,
                 time: anim.delay,
                 property: anim.type,

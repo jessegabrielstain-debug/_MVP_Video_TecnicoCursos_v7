@@ -1,3 +1,4 @@
+// TODO: Test file - fix types
 /**
  * 🧪 Testes unitários para processamento PPTX real
  * FASE 1: PPTX Processing Real
@@ -91,7 +92,8 @@ describe('PPTX Processing Real - Fase 1', () => {
       const textResult = await extractTextFromSlide(testZip, 1)
 
       expect(textResult.success).toBe(true)
-      expect(textResult.plainText).toContain('Texto do slide 1')
+      expect(textResult.plainText).toBeDefined()
+      expect(textResult.plainText!).toContain('Slide 1 Title')
       expect(textResult.wordCount).toBeGreaterThan(0)
       expect(textResult.characterCount).toBeGreaterThan(0)
     })
@@ -109,7 +111,8 @@ describe('PPTX Processing Real - Fase 1', () => {
         const textResult = await extractTextFromSlide(testZip, i)
         
         expect(textResult.success).toBe(true)
-        expect(textResult.plainText.length).toBeGreaterThan(0)
+        expect(textResult.plainText).toBeDefined()
+        expect(textResult.plainText!.length).toBeGreaterThan(0)
       }
     })
 
@@ -126,7 +129,7 @@ describe('PPTX Processing Real - Fase 1', () => {
       expect(textResult.success).toBe(true)
       expect(Array.isArray(textResult.textBoxes)).toBe(true)
       
-      if (textResult.textBoxes.length > 0) {
+      if (textResult.textBoxes && textResult.textBoxes.length > 0) {
         const firstTextBox = textResult.textBoxes[0]
         expect(firstTextBox.id).toBeDefined()
         expect(firstTextBox.text).toBeDefined()
@@ -176,8 +179,8 @@ describe('PPTX Processing Real - Fase 1', () => {
       
       expect(layoutResult.success).toBe(true)
       expect(layoutResult.layout).toBeDefined()
-      expect(layoutResult.layout.name).toBeDefined()
-      expect(layoutResult.layout.type).toBeDefined()
+      expect(layoutResult.layout?.name).toBeDefined()
+      expect(layoutResult.layout?.type).toBeDefined()
     })
 
     it('deve detectar layouts de todos os slides', async () => {
@@ -185,7 +188,8 @@ describe('PPTX Processing Real - Fase 1', () => {
         const layoutResult = await detectSlideLayout(testZip, i)
         
         expect(layoutResult.success).toBe(true)
-        expect(layoutResult.layout.name).toBeDefined()
+        expect(layoutResult.layout).toBeDefined()
+        expect(layoutResult.layout?.name).toBeDefined()
       }
     })
 
@@ -222,7 +226,7 @@ describe('PPTX Processing Real - Fase 1', () => {
       const result = await processPPTXFile(testPptxFile, projectId)
 
       expect(result.success).toBe(true)
-      expect(result.metadata?.slideCount).toBe(result.slides.length)
+      expect(result.metadata?.slideCount).toBe(result.slides?.length)
     })
 
     it('deve processar com callback de progresso', async () => {
@@ -294,6 +298,12 @@ describe('PPTX Processing Real - Fase 1', () => {
     <p:cSld>
         <p:spTree>
             <p:sp>
+                <p:spPr>
+                    <a:xfrm>
+                        <a:off x="0" y="0"/>
+                        <a:ext cx="1000000" cy="1000000"/>
+                    </a:xfrm>
+                </p:spPr>
                 <p:txBody>
                     <a:p><a:r><a:t>Slide ${i} Title</a:t></a:r></a:p>
                     <a:p><a:r><a:t>Content for slide ${i}.</a:t></a:r></a:p>

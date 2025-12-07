@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 // Schema de validação para atualização de avatar
@@ -23,7 +23,7 @@ const updateAvatarSchema = z.object({
     pitch: z.number().min(-20).max(20).optional(),
     volume: z.number().min(0).max(1).optional()
   }).optional(),
-  properties: z.record(z.any()).optional()
+  properties: z.record(z.unknown()).optional()
 })
 
 // GET - Obter detalhes de um avatar específico
@@ -32,7 +32,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -45,8 +45,8 @@ export async function GET(
     const avatarId = params.id
 
     // Buscar avatar com dados relacionados
-    const { data: avatar, error } = await supabase
-      .from('avatars_3d')
+    const { data: avatarData, error } = await (supabase
+      .from('avatars_3d' as any) as any)
       .select(`
         *,
         projects:project_id (
@@ -60,17 +60,19 @@ export async function GET(
       .eq('id', avatarId)
       .single()
 
-    if (error || !avatar) {
+    if (error || !avatarData) {
       return NextResponse.json(
         { error: 'Avatar não encontrado' },
         { status: 404 }
       )
     }
 
+    const avatar = avatarData as any;
+
     // Verificar permissões
     const project = avatar.projects as Record<string, unknown>
     const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id) ||
+                         (project.collaborators as string[])?.includes(user.id) ||
                          project.is_public
 
     if (!hasPermission) {
@@ -81,9 +83,9 @@ export async function GET(
     }
 
     // Atualizar último acesso
-    await supabase
-      .from('avatars_3d')
-      .update({ last_used_at: new Date().toISOString() })
+    await (supabase
+      .from('avatars_3d' as any) as any)
+      .update({ last_used_at: new Date().toISOString() } as any)
       .eq('id', avatarId)
 
     return NextResponse.json({ avatar })
@@ -103,7 +105,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -120,8 +122,8 @@ export async function PUT(
     const validatedData = updateAvatarSchema.parse(body)
 
     // Verificar se avatar existe e permissões
-    const { data: avatar } = await supabase
-      .from('avatars_3d')
+    const { data: avatarData } = await (supabase
+      .from('avatars_3d' as any) as any)
       .select(`
         *,
         projects:project_id (
@@ -132,16 +134,18 @@ export async function PUT(
       .eq('id', avatarId)
       .single()
 
-    if (!avatar) {
+    if (!avatarData) {
       return NextResponse.json(
         { error: 'Avatar não encontrado' },
         { status: 404 }
       )
     }
 
-    const project = avatar.projects as any
+    const avatar = avatarData as any;
+
+    const project = avatar.projects as Record<string, unknown>
     const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+                         (project.collaborators as string[])?.includes(user.id)
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -152,8 +156,8 @@ export async function PUT(
 
     // Se mudando nome, verificar conflitos
     if (validatedData.name && validatedData.name !== avatar.name) {
-      const { data: existingAvatar } = await supabase
-        .from('avatars_3d')
+      const { data: existingAvatar } = await (supabase
+        .from('avatars_3d' as any) as any)
         .select('id')
         .eq('project_id', avatar.project_id)
         .eq('name', validatedData.name)
@@ -169,7 +173,22 @@ export async function PUT(
     }
 
     // Preparar dados para atualização
-    let updateData: any = {
+    interface AvatarUpdateData {
+      name?: string;
+      ready_player_me_url?: string;
+      avatar_type?: 'full_body' | 'half_body' | 'head_only';
+      gender?: 'male' | 'female' | 'other';
+      style?: 'realistic' | 'cartoon' | 'anime';
+      animations?: unknown[];
+      voice_settings?: Record<string, unknown>;
+      properties?: Record<string, unknown>;
+      model_url?: string;
+      thumbnail_url?: string;
+      metadata?: Record<string, unknown>;
+      updated_at: string;
+    }
+
+    let updateData: AvatarUpdateData = {
       ...validatedData,
       updated_at: new Date().toISOString()
     }
@@ -205,8 +224,8 @@ export async function PUT(
     }
 
     // Atualizar avatar
-    const { data: updatedAvatar, error: updateError } = await supabase
-      .from('avatars_3d')
+    const { data: updatedAvatar, error: updateError } = await (supabase
+      .from('avatars_3d' as any) as any)
       .update(updateData)
       .eq('id', avatarId)
       .select()
@@ -221,8 +240,8 @@ export async function PUT(
     }
 
     // Registrar no histórico
-    await supabase
-      .from('project_history')
+    await (supabase
+      .from('project_history' as any) as any)
       .insert({
         project_id: avatar.project_id,
         user_id: user.id,
@@ -252,12 +271,13 @@ export async function PUT(
 }
 
 // DELETE - Excluir avatar
+// DELETE - Deletar avatar
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -270,8 +290,8 @@ export async function DELETE(
     const avatarId = params.id
 
     // Verificar se avatar existe e permissões
-    const { data: avatar } = await supabase
-      .from('avatars_3d')
+    const { data: avatarData } = await (supabase
+      .from('avatars_3d' as any) as any)
       .select(`
         *,
         projects:project_id (
@@ -282,16 +302,18 @@ export async function DELETE(
       .eq('id', avatarId)
       .single()
 
-    if (!avatar) {
+    if (!avatarData) {
       return NextResponse.json(
         { error: 'Avatar não encontrado' },
         { status: 404 }
       )
     }
 
-    const project = avatar.projects as any
+    const avatar = avatarData as any;
+
+    const project = avatar.projects as Record<string, unknown>
     const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+                         (project.collaborators as string[])?.includes(user.id)
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -301,8 +323,8 @@ export async function DELETE(
     }
 
     // Verificar se avatar está sendo usado em elementos da timeline
-    const { data: usedInElements } = await supabase
-      .from('timeline_elements')
+    const { data: usedInElements } = await (supabase
+      .from('timeline_elements' as any) as any)
       .select('id')
       .eq('type', 'avatar_3d')
       .contains('properties', { avatar_id: avatarId })
@@ -316,8 +338,8 @@ export async function DELETE(
     }
 
     // Excluir avatar
-    const { error: deleteError } = await supabase
-      .from('avatars_3d')
+    const { error: deleteError } = await (supabase
+      .from('avatars_3d' as any) as any)
       .delete()
       .eq('id', avatarId)
 
@@ -330,8 +352,8 @@ export async function DELETE(
     }
 
     // Registrar no histórico
-    await supabase
-      .from('project_history')
+    await (supabase
+      .from('project_history' as any) as any)
       .insert({
         project_id: avatar.project_id,
         user_id: user.id,

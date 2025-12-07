@@ -1,7 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface Template {
+  id: string
+  name: string
+  isCustom: boolean
+  isFavorite: boolean
+  createdAt: Date
+  updatedAt: Date
+  downloads: number
+  rating: number
+  metadata: {
+    usage: {
+      views: number
+      downloads: number
+      likes: number
+      shares: number
+      lastUsed: Date
+    }
+  }
+  [key: string]: unknown
+}
+
 // Mock database - em produção, usar banco de dados real
-let templates: any[] = [];
+let templates: Template[] = [];
 
 // POST - Duplicar template
 export async function POST(

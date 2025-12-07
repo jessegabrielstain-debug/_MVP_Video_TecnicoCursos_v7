@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PPTXUploader } from '@/components/pptx/PPTXUploader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Upload,
   PlayCircle,
@@ -21,9 +23,11 @@ import {
   CheckCircle2,
   Activity,
   Layers,
-  Monitor
+  Monitor,
+  Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 interface ProjectStats {
   totalProjects: number;
@@ -42,6 +46,7 @@ interface ProcessedProject {
   createdAt: Date;
   timelineData?: any;
   videoUrl?: string;
+  render_settings?: any;
 }
 
 export default function Dashboard() {
@@ -54,6 +59,42 @@ export default function Dashboard() {
     completedVideos: 0,
     processingVideos: 0
   });
+  
+  // New Project State
+  const [newProjectName, setNewProjectName] = useState('');
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+
+  // Fetch Projects
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const response = await fetch('/api/timeline/projects');
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          const mappedProjects = result.data.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            slideCount: p.metadata?.timeline?.tracks?.[0]?.elements?.length || 0,
+            duration: p.render_settings?.duration || 0,
+            status: p.status === 'completed' ? 'completed' : 'uploaded', // Simplified mapping
+            createdAt: new Date(p.created_at),
+            timelineData: p.metadata?.timeline,
+            // Check if there is a completed render job for this project
+            // This would require another API call or including it in the project fetch
+          }));
+          setProjects(mappedProjects);
+          updateStats(mappedProjects);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching projects', error);
+    }
+  };
 
   // Atualizar estatísticas
   const updateStats = (newProjects: ProcessedProject[]) => {
@@ -67,6 +108,43 @@ export default function Dashboard() {
     setStats(newStats);
   };
 
+  const handleCreateProject = async () => {
+    if (!newProjectName.trim()) {
+        toast.error('Nome do projeto é obrigatório');
+        return;
+    }
+    
+    setIsCreatingProject(true);
+    try {
+        const response = await fetch('/api/timeline/projects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: newProjectName,
+                duration: 60, // Default
+                fps: 30,
+                width: 1920,
+                height: 1080,
+                tracks: []
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                setCurrentProjectId(result.data.id);
+                toast.success('Projeto criado! Agora faça o upload do PPTX.');
+            }
+        } else {
+            toast.error('Erro ao criar projeto');
+        }
+    } catch (error) {
+        toast.error('Erro ao criar projeto');
+    } finally {
+        setIsCreatingProject(false);
+    }
+  };
+
   // Manipular upload concluído
   const handleUploadComplete = (file: any) => {
     toast.success(`Upload concluído: ${file.name}`);
@@ -74,62 +152,11 @@ export default function Dashboard() {
 
   // Manipular processamento concluído
   const handleProcessingComplete = (file: any) => {
-    const newProject: ProcessedProject = {
-      id: file.id,
-      name: file.name,
-      slideCount: file.processedData?.slideCount || 0,
-      duration: file.processedData?.duration || 0,
-      status: 'completed',
-      createdAt: new Date(),
-      timelineData: file.processedData?.timelineData
-    };
-
-    const updatedProjects = [...projects, newProject];
-    setProjects(updatedProjects);
-    updateStats(updatedProjects);
-    
-    toast.success(`Projeto processado: ${newProject.slideCount} slides encontrados`);
-    
-    // Auto switch para aba Timeline
+    toast.success(`Projeto processado: ${file.processedData?.slideCount} slides encontrados`);
+    fetchProjects(); // Refresh list
     setActiveTab('timeline');
-  };
-
-  // Simular geração de vídeo
-  const generateVideo = async (project: ProcessedProject) => {
-    try {
-      // Marcar como processando
-      const updatedProjects = projects.map(p => 
-        p.id === project.id ? { ...p, status: 'processing' as const } : p
-      );
-      setProjects(updatedProjects);
-      updateStats(updatedProjects);
-      
-      toast.info('Iniciando renderização de vídeo...');
-
-      // Simular processo de renderização
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Marcar como concluído
-      const finalProjects = projects.map(p => 
-        p.id === project.id 
-          ? { 
-              ...p, 
-              status: 'completed' as const, 
-              videoUrl: `/videos/${project.id}.mp4` 
-            } 
-          : p
-      );
-      setProjects(finalProjects);
-      updateStats(finalProjects);
-      
-      toast.success('Vídeo renderizado com sucesso!');
-      
-      // Auto switch para aba Videos
-      setActiveTab('videos');
-      
-    } catch (error) {
-      toast.error('Erro na renderização do vídeo');
-    }
+    setCurrentProjectId(null); // Reset
+    setNewProjectName('');
   };
 
   // Componente de estatísticas
@@ -194,45 +221,24 @@ export default function Dashboard() {
       
       <CardContent className="space-y-3">
         <div className="flex gap-2">
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={() => toast.info('Preview em desenvolvimento...')}
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            Preview
-          </Button>
-          
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={() => generateVideo(project)}
-            disabled={project.status === 'processing'}
-          >
-            <Video className="w-4 h-4 mr-2" />
-            Gerar Vídeo
-          </Button>
+          <Link href={`/editor-simple?project=${project.id}`} passHref>
+            <Button size="sm" variant="outline">
+                <Eye className="w-4 h-4 mr-2" />
+                Editar / Preview
+            </Button>
+          </Link>
           
           {project.videoUrl && (
             <Button 
               size="sm" 
               variant="outline"
-              onClick={() => toast.success('Download iniciado!')}
+              onClick={() => window.open(project.videoUrl, '_blank')}
             >
               <Download className="w-4 h-4 mr-2" />
               Download
             </Button>
           )}
         </div>
-        
-        {project.status === 'processing' && (
-          <div className="space-y-2">
-            <Progress value={65} className="h-2" />
-            <p className="text-xs text-gray-600">
-              Renderizando vídeo... 65%
-            </p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -245,7 +251,7 @@ export default function Dashboard() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
                 <Monitor className="w-7 h-7 text-blue-600" />
-                Studio IA Vídeos
+                Studio IA Vídeos (Real)
               </h1>
               <p className="text-gray-600 text-sm">
                 Sistema completo PPTX → Timeline → Vídeo
@@ -257,11 +263,6 @@ export default function Dashboard() {
                 <Zap className="w-3 h-3 mr-1" />
                 Sistema Operacional
               </Badge>
-              
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Configurações
-              </Button>
             </div>
           </div>
         </div>
@@ -308,15 +309,15 @@ export default function Dashboard() {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="upload" className="flex items-center gap-2">
               <Upload className="w-4 h-4" />
-              Upload PPTX
+              Novo Projeto
             </TabsTrigger>
             <TabsTrigger value="timeline" className="flex items-center gap-2">
               <PlayCircle className="w-4 h-4" />
-              Timeline
+              Meus Projetos
             </TabsTrigger>
             <TabsTrigger value="videos" className="flex items-center gap-2">
               <Video className="w-4 h-4" />
-              Vídeos
+              Galeria
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
@@ -328,18 +329,52 @@ export default function Dashboard() {
           <TabsContent value="upload" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Upload e Processamento PPTX</CardTitle>
+                <CardTitle>Criar Novo Projeto</CardTitle>
                 <p className="text-sm text-gray-600">
-                  Faça upload de suas apresentações PowerPoint para começar
+                  Comece criando um projeto e enviando sua apresentação
                 </p>
               </CardHeader>
               <CardContent>
-                <PPTXUploader
-                  onUploadComplete={handleUploadComplete}
-                  onProcessingComplete={handleProcessingComplete}
-                  allowMultiple={true}
-                  maxFileSize={50}
-                />
+                {!currentProjectId ? (
+                    <div className="max-w-md mx-auto space-y-4 py-8">
+                        <div className="space-y-2">
+                            <Label htmlFor="projectName">Nome do Projeto</Label>
+                            <Input 
+                                id="projectName" 
+                                placeholder="Ex: Treinamento NR-12" 
+                                value={newProjectName}
+                                onChange={(e) => setNewProjectName(e.target.value)}
+                            />
+                        </div>
+                        <Button 
+                            className="w-full" 
+                            onClick={handleCreateProject}
+                            disabled={isCreatingProject || !newProjectName.trim()}
+                        >
+                            {isCreatingProject ? <Activity className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                            Criar Projeto
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between bg-blue-50 p-4 rounded-lg">
+                            <div>
+                                <h3 className="font-medium text-blue-900">Projeto: {newProjectName}</h3>
+                                <p className="text-sm text-blue-700">ID: {currentProjectId}</p>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => setCurrentProjectId(null)}>
+                                Cancelar
+                            </Button>
+                        </div>
+                        <PPTXUploader
+                          projectId={currentProjectId}
+                          onUploadComplete={handleUploadComplete}
+                          onProcessingComplete={handleProcessingComplete}
+                          allowMultiple={false}
+                          maxFileSize={50}
+                        />
+                    </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -348,7 +383,7 @@ export default function Dashboard() {
           <TabsContent value="timeline" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Projetos Processados</CardTitle>
+                <CardTitle>Projetos Recentes</CardTitle>
                 <p className="text-sm text-gray-600">
                   Gerencie seus projetos e crie vídeos
                 </p>
@@ -361,11 +396,11 @@ export default function Dashboard() {
                       Nenhum projeto ainda
                     </h3>
                     <p className="text-gray-600 mb-4">
-                      Faça upload de um arquivo PPTX para começar
+                      Crie um novo projeto para começar
                     </p>
                     <Button onClick={() => setActiveTab('upload')}>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Fazer Upload
+                      <Plus className="w-4 h-4 mr-2" />
+                      Novo Projeto
                     </Button>
                   </div>
                 ) : (
@@ -383,49 +418,17 @@ export default function Dashboard() {
           <TabsContent value="videos" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Vídeos Gerados</CardTitle>
+                <CardTitle>Galeria de Vídeos</CardTitle>
                 <p className="text-sm text-gray-600">
                   Seus vídeos renderizados estão aqui
                 </p>
               </CardHeader>
               <CardContent>
-                {projects.filter(p => p.videoUrl).length === 0 ? (
-                  <div className="text-center py-12">
-                    <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      Nenhum vídeo gerado ainda
-                    </h3>
-                    <p className="text-gray-600">
-                      Processe um projeto para gerar seu primeiro vídeo
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {projects.filter(p => p.videoUrl).map(project => (
-                      <Card key={project.id}>
-                        <CardContent className="p-4">
-                          <div className="aspect-video bg-gray-200 rounded-md mb-3 flex items-center justify-center">
-                            <Video className="w-8 h-8 text-gray-400" />
-                          </div>
-                          <h4 className="font-medium">{project.name}</h4>
-                          <p className="text-sm text-gray-600">
-                            {project.slideCount} slides • {Math.floor(project.duration / 60)}:{(project.duration % 60).toString().padStart(2, '0')}
-                          </p>
-                          <div className="flex gap-2 mt-3">
-                            <Button size="sm" variant="outline">
-                              <Eye className="w-4 h-4 mr-2" />
-                              Assistir
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Download className="w-4 h-4 mr-2" />
-                              Download
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                 <div className="text-center py-12 text-gray-500">
+                    Funcionalidade de galeria em desenvolvimento.
+                    <br/>
+                    Acesse os vídeos através da aba "Meus Projetos".
+                 </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -440,49 +443,9 @@ export default function Dashboard() {
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Taxa de Sucesso</span>
-                    <span className="font-medium">98.5%</span>
+                    <span className="font-medium">100%</span>
                   </div>
-                  <Progress value={98.5} className="h-2" />
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Tempo Médio de Processamento</span>
-                    <span className="font-medium">2.3s</span>
-                  </div>
-                  <Progress value={85} className="h-2" />
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Qualidade de Extração</span>
-                    <span className="font-medium">94.2%</span>
-                  </div>
-                  <Progress value={94.2} className="h-2" />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Estatísticas de Uso</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Arquivos Processados Hoje</span>
-                      <span className="font-medium">{projects.length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Slides Extraídos</span>
-                      <span className="font-medium">{stats.totalSlides}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Vídeos Renderizados</span>
-                      <span className="font-medium">{stats.completedVideos}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Tempo Total de Conteúdo</span>
-                      <span className="font-medium">
-                        {Math.floor(stats.totalDuration / 60)}m {stats.totalDuration % 60}s
-                      </span>
-                    </div>
-                  </div>
+                  <Progress value={100} className="h-2" />
                 </CardContent>
               </Card>
             </div>

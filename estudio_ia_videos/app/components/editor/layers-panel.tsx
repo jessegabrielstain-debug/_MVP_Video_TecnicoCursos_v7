@@ -36,6 +36,7 @@ interface LayersPanelProps {
   onDeleteElement: (elementId: string) => void;
   onDuplicateElement: (elementId: string) => void;
   onCreateLayer: (name?: string) => void;
+  onUpdateLayer: (layerId: string, updates: Partial<EditorLayer>) => void;
 }
 
 export function LayersPanel({
@@ -47,6 +48,7 @@ export function LayersPanel({
   onDeleteElement,
   onDuplicateElement,
   onCreateLayer,
+  onUpdateLayer,
 }: LayersPanelProps) {
   const getElementIcon = (type: string) => {
     switch (type) {
@@ -89,7 +91,7 @@ export function LayersPanel({
           <Button
             variant="ghost"
             size="sm"
-            onClick={onCreateLayer}
+            onClick={() => onCreateLayer()}
           >
             <Plus className="h-3 w-3" />
           </Button>

@@ -6,13 +6,13 @@
  */
 
 import { useState, useCallback } from 'react';
-import { TimelineProject } from '../types/timeline-types';
+import { TimelineProject } from '@/lib/types/timeline-types';
 import { 
   RenderJob, 
   RenderProgress, 
   ExportSettings, 
   QualityPreset 
-} from '../types/remotion-types';
+} from '@/lib/types/remotion-types';
 
 interface RenderJobStats {
   total: number;
@@ -259,7 +259,8 @@ export function useRendering(): UseRenderingReturn {
   const validateProject = useCallback((project: TimelineProject) => {
     const errors: string[] = [];
 
-    if (!project.elements || project.elements.length === 0) {
+    const hasElements = project.layers.some(layer => layer.elements.length > 0);
+    if (!hasElements) {
       errors.push('Projeto não contém elementos');
     }
 
@@ -268,16 +269,18 @@ export function useRendering(): UseRenderingReturn {
     }
 
     // Validar elementos
-    project.elements.forEach((element, index) => {
-      if (!element.id) {
-        errors.push(`Elemento ${index + 1} sem ID`);
-      }
-      if (element.startTime < 0) {
-        errors.push(`Elemento ${index + 1} com tempo inicial inválido`);
-      }
-      if (element.duration <= 0) {
-        errors.push(`Elemento ${index + 1} com duração inválida`);
-      }
+    project.layers.forEach((layer, layerIndex) => {
+      layer.elements.forEach((element, elementIndex) => {
+        if (!element.id) {
+          errors.push(`Elemento ${elementIndex + 1} na camada ${layer.name} sem ID`);
+        }
+        if (element.start < 0) {
+          errors.push(`Elemento ${elementIndex + 1} na camada ${layer.name} com tempo inicial inválido`);
+        }
+        if (element.duration <= 0) {
+          errors.push(`Elemento ${elementIndex + 1} na camada ${layer.name} com duração inválida`);
+        }
+      });
     });
 
     return {

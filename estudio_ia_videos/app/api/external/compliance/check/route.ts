@@ -23,10 +23,30 @@ const ComplianceCheckSchema = z.object({
   }).optional()
 })
 
+type ComplianceCheckParams = z.infer<typeof ComplianceCheckSchema>
+
+interface CheckResult {
+  type: string
+  passed: boolean
+  score: number
+  issues?: string[]
+  flags?: string[]
+  violations?: string[]
+  concerns?: string[]
+  recommendations: string[]
+  [key: string]: unknown
+}
+
+interface ComplianceResult {
+  overall_score: number
+  passed: boolean
+  checks: Record<string, CheckResult>
+}
+
 // Compliance check implementations
 class ComplianceChecker {
-  static async performChecks(params: any): Promise<any> {
-    const results: any = {
+  static async performChecks(params: ComplianceCheckParams): Promise<ComplianceResult> {
+    const results: ComplianceResult = {
       overall_score: 0,
       passed: true,
       checks: {}
@@ -36,7 +56,7 @@ class ComplianceChecker {
     let checkCount = 0
 
     for (const checkType of params.check_types) {
-      let checkResult: any
+      let checkResult: CheckResult | undefined
 
       switch (checkType) {
         case 'accessibility':
@@ -55,12 +75,14 @@ class ComplianceChecker {
           continue
       }
 
-      results.checks[checkType] = checkResult
-      totalScore += checkResult.score
-      checkCount++
+      if (checkResult) {
+        results.checks[checkType] = checkResult
+        totalScore += checkResult.score
+        checkCount++
 
-      if (!checkResult.passed) {
-        results.passed = false
+        if (!checkResult.passed) {
+          results.passed = false
+        }
       }
     }
 
@@ -69,7 +91,7 @@ class ComplianceChecker {
     return results
   }
 
-  private static async checkAccessibility(params: any) {
+  private static async checkAccessibility(params: ComplianceCheckParams): Promise<CheckResult> {
     // Accessibility compliance check
     const issues: string[] = []
     let score = 100
@@ -119,7 +141,7 @@ class ComplianceChecker {
     }
   }
 
-  private static async checkContentRating(params: any) {
+  private static async checkContentRating(params: ComplianceCheckParams): Promise<CheckResult> {
     // Content rating check
     const flags: string[] = []
     let score = 100
@@ -166,7 +188,7 @@ class ComplianceChecker {
     }
   }
 
-  private static async checkCopyright(params: any) {
+  private static async checkCopyright(params: ComplianceCheckParams): Promise<CheckResult> {
     // Copyright compliance check
     const violations: string[] = []
     let score = 100
@@ -216,7 +238,7 @@ class ComplianceChecker {
     }
   }
 
-  private static async checkPrivacy(params: any) {
+  private static async checkPrivacy(params: ComplianceCheckParams): Promise<CheckResult> {
     // Privacy compliance check
     const concerns: string[] = []
     let score = 100
@@ -371,7 +393,7 @@ export async function POST(request: NextRequest) {
 
     // Record usage
     try {
-      await supabaseAdmin
+      await (supabaseAdmin as any)
         .from('external_api_usage')
         .insert({
           user_id: session.user.id,
@@ -393,21 +415,20 @@ export async function POST(request: NextRequest) {
 
     // Log the action for analytics
     try {
-      await supabaseAdmin
+      await (supabaseAdmin as any)
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
-          category: 'external_apis',
-          action: 'compliance_checked',
-          metadata: {
+          event_type: 'external_api_compliance_check',
+          event_data: {
+            category: 'external_apis',
+            action: 'compliance_checked',
             content_type: params.content_type,
             check_types: params.check_types,
             overall_score: results.overall_score,
             passed: results.passed,
-            cost: totalCost,
-            timestamp: new Date().toISOString()
-          },
-          created_at: new Date().toISOString()
+            cost: totalCost
+          }
         })
     } catch (analyticsError) {
       console.warn('Failed to log compliance check:', analyticsError)

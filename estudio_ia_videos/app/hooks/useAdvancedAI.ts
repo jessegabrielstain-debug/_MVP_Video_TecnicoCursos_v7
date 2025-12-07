@@ -349,6 +349,42 @@ export const useAdvancedAI = () => {
     }
   }, []);
 
+  // Generic content analysis
+  const analyzeContent = useCallback(async (
+    content: string,
+    options: {
+      type: string;
+      context?: string;
+      language?: string;
+      maxTags?: number;
+    }
+  ): Promise<any> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch('/api/ai/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content, ...options })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze content');
+      }
+
+      return await response.json();
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to analyze content');
+      return {};
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Optimize content
   const optimizeContent = useCallback(async (
     content: OptimizableContentInput,
@@ -739,6 +775,7 @@ export const useAdvancedAI = () => {
 
     // Content Analysis
     analyzeSentiment,
+    analyzeContent,
     optimizeContent,
 
     // Content Enhancement

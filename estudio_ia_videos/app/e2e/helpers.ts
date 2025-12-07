@@ -1,6 +1,7 @@
+// TODO: Fixar return type async function Promise<string>
 /**
  * E2E Test Helpers
- * 
+ *
  * Funções auxiliares para testes E2E
  */
 
@@ -9,6 +10,38 @@ import { Page, expect } from '@playwright/test';
 // ==========================================
 // AUTHENTICATION HELPERS
 // ==========================================
+
+export const TEST_USERS = {
+  admin: {
+    email: 'test-admin@tecnicocursos.local',
+    password: 'Admin@Test2024!',
+    role: 'admin',
+  },
+} as const;
+
+export async function loginAsAdmin(page: Page) {
+  await page.goto('/login');
+
+  // Prevent Welcome Tour
+  await page.evaluate(() => {
+    localStorage.setItem('hasSeenTour', 'true');
+  });
+  
+  // Preencher formulário
+  await page.fill('input[name="email"]', TEST_USERS.admin.email);
+  await page.fill('input[name="password"]', TEST_USERS.admin.password);
+  
+  // Clicar em Entrar
+  await page.click('button[type="submit"]');
+  
+  // Aguardar redirecionamento para dashboard
+  // Aumentar timeout pois o primeiro login pode ser lento (compilação)
+  await page.waitForURL('**/dashboard', { timeout: 30000 });
+  
+  // Verificar se carregou
+  await page.waitForLoadState('networkidle');
+  console.log(`✅ Logged in as: ${TEST_USERS.admin.email}`);
+}
 
 export async function login(page: Page, email: string = 'test@example.com', password: string = 'Test@12345') {
   await page.goto('/login');
@@ -64,7 +97,7 @@ export async function uploadFile(page: Page, filePath: string) {
   return page.url();
 }
 
-export async function getProjectIdFromUrl(url: string): string {
+export function getProjectIdFromUrl(url: string): string {
   const parts = url.split('/');
   return parts[parts.length - 1];
 }

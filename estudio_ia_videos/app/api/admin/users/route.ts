@@ -7,7 +7,7 @@ import { supabaseAdmin } from '../../../lib/supabase/server';
 async function buildUserContext(userId: string): Promise<UserContext> {
   const admin = supabaseAdmin;
   const { data: rolesData } = await admin.from('user_roles').select('role').eq('user_id', userId);
-  const roles = (rolesData || []).map(r => r.role) as any as UserContext['roles'];
+  const roles = ((rolesData as any[]) || []).map((r: any) => r.role) as unknown as UserContext['roles'];
   return { id: userId, roles: roles.length ? roles : ['viewer'] };
 }
 
@@ -22,12 +22,12 @@ export async function GET(req: NextRequest) {
   // Carregar roles para cada usuário
   const rolesResp = await admin.from('user_roles').select('user_id, role');
   const rolesMap = new Map<string, string[]>();
-  (rolesResp.data || []).forEach(r => {
+  ((rolesResp.data as any[]) || []).forEach((r: any) => {
     const arr = rolesMap.get(r.user_id) || [];
     arr.push(r.role as string);
     rolesMap.set(r.user_id, arr);
   });
-  const users = (usersData || []).map(u => ({ id: u.id, roles: rolesMap.get(u.id) || ['viewer'] }));
+  const users = (usersData || []).map((u: { id: string }) => ({ id: u.id, roles: rolesMap.get(u.id) || ['viewer'] }));
   return NextResponse.json({ users });
 }
 
@@ -43,3 +43,4 @@ export async function POST(req: NextRequest) {
   const updated = await assignRoleWithAudit(targetCtx, role, currentCtx.id);
   return NextResponse.json({ updated });
 }
+

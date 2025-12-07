@@ -272,11 +272,12 @@ O TALKING PHOTO AGORA REALMENTE FUNCIONA!`)
         throw new Error(result.error || 'Falha na geração do talking photo real')
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Erro na geração:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
       alert(`❌ Erro na geração do talking photo:
 
-${error.message || 'Erro desconhecido'}
+${errorMessage}
 
 Tente novamente. Se o problema persistir, verifique se o texto não é muito longo (máx. 3000 caracteres).`)
       setIsGenerating(false)

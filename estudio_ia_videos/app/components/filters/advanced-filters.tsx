@@ -43,7 +43,7 @@ export function AdvancedFilters({
 
   const activeFilterCount = Object.keys(localFilters).filter(key => localFilters[key]).length
 
-  const handleFilterChange = (key: string, value: any) => {
+  const handleFilterChange = (key: string, value: unknown) => {
     const newFilters = { ...localFilters, [key]: value }
     setLocalFilters(newFilters)
     onFilterChange(newFilters)
@@ -111,7 +111,7 @@ export function AdvancedFilters({
                 <label className="text-sm font-medium">{filter.label}</label>
                 {filter.type === 'select' && filter.options && (
                   <Select
-                    value={localFilters[filter.key] || 'all'}
+                    value={(localFilters[filter.key] as string) || 'all'}
                     onValueChange={(value) => handleFilterChange(filter.key, value === 'all' ? null : value)}
                   >
                     <SelectTrigger>
@@ -129,7 +129,7 @@ export function AdvancedFilters({
                 )}
                 {filter.type === 'text' && (
                   <Input
-                    value={localFilters[filter.key] || ''}
+                    value={(localFilters[filter.key] as string) || ''}
                     onChange={(e) => handleFilterChange(filter.key, e.target.value)}
                     placeholder={`Buscar ${filter.label.toLowerCase()}...`}
                   />
@@ -186,7 +186,7 @@ export function AdvancedFilters({
             const filter = filters.find(f => f.key === key)
             if (!filter) return null
 
-            const label = filter.options?.find(o => o.value === value)?.label || value
+            const label = filter.options?.find(o => o.value === value)?.label || String(value)
 
             return (
               <Badge key={key} variant="secondary" className="pl-2 pr-1">

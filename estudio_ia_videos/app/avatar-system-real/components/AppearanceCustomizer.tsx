@@ -1,3 +1,4 @@
+// TODO: Fixar tipos AppearanceSettings após estabilizar interface
 'use client';
 
 import React, { useState } from 'react';
@@ -668,7 +669,7 @@ export default function AppearanceCustomizer({
                   <Button
                     key={preset.name}
                     variant="outline"
-                    onClick={() => loadPreset(preset.settings)}
+                    onClick={() => loadPreset(preset.settings as AppearanceSettings)}
                     className="h-auto p-4 flex flex-col items-center gap-2"
                   >
                     <Crown className="h-6 w-6" />

@@ -52,7 +52,7 @@ export function RecentProjects({ loading, projects = [] }: RecentProjectsProps) 
               Comece criando seu primeiro vídeo de treinamento
             </p>
             <Button asChild>
-              <Link href="/editor-canvas">
+              <Link href="/editor-canvas" prefetch={false}>
                 Criar Primeiro Vídeo
               </Link>
             </Button>
@@ -67,7 +67,7 @@ export function RecentProjects({ loading, projects = [] }: RecentProjectsProps) 
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Projetos Recentes</h2>
         <Button variant="ghost" asChild>
-          <Link href="/projects">Ver todos</Link>
+          <Link href="/dashboard/projects">Ver todos</Link>
         </Button>
       </div>
       
@@ -97,7 +97,7 @@ export function RecentProjects({ loading, projects = [] }: RecentProjectsProps) 
                     className="opacity-0 group-hover:opacity-100 transition-opacity"
                     asChild
                   >
-                    <Link href={`/editor-canvas?project=${project.id}`}>
+                    <Link href={`/editor-canvas?project=${project.id}`} prefetch={false}>
                       <Play className="h-5 w-5" />
                     </Link>
                   </Button>

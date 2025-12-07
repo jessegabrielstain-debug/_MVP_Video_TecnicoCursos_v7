@@ -1,18 +1,21 @@
 
+export const dynamic = 'force-dynamic';
+
 /**
  * 📊 API: Review Statistics
  * Estatísticas de revisões
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { reviewWorkflowService } from '@/lib/collab/review-workflow';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user?.id) {
+    const supabase = getSupabaseForRequest(request);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
@@ -21,26 +24,21 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    if (!startDate || !endDate) {
-      return NextResponse.json(
-        { error: 'startDate e endDate são obrigatórios' },
-        { status: 400 }
-      );
-    }
-
     const stats = await reviewWorkflowService.getReviewStats({
+      userId: user.id,
       organizationId: organizationId || undefined,
-      userId: session.user.id,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
     });
 
     return NextResponse.json({ stats });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao buscar estatísticas de revisão:', error);
     return NextResponse.json(
-      { error: error.message || 'Erro ao buscar estatísticas' },
+      { error: error instanceof Error ? error.message : 'Erro ao buscar estatísticas' },
       { status: 500 }
     );
   }
 }
+
+

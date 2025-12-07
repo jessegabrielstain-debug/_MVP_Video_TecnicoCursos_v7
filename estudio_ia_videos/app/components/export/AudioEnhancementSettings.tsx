@@ -66,10 +66,7 @@ export function AudioEnhancementSettings({
    * Add enhancement
    */
   const addEnhancement = (type: AudioEnhancementType) => {
-    const newEnhancement = AudioProcessor.createEnhancement(
-      type,
-      DEFAULT_ENHANCEMENT_VALUES[type]
-    )
+    const newEnhancement = AudioProcessor.createEnhancement(type)
     onChange([...enhancements, newEnhancement])
   }
 
@@ -246,6 +243,7 @@ function EnhancementControl({ enhancement, onUpdate, onRemove }: EnhancementCont
       [AudioEnhancementType.FADE_IN]: 'Fade In',
       [AudioEnhancementType.FADE_OUT]: 'Fade Out',
       [AudioEnhancementType.EQUALIZER]: 'Equalizador',
+      [AudioEnhancementType.EQUALIZATION]: 'Equalização',
       [AudioEnhancementType.BASS_BOOST]: 'Realce de Graves',
       [AudioEnhancementType.TREBLE_BOOST]: 'Realce de Agudos',
       [AudioEnhancementType.VOLUME]: 'Volume',

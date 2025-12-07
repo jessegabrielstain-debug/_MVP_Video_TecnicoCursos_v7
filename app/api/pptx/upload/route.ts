@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use server";
 
 /**
@@ -8,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createRateLimiter, rateLimitPresets } from '@/lib/utils/rate-limit-middleware'
 import { getServerSession } from 'next-auth'
 import { randomUUID } from 'crypto'
 import path from 'path'
@@ -15,6 +15,9 @@ import { promises as fs } from 'fs'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { PPTXProcessor } from '@/lib/pptx/pptx-processor'
+import { createStorage } from '@/lib/storage'
+import { captureError } from '@/lib/observability'
+import { incUploadRequest, incUploadError } from '@/lib/metrics'
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024 // 50MB
 const ALLOWED_EXTENSIONS = ['.pptx', '.ppt', '.odp']
@@ -63,8 +66,11 @@ function sanitizeFileName(name: string) {
     .replace(/\s+/g, '_')
 }
 
+const rateLimiterUpload = createRateLimiter(rateLimitPresets.upload)
 export async function POST(request: NextRequest) {
+  return rateLimiterUpload(request, async (request: NextRequest) => {
   try {
+    incUploadRequest()
     const formData = await request.formData()
     const file = formData.get('file')
 
@@ -109,13 +115,27 @@ export async function POST(request: NextRequest) {
     const parsed = await pptxProcessor.parse(buffer)
 
     const safeFileName = `${Date.now()}-${sanitizeFileName(originalFileName)}`
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'pptx')
-    await fs.mkdir(uploadDir, { recursive: true })
-
-    const storedFilePath = path.join(uploadDir, safeFileName)
-    await fs.writeFile(storedFilePath, buffer)
-
-    const publicUrl = `/uploads/pptx/${safeFileName}`.replace(/\\/g, '/')
+    const storage = createStorage()
+    async function saveWithRetry() {
+      let attempt = 0
+      const max = 3
+      while (attempt < max) {
+        try {
+          const result = await storage.saveFile(
+            buffer,
+            `pptx/${safeFileName}`,
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+          )
+          return result
+        } catch (e) {
+          attempt++
+          if (attempt >= max) throw e
+          await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt - 1)))
+        }
+      }
+      throw new Error('saveWithRetry failed')
+    }
+    const { url: publicUrl } = await saveWithRetry()
 
     const session = await getServerSession(authOptions).catch(() => null)
     let userId = session?.user?.id ?? (formData.get('userId') as string | null) ?? undefined
@@ -237,6 +257,8 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('PPTX upload error:', error)
+    captureError(error)
+    incUploadError()
 
     return buildErrorResponse({
       code: 'INTERNAL_ERROR',
@@ -244,4 +266,5 @@ export async function POST(request: NextRequest) {
       status: 500
     })
   }
+  })
 }

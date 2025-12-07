@@ -40,6 +40,16 @@ export const VideoJobInputSchema = z.object({
   slides: z.array(SlideInputSchema).min(1, 'Pelo menos um slide é necessário'),
   tts_voice: z.string().optional(),
   quality: z.enum(['low', 'medium', 'high']).default('medium'),
+  flow: z
+    .object({
+      enabled: z.boolean().default(false),
+      bpmSource: z.enum(['auto', 'manual']).default('auto'),
+      bpmManual: z.number().positive().optional(),
+      beatToleranceMs: z.number().int().positive().max(200).default(25),
+      crossfadeRatio: z.number().min(0.2).max(0.6).default(0.35),
+      sidechain: z.object({ threshold: z.number().min(0).default(0.015), ratio: z.number().min(1).max(10).default(4) }).optional(),
+    })
+    .optional(),
 });
 
 export type SlideInput = z.infer<typeof SlideInputSchema>;

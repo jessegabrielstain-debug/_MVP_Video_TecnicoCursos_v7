@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * 📊 Timeline Analytics API - Detailed Usage Statistics
  * Sprint 44 - Analytics and insights for timeline usage
@@ -6,7 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
 
 // Types for analytics data structures
 interface Track {
@@ -22,18 +25,19 @@ interface Clip {
   effects?: unknown[];
 }
 
-interface Timeline {
-  id: string;
-  version: number;
-  totalDuration: number;
-  tracks: Track[];
-  settings?: TimelineSettings;
-  updatedAt: Date;
-}
-
 interface TimelineSettings {
   quality?: '4k' | 'hd' | 'sd';
   [key: string]: unknown;
+}
+
+// Helper interface to match Prisma output
+interface TimelineData {
+  id: string;
+  version: number;
+  totalDuration: number | null;
+  tracks: Prisma.JsonValue;
+  settings: Prisma.JsonValue;
+  updatedAt: Date;
 }
 
 interface TimelineSnapshot {
@@ -127,7 +131,7 @@ type AnalyticsData = AnalyticsSummary | UsageStats | PerformanceMetrics | Editin
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
@@ -176,7 +180,7 @@ export async function GET(request: NextRequest) {
 
     switch (type) {
       case 'summary':
-        analytics = await getTimelineSummary(timeline as unknown as Timeline, projectId);
+        analytics = await getTimelineSummary(timeline, projectId);
         break;
 
       case 'usage':
@@ -184,7 +188,7 @@ export async function GET(request: NextRequest) {
         break;
 
       case 'performance':
-        analytics = await getPerformanceMetrics(timeline as unknown as Timeline);
+        analytics = await getPerformanceMetrics(timeline);
         break;
 
       case 'editing_patterns':
@@ -216,8 +220,8 @@ export async function GET(request: NextRequest) {
 /**
  * Timeline Summary Analytics
  */
-async function getTimelineSummary(timeline: Timeline, projectId: string): Promise<AnalyticsSummary> {
-  const tracks = timeline.tracks || [];
+async function getTimelineSummary(timeline: TimelineData, projectId: string): Promise<AnalyticsSummary> {
+  const tracks = (timeline.tracks as unknown as Track[]) || [];
   
   // Calculate basic metrics
   const totalClips = tracks.reduce((sum: number, track: Track) => 
@@ -243,7 +247,7 @@ async function getTimelineSummary(timeline: Timeline, projectId: string): Promis
   return {
     overview: {
       version: timeline.version,
-      totalDuration: timeline.totalDuration,
+      totalDuration: timeline.totalDuration || 0,
       tracksCount: tracks.length,
       clipsCount: totalClips,
       keyframesCount: totalKeyframes,
@@ -256,7 +260,7 @@ async function getTimelineSummary(timeline: Timeline, projectId: string): Promis
         ? Math.round((totalKeyframes / tracks.length) * 100) / 100 
         : 0,
     },
-    settings: timeline.settings || {},
+    settings: (timeline.settings as unknown as TimelineSettings) || {},
     lastUpdated: timeline.updatedAt,
   };
 }
@@ -322,8 +326,9 @@ async function getUsageStats(projectId: string): Promise<UsageStats> {
 /**
  * Performance Metrics
  */
-async function getPerformanceMetrics(timeline: Timeline): Promise<PerformanceMetrics> {
-  const tracks = timeline.tracks || [];
+async function getPerformanceMetrics(timeline: TimelineData): Promise<PerformanceMetrics> {
+  const tracks = (timeline.tracks as unknown as Track[]) || [];
+  const settings = (timeline.settings as unknown as TimelineSettings) || {};
   
   // Calculate complexity score
   const totalElements = tracks.reduce((sum: number, track: Track) => 
@@ -359,9 +364,9 @@ async function getPerformanceMetrics(timeline: Timeline): Promise<PerformanceMet
 
   // Estimate render time (simplified)
   const estimatedRenderTime = Math.round(
-    (timeline.totalDuration / 60) * 
+    ((timeline.totalDuration || 0) / 60) * 
     (1 + (complexityScore * 0.5)) * 
-    (timeline.settings?.quality === '4k' ? 3 : timeline.settings?.quality === 'hd' ? 2 : 1)
+    (settings.quality === '4k' ? 3 : settings.quality === 'hd' ? 2 : 1)
   );
 
   const effectsCount = tracks.reduce((sum: number, t: Track) => 
@@ -468,3 +473,5 @@ async function getEditingPatterns(projectId: string): Promise<EditingPatterns> {
     },
   };
 }
+
+

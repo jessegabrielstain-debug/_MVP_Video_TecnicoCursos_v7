@@ -1,7 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface Slide {
+  id: string
+  title: string
+  content: string
+  duration: number
+  background: string
+}
+
+interface Template {
+  id: string
+  name: string
+  description: string
+  category: string
+  author: string
+  version: string
+  createdAt: string
+  updatedAt: string
+  downloads: number
+  rating: number
+  isCustom: boolean
+  isFavorite: boolean
+  tags: string[]
+  content: {
+    slides: Slide[]
+    settings: {
+      resolution: {
+        width: number
+        height: number
+      }
+      frameRate: number
+      duration: number
+    }
+  }
+  metadata: {
+    usage: {
+      downloads: number
+      lastUsed: Date
+    }
+  }
+  [key: string]: unknown
+}
+
 // Mock database - em produção, usar banco de dados real
-let templates: any[] = [];
+let templates: Template[] = [];
 
 // GET - Exportar template
 export async function GET(
@@ -27,7 +69,7 @@ export async function GET(
     template.metadata.usage.downloads += 1;
     template.metadata.usage.lastUsed = new Date();
 
-    let exportData: any;
+    let exportData: string;
     let contentType: string;
     let filename: string;
 
@@ -84,7 +126,7 @@ export async function GET(
   }
 }
 
-function convertToXml(template: any): string {
+function convertToXml(template: Template): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <template>
   <id>${template.id}</id>
@@ -104,7 +146,7 @@ function convertToXml(template: any): string {
   </tags>
   <content>
     <slides>
-      ${template.content.slides.map((slide: any) => `
+      ${template.content.slides.map((slide: Slide) => `
       <slide>
         <id>${slide.id}</id>
         <title><![CDATA[${slide.title}]]></title>

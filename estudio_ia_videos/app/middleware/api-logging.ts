@@ -1,6 +1,6 @@
 /**
  * Middleware de Logging para APIs do Next.js
- * 
+ *
  * Intercepta requests e responses para logging estruturado
  * e métricas de performance
  */
@@ -13,7 +13,10 @@ import monitoring from './monitoring';
 // TIPOS
 // ==========================================
 
-type LoggableBody = Record<string, unknown> | Array<unknown> | string | number | boolean | null;
+type LoggableValue = string | number | boolean | null | undefined;
+type LoggableObject = { [key: string]: LoggableValue | LoggableObject | LoggableArray };
+type LoggableArray = Array<LoggableValue | LoggableObject | LoggableArray>;
+type LoggableBody = LoggableObject | LoggableArray | LoggableValue;
 
 interface RequestLog {
   method: string;
@@ -46,7 +49,7 @@ function getUserId(request: NextRequest): string | undefined {
     const authHeader = request.headers.get('authorization');
     if (authHeader) {
       // Decodificar JWT e extrair userId (simplificado)
-      const token = authHeader.replace('Bearer ', '');
+      // const token = authHeader.replace('Bearer ', '');
       // TODO: Implementar decodificação JWT real
       return 'user_from_token';
     }
@@ -57,7 +60,7 @@ function getUserId(request: NextRequest): string | undefined {
       return 'user_from_session';
     }
   } catch (error) {
-    logger.warn('Erro ao extrair userId', error);
+    logger.warn('Erro ao extrair userId', { error });
   }
 
   return undefined;
@@ -70,9 +73,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function sanitizeData(data: LoggableBody): LoggableBody {
+function sanitizeData(data: unknown): unknown {
   if (Array.isArray(data)) {
-    return data.map((item) => (isRecord(item) || Array.isArray(item) ? sanitizeData(item as LoggableBody) : item));
+    return data.map((item) => sanitizeData(item));
   }
 
   if (!isRecord(data)) {
@@ -89,8 +92,8 @@ function sanitizeData(data: LoggableBody): LoggableBody {
     }
 
     const value = sanitized[key];
-    if (isRecord(value) || Array.isArray(value)) {
-      sanitized[key] = sanitizeData(value as LoggableBody);
+    if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeData(value);
     }
   }
 
@@ -148,7 +151,7 @@ export async function withLogging<T = unknown>(
       const bodyText = await request.text();
       if (bodyText) {
         const body = JSON.parse(bodyText);
-        requestLog.body = sanitizeData(body);
+        requestLog.body = sanitizeData(body) as LoggableBody;
 
         // Recriar request com body (pois foi consumido)
         request = new NextRequest(request.url, {
@@ -158,7 +161,7 @@ export async function withLogging<T = unknown>(
         });
       }
     } catch (error) {
-      logger.warn('Erro ao parsear body do request', error);
+      logger.warn('Erro ao parsear body do request', { error });
     }
   }
 

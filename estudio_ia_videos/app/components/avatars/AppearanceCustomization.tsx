@@ -352,7 +352,18 @@ export default function AppearanceCustomization({
     if (preset) {
       setAppearanceSettings(prev => ({
         ...prev,
-        ...preset
+        face: { ...prev.face, ...preset.face },
+        hair: { ...prev.hair, ...preset.hair },
+        clothing: { 
+          ...prev.clothing, 
+          ...preset.clothing,
+          colors: { ...prev.clothing.colors, ...preset.clothing.colors }
+        },
+        accessories: { 
+          ...prev.accessories, 
+          ...preset.accessories,
+          makeup: { ...prev.accessories.makeup, ...preset.accessories.makeup }
+        }
       }));
       toast.success(`Preset "${presetName}" aplicado!`);
     }

@@ -1,4 +1,3 @@
-
 /**
  * 📊 Estúdio IA de Vídeos - Sprint 5
  * Dashboard de Video Analytics Avançado
@@ -443,7 +442,7 @@ export default function VideoAnalyticsDashboard({ videoId }: VideoAnalyticsDashb
                   />
                   <YAxis tickFormatter={(value) => `${(value * 100).toFixed(0)}%`} />
                   <Tooltip 
-                    formatter={(value) => [`${(value * 100).toFixed(1)}%`, 'Retenção']}
+                    formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, 'Retenção']}
                     labelFormatter={(value) => `Tempo: ${Math.floor(value / 60)}:${(value % 60).toString().padStart(2, '0')}`}
                   />
                   <Area 

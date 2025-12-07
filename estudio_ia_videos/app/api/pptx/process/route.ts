@@ -8,7 +8,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { workflowManager } from '../../unified/route'
+import { workflowManager } from '@/lib/workflow/unified-workflow-manager'
+// @ts-expect-error - formidable types não disponíveis nesta versão
 import formidable from 'formidable'
 import fs from 'fs'
 import path from 'path'
@@ -113,12 +114,12 @@ class PPTXProcessor {
       await prisma.project.update({
         where: { id: projectId },
         data: {
-          metadata: {
+          metadata: JSON.parse(JSON.stringify({
             slides: slides,
             totalSlides: slides.length,
             extractedAt: new Date().toISOString(),
             autoTTSEnabled: true
-          }
+          }))
         }
       })
 
@@ -130,7 +131,7 @@ class PPTXProcessor {
     }
   }
 
-  async convertSlidesToVideoData(slides: PPTXSlide[]): Promise<any> {
+  async convertSlidesToVideoData(slides: PPTXSlide[]): Promise<Record<string, unknown>> {
     return {
       scenes: slides.map((slide, index) => ({
         id: slide.id,
@@ -153,7 +154,7 @@ class PPTXProcessor {
     }
   }
 
-  async generateAutoTTS(slides: PPTXSlide[], projectId: string): Promise<any> {
+  async generateAutoTTS(slides: PPTXSlide[], projectId: string): Promise<Record<string, unknown>> {
     try {
       console.log('🎤 Iniciando geração automática de TTS...')
       
@@ -195,7 +196,7 @@ class PPTXProcessor {
       await prisma.project.update({
         where: { id: projectId },
         data: {
-          metadata: {
+          metadata: JSON.parse(JSON.stringify({
             slides: slides,
             totalSlides: slides.length,
             extractedAt: new Date().toISOString(),
@@ -203,7 +204,7 @@ class PPTXProcessor {
             ttsJobs: ttsJobs,
             ttsConfig: defaultTTSConfig,
             ttsGeneratedAt: new Date().toISOString()
-          }
+          }))
         }
       })
 
@@ -213,7 +214,7 @@ class PPTXProcessor {
         success: true,
         ttsJobs,
         config: defaultTTSConfig,
-        totalAudioDuration: ttsJobs.reduce((total, job) => total + job.duration, 0)
+        totalAudioDuration: ttsJobs.reduce((total, job) => total + (job.duration as number), 0)
       }
 
     } catch (error) {
@@ -222,7 +223,7 @@ class PPTXProcessor {
     }
   }
 
-  private async callTTSAPI(request: TTSRequest, slideId: string): Promise<any> {
+  private async callTTSAPI(request: TTSRequest, slideId: string): Promise<Record<string, unknown>> {
     // Simular chamada para API de TTS (ElevenLabs, Azure, etc.)
     await new Promise(resolve => setTimeout(resolve, 1000)) // Simular delay
 
@@ -235,7 +236,7 @@ class PPTXProcessor {
     }
   }
 
-  async triggerAvatarGeneration(projectId: string, slides: PPTXSlide[]): Promise<any> {
+  async triggerAvatarGeneration(projectId: string, slides: PPTXSlide[]): Promise<Record<string, unknown>> {
     try {
       console.log('👤 Iniciando geração automática de Avatar...')
       
@@ -456,7 +457,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const metadata = project.metadata as Record<string, unknown> | null
-    const slides = metadata?.slides || []
+    const slides = (metadata?.slides || []) as PPTXSlide[]
     
     // Filtrar slides para regenerar TTS
     const slidesToProcess = slides.filter((slide: PPTXSlide) => 

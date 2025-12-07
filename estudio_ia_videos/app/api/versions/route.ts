@@ -1,3 +1,4 @@
+// TODO: Fix Prisma includes type
 
 /**
  * POST /api/versions
@@ -9,14 +10,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth/auth-config'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
 
 const getUserId = (user: unknown): string => ((user as { id?: string }).id || '');
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -45,12 +46,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Conta versões existentes para incrementar
-    const versionCount = await prisma.projectVersion.count({
+    const versionCount = await (prisma as any).projectVersion.count({
       where: { projectId }
     })
 
     // Cria nova versão
-    const version = await prisma.projectVersion.create({
+    const version = await (prisma as any).projectVersion.create({
       data: {
         projectId,
         userId: getUserId(session.user),
@@ -72,11 +73,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-
-const getUserId = (user: unknown): string => ((user as { id?: string }).id || '');
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -92,7 +91,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Busca versões
-    const versions = await prisma.projectVersion.findMany({
+    const versions = await (prisma as any).projectVersion.findMany({
       where: { projectId },
       include: {
         user: {
@@ -115,3 +114,5 @@ export async function GET(req: NextRequest) {
     )
   }
 }
+
+

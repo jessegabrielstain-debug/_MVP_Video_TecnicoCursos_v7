@@ -84,7 +84,7 @@ export interface AnimationTrack {
   property: string;
   type: PropertyType;
   keyframes: Keyframe[];
-  defaultValue: any;
+  defaultValue: unknown;
   enabled: boolean;
   color: string;
   interpolation: InterpolationType;
@@ -94,7 +94,7 @@ export interface AnimationTrack {
 export interface Keyframe {
   id: string;
   time: number;
-  value: any;
+  value: unknown;
   easing: EasingType;
   interpolation: InterpolationType;
   tangentMode: TangentMode;
@@ -234,7 +234,7 @@ export interface TrackEffect {
 }
 
 export interface EffectParameters {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Color and Styling
@@ -430,7 +430,7 @@ export interface HistoryState {
   id: string;
   action: string;
   timestamp: Date;
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export interface ExportSettings {
@@ -484,12 +484,12 @@ export interface PlaybackSettings {
 
 export interface MediaFilter {
   type: string;
-  parameters: { [key: string]: any };
+  parameters: Record<string, unknown>;
 }
 
 export interface AudioEffect {
   type: string;
-  parameters: { [key: string]: any };
+  parameters: Record<string, unknown>;
 }
 
 export interface AudioVisualizationSettings {
@@ -509,7 +509,7 @@ export interface AvatarModel {
 
 export interface AvatarAnimation {
   type: 'idle' | 'talking' | 'gesture' | 'custom';
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export interface VoiceSettings {
@@ -600,11 +600,11 @@ export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-export type KeyframeValue<T = any> = {
+export type KeyframeValue<T = unknown> = {
   time: number;
   value: T;
   easing?: EasingType;
   interpolation?: InterpolationType;
 };
 
-export type AnimationCurve<T = any> = KeyframeValue<T>[];
+export type AnimationCurve<T = unknown> = KeyframeValue<T>[];

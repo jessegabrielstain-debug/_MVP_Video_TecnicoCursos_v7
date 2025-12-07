@@ -4,7 +4,7 @@ import { Database } from './database.types';
 
 // Criando o cliente Supabase para uso no lado do servidor
 export const createServerSupabaseClient = () => {
-  const cookieStore = cookies();
+  // const cookieStore = cookies(); // Cookies not supported in plain supabase-js client
   
   return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,11 +14,7 @@ export const createServerSupabaseClient = () => {
         persistSession: false,
         autoRefreshToken: false,
       },
-      cookies: {
-        get(name) {
-          return cookieStore.get(name)?.value;
-        },
-      },
+      // cookies option removed as it is not supported by supabase-js createClient
     }
   );
 };

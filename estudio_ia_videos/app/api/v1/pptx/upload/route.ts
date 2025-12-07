@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { pptxProcessor, PPTXExtractionResult } from '@/lib/pptx/pptx-real-processor';
+import { PPTXProcessorReal, PPTXExtractionResult } from '@/lib/pptx/pptx-processor-real';
 
 // Configuração do endpoint - Next.js 14 format
 export const maxDuration = 60; // 60 seconds
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     
     // Processa PPTX
     console.log(`⚙️ Iniciando processamento com ID: ${processingId}`);
-    const result = await pptxProcessor.processBuffer(buffer, file.name);
+    const result = await PPTXProcessorReal.extract(buffer);
     
     // Armazena resultado no cache
     processingCache.set(processingId, result);
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     
     // Retorna resposta de sucesso
     const response: UploadResponse = {
-      success: true,
+      success: result.success,
       message: result.success 
         ? `Arquivo processado com sucesso! ${result.slides.length} slides encontrados.`
         : `Erro no processamento: ${result.error}`,

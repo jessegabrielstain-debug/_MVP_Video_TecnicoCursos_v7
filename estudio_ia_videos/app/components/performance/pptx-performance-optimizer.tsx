@@ -31,7 +31,6 @@ import {
   BarChart3,
   TrendingUp,
   Cpu,
-  Memory,
   HardDrive,
   Wifi,
   AlertTriangle,
@@ -56,11 +55,36 @@ interface PerformanceMetrics {
   largestContentfulPaint: number
 }
 
+interface Slide {
+  id: string
+  title: string
+  duration: number
+  content: string
+}
+
+interface TimelineItem {
+  id: string
+  name: string
+  type: string
+  duration: number
+  size: number
+  startTime: number
+}
+
+interface Asset {
+  id: string
+  name: string
+  type: string
+  url: string
+  thumbnail?: string
+  size: number
+}
+
 interface OptimizedComponentProps {
   id: string
-  data: any[]
+  data: unknown[]
   onSelectionChange?: (selection: string[]) => void
-  renderItem: (item: any, index: number) => React.ReactNode
+  renderItem: (item: unknown, index: number) => React.ReactNode
   itemHeight?: number | ((index: number) => number)
   overscan?: number
   enableVirtualization?: boolean
@@ -70,7 +94,7 @@ interface OptimizedComponentProps {
 
 // Memoized Timeline Item Component
 const TimelineItemMemo = memo<{
-  item: any
+  item: TimelineItem
   index: number
   isSelected: boolean
   onSelect: (id: string) => void
@@ -110,7 +134,7 @@ TimelineItemMemo.displayName = 'TimelineItemMemo'
 
 // Virtualized List Component
 const VirtualizedTimelineList = memo<{
-  items: any[]
+  items: TimelineItem[]
   selectedItems: Set<string>
   onSelectionChange: (id: string) => void
   height: number
@@ -284,7 +308,7 @@ const PerformanceMonitor = memo(() => {
               {getMetricIcon(60 - metrics.frameRate, { good: 10, warning: 20 })}
             </div>
             <div className="flex items-center space-x-2">
-              <Progress value={metrics.frameRate} max={60} className="flex-1" />
+              <Progress value={(metrics.frameRate / 60) * 100} className="flex-1" />
               <span className={`text-xs font-mono ${getMetricColor(60 - metrics.frameRate, { good: 10, warning: 20 })}`}>
                 {metrics.frameRate.toFixed(1)} fps
               </span>
@@ -415,11 +439,11 @@ PerformanceMonitor.displayName = 'PerformanceMonitor'
 
 // Optimized Editor Component
 interface OptimizedPPTXEditorProps {
-  slides: any[]
-  timeline: any[]
-  assets: any[]
+  slides: Slide[]
+  timeline: TimelineItem[]
+  assets: Asset[]
   onSlideChange?: (slideId: string) => void
-  onTimelineUpdate?: (timeline: any[]) => void
+  onTimelineUpdate?: (timeline: TimelineItem[]) => void
 }
 
 const OptimizedPPTXEditor = memo<OptimizedPPTXEditorProps>(({
@@ -460,7 +484,7 @@ const OptimizedPPTXEditor = memo<OptimizedPPTXEditorProps>(({
   }, [assets])
 
   // Performance-optimized render functions
-  const renderSlideItem = useCallback((item: any, index: number) => (
+  const renderSlideItem = useCallback((item: Slide, index: number) => (
     <motion.div
       key={item.id}
       className="p-4 border rounded-lg cursor-pointer hover:bg-accent"
@@ -476,7 +500,7 @@ const OptimizedPPTXEditor = memo<OptimizedPPTXEditorProps>(({
     </motion.div>
   ), [handleSlideSelect])
 
-  const renderAssetItem = useCallback((item: any, index: number) => (
+  const renderAssetItem = useCallback((item: Asset, index: number) => (
     <div key={item.id} className="relative group">
       <LazyImage
         src={item.thumbnail || item.url}
@@ -562,9 +586,9 @@ OptimizedPPTXEditor.displayName = 'OptimizedPPTXEditor'
 interface PPTXPerformanceOptimizerProps {
   projectId: string
   initialData?: {
-    slides: any[]
-    timeline: any[]
-    assets: any[]
+    slides: Slide[]
+    timeline: TimelineItem[]
+    assets: Asset[]
   }
   showPerformanceMonitor?: boolean
 }
@@ -586,14 +610,14 @@ export default function PPTXPerformanceOptimizer({
       await new Promise(resolve => setTimeout(resolve, 500))
       
       // Generate mock data for demonstration
-      const slides = Array.from({ length: 20 }, (_, i) => ({
+      const slides: Slide[] = Array.from({ length: 20 }, (_, i) => ({
         id: `slide-${i}`,
         title: `Slide ${i + 1}`,
         duration: Math.floor(Math.random() * 10) + 3,
         content: `Content for slide ${i + 1}`
       }))
 
-      const timeline = Array.from({ length: 100 }, (_, i) => ({
+      const timeline: TimelineItem[] = Array.from({ length: 100 }, (_, i) => ({
         id: `timeline-${i}`,
         name: `Timeline Item ${i + 1}`,
         type: ['video', 'audio', 'text', 'image'][Math.floor(Math.random() * 4)],
@@ -602,7 +626,7 @@ export default function PPTXPerformanceOptimizer({
         startTime: i * 2
       }))
 
-      const assets = Array.from({ length: 50 }, (_, i) => ({
+      const assets: Asset[] = Array.from({ length: 50 }, (_, i) => ({
         id: `asset-${i}`,
         name: `Asset ${i + 1}`,
         type: ['image', 'video'][Math.floor(Math.random() * 2)],

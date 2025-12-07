@@ -65,7 +65,7 @@ interface ChatMessage {
   message: string;
   timestamp: Date;
   type: 'text' | 'system' | 'ai_suggestion' | 'file' | 'mention';
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 interface CollaborationSession {
@@ -677,7 +677,7 @@ export default function CollaborativeEditor() {
                               {message.type === 'ai_suggestion' && message.metadata && (
                                 <div className="mt-2 pt-2 border-t border-purple-600/30 flex items-center justify-between">
                                   <span className="text-xs text-purple-400">
-                                    Confiança: {(message.metadata.confidence * 100).toFixed(0)}%
+                                    Confiança: {((message.metadata.confidence as number) * 100).toFixed(0)}%
                                   </span>
                                   <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-xs px-2 py-1">
                                     Aplicar

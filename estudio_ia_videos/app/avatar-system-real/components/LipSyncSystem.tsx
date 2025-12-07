@@ -1,3 +1,4 @@
+// TODO: Fixar tipos
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -15,7 +16,6 @@ import {
   Upload,
   Download,
   Volume2,
-  Mic,
   Settings,
   Eye,
   RotateCcw

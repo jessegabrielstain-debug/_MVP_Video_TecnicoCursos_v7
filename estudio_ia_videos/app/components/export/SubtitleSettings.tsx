@@ -32,7 +32,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-interface SubtitleConfig {
+export interface SubtitleConfig {
   enabled: boolean
   source?: string // file path
   format?: SubtitleFormat

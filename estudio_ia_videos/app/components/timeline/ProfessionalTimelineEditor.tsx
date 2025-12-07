@@ -53,6 +53,7 @@ import {
   ChevronRight,
   ChevronDown
 } from 'lucide-react';
+import { UnifiedPreviewPlayer } from '../editor/unified-preview-player';
 
 // Types
 interface TimelineElement {
@@ -361,222 +362,8 @@ function TimelineElementComponent({
   );
 }
 
-// Timeline Track Component
-function TimelineTrackComponent({ 
-  track, 
-  pixelsPerSecond, 
-  duration, 
-  selectedElements, 
-  onElementSelect, 
-  onElementEdit, 
-  onElementDelete,
-  onElementDurationChange,
-  onTrackUpdate,
-  onAddElement
-}: {
-  track: TimelineTrack;
-  pixelsPerSecond: number;
-  duration: number;
-  selectedElements: string[];
-  onElementSelect: (id: string, multiSelect?: boolean) => void;
-  onElementEdit: (element: TimelineElement) => void;
-  onElementDelete: (id: string) => void;
-  onElementDurationChange: (elementId: string, newDuration: number) => void;
-  onTrackUpdate: (track: TimelineTrack) => void;
-  onAddElement: (trackId: string, type: TimelineElement['type']) => void;
-}) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: track.id,
-  });
-
-  return (
-    <div className={`flex border-b border-gray-700 ${isOver ? 'bg-blue-900/20' : ''}`}>
-      {/* Track Header */}
-      <div className="w-60 flex-shrink-0 bg-gray-800 border-r border-gray-700 p-3">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onTrackUpdate({ ...track, collapsed: !track.collapsed })}
-              className="w-5 h-5 p-0"
-            >
-              {track.collapsed ? 
-                <ChevronRight className="w-3 h-3" /> : 
-                <ChevronDown className="w-3 h-3" />
-              }
-            </Button>
-            <h3 className="text-sm font-medium text-white truncate">{track.name}</h3>
-          </div>
-          
-          <div className="flex gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onTrackUpdate({ ...track, visible: !track.visible })}
-              className="w-6 h-6 p-0"
-              title={track.visible ? 'Ocultar track' : 'Mostrar track'}
-            >
-              {track.visible ? 
-                <Eye className="w-3 h-3 text-gray-400" /> : 
-                <EyeOff className="w-3 h-3 text-gray-500" />
-              }
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onTrackUpdate({ ...track, locked: !track.locked })}
-              className="w-6 h-6 p-0"
-              title={track.locked ? 'Desbloquear track' : 'Bloquear track'}
-            >
-              {track.locked ? 
-                <Lock className="w-3 h-3 text-red-400" /> : 
-                <Unlock className="w-3 h-3 text-gray-400" />
-              }
-            </Button>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2 mb-2">
-          <Badge variant="outline" className="text-xs" style={{ borderColor: track.color }}>
-            {track.type}
-          </Badge>
-          <span className="text-xs text-gray-400">
-            {track.elements.length} elementos
-          </span>
-        </div>
-        
-        {/* Audio controls for audio tracks */}
-        {track.type === 'audio' && !track.collapsed && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onTrackUpdate({ ...track, muted: !track.muted })}
-                className="w-6 h-6 p-0"
-              >
-                {track.muted ? 
-                  <VolumeX className="w-3 h-3 text-red-400" /> : 
-                  <Volume2 className="w-3 h-3 text-gray-400" />
-                }
-              </Button>
-              <Slider
-                value={[track.volume * 100]}
-                onValueChange={([value]) => onTrackUpdate({ ...track, volume: value / 100 })}
-                max={100}
-                step={1}
-                className="flex-1"
-                disabled={track.muted}
-              />
-              <span className="text-xs text-gray-400 w-8">
-                {Math.round(track.volume * 100)}%
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Add Element Buttons */}
-        {!track.collapsed && (
-          <div className="flex gap-1 mt-2">
-            {track.type === 'video' && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onAddElement(track.id, 'video')}
-                  className="text-xs px-2 py-1 h-auto"
-                >
-                  <Video className="w-3 h-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onAddElement(track.id, 'text')}
-                  className="text-xs px-2 py-1 h-auto"
-                >
-                  <Type className="w-3 h-3" />
-                </Button>
-              </>
-            )}
-            {track.type === 'audio' && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onAddElement(track.id, 'audio')}
-                className="text-xs px-2 py-1 h-auto"
-              >
-                <Music className="w-3 h-3" />
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Track Timeline */}
-      <div 
-        ref={setNodeRef}
-        className="flex-1 relative bg-gray-900"
-        style={{ 
-          height: track.collapsed ? 40 : track.height, 
-          minWidth: duration * pixelsPerSecond 
-        }}
-      >
-        {/* Grid lines */}
-        <div className="absolute inset-0 pointer-events-none">
-          {Array.from({ length: Math.ceil(duration) }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute top-0 bottom-0 w-px bg-gray-700"
-              style={{ left: i * pixelsPerSecond }}
-            />
-          ))}
-          {/* Sub-grid lines (half seconds) */}
-          {Array.from({ length: Math.ceil(duration * 2) }).map((_, i) => (
-            <div
-              key={`sub-${i}`}
-              className="absolute top-0 bottom-0 w-px bg-gray-800"
-              style={{ left: (i * 0.5) * pixelsPerSecond }}
-            />
-          ))}
-        </div>
-
-        {/* Track color indicator */}
-        <div 
-          className="absolute left-0 top-0 bottom-0 w-1 opacity-50"
-          style={{ backgroundColor: track.color }}
-        />
-
-        {/* Elements */}
-        {!track.collapsed && (
-          <SortableContext items={track.elements.map(e => e.id)} strategy={verticalListSortingStrategy}>
-            {track.elements.map((element) => (
-              <TimelineElementComponent
-                key={element.id}
-                element={element}
-                track={track}
-                pixelsPerSecond={pixelsPerSecond}
-                onSelect={onElementSelect}
-                onEdit={onElementEdit}
-                onDelete={onElementDelete}
-                onDurationChange={onElementDurationChange}
-                isSelected={selectedElements.includes(element.id)}
-              />
-            ))}
-          </SortableContext>
-        )}
-
-        {/* Drop indicator */}
-        {isOver && (
-          <div className="absolute inset-0 border-2 border-dashed border-blue-400 bg-blue-400/10 pointer-events-none" />
-        )}
-      </div>
-    </div>
-  );
-}
-
 // Main Professional Timeline Editor Component
-export function ProfessionalTimelineEditor() {
+export default function ProfessionalTimelineEditor() {
   const [project, setProject] = useState<TimelineProject>(initialProject);
   const [selectedElements, setSelectedElements] = useState<string[]>([]);
   const [draggedElement, setDraggedElement] = useState<TimelineElement | null>(null);
@@ -896,7 +683,7 @@ export function ProfessionalTimelineEditor() {
     if (!timelineRef.current) return;
     
     const rect = timelineRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left - 240; // Account for track headers
+    const x = e.clientX - rect.left; // Account for track headers offset in UI logic if needed, but here we click on timeline area
     const time = x / pixelsPerSecond;
     
     seekTo(time);
@@ -910,483 +697,291 @@ export function ProfessionalTimelineEditor() {
     ? project.tracks.flatMap(t => t.elements).find(e => e.id === selectedElements[0])
     : null;
 
+  // Helper to convert tracks for preview player
+  const getPreviewTracks = useCallback(() => {
+    return project.tracks.map(track => ({
+      id: track.id,
+      name: track.name,
+      type: track.type === 'video' ? 'video' : track.type === 'audio' ? 'audio' : 'text', // Simple mapping
+      color: track.color,
+      visible: track.visible,
+      locked: track.locked,
+      clips: track.elements.map(el => ({
+        id: el.id,
+        name: el.name,
+        startTime: el.startTime,
+        duration: el.duration,
+        content: el.content,
+        effects: []
+      }))
+    }));
+  }, [project.tracks]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
       <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex flex-col h-screen">
           {/* Header Toolbar */}
-          <div className="bg-gray-800 border-b border-gray-700 p-4">
+          <div className="bg-gray-900 border-b border-gray-800 p-2 shrink-0 z-50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div>
-                  <h1 className="text-xl font-bold text-white">🎬 Timeline Profissional</h1>
-                  <p className="text-sm text-gray-400">{project.name}</p>
+                  <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    🎬 Timeline Pro
+                  </h1>
                 </div>
                 
                 {/* Project Info */}
-                <div className="text-xs text-gray-400 space-y-1">
-                  <div>{project.resolution.width}x{project.resolution.height} • {project.fps}fps</div>
-                  <div>{project.tracks.length} tracks • {project.tracks.flatMap(t => t.elements).length} elementos</div>
+                <div className="text-xs text-gray-500 space-x-2 hidden md:block">
+                  <span>{project.resolution.width}x{project.resolution.height}</span>
+                  <span>•</span>
+                  <span>{project.fps}fps</span>
                 </div>
               </div>
               
               {/* Main Controls */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
                 {/* Playback Controls */}
-                <div className="flex items-center gap-2 bg-gray-700 rounded-lg p-2">
-                  <Button size="sm" variant="ghost" onClick={skipBack}>
+                <div className="flex items-center gap-1 bg-gray-800 rounded-md p-1 border border-gray-700">
+                  <Button size="sm" variant="ghost" onClick={skipBack} className="h-8 w-8 p-0">
                     <SkipBack className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" onClick={togglePlayback} className="bg-blue-600 hover:bg-blue-700">
+                  <Button size="sm" onClick={togglePlayback} className={`h-8 w-8 p-0 ${project.isPlaying ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
                     {project.isPlaying ? 
                       <Pause className="w-4 h-4" /> : 
                       <Play className="w-4 h-4" />
                     }
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={skipForward}>
+                  <Button size="sm" variant="ghost" onClick={skipForward} className="h-8 w-8 p-0">
                     <SkipForward className="w-4 h-4" />
                   </Button>
                 </div>
 
                 {/* Time Display */}
-                <div className="text-sm text-gray-300 font-mono bg-gray-700 px-3 py-2 rounded">
-                  {Math.floor(project.currentTime / 60)}:{(project.currentTime % 60).toFixed(1).padStart(4, '0')} / {Math.floor(project.duration / 60)}:{(project.duration % 60).toFixed(0).padStart(2, '0')}
+                <div className="text-sm text-blue-400 font-mono bg-black/50 px-3 py-1.5 rounded border border-gray-800 min-w-[100px] text-center">
+                  {Math.floor(project.currentTime / 60)}:{(project.currentTime % 60).toFixed(1).padStart(4, '0')}
                 </div>
 
-                {/* Track Management */}
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => addTrack('video')}>
-                    <Plus className="w-4 h-4 mr-1" />
-                    Vídeo
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => addTrack('audio')}>
-                    <Plus className="w-4 h-4 mr-1" />
-                    Áudio
-                  </Button>
-                </div>
+                <div className="h-6 w-px bg-gray-700 mx-2" />
 
-                {/* Zoom Controls */}
-                <div className="flex items-center gap-2 bg-gray-700 rounded-lg p-2">
-                  <Button 
-                    size="sm" 
-                    variant="ghost"
-                    onClick={() => setProject(prev => ({ ...prev, zoom: Math.max(0.1, prev.zoom - 0.2) }))}
-                  >
-                    <ZoomOut className="w-4 h-4" />
-                  </Button>
-                  <span className="text-xs text-gray-300 w-12 text-center">
-                    {Math.round(project.zoom * 100)}%
-                  </span>
-                  <Button 
-                    size="sm" 
-                    variant="ghost"
-                    onClick={() => setProject(prev => ({ ...prev, zoom: Math.min(3, prev.zoom + 0.2) }))}
-                  >
-                    <ZoomIn className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                {/* Utility Controls */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant={snapToGrid ? "default" : "outline"}
-                    onClick={() => setSnapToGrid(!snapToGrid)}
-                    title="Snap to Grid"
-                  >
-                    <Grid className="w-4 h-4" />
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowProperties(!showProperties)}
-                    title="Toggle Properties Panel"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
-
-                  <Button size="sm" variant="outline" onClick={exportProject}>
-                    <Download className="w-4 h-4 mr-1" />
-                    Exportar
-                  </Button>
-                </div>
+                <Button size="sm" variant="outline" onClick={exportProject} className="h-8 text-xs border-gray-700 hover:bg-gray-800">
+                  <Download className="w-3 h-3 mr-2" />
+                  Exportar
+                </Button>
               </div>
             </div>
           </div>
 
-          {/* Timeline Container */}
-          <div className="flex-1 flex flex-col">
-            {/* Ruler */}
-            <div className="bg-gray-800 border-b border-gray-700 flex">
-              <div className="w-60 flex-shrink-0 bg-gray-800 border-r border-gray-700 p-2">
-                <div className="text-xs text-gray-400 flex items-center gap-2">
-                  <Layers className="w-3 h-3" />
-                  Timeline
-                </div>
-              </div>
-              <div className="flex-1 relative h-10 bg-gray-800 overflow-hidden">
-                {/* Time markers */}
-                <div className="absolute inset-0">
-                  {Array.from({ length: Math.ceil(project.duration) + 1 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute top-0 bottom-0 flex flex-col justify-center text-xs text-gray-400"
-                      style={{ left: i * pixelsPerSecond }}
-                    >
-                      <div className="w-px h-full bg-gray-600" />
-                      <span className="absolute top-1 left-1 bg-gray-800 px-1 rounded text-xs">
-                        {i}s
-                      </span>
-                    </div>
-                  ))}
+          {/* Main Workspace Area (Preview + Properties) */}
+          <div className="flex-1 flex min-h-0 bg-black/50">
+             {/* Left: Preview Player */}
+             <div className="flex-1 relative bg-black flex items-center justify-center p-4 border-r border-gray-800">
+                <div className="aspect-video w-full max-h-full bg-gray-900 rounded-lg overflow-hidden shadow-2xl border border-gray-800 relative">
+                  <UnifiedPreviewPlayer 
+                    currentTime={project.currentTime}
+                    tracks={getPreviewTracks() as any} // Type casting for simplicity
+                    isPlaying={project.isPlaying}
+                  />
                   
-                  {/* Sub-markers (half seconds) */}
-                  {Array.from({ length: Math.ceil(project.duration * 2) }).map((_, i) => (
-                    <div
-                      key={`sub-${i}`}
-                      className="absolute top-0 bottom-0"
-                      style={{ left: (i * 0.5) * pixelsPerSecond }}
-                    >
-                      <div className="w-px h-3 bg-gray-700 mt-2" />
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Playhead */}
-                <div
-                  className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 pointer-events-none"
-                  style={{ left: project.currentTime * pixelsPerSecond }}
-                >
-                  <div className="absolute -top-1 -left-2 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full" />
-                  </div>
-                  <div className="absolute top-0 left-0.5 w-px h-full bg-red-300 opacity-50" />
-                </div>
-              </div>
-            </div>
-
-            {/* Tracks */}
-            <div 
-              ref={timelineRef}
-              className="flex-1 overflow-auto"
-              onClick={handleTimelineClick}
-            >
-              {project.tracks.map((track) => (
-                <TimelineTrackComponent
-                  key={track.id}
-                  track={track}
-                  pixelsPerSecond={pixelsPerSecond}
-                  duration={project.duration}
-                  selectedElements={selectedElements}
-                  onElementSelect={selectElement}
-                  onElementEdit={updateElement}
-                  onElementDelete={deleteElement}
-                  onElementDurationChange={updateElementDuration}
-                  onTrackUpdate={updateTrack}
-                  onAddElement={addElement}
-                />
-              ))}
-              
-              {/* Empty state */}
-              {project.tracks.length === 0 && (
-                <div className="flex-1 flex items-center justify-center text-gray-500 py-20">
-                  <div className="text-center">
-                    <Layers className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg mb-2">Nenhuma track criada</p>
-                    <p className="text-sm mb-4">Adicione uma track de vídeo ou áudio para começar</p>
-                    <div className="flex gap-2 justify-center">
-                      <Button size="sm" onClick={() => addTrack('video')}>
-                        <Plus className="w-4 h-4 mr-1" />
-                        Adicionar Vídeo
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => addTrack('audio')}>
-                        <Plus className="w-4 h-4 mr-1" />
-                        Adicionar Áudio
-                      </Button>
-                    </div>
+                  {/* Safe Area Guides (Optional) */}
+                  <div className="absolute inset-0 pointer-events-none opacity-20 border-[40px] border-transparent">
+                    <div className="w-full h-full border border-white/50 border-dashed"></div>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
+             </div>
 
-          {/* Properties Panel */}
-          {showProperties && (
-            <div className="h-64 bg-gray-800 border-t border-gray-700 flex">
-              {/* Selection Info */}
-              <div className="w-60 border-r border-gray-700 p-4">
-                <h3 className="text-sm font-medium text-white mb-3">
-                  Seleção ({selectedElements.length})
-                </h3>
-                
-                {selectedElements.length === 0 ? (
-                  <p className="text-xs text-gray-400">
-                    Nenhum elemento selecionado
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedElements.map(id => {
-                      const element = project.tracks.flatMap(t => t.elements).find(e => e.id === id);
-                      return element ? (
-                        <div key={id} className="text-xs text-gray-300 p-2 bg-gray-700 rounded">
-                          <div className="font-medium">{element.name}</div>
-                          <div className="text-gray-400">{element.type} • {element.duration.toFixed(1)}s</div>
-                        </div>
-                      ) : null;
-                    })}
+             {/* Right: Properties Panel */}
+             {showProperties && (
+                <div className="w-80 bg-gray-900 border-l border-gray-800 flex flex-col overflow-y-auto">
+                  <div className="p-4 border-b border-gray-800">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Settings className="w-4 h-4 text-blue-400" />
+                      Propriedades
+                    </h3>
                   </div>
-                )}
-
-                {/* Selection Actions */}
-                {selectedElements.length > 0 && (
-                  <div className="flex flex-col gap-2 mt-4">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => selectedElements.forEach(duplicateElement)}
-                      className="justify-start"
-                    >
-                      <Copy className="w-3 h-3 mr-2" />
-                      Duplicar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => selectedElements.forEach(deleteElement)}
-                      className="justify-start text-red-400 hover:text-red-300"
-                    >
-                      <Trash2 className="w-3 h-3 mr-2" />
-                      Excluir
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Properties */}
-              <div className="flex-1 p-4">
-                {selectedElement ? (
-                  <Tabs defaultValue="general" className="h-full">
-                    <TabsList className="mb-4">
-                      <TabsTrigger value="general">Geral</TabsTrigger>
-                      <TabsTrigger value="transform">Transformação</TabsTrigger>
-                      <TabsTrigger value="effects">Efeitos</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="general" className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Nome</label>
-                          <Input 
-                            value={selectedElement.name} 
-                            onChange={(e) => updateElement({ ...selectedElement, name: e.target.value })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Tipo</label>
-                          <div className="h-8 px-3 py-2 bg-gray-700 rounded text-sm text-gray-300">
-                            {selectedElement.type}
+                  
+                  {selectedElement ? (
+                    <div className="p-4 space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Geral</label>
+                        <div className="space-y-3">
+                          <div>
+                            <span className="text-xs text-gray-400 block mb-1">Nome</span>
+                            <Input 
+                              value={selectedElement.name} 
+                              onChange={(e) => updateElement({ ...selectedElement, name: e.target.value })}
+                              className="h-8 bg-gray-800 border-gray-700"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                             <div>
+                                <span className="text-xs text-gray-400 block mb-1">Início</span>
+                                <Input 
+                                  type="number"
+                                  value={selectedElement.startTime.toFixed(1)} 
+                                  onChange={(e) => updateElement({ ...selectedElement, startTime: parseFloat(e.target.value) })}
+                                  className="h-8 bg-gray-800 border-gray-700"
+                                  step="0.1"
+                                />
+                             </div>
+                             <div>
+                                <span className="text-xs text-gray-400 block mb-1">Duração</span>
+                                <Input 
+                                  type="number"
+                                  value={selectedElement.duration.toFixed(1)} 
+                                  onChange={(e) => updateElement({ ...selectedElement, duration: parseFloat(e.target.value) })}
+                                  className="h-8 bg-gray-800 border-gray-700"
+                                  step="0.1"
+                                />
+                             </div>
                           </div>
                         </div>
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Início (s)</label>
-                          <Input 
-                            type="number" 
-                            value={selectedElement.startTime.toFixed(1)} 
-                            onChange={(e) => updateElement({ 
-                              ...selectedElement, 
-                              startTime: parseFloat(e.target.value) || 0 
-                            })}
-                            className="h-8 text-sm"
-                            step="0.1"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Duração (s)</label>
-                          <Input 
-                            type="number" 
-                            value={selectedElement.duration.toFixed(1)} 
-                            onChange={(e) => updateElement({ 
-                              ...selectedElement, 
-                              duration: Math.max(0.1, parseFloat(e.target.value) || 0.1)
-                            })}
-                            className="h-8 text-sm"
-                            step="0.1"
-                            min="0.1"
-                          />
-                        </div>
                       </div>
 
-                      {selectedElement.type === 'text' && (
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Conteúdo</label>
-                          <Input 
-                            value={selectedElement.content || ''} 
-                            onChange={(e) => updateElement({ ...selectedElement, content: e.target.value })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="transform" className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">X</label>
-                          <Input 
-                            type="number" 
-                            value={selectedElement.properties.x || 0} 
-                            onChange={(e) => updateElement({ 
-                              ...selectedElement, 
-                              properties: { 
-                                ...selectedElement.properties, 
-                                x: parseFloat(e.target.value) || 0 
-                              }
-                            })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Y</label>
-                          <Input 
-                            type="number" 
-                            value={selectedElement.properties.y || 0} 
-                            onChange={(e) => updateElement({ 
-                              ...selectedElement, 
-                              properties: { 
-                                ...selectedElement.properties, 
-                                y: parseFloat(e.target.value) || 0 
-                              }
-                            })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Largura</label>
-                          <Input 
-                            type="number" 
-                            value={selectedElement.properties.width || 200} 
-                            onChange={(e) => updateElement({ 
-                              ...selectedElement, 
-                              properties: { 
-                                ...selectedElement.properties, 
-                                width: parseFloat(e.target.value) || 200 
-                              }
-                            })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Altura</label>
-                          <Input 
-                            type="number" 
-                            value={selectedElement.properties.height || 100} 
-                            onChange={(e) => updateElement({ 
-                              ...selectedElement, 
-                              properties: { 
-                                ...selectedElement.properties, 
-                                height: parseFloat(e.target.value) || 100 
-                              }
-                            })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
+                      <div className="space-y-2">
+                         <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Transformação</label>
+                         <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <span className="text-xs text-gray-400 block mb-1">Posição X</span>
+                              <Input type="number" className="h-8 bg-gray-800 border-gray-700" defaultValue={0} />
+                            </div>
+                            <div>
+                              <span className="text-xs text-gray-400 block mb-1">Posição Y</span>
+                              <Input type="number" className="h-8 bg-gray-800 border-gray-700" defaultValue={0} />
+                            </div>
+                            <div>
+                              <span className="text-xs text-gray-400 block mb-1">Escala</span>
+                              <Input type="number" className="h-8 bg-gray-800 border-gray-700" defaultValue={100} />
+                            </div>
+                            <div>
+                              <span className="text-xs text-gray-400 block mb-1">Rotação</span>
+                              <Input type="number" className="h-8 bg-gray-800 border-gray-700" defaultValue={0} />
+                            </div>
+                         </div>
                       </div>
-
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Rotação</label>
-                          <Input 
-                            type="number" 
-                            value={selectedElement.properties.rotation || 0} 
-                            onChange={(e) => updateElement({ 
-                              ...selectedElement, 
-                              properties: { 
-                                ...selectedElement.properties, 
-                                rotation: parseFloat(e.target.value) || 0 
-                              }
-                            })}
-                            className="h-8 text-sm"
-                            step="1"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Escala</label>
-                          <Input 
-                            type="number" 
-                            value={selectedElement.properties.scale || 1} 
-                            onChange={(e) => updateElement({ 
-                              ...selectedElement, 
-                              properties: { 
-                                ...selectedElement.properties, 
-                                scale: parseFloat(e.target.value) || 1 
-                              }
-                            })}
-                            className="h-8 text-sm"
-                            step="0.1"
-                            min="0.1"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Opacidade</label>
-                          <Slider
-                            value={[(selectedElement.properties.opacity || 1) * 100]}
-                            onValueChange={([value]) => updateElement({ 
-                              ...selectedElement, 
-                              properties: { 
-                                ...selectedElement.properties, 
-                                opacity: value / 100 
-                              }
-                            })}
-                            max={100}
-                            step={1}
-                            className="mt-2"
-                          />
-                        </div>
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="effects" className="space-y-4">
-                      <p className="text-sm text-gray-400">
-                        Painel de efeitos em desenvolvimento...
-                      </p>
                       
-                      {selectedElement.type === 'audio' && (
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Volume</label>
-                          <Slider
-                            value={[(selectedElement.properties.volume || 1) * 100]}
-                            onValueChange={([value]) => updateElement({ 
-                              ...selectedElement, 
-                              properties: { 
-                                ...selectedElement.properties, 
-                                volume: value / 100 
-                              }
-                            })}
-                            max={100}
-                            step={1}
-                            className="mt-2"
-                          />
-                        </div>
-                      )}
-                    </TabsContent>
-                  </Tabs>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    <div className="text-center">
-                      <Settings className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p>Selecione um elemento para editar suas propriedades</p>
+                      <div className="pt-4 border-t border-gray-800">
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={() => selectedElements.forEach(deleteElement)}
+                        >
+                          <Trash2 className="w-3 h-3 mr-2" />
+                          Remover Elemento
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-60 text-gray-600 p-4 text-center">
+                      <Move className="w-10 h-10 mb-3 opacity-20" />
+                      <p className="text-sm">Selecione um clipe na timeline para editar suas propriedades</p>
+                    </div>
+                  )}
+                </div>
+             )}
+          </div>
+
+          {/* Timeline Area (Bottom) */}
+          <div className="h-[40vh] flex flex-col border-t border-gray-800 bg-gray-900 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.5)] z-40">
+            
+            {/* Timeline Toolbar */}
+            <div className="flex items-center justify-between p-2 bg-gray-800 border-b border-gray-700 text-xs">
+               <div className="flex items-center gap-2">
+                 <Button size="sm" variant="ghost" onClick={() => addTrack('video')} className="h-7 px-2 hover:bg-blue-900/30 hover:text-blue-400">
+                   <Plus className="w-3 h-3 mr-1" /> Track de Vídeo
+                 </Button>
+                 <Button size="sm" variant="ghost" onClick={() => addTrack('audio')} className="h-7 px-2 hover:bg-green-900/30 hover:text-green-400">
+                   <Plus className="w-3 h-3 mr-1" /> Track de Áudio
+                 </Button>
+               </div>
+               
+               <div className="flex items-center gap-2">
+                  <span className="text-gray-500">Zoom</span>
+                  <Slider 
+                    value={[project.zoom * 100]} 
+                    min={10} max={300} 
+                    onValueChange={([v]) => setProject(p => ({...p, zoom: v/100}))}
+                    className="w-24"
+                  />
+               </div>
             </div>
-          )}
+
+            {/* Tracks Container */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative">
+               <div className="flex min-w-full min-h-full relative">
+                  {/* Track Headers Column */}
+                  <div className="w-60 shrink-0 bg-gray-900 border-r border-gray-800 sticky left-0 z-20 shadow-lg">
+                    {project.tracks.map(track => (
+                      <div key={track.id} style={{ height: track.collapsed ? 40 : track.height }} className="border-b border-gray-800 p-2 flex flex-col justify-center relative group">
+                         <div className="flex items-center justify-between mb-1">
+                           <span className="font-medium text-xs truncate text-gray-300 w-32" title={track.name}>{track.name}</span>
+                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => updateTrack({...track, muted: !track.muted})}>
+                                {track.muted ? <VolumeX className="w-3 h-3 text-red-400"/> : <Volume2 className="w-3 h-3 text-gray-400"/>}
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => updateTrack({...track, locked: !track.locked})}>
+                                {track.locked ? <Lock className="w-3 h-3 text-red-400"/> : <Unlock className="w-3 h-3 text-gray-400"/>}
+                              </Button>
+                           </div>
+                         </div>
+                         <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: track.color }}></div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Tracks Content Area */}
+                  <div className="flex-1 relative bg-gray-900/50 overflow-x-auto" ref={timelineRef} onClick={handleTimelineClick}>
+                     <div style={{ width: totalWidth, minWidth: '100%' }} className="relative h-full">
+                        {/* Time Ruler */}
+                        <div className="h-6 border-b border-gray-700 bg-gray-900 sticky top-0 z-10 flex items-end text-[10px] text-gray-500 select-none">
+                           {Array.from({ length: Math.ceil(project.duration) }).map((_, i) => (
+                              <div key={i} className="absolute bottom-0 border-l border-gray-600 pl-1" style={{ left: i * pixelsPerSecond }}>
+                                 {i % 5 === 0 ? `${Math.floor(i/60)}:${(i%60).toString().padStart(2, '0')}` : '|'}
+                              </div>
+                           ))}
+                        </div>
+                        
+                        {/* Playhead Line */}
+                        <div 
+                          className="absolute top-0 bottom-0 w-px bg-red-500 z-30 pointer-events-none"
+                          style={{ left: project.currentTime * pixelsPerSecond }}
+                        >
+                           <div className="w-3 h-3 bg-red-500 -ml-1.5 rounded-full shadow-sm" />
+                        </div>
+
+                        {/* Render Tracks */}
+                        {project.tracks.map(track => (
+                          <div key={track.id} style={{ height: track.collapsed ? 40 : track.height }} className="border-b border-gray-800 relative group">
+                             {/* Grid Lines */}
+                             <div className="absolute inset-0 pointer-events-none opacity-10" 
+                                  style={{ backgroundImage: `linear-gradient(90deg, #333 1px, transparent 1px)`, backgroundSize: `${pixelsPerSecond}px 100%` }}>
+                             </div>
+                             
+                             <SortableContext items={track.elements.map(e => e.id)} strategy={verticalListSortingStrategy}>
+                                {track.elements.map(element => (
+                                  <TimelineElementComponent
+                                    key={element.id}
+                                    element={element}
+                                    track={track}
+                                    pixelsPerSecond={pixelsPerSecond}
+                                    onSelect={selectElement}
+                                    onEdit={() => {}} // Open properties
+                                    onDelete={deleteElement}
+                                    onDurationChange={updateElementDuration}
+                                    isSelected={selectedElements.includes(element.id)}
+                                  />
+                                ))}
+                             </SortableContext>
+                          </div>
+                        ))}
+                     </div>
+                  </div>
+               </div>
+            </div>
+          </div>
         </div>
       </DndContext>
     </div>
   );
 }
-
-export default ProfessionalTimelineEditor;

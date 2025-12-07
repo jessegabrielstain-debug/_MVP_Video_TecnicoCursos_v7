@@ -1,5 +1,7 @@
-// 🔍 Debug Text Extraction
-// Teste específico para verificar extração de texto
+/**
+ * 🔍 Debug Text Extraction
+ * Teste específico para verificar extração de texto
+ */
 
 import PptxGenJS from 'pptxgenjs'
 import JSZip from 'jszip'
@@ -31,7 +33,7 @@ async function debugTextExtraction() {
     fontSize: 16
   })
   
-  const buffer = await pptx.write('nodebuffer') as Buffer
+  const buffer = await pptx.write({ outputType: 'nodebuffer' }) as Buffer
   console.log(`✅ PPTX criado: ${buffer.length} bytes`)
   
   // 2. Abrir como ZIP
@@ -60,13 +62,14 @@ async function debugTextExtraction() {
   // 5. Testar parser
   console.log('\n🔧 Testando parser de texto...')
   try {
-    const textResult = await PPTXTextParser.extractSlideText(zip, 1)
+    const parser = new PPTXTextParser()
+    const textResult = await parser.extractTextFromSlide(zip, 1)
     
     console.log('📊 Resultado do parser:')
     console.log(`- Sucesso: ${textResult.success}`)
     console.log(`- Texto plano: "${textResult.plainText}"`)
-    console.log(`- Texto formatado: "${textResult.formattedText}"`)
-    console.log(`- Caixas de texto: ${textResult.textBoxes.length}`)
+    // console.log(`- Texto formatado: "${textResult.formattedText}"`) // Removed as it doesn't exist
+    console.log(`- Caixas de texto: ${textResult.textBoxes?.length || 0}`)
     console.log(`- Contagem de palavras: ${textResult.wordCount}`)
     console.log(`- Contagem de caracteres: ${textResult.characterCount}`)
     
@@ -74,11 +77,13 @@ async function debugTextExtraction() {
       console.log(`❌ Erro: ${textResult.error}`)
     }
     
-    textResult.textBoxes.forEach((box, index) => {
+    textResult.textBoxes?.forEach((box, index) => {
       console.log(`\n📝 Caixa de texto ${index + 1}:`)
       console.log(`  Texto: "${box.text}"`)
-      console.log(`  Posição: x=${box.position.x}, y=${box.position.y}`)
-      console.log(`  Tamanho: w=${box.position.width}, h=${box.position.height}`)
+      if (box.position) {
+        console.log(`  Posição: x=${box.position.x}, y=${box.position.y}`)
+        console.log(`  Tamanho: w=${box.position.width}, h=${box.position.height}`)
+      }
     })
     
   } catch (error) {

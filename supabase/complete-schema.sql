@@ -236,3 +236,24 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+-- ============================================
+-- TABELA: nr_compliance_records (Registros de Conformidade NR)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.nr_compliance_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    nr_course_id UUID REFERENCES public.nr_courses(id) ON DELETE CASCADE,
+    status VARCHAR(50) DEFAULT 'enrolled', -- enrolled, in_progress, completed, certified
+    progress_percentage INTEGER DEFAULT 0,
+    completed_at TIMESTAMPTZ,
+    certificate_url TEXT,
+    valid_until TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, nr_course_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_nr_compliance_records_user_id ON public.nr_compliance_records(user_id);
+
+CREATE TRIGGER update_nr_compliance_records_updated_at BEFORE UPDATE ON public.nr_compliance_records
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

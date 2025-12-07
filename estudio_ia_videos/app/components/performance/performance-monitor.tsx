@@ -147,7 +147,7 @@ export default function PerformanceMonitor({
     type,
     previousValue 
   }: {
-    icon: any
+    icon: React.ComponentType<{ className?: string }>
     label: string
     value: number
     unit: string

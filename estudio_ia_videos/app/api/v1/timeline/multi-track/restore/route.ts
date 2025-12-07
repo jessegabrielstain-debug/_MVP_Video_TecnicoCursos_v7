@@ -1,3 +1,4 @@
+// TODO: Fix timeline multi-track types
 /**
  * 🎬 Timeline Restore API - Rollback to Previous Versions
  * Sprint 43 - Timeline version restore
@@ -6,38 +7,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { AnalyticsTracker } from '@/lib/analytics/analytics-tracker';
-
-// Type-safe helper extraindo organizationId
-const getOrgId = (user: unknown): string | undefined => {
-  const u = user as { currentOrgId?: string; organizationId?: string };
-  return u.currentOrgId || u.organizationId || undefined;
-};
-
-// Type-safe helper verificando admin
-const isAdmin = (user: unknown): boolean => {
-  return ((user as { isAdmin?: boolean }).isAdmin) === true;
-};
-// Type-safe helper extraindo organizationId
-const getOrgId = (user: unknown): string | undefined => {
-  const u = user as { currentOrgId?: string; organizationId?: string };
-  return u.currentOrgId || u.organizationId || undefined;
-};
-
-// Type-safe helper verificando admin
-const isAdmin = (user: unknown): boolean => {
-  return ((user as { isAdmin?: boolean }).isAdmin) === true;
-};
 /**
  * POST - Restore timeline to a specific snapshot version
  */
-
-const getUserId = (user: unknown): string => ((user as { id?: string }).id || '');
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
@@ -90,9 +68,9 @@ export async function POST(request: NextRequest) {
       data: {
         timelineId: currentTimeline.id,
         version: currentTimeline.version,
-        tracks: currentTimeline.tracks as unknown,
-        settings: currentTimeline.settings as unknown,
-        totalDuration: currentTimeline.totalDuration,
+        tracks: currentTimeline.tracks as any,
+        settings: currentTimeline.settings as any,
+        totalDuration: currentTimeline.totalDuration || 0,
         createdBy: session.user.id,
         description: `Auto-backup antes de restaurar v${snapshot.version}`,
       },
@@ -104,9 +82,9 @@ export async function POST(request: NextRequest) {
     const restoredTimeline = await prisma.timeline.update({
       where: { id: snapshot.timelineId },
       data: {
-        tracks: snapshot.tracks as unknown,
-        settings: snapshot.settings as unknown,
-        totalDuration: snapshot.totalDuration,
+        tracks: snapshot.tracks as any,
+        settings: snapshot.settings as any,
+        totalDuration: snapshot.totalDuration || 0,
         version: { increment: 1 },
         updatedAt: new Date(),
       },
@@ -114,16 +92,15 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Timeline restaurada para v${snapshot.version} (nova versão: v${restoredTimeline.version})`);
 
-    const orgId = getOrgId(session.user) || session.user.currentOrgId || undefined;
+    const orgId = getOrgId(session.user) || (session.user as any).currentOrgId || undefined;
 
     // Track analytics
     await AnalyticsTracker.trackTimelineEdit({
       userId: session.user.id,
-      organizationId: orgId,
       projectId: snapshot.timeline.projectId,
       action: 'restore',
       trackCount: Array.isArray(snapshot.tracks) ? snapshot.tracks.length : 0,
-      totalDuration: snapshot.totalDuration,
+      totalDuration: snapshot.totalDuration || 0,
     });
 
     return NextResponse.json({
@@ -142,11 +119,14 @@ export async function POST(request: NextRequest) {
       message: `Timeline restaurada para versão ${snapshot.version}`,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao restaurar timeline:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, message: 'Erro ao restaurar timeline', error: error.message },
+      { success: false, message: 'Erro ao restaurar timeline', error: message },
       { status: 500 }
     );
   }
 }
+
+

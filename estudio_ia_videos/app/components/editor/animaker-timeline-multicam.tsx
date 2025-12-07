@@ -39,7 +39,7 @@ import {
   Image as ImageIcon,
   Sparkles
 } from 'lucide-react'
-import { AnimakerElement, AnimakerSlide, AnimakerProject } from '@/lib/pptx-parser-animaker'
+import { UnifiedParseResult, UnifiedSlide, UnifiedElement } from '@/lib/types-unified-v2'
 
 interface TimelineLayer {
   id: string
@@ -73,7 +73,7 @@ interface Keyframe {
 }
 
 interface AnimakerTimelineMulticamProps {
-  project: AnimakerProject
+  project: UnifiedParseResult
   currentTime: number
   isPlaying: boolean
   zoom: number
@@ -182,34 +182,40 @@ export function AnimakerTimelineMulticam({
     ]
 
     // Populate layers with elements from slides
-    project.slides.forEach((slide, slideIndex) => {
+    project.slides.forEach((slide: UnifiedSlide, slideIndex: number) => {
       let slideStartTime = 0
       if (slideIndex > 0) {
-        slideStartTime = project.slides.slice(0, slideIndex).reduce((acc, s) => acc + s.duration, 0)
+        slideStartTime = project.slides.slice(0, slideIndex).reduce((acc: number, s: UnifiedSlide) => acc + (s.duration || 5), 0)
       }
+
+      const slideDuration = slide.duration || 5;
 
       // Background layer
       initialLayers[0].elements.push({
         id: `bg_${slide.id}`,
         elementId: slide.id,
         startTime: slideStartTime,
-        duration: slide.duration,
-        endTime: slideStartTime + slide.duration,
+        duration: slideDuration,
+        endTime: slideStartTime + slideDuration,
         layer: 'bg_layer',
         keyframes: [],
         selected: false
       })
 
       // Element layers
-      slide.elements.forEach(element => {
+      slide.elements.forEach((element: UnifiedElement) => {
         const targetLayer = initialLayers.find(layer => layer.type === element.type)
         if (targetLayer) {
+          const animation = (element.animations && element.animations.length > 0) ? (element.animations[0] as any) : null;
+          const delay = animation?.delay || 0;
+          const animDuration = animation?.duration || 1000;
+
           targetLayer.elements.push({
             id: `timeline_${element.id}`,
             elementId: element.id,
-            startTime: slideStartTime + (element.animation?.delay || 0) / 1000,
-            duration: (element.animation?.duration || 1000) / 1000,
-            endTime: slideStartTime + (element.animation?.delay || 0) / 1000 + (element.animation?.duration || 1000) / 1000,
+            startTime: slideStartTime + delay / 1000,
+            duration: animDuration / 1000,
+            endTime: slideStartTime + delay / 1000 + animDuration / 1000,
             layer: targetLayer.id,
             keyframes: [
               {
@@ -219,7 +225,7 @@ export function AnimakerTimelineMulticam({
                 easing: 'ease-in-out'
               },
               {
-                time: (element.animation?.duration || 1000) / 1000,
+                time: animDuration / 1000,
                 property: 'opacity',
                 value: 1,
                 easing: 'ease-in-out'
@@ -514,7 +520,7 @@ export function AnimakerTimelineMulticam({
         {/* Timeline Grid */}
         <div className="flex-1 relative overflow-auto" ref={timelineRef} onClick={handleTimelineClick}>
           {/* Time Ruler */}
-          <div className="sticky top-0 bg-gray-800 border-b border-gray-700 h-12 relative z-10">
+          <div className="sticky top-0 bg-gray-800 border-b border-gray-700 h-12 z-10">
             {generateTimeMarkers()}
           </div>
 

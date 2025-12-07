@@ -1,7 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface Template {
+  id: string
+  name: string
+  category: string
+  content: {
+    slides: unknown[]
+    settings?: unknown
+  }
+  tags?: string[]
+  rating?: number
+  isCustom?: boolean
+  isFavorite?: boolean
+  createdAt?: Date
+  updatedAt?: Date
+  downloads?: number
+  metadata?: Record<string, unknown>
+  [key: string]: unknown
+}
+
 // Mock database - em produção, usar banco de dados real
-let templates: any[] = [];
+let templates: Template[] = [];
 
 // POST - Importar templates
 export async function POST(request: NextRequest) {
@@ -72,7 +91,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function validateTemplate(templateData: any, index: number) {
+function validateTemplate(templateData: Template, index: number) {
   const errors = [];
   const warnings = [];
 

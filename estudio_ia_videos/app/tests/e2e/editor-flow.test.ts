@@ -1,4 +1,3 @@
-
 /**
  * 🧪 Testes E2E - Editor Flow
  * Testes automatizados para validar o fluxo completo do editor
@@ -76,7 +75,7 @@ test.describe('Editor Flow - Completo', () => {
     
     // Simular dados de teste carregados
     await page.evaluate(() => {
-      window.testData = {
+      (window as any).testData = {
         slides: [
           {
             id: 'slide-1',
@@ -182,7 +181,7 @@ test.describe('Editor Flow - Completo', () => {
     
     // Carregar dados de teste com animações
     await page.evaluate(() => {
-      window.testData = {
+      (window as any).testData = {
         slides: [
           {
             id: 'slide-1',

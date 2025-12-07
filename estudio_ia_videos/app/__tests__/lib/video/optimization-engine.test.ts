@@ -14,7 +14,6 @@
  * @jest-environment node
  */
 
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { promises as fs } from 'fs';
 import path from 'path';
 import {
@@ -33,7 +32,7 @@ import {
 
 // Mock FFmpeg
 jest.mock('fluent-ffmpeg', () => {
-  return jest.fn().mockImplementation(() => ({
+  const mockFfmpeg = jest.fn().mockImplementation(() => ({
     input: jest.fn().mockReturnThis(),
     outputOptions: jest.fn().mockReturnThis(),
     videoCodec: jest.fn().mockReturnThis(),
@@ -54,34 +53,38 @@ jest.mock('fluent-ffmpeg', () => {
       return this;
     }),
     run: jest.fn(),
-    ffprobe: jest.fn((callback: Function) => {
-      callback(null, {
-        format: {
-          duration: 120.5,
-          bit_rate: 8000000,
-          size: 120000000,
-        },
-        streams: [
-          {
-            codec_type: 'video',
-            codec_name: 'h264',
-            width: 1920,
-            height: 1080,
-            avg_frame_rate: '30/1',
-            bit_rate: 7500000,
-            pix_fmt: 'yuv420p',
-          },
-          {
-            codec_type: 'audio',
-            codec_name: 'aac',
-            sample_rate: 48000,
-            channels: 2,
-            bit_rate: 192000,
-          },
-        ],
-      });
-    }),
   }));
+
+  // Add static ffprobe method
+  (mockFfmpeg as any).ffprobe = jest.fn((path: string, callback: Function) => {
+    callback(null, {
+      format: {
+        duration: 120.5,
+        bit_rate: 8000000,
+        size: 120000000,
+      },
+      streams: [
+        {
+          codec_type: 'video',
+          codec_name: 'h264',
+          width: 1920,
+          height: 1080,
+          avg_frame_rate: '30/1',
+          bit_rate: 7500000,
+          pix_fmt: 'yuv420p',
+        },
+        {
+          codec_type: 'audio',
+          codec_name: 'aac',
+          sample_rate: 48000,
+          channels: 2,
+          bit_rate: 192000,
+        },
+      ],
+    });
+  });
+
+  return mockFfmpeg;
 });
 
 // Mock fs operations
@@ -141,7 +144,7 @@ describe('VideoOptimizationEngine', () => {
   describe('Platform Presets', () => {
     it('should have YouTube preset configured', () => {
       expect(PLATFORM_PRESETS.youtube).toBeDefined();
-      expect(PLATFORM_PRESETS.youtube.codec).toBe('h264');
+      expect(PLATFORM_PRESETS.youtube.targetCodec).toBe('h264');
       expect(PLATFORM_PRESETS.youtube.maxBitrate).toBeDefined();
     });
 
@@ -167,7 +170,7 @@ describe('VideoOptimizationEngine', () => {
 
     it('should have Mobile preset configured', () => {
       expect(PLATFORM_PRESETS.mobile).toBeDefined();
-      expect(PLATFORM_PRESETS.mobile.codec).toBe('h264');
+      expect(PLATFORM_PRESETS.mobile.targetCodec).toBe('h264');
     });
 
     it('should have Web preset configured', () => {
@@ -224,8 +227,14 @@ describe('VideoOptimizationEngine', () => {
 
     it('should provide optimization recommendations', async () => {
       (fs.access as jest.Mock).mockResolvedValue(undefined);
+      
+      // Create optimizer with specific targets to trigger recommendations
+      const recOptimizer = new VideoOptimizationEngine({
+        targetResolution: { width: 1280, height: 720 }, // Downscale from 1080p
+        targetCodec: 'h265' // Change from h264
+      });
 
-      const recommendations = await optimizer.analyzeAndRecommend(testVideoPath);
+      const recommendations = await recOptimizer.analyzeAndRecommend(testVideoPath);
 
       expect(Array.isArray(recommendations.recommendations)).toBe(true);
       expect(recommendations.recommendations.length).toBeGreaterThan(0);
@@ -282,7 +291,7 @@ describe('VideoOptimizationEngine', () => {
 
     it('should calculate file size savings', async () => {
       (fs.access as jest.Mock).mockResolvedValue(undefined);
-      (fs.stat as jest.Mock).mockResolvedValueOnce({ size: 120000000 });
+      // Mock fs.stat to return a smaller size for the output file
       (fs.stat as jest.Mock).mockResolvedValueOnce({ size: 60000000 });
 
       const result = await optimizer.optimizeVideo(testVideoPath, testOutputPath);
@@ -533,6 +542,8 @@ describe('VideoOptimizationEngine', () => {
     it('should optimize for file size', async () => {
       const fileSizeOpt = createFileSizeOptimizer();
       (fs.access as jest.Mock).mockResolvedValue(undefined);
+      // Mock fs.stat to return a smaller size for the output file
+      (fs.stat as jest.Mock).mockResolvedValueOnce({ size: 60000000 });
 
       const result = await fileSizeOpt.optimizeVideo(testVideoPath, testOutputPath);
 
@@ -651,17 +662,20 @@ describe('VideoOptimizationEngine', () => {
 
     it('should handle probe errors in analysis', async () => {
       const ffmpegMock = require('fluent-ffmpeg');
-      ffmpegMock.mockImplementationOnce(() => ({
-        ffprobe: jest.fn((callback: Function) => {
-          callback(new Error('Probe error'), null);
-        }),
-      }));
+      const originalFfprobe = ffmpegMock.ffprobe;
+      
+      ffmpegMock.ffprobe = jest.fn((path: string, callback: Function) => {
+        callback(new Error('Probe error'), null);
+      });
 
       (fs.access as jest.Mock).mockResolvedValue(undefined);
 
       await expect(optimizer.analyzeAndRecommend(testVideoPath))
         .rejects
         .toThrow();
+        
+      // Restore original mock
+      ffmpegMock.ffprobe = originalFfprobe;
     });
   });
 

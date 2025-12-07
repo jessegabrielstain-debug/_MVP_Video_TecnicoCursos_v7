@@ -149,6 +149,8 @@ export class FFmpegExecutor {
       case 'vp9':
         args.push('-c:v', 'libvpx-vp9');
         break;
+      default:
+        throw new Error(`Codec não suportado: ${codec}`);
     }
 
     // Preset e qualidade
@@ -203,7 +205,7 @@ export class FFmpegExecutor {
     args: string[],
     options: FFmpegOptions,
     onProgress?: (progress: FFmpegProgress) => void
-  ): Promise<{ stats?: any }> {
+  ): Promise<{ stats?: FFmpegResult['stats'] }> {
     return new Promise((resolve, reject) => {
       const ffmpeg = spawn(this.ffmpegPath, args);
 

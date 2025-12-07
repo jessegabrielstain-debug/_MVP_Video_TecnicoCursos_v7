@@ -15,11 +15,12 @@ import {
   ExportPhase,
   TimelineData,
 } from '@/types/export.types'
-import { useExportSocket } from '@/hooks/useExportSocket'
+import { useRenderPipeline } from '@/hooks/use-render-pipeline'
+import { useEffect } from 'react'
 import { WatermarkSettings } from './WatermarkSettings'
 import { VideoFiltersSettings } from './VideoFiltersSettings'
 import { AudioEnhancementSettings } from './AudioEnhancementSettings'
-import { SubtitleSettings } from './SubtitleSettings'
+import { SubtitleSettings, SubtitleConfig } from './SubtitleSettings'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Settings, 
@@ -31,8 +32,8 @@ import {
   X
 } from 'lucide-react'
 import type { WatermarkConfig } from '@/types/watermark.types'
-import type { VideoFilterConfig } from '@/lib/export/video-filters'
-import type { AudioEnhancementConfig } from '@/lib/export/audio-processor'
+import type { VideoFilterConfig } from '@/lib/export/video-filters-types'
+import type { AudioEnhancement as AudioEnhancementConfig } from '@/lib/export/audio-processor'
 
 interface VideoExportDialogProps {
   userId: string
@@ -68,7 +69,6 @@ export function VideoExportDialog({
   const [watermark, setWatermark] = useState<WatermarkConfig | null>(null)
   const [videoFilters, setVideoFilters] = useState<VideoFilterConfig[]>([])
   const [audioEnhancements, setAudioEnhancements] = useState<AudioEnhancementConfig[]>([])
-  interface SubtitleConfig { language: string; url: string; }
   const [subtitle, setSubtitle] = useState<SubtitleConfig | null>(null)
 
   // State
@@ -78,32 +78,47 @@ export function VideoExportDialog({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('basic')
 
-  // WebSocket hook
-  const { currentProgress, startExport, cancelExport, isConnected } = useExportSocket(userId, {
-    onProgress: (progress) => {
-      console.log('Export progress:', progress.progress, progress.currentPhase)
-    },
+  // Render Pipeline Hook
+  const { 
+    renderQueue, 
+    createRenderJob, 
+    cancelRenderJob, 
+    isConnected 
+  } = useRenderPipeline()
 
-    onComplete: (data) => {
-      console.log('Export complete:', data.outputUrl)
-      setIsExporting(false)
-      setDownloadUrl(data.outputUrl)
-      setCurrentJobId(null)
-    },
+  // Watch for job updates
+  useEffect(() => {
+    if (!currentJobId || !renderQueue) return
 
-    onFailed: (data) => {
-      console.error('Export failed:', data.error)
+    // Check completed
+    const completedJob = renderQueue.completed.find(j => j.id === currentJobId)
+    if (completedJob) {
+      console.log('Export complete:', completedJob.output_url)
       setIsExporting(false)
-      setErrorMessage(data.error)
+      setDownloadUrl(completedJob.output_url || null)
       setCurrentJobId(null)
-    },
+      return
+    }
 
-    onCancelled: () => {
-      console.log('Export cancelled')
+    // Check failed
+    const failedJob = renderQueue.failed.find(j => j.id === currentJobId)
+    if (failedJob) {
+      console.error('Export failed:', failedJob.error_message)
       setIsExporting(false)
+      setErrorMessage(failedJob.error_message || 'Export failed')
       setCurrentJobId(null)
-    },
-  })
+      return
+    }
+  }, [renderQueue, currentJobId])
+
+  // Derived progress
+  const processingJob = renderQueue?.processing.find(j => j.id === currentJobId)
+  const currentProgress = processingJob ? {
+    progress: processingJob.progress,
+    currentPhase: ExportPhase.PROCESSING_VIDEO, // Simplified
+    message: 'Renderizando...',
+    estimatedTimeRemaining: processingJob.estimated_duration
+  } : null
 
   // Handler: Iniciar exportação
   const handleStartExport = async () => {
@@ -125,9 +140,32 @@ export function VideoExportDialog({
         subtitle: subtitle || undefined,
       }
 
-      const jobId = await startExport(projectId, timelineId, settings, timelineData)
-      setCurrentJobId(jobId)
-      console.log('Export started with advanced settings, job ID:', jobId)
+      const job = await createRenderJob({
+        project_id: projectId,
+        user_id: userId,
+        type: 'video',
+        priority: 'normal',
+        status: 'pending',
+        input_data: {
+          timelineId,
+          settings,
+          timelineData
+        },
+        metadata: {
+          resolution: settings.resolution,
+          format: settings.format,
+          quality: settings.quality,
+          fps: settings.fps
+        },
+        resource_usage: {}
+      })
+
+      if (job && job.id) {
+        setCurrentJobId(job.id)
+        console.log('Export started, job ID:', job.id)
+      } else {
+        throw new Error('Failed to get job ID')
+      }
     } catch (error) {
       console.error('Failed to start export:', error)
       setErrorMessage(String(error))
@@ -140,7 +178,7 @@ export function VideoExportDialog({
     if (!currentJobId) return
 
     try {
-      await cancelExport(currentJobId)
+      await cancelRenderJob(currentJobId)
       setIsExporting(false)
       setCurrentJobId(null)
     } catch (error) {

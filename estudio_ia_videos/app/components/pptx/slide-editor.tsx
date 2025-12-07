@@ -26,13 +26,15 @@ import {
   CheckCircle,
   Edit3
 } from 'lucide-react'
+import { CanvasEditor } from './canvas-editor'
+import { PPTXSlide } from '@/types/pptx-types'
 
 interface SlideEditorProps {
-  slide: any
-  sceneMapping: any
-  narrationResult: any
-  availableTemplates: any[]
-  onSlideUpdate: (slideId: string, updates: any) => void
+  slide: PPTXSlide
+  sceneMapping: Record<string, unknown>
+  narrationResult: Record<string, unknown>
+  availableTemplates: Record<string, unknown>[]
+  onSlideUpdate: (slideId: string, updates: Partial<PPTXSlide>) => void
   onTemplateChange: (slideId: string, templateId: string) => void
   onPreview: (slideId: string) => void
 }
@@ -165,7 +167,6 @@ export function SlideEditor({
           </div>
         </div>
 
-        {/* Content Editing */}
         {editMode ? (
           <div className="space-y-4 border rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
             <div>
@@ -173,7 +174,7 @@ export function SlideEditor({
               <Textarea
                 id={`title-${slide.slideNumber}`}
                 value={localSlide.title}
-                onChange={(e) => setLocalSlide((prev: any) => ({ ...prev, title: e.target.value }))}
+                onChange={(e) => setLocalSlide((prev: PPTXSlide) => ({ ...prev, title: e.target.value }))}
                 placeholder="Título do slide"
                 rows={1}
               />
@@ -184,7 +185,7 @@ export function SlideEditor({
               <Textarea
                 id={`bullets-${slide.slideNumber}`}
                 value={localSlide.bullets?.join('\n') || ''}
-                onChange={(e) => setLocalSlide((prev: any) => ({ 
+                onChange={(e) => setLocalSlide((prev: PPTXSlide) => ({ 
                   ...prev, 
                   bullets: e.target.value.split('\n').filter(line => line.trim())
                 }))}
@@ -194,13 +195,13 @@ export function SlideEditor({
             </div>
             
             <div>
-              <Label htmlFor={`notes-${slide.slideNumber}`}>Notas do Apresentador</Label>
-              <Textarea
-                id={`notes-${slide.slideNumber}`}
-                value={localSlide.notes}
-                onChange={(e) => setLocalSlide((prev: any) => ({ ...prev, notes: e.target.value }))}
-                placeholder="Notas adicionais para narração"
-                rows={2}
+              <Label>Canvas</Label>
+              <CanvasEditor
+                slide={slide}
+                onChange={(updates) => {
+                  setLocalSlide((prev: PPTXSlide) => ({ ...prev, elements: updates.elements }))
+                  onSlideUpdate(slide.slideNumber.toString(), { elements: updates.elements })
+                }}
               />
             </div>
             
@@ -261,7 +262,7 @@ export function SlideEditor({
               </Badge>
             </div>
             <p className="text-sm text-gray-700 dark:text-gray-300">
-              {narrationResult.segments?.map((seg: any) => seg.text).join(' ') || 'Processando narração...'}
+              {(narrationResult.segments as Record<string, unknown>[])?.map((seg) => seg.text as string).join(' ') || 'Processando narração...'}
             </p>
           </div>
         )}

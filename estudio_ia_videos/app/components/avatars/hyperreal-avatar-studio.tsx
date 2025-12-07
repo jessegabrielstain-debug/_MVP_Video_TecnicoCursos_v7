@@ -368,7 +368,7 @@ export default function HyperRealAvatarStudio({
                         <SelectValue placeholder="Selecione uma emoção" />
                       </SelectTrigger>
                       <SelectContent>
-                        {selectedAvatar?.emotions.map((emotion) => (
+                        {selectedAvatar?.emotions.map((emotion: any) => (
                           <SelectItem key={emotion.id} value={emotion.id}>
                             <div className="flex items-center space-x-2">
                               <span>{emotion.name}</span>
@@ -427,9 +427,9 @@ export default function HyperRealAvatarStudio({
                         <SelectValue placeholder="Selecione um gesto" />
                       </SelectTrigger>
                       <SelectContent>
-                        {selectedAvatar?.gestureSet.map((gesture) => (
+                        {selectedAvatar?.gestureSet.map((gesture: any) => (
                           <SelectItem key={gesture} value={gesture}>
-                            {gesture.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {gesture.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -444,7 +444,7 @@ export default function HyperRealAvatarStudio({
                         <SelectValue placeholder="Selecione uma roupa" />
                       </SelectTrigger>
                       <SelectContent>
-                        {selectedAvatar?.clothing.map((item) => (
+                        {selectedAvatar?.clothing.map((item: any) => (
                           <SelectItem key={item.id} value={item.id}>
                             <div className="flex items-center space-x-2">
                               <Shirt className="h-4 w-4" />

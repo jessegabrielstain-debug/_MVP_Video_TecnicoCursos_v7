@@ -391,8 +391,8 @@ export function KeyframeAnimationSystem() {
       const endProp = endKeyframe.properties.find(p => p.name === startProp.name);
       if (endProp && startProp.type === 'number') {
         result[startProp.name] = interpolateValue(
-          startProp.value,
-          endProp.value,
+          startProp.value as number,
+          endProp.value as number,
           progress,
           startKeyframe.easing
         );

@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 
 // Schema de validação para projetos
 const ProjectSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo'),
   description: z.string().optional(),
-  type: z.enum(['video', 'presentation', 'animation']).default('video'),
+  type: z.enum(['pptx', 'template-nr', 'talking-photo', 'custom', 'ai-generated']).default('custom'),
+  metadata: z.object({
+    priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+    tags: z.array(z.string()).optional(),
+    category: z.string().optional()
+  }).optional(),
   settings: z.object({
     width: z.number().default(1920),
     height: z.number().default(1080),
@@ -16,51 +23,65 @@ const ProjectSchema = z.object({
   }).optional()
 })
 
-// Armazenamento em memória para demonstração
-let projects: any[] = [
-  {
-    id: 'proj-001',
-    name: 'Projeto Demo 1',
-    description: 'Projeto de demonstração do sistema',
-    type: 'video',
-    status: 'draft',
-    owner_id: 'user-demo',
-    settings: {
-      width: 1920,
-      height: 1080,
-      fps: 30,
-      quality: 'high',
-      format: 'mp4'
-    },
-    is_public: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'proj-002',
-    name: 'Apresentação Corporativa',
-    description: 'Vídeo para apresentação da empresa',
-    type: 'presentation',
-    status: 'in_progress',
-    owner_id: 'user-demo',
-    settings: {
-      width: 1920,
-      height: 1080,
-      fps: 30,
-      quality: 'high',
-      format: 'mp4'
-    },
-    is_public: true,
-    created_at: new Date(Date.now() - 86400000).toISOString(), // 1 dia atrás
-    updated_at: new Date().toISOString()
-  }
-]
-
-// GET - Listar projetos
+// GET - Listar projetos do usuário
 export async function GET(request: NextRequest) {
   try {
-    console.log('📋 [PROJECTS-API] Listando projetos...')
+    // Extract token from header
+    const authHeader = request.headers.get('authorization') || request.headers.get('Authorization')
     
+    let supabase;
+    let user;
+    let authError;
+
+    if (authHeader) {
+        // Create a clean client and set session manually
+        supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                auth: {
+                    persistSession: false,
+                    autoRefreshToken: false
+                }
+            }
+        );
+        const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader.startsWith('bearer ') ? authHeader.substring(7) : authHeader;
+        
+        const { error: sessionError } = await supabase.auth.setSession({
+            access_token: token,
+            refresh_token: 'dummy'
+        });
+        
+        if (sessionError) {
+            console.error('DEBUG: setSession error:', sessionError);
+            return NextResponse.json({ 
+                error: 'Unauthorized',
+                debug_error: 'Session set failed',
+                debug_details: sessionError
+            }, { status: 401 })
+        }
+        
+        const result = await supabase.auth.getUser();
+        user = result.data.user;
+        authError = result.error;
+    } else {
+        // Fallback to existing logic (cookie based?)
+        supabase = getSupabaseForRequest(request);
+        const result = await supabase.auth.getUser();
+        user = result.data.user;
+        authError = result.error;
+    }
+    
+    if (authError) {
+        console.error('Projects API Auth Error:', authError);
+    }
+
+    if (!user) {
+      return NextResponse.json({ 
+        error: 'Unauthorized',
+      }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
@@ -68,37 +89,41 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type')
     const search = searchParams.get('search')
 
-    let filteredProjects = [...projects]
+    let query = supabase
+      .from('projects')
+      .select('*', { count: 'exact' })
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
 
     // Filtros
     if (status) {
-      filteredProjects = filteredProjects.filter(p => p.status === status)
+      query = query.eq('status', status)
     }
     
-    if (type) {
-      filteredProjects = filteredProjects.filter(p => p.type === type)
+    if (type && ['pptx', 'template-nr', 'talking-photo', 'custom', 'ai-generated'].includes(type)) {
+      query = query.eq('type', type as 'pptx' | 'template-nr' | 'talking-photo' | 'custom' | 'ai-generated')
     }
     
     if (search) {
-      filteredProjects = filteredProjects.filter(p => 
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.description?.toLowerCase().includes(search.toLowerCase())
-      )
+      query = query.ilike('name', `%${search}%`)
     }
 
     // Paginação
-    const startIndex = (page - 1) * limit
-    const endIndex = startIndex + limit
-    const paginatedProjects = filteredProjects.slice(startIndex, endIndex)
+    const from = (page - 1) * limit
+    const to = from + limit - 1
+    
+    const { data: projects, count, error } = await query.range(from, to)
+
+    if (error) throw error
 
     const response = {
       success: true,
-      data: paginatedProjects,
+      data: projects,
       pagination: {
         page,
         limit,
-        total: filteredProjects.length,
-        pages: Math.ceil(filteredProjects.length / limit)
+        total: count || 0,
+        pages: Math.ceil((count || 0) / limit)
       },
       filters: {
         status,
@@ -108,7 +133,6 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     }
 
-    console.log(`✅ [PROJECTS-API] ${paginatedProjects.length} projetos retornados`)
     return NextResponse.json(response)
 
   } catch (error) {
@@ -125,7 +149,23 @@ export async function GET(request: NextRequest) {
 // POST - Criar novo projeto
 export async function POST(request: NextRequest) {
   try {
-    console.log('🚀 [PROJECTS-API] Criando novo projeto...')
+    const supabase = getSupabaseForRequest(request)
+    
+    const authHeader = request.headers.get('authorization') || request.headers.get('Authorization')
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : authHeader?.startsWith('bearer ') ? authHeader.substring(7) : null
+    
+    if (token) {
+        await supabase.auth.setSession({
+            access_token: token,
+            refresh_token: 'dummy'
+        })
+    }
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     
     const body = await request.json()
     
@@ -143,30 +183,31 @@ export async function POST(request: NextRequest) {
     const validatedData = validationResult.data
 
     // Criar novo projeto
-    const newProject = {
-      id: `proj-${Date.now()}`,
-      name: validatedData.name,
-      description: validatedData.description || '',
-      type: validatedData.type,
-      status: 'draft',
-      owner_id: 'user-demo', // Em produção, pegar do token de auth
-      settings: {
-        width: 1920,
-        height: 1080,
-        fps: 30,
-        quality: 'high',
-        format: 'mp4',
-        ...validatedData.settings
-      },
-      is_public: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+    const { data: newProject, error } = await supabase
+      .from('projects')
+      .insert({
+        name: validatedData.name,
+        description: validatedData.description || '',
+        type: validatedData.type,
+        status: 'draft',
+        user_id: user.id,
+        metadata: validatedData.metadata || {},
+        // render_settings: validatedData.settings || {},
+        is_public: false
+      })
+      .select('id, name, type, status')
+      .single()
+
+    if (error) {
+      console.error('Error creating project:', error)
+      // Attempt to extract detailed message
+      const errorMessage = error.message || 'Erro ao criar projeto'
+      return NextResponse.json({ 
+        success: false, 
+        error: errorMessage,
+        details: error
+      }, { status: 400 })
     }
-
-    // Adicionar ao armazenamento
-    projects.push(newProject)
-
-    console.log(`✅ [PROJECTS-API] Projeto criado: ${newProject.id}`)
     
     return NextResponse.json({
       success: true,

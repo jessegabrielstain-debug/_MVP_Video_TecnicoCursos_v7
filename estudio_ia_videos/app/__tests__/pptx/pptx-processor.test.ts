@@ -45,7 +45,7 @@ describe('validatePPTXFile', () => {
     const result = await validatePPTXFile(invalidFile);
 
     expect(result.valid).toBe(false);
-    expect(result.error).toContain('Formato de arquivo inválido');
+    expect(result.error).toContain('Assinatura ZIP não encontrada');
   });
 });
 
@@ -86,7 +86,7 @@ describe('processPPTXFile', () => {
     await processPPTXFile(file, projectId, {}, progressSpy);
 
     const stages = progressSpy.mock.calls.map(([payload]) => payload.stage);
-    expect(stages).toEqual(['initializing', 'parsing', 'processing-slides', 'finalizing']);
+    expect(stages).toEqual(['initializing', 'parsing', 'processing-slides', 'processing-slides', 'finalizing']);
   });
 
   it('deve falhar graciosamente quando a validação falha', async () => {

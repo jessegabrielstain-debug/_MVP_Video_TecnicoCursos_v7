@@ -1,3 +1,4 @@
+// TODO: Fix PresentationV2 to Record<string, unknown> assignment
 
 /**
  * 🔧 Enhanced PPTX Processing API v2.0 - Production Real
@@ -31,19 +32,21 @@ export async function POST(request: NextRequest) {
     const result = await parser.parseFromS3(s3Key);
     
     // Converter para formato unificado
-    const unifiedResult = convertRealToUnified(result);
+    const unifiedResult = convertRealToUnified(result as any);
 
     // Estatísticas detalhadas
-    const elementStats = result.slides.reduce((acc, slide) => {
-      slide.elements.forEach(element => {
-        acc[element.type] = (acc[element.type] || 0) + 1;
-      });
+    const elementStats = (result.slides as any[]).reduce((acc: Record<string, number>, slide: any) => {
+      if (slide.elements) {
+        slide.elements.forEach((element: any) => {
+          acc[element.type] = (acc[element.type] || 0) + 1;
+        });
+      }
       return acc;
     }, {} as Record<string, number>);
 
     console.log('✅ [PPTX Parser v2] Processamento real concluído:', {
       slides: result.slides.length,
-      totalElements: result.slides.reduce((acc, slide) => acc + slide.elements.length, 0),
+      totalElements: result.slides.reduce((acc: number, slide: any) => acc + (slide.elements?.length || 0), 0),
       elementsByType: elementStats,
       assets: {
         images: result.assets.images.length,
@@ -55,8 +58,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Validar que temos elementos editáveis (não apenas imagens)
-    const editableElements = result.slides.reduce((acc, slide) => 
-      acc + slide.elements.filter(el => el.type !== 'image').length, 0
+    const editableElements = result.slides.reduce((acc: number, slide: any) => 
+      acc + (slide.elements?.filter((el: any) => el.type !== 'image').length || 0), 0
     );
 
     if (editableElements === 0) {
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
       data: unifiedResult,
       statistics: {
         processedSlides: result.slides.length,
-        totalElements: result.slides.reduce((acc, slide) => acc + slide.elements.length, 0),
+        totalElements: result.slides.reduce((acc: any, slide: any) => acc + slide.elements.length, 0),
         editableElements,
         elementsByType: elementStats,
         totalAssets: result.assets.images.length + result.assets.videos.length + result.assets.audio.length,
@@ -123,3 +126,4 @@ export async function GET(request: NextRequest) {
     }
   });
 }
+

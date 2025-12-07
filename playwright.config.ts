@@ -1,7 +1,13 @@
 import { defineConfig } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables from estudio_ia_videos/.env.local
+dotenv.config({ path: path.resolve(process.cwd(), 'estudio_ia_videos', '.env.local') });
 
 export default defineConfig({
-  testDir: 'tests/e2e',
+  testDir: '.',
+  testMatch: ['**/tests/e2e/**/*.spec.ts', '**/tests/e2e/**/*.test.ts', '**/app/e2e-playwright/**/*.spec.ts'],
   globalSetup: './tests/global-setup.ts',
   globalTeardown: './tests/global-teardown.ts',
   timeout: 60000,

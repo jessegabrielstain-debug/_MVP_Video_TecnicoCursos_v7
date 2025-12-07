@@ -21,7 +21,7 @@ export async function GET(
     }
     
     // Calcular tempos
-    const timings: any = {}
+    const timings: Record<string, string> = {}
     
     if (job.timings.audio2face_start && job.timings.audio2face_end) {
       timings.audio2face_seconds = (
@@ -63,10 +63,10 @@ export async function GET(
       }
     })
     
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erro ao obter status:', error)
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

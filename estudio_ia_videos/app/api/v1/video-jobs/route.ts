@@ -10,6 +10,32 @@ import { shouldUseMockRenderJobs, getMockUserId, insertMockJob, listMockJobs } f
 
 // Removido schema local de erro (não usado diretamente)
 
+type RenderJobRow = {
+  id: string;
+  status: string;
+  project_id?: string | null;
+  created_at?: string | null;
+  progress?: number | null;
+  attempts?: number | null;
+  duration_ms?: number | null;
+  render_settings?: unknown;
+  updated_at?: string | null;
+  user_id?: string;
+};
+
+interface VideoJobCachePayload {
+  jobs: unknown[];
+}
+
+interface VideoJobCacheEntry {
+  expiresAt: number;
+  payload: VideoJobCachePayload;
+}
+
+interface GlobalWithCache {
+  __vj_cache?: Map<string, VideoJobCacheEntry>;
+}
+
 function badRequest(issues: unknown) {
   return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'Payload inválido', details: issues }, { status: 400 });
 }
@@ -96,7 +122,6 @@ export async function POST(req: Request) {
     }
 
     const durationMs = Date.now() - started;
-  type RenderJobRow = { id: string; status: string; project_id?: string | null; created_at?: string | null; progress?: number | null; attempts?: number | null; duration_ms?: number | null; render_settings?: unknown };
   const row = data as unknown as RenderJobRow;
   const job = data ? { id: row.id, status: row.status, project_id: row.project_id, created_at: row.created_at, progress: row.progress, attempts: row.attempts, duration_ms: row.duration_ms ?? null, settings: row.render_settings } : null;
   return NextResponse.json({ job, metrics: { validation_ms: durationMs } }, { status: 201 });
@@ -141,24 +166,23 @@ export async function GET(req: Request) {
       return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'Parâmetros inválidos', details: err.error.issues }, { status: 400 });
     }
     queryParams = parsed.data;
-    const { limit, offset, status, projectId, sortBy, sortOrder } = queryParams;
 
     // Cache simples em memória por usuário+query (TTL 15s)
     const CACHE_TTL_MS = 15_000;
-    const globalAny = globalThis as unknown as { __vj_cache?: Map<string, { expiresAt: number; payload: any }> };
+    const globalAny = globalThis as unknown as GlobalWithCache;
     if (!globalAny.__vj_cache) globalAny.__vj_cache = new Map();
-    const cacheKey = `list:${userId}:${limit}:${offset}:${status || 'all'}:${projectId || 'all'}:${sortBy}:${sortOrder}`;
+    const cacheKey = `list:${userId}:${queryParams.limit}:${queryParams.offset}:${queryParams.status || 'all'}:${queryParams.projectId || 'all'}:${queryParams.sortBy}:${queryParams.sortOrder}`;
     const computeMockResponse = (cacheTag: 'MISS' | 'HIT' = 'MISS') => {
       const jobs = listMockJobs(userId, {
-        limit,
-        offset,
-        status,
-        projectId,
-        sortBy,
-        sortOrder,
+        limit: queryParams!.limit,
+        offset: queryParams!.offset,
+        status: queryParams!.status,
+        projectId: queryParams!.projectId,
+        sortBy: queryParams!.sortBy,
+        sortOrder: queryParams!.sortOrder,
       });
-      const payload = { jobs };
-      globalAny.__vj_cache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, payload });
+      const payload: VideoJobCachePayload = { jobs };
+      globalAny.__vj_cache?.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, payload });
       return new NextResponse(JSON.stringify(payload), {
         status: 200,
         headers: { 'content-type': 'application/json', 'X-Cache': cacheTag, 'X-Mock-Data': 'render-jobs' }
@@ -208,12 +232,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ code: 'DB_ERROR', message: 'Falha ao listar jobs', details: error.message }, { status: 500 });
     }
     // Normaliza render_settings -> settings
-    const jobs = (data ?? []).map((row: any) => {
-      const { render_settings, ...rest } = row;
+    const jobs = (data ?? []).map((row: unknown) => {
+      const r = row as RenderJobRow;
+      const { render_settings, ...rest } = r;
       return { ...rest, settings: render_settings };
     });
-    const payload = { jobs };
-    globalAny.__vj_cache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, payload });
+    const payload: VideoJobCachePayload = { jobs };
+    globalAny.__vj_cache?.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, payload });
     return new NextResponse(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json', 'X-Cache': 'MISS' } });
   } catch (err) {
     recordError('UNEXPECTED');
@@ -224,3 +249,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ code: 'UNEXPECTED', message: 'Erro inesperado', details: (err as Error).message }, { status: 500 });
   }
 }
+

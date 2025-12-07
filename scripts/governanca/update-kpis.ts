@@ -109,13 +109,27 @@ function calculateChange(current: number, previous?: number): { change: number; 
   return { change, trend };
 }
 
-function updateKPIs(): KPIReport {
+async function getWebVitals() {
+  try {
+    const res = await fetch('http://localhost:3000/api/metrics/web-vitals');
+    if (res.ok) {
+      const data = await res.json();
+      return data.summary;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return null;
+}
+
+async function updateKPIs(): Promise<KPIReport> {
   const generatedAt = new Date().toISOString();
   
   // Get current values
   const coverage = getCurrentCoverage();
   const anyCount = getCurrentAnyCount();
   const mttr = getCurrentMTTR();
+  const webVitals = await getWebVitals();
   
   // Load historical data
   const historical = loadHistoricalKPIs();
@@ -175,6 +189,56 @@ function updateKPIs(): KPIReport {
   const reportPath = path.join(reportsDir, `kpi-report-${new Date().toISOString().split('T')[0]}.json`);
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
   
+  // Update dashboard data (docs/governanca/kpis.json)
+  try {
+    const dashboardPath = path.join(process.cwd(), 'docs/governanca/kpis.json');
+    let dashboardData: any = { 
+      coverage_core: 0, 
+      any_remaining: 0, 
+      mttr_minutes: null, 
+      deploy_frequency_weekly: 0, 
+      change_failure_rate: null, 
+      history: [] 
+    };
+    
+    if (fs.existsSync(dashboardPath)) {
+      try {
+        dashboardData = JSON.parse(fs.readFileSync(dashboardPath, 'utf8'));
+      } catch (e) {
+        console.warn('Could not read existing dashboard data, creating new');
+      }
+    }
+
+    // Update current values
+    dashboardData.coverage_core = report.summary.coverage;
+    dashboardData.any_remaining = report.summary.anyCount;
+    dashboardData.mttr_minutes = report.summary.mttr;
+    
+    // Add to history
+    const historyItem = {
+      ts: report.generatedAt,
+      coverage_core: report.summary.coverage,
+      any_remaining: report.summary.anyCount,
+      diff: {
+        coverage_core: report.kpis.find(k => k.metric === 'test-coverage')?.change || 0,
+        any_remaining: report.kpis.find(k => k.metric === 'any-count')?.change || 0
+      }
+    };
+    
+    if (!dashboardData.history) dashboardData.history = [];
+    dashboardData.history.push(historyItem);
+    
+    // Keep history reasonable size
+    if (dashboardData.history.length > 50) {
+      dashboardData.history = dashboardData.history.slice(-50);
+    }
+
+    fs.writeFileSync(dashboardPath, JSON.stringify(dashboardData, null, 2));
+    console.log(`Updated dashboard data at: ${dashboardPath}`);
+  } catch (error) {
+    console.error('Error updating dashboard data:', error);
+  }
+
   // Print summary
   console.log('📊 KPI Report Generated');
   console.log(`Date: ${generatedAt}`);
@@ -188,14 +252,14 @@ function updateKPIs(): KPIReport {
   return report;
 }
 
+import { fileURLToPath } from 'url';
+
 // Run the KPI update
-if (require.main === module) {
-  try {
-    updateKPIs();
-  } catch (error) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  updateKPIs().catch(error => {
     console.error('Error updating KPIs:', error);
     process.exit(1);
-  }
+  });
 }
 
 export { updateKPIs, KPIReport, KPI };

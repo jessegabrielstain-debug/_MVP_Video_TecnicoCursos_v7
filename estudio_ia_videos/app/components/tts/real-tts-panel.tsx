@@ -141,9 +141,9 @@ export default function RealTTSPanel({
         throw new Error(data.error || 'Erro na geração')
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('TTS generation error:', error)
-      toast.error(`❌ ${error.message}`)
+      toast.error(`❌ ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     } finally {
       setIsGenerating(false)
     }

@@ -1,20 +1,14 @@
-
-/**
- * POST /api/voice/create
- * Upload samples e inicia treinamento de voz custom
- */
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth/auth-config'
-import { prisma } from '@/lib/db'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { trainVoice } from '@/lib/voice/voice-cloning'
 
 
 const getUserId = (user: unknown): string => ((user as { id?: string }).id || '');
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -45,16 +39,17 @@ export async function POST(req: NextRequest) {
     })
 
     // Salva no banco
-    const voiceClone = await prisma.voiceClone.create({
+    // Note: VoiceClone model must be present in schema.prisma and prisma generate run
+    const voiceClone = await (prisma as any).voiceClone.create({
       data: {
         userId: getUserId(session.user),
         name,
         description,
         provider: 'elevenlabs',
-        voiceId: result.voiceId,
+        voiceId: result.voiceId || result.id,
         sampleCount: samples.length,
-        trainingStatus: result.status,
-        qualityScore: result.qualityScore
+        trainingStatus: result.status || 'pending',
+        qualityScore: result.qualityScore || 0
       }
     })
 
@@ -68,3 +63,5 @@ export async function POST(req: NextRequest) {
     )
   }
 }
+
+

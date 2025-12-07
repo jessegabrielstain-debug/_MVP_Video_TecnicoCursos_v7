@@ -6,6 +6,8 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useTimeline, TimelineProject, TimelineElement, TimelineTrack } from '@/hooks/useTimeline';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,153 +38,75 @@ import {
   Image as ImageIcon,
   Layers,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  Loader2,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
 
-// Simple Types
-interface TimelineElement {
-  id: string;
-  type: 'image' | 'text' | 'audio' | 'video';
-  name: string;
-  duration: number;
-  startTime: number;
-  visible: boolean;
-  locked: boolean;
-  properties: Record<string, unknown>;
-}
-
-interface TimelineTrack {
-  id: string;
-  name: string;
-  type: 'video' | 'audio' | 'overlay';
-  visible: boolean;
-  locked: boolean;
-  elements: TimelineElement[];
-}
-
-interface TimelineProject {
-  id: string;
-  name: string;
-  duration: number;
-  fps: number;
-  width: number;
-  height: number;
-  currentTime: number;
-  isPlaying: boolean;
-  zoom: number;
-  tracks: TimelineTrack[];
-}
-
 export default function TimelineEditorSimple() {
-  const [project, setProject] = useState<TimelineProject>({
-    id: 'demo-project',
-    name: 'Projeto Demo',
-    duration: 30,
-    fps: 30,
-    width: 1920,
-    height: 1080,
-    currentTime: 0,
-    isPlaying: false,
-    zoom: 1,
-    tracks: [
-      {
-        id: 'track-1',
-        name: 'Vídeo Principal',
-        type: 'video',
-        visible: true,
-        locked: false,
-        elements: [
-          {
-            id: 'element-1',
-            type: 'image',
-            name: 'Slide 1',
-            duration: 5,
-            startTime: 0,
-            visible: true,
-            locked: false,
-            properties: { opacity: 1 }
-          },
-          {
-            id: 'element-2',
-            type: 'image',
-            name: 'Slide 2',
-            duration: 5,
-            startTime: 5,
-            visible: true,
-            locked: false,
-            properties: { opacity: 1 }
-          }
-        ]
-      },
-      {
-        id: 'track-2',
-        name: 'Áudio',
-        type: 'audio',
-        visible: true,
-        locked: false,
-        elements: []
-      }
-    ]
-  });
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get('project');
+  
+  const {
+    project,
+    isLoading,
+    error,
+    loadProject,
+    createProject,
+    saveProject,
+    updateProject,
+    play,
+    pause,
+    stop,
+    seek,
+    exportToVideo,
+    updateElement,
+    deleteElement,
+    duplicateElement,
+    renderJob
+  } = useTimeline();
 
-  const [selectedElement, setSelectedElement] = useState<string | null>(null);
-  const playbackTimer = useRef<NodeJS.Timeout | null>(null);
-
-  // Playback Controls
-  const togglePlayback = useCallback(() => {
-    if (project.isPlaying) {
-      // Pause
-      if (playbackTimer.current) {
-        clearInterval(playbackTimer.current);
-      }
-      setProject(prev => ({ ...prev, isPlaying: false }));
-    } else {
-      // Play
-      setProject(prev => ({ ...prev, isPlaying: true }));
-      
-      playbackTimer.current = setInterval(() => {
-        setProject(prev => {
-          if (!prev.isPlaying) return prev;
-          
-          const newTime = prev.currentTime + (1 / prev.fps);
-          if (newTime >= prev.duration) {
-            if (playbackTimer.current) {
-              clearInterval(playbackTimer.current);
-            }
-            return { ...prev, currentTime: prev.duration, isPlaying: false };
-          }
-          
-          return { ...prev, currentTime: newTime };
-        });
-      }, 1000 / project.fps);
-    }
-  }, [project.isPlaying, project.fps]);
-
-  const seekTo = useCallback((time: number) => {
-    setProject(prev => ({
-      ...prev,
-      currentTime: Math.max(0, Math.min(time, prev.duration))
-    }));
-  }, []);
-
-  const stopPlayback = useCallback(() => {
-    if (playbackTimer.current) {
-      clearInterval(playbackTimer.current);
-    }
-    setProject(prev => ({ ...prev, currentTime: 0, isPlaying: false }));
-  }, []);
-
-  // Cleanup
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  
+  // Load project on mount
   useEffect(() => {
-    return () => {
-      if (playbackTimer.current) {
-        clearInterval(playbackTimer.current);
-      }
-    };
-  }, []);
+    if (projectId) {
+      loadProject(projectId);
+    } else {
+      // If no project ID, create a demo one or redirect
+      // For now, let's create a demo project in memory
+      createProject('Novo Projeto', {
+        duration: 30,
+        fps: 30,
+        width: 1920,
+        height: 1080,
+        tracks: [
+            {
+              id: 'track-1',
+              name: 'Vídeo Principal',
+              type: 'video',
+              visible: true,
+              locked: false,
+              elements: []
+            },
+            {
+              id: 'track-2',
+              name: 'Áudio',
+              type: 'audio',
+              visible: true,
+              locked: false,
+              elements: []
+            }
+          ]
+      });
+    }
+  }, [projectId, loadProject, createProject]);
 
   // Element rendering
   const renderElement = (element: TimelineElement, trackIndex: number) => {
+    if (!project) return null;
+    
     const elementWidth = (element.duration / project.duration) * 800 * project.zoom;
     const elementLeft = (element.startTime / project.duration) * 800 * project.zoom;
     
@@ -200,14 +124,17 @@ export default function TimelineEditorSimple() {
       <div
         key={element.id}
         className={`absolute h-12 ${getElementColor(element.type)} rounded cursor-pointer border-2 ${
-          selectedElement === element.id ? 'border-white' : 'border-transparent'
+          selectedElementId === element.id ? 'border-white' : 'border-transparent'
         } opacity-90 hover:opacity-100 transition-opacity`}
         style={{
-          width: `${elementWidth}px`,
+          width: `${Math.max(elementWidth, 20)}px`, // Min width for visibility
           left: `${elementLeft}px`,
-          top: `${trackIndex * 60 + 60}px`
+          top: `${trackIndex * 60 + 60}px` // Adjusted for track layout
         }}
-        onClick={() => setSelectedElement(element.id)}
+        onClick={(e) => {
+            e.stopPropagation();
+            setSelectedElementId(element.id);
+        }}
         title={`${element.name} (${element.duration}s)`}
       >
         <div className="p-2 text-white text-xs font-medium truncate">
@@ -216,6 +143,31 @@ export default function TimelineEditorSimple() {
       </div>
     );
   };
+
+  if (isLoading && !project) {
+      return (
+          <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">
+              <Loader2 className="h-8 w-8 animate-spin mr-2" />
+              <span>Carregando projeto...</span>
+          </div>
+      );
+  }
+
+  if (error) {
+      return (
+          <div className="min-h-screen bg-gray-900 flex items-center justify-center text-red-500">
+              <span>Erro: {error}</span>
+          </div>
+      );
+  }
+
+  if (!project) {
+      return (
+          <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">
+              <span>Nenhum projeto carregado.</span>
+          </div>
+      );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -233,11 +185,11 @@ export default function TimelineEditorSimple() {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
-              <Save className="mr-2 h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={() => saveProject()} disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Salvar
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => exportToVideo()} disabled={isLoading}>
               <Download className="mr-2 h-4 w-4" />
               Exportar
             </Button>
@@ -255,14 +207,14 @@ export default function TimelineEditorSimple() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={stopPlayback}
+                  onClick={stop}
                 >
                   <SkipBack className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={togglePlayback}
+                  onClick={project.isPlaying ? pause : play}
                 >
                   {project.isPlaying ? (
                     <Pause className="h-4 w-4" />
@@ -273,7 +225,7 @@ export default function TimelineEditorSimple() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => seekTo(project.duration)}
+                  onClick={() => seek(project.duration)}
                 >
                   <SkipForward className="h-4 w-4" />
                 </Button>
@@ -282,7 +234,7 @@ export default function TimelineEditorSimple() {
               <div className="flex-1 max-w-md">
                 <Slider
                   value={[project.currentTime]}
-                  onValueChange={([value]) => seekTo(value)}
+                  onValueChange={([value]) => seek(value)}
                   max={project.duration}
                   step={0.1}
                   className="w-full"
@@ -294,11 +246,11 @@ export default function TimelineEditorSimple() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => updateProject({ zoom: Math.max(0.1, project.zoom - 0.1) })}>
                   <ZoomOut className="h-4 w-4" />
                 </Button>
                 <span className="text-sm">{Math.round(project.zoom * 100)}%</span>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => updateProject({ zoom: Math.min(5, project.zoom + 0.1) })}>
                   <ZoomIn className="h-4 w-4" />
                 </Button>
               </div>
@@ -306,7 +258,7 @@ export default function TimelineEditorSimple() {
           </div>
 
           {/* Timeline Canvas */}
-          <div className="flex-1 bg-gray-900 relative overflow-auto">
+          <div className="flex-1 bg-gray-900 relative overflow-auto" onClick={() => setSelectedElementId(null)}>
             {/* Time Ruler */}
             <div className="h-8 bg-gray-800 border-b border-gray-700 sticky top-0 z-10">
               <div className="relative h-full">
@@ -338,10 +290,9 @@ export default function TimelineEditorSimple() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          const newTracks = [...project.tracks];
-                          newTracks[trackIndex].visible = !newTracks[trackIndex].visible;
-                          setProject(prev => ({ ...prev, tracks: newTracks }));
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Toggle visibility logic here if needed
                         }}
                       >
                         {track.visible ? (
@@ -377,20 +328,24 @@ export default function TimelineEditorSimple() {
         <div className="w-80 bg-gray-800 border-l border-gray-700 p-4">
           <h3 className="text-lg font-semibold mb-4">Propriedades</h3>
           
-          {selectedElement ? (
+          {selectedElementId ? (
             <div className="space-y-4">
               {(() => {
                 const element = project.tracks
                   .flatMap(track => track.elements)
-                  .find(el => el.id === selectedElement);
+                  .find(el => el.id === selectedElementId);
                 
-                if (!element) return <p className="text-gray-400">Element não encontrado</p>;
+                if (!element) return <p className="text-gray-400">Elemento não encontrado</p>;
                 
                 return (
                   <div className="space-y-4">
                     <div>
                       <Label>Nome</Label>
-                      <Input value={element.name} className="mt-1" />
+                      <Input 
+                        value={element.name} 
+                        onChange={(e) => updateElement(element.id, { name: e.target.value })}
+                        className="mt-1" 
+                      />
                     </div>
                     
                     <div>
@@ -398,6 +353,7 @@ export default function TimelineEditorSimple() {
                       <Input 
                         type="number" 
                         value={element.duration} 
+                        onChange={(e) => updateElement(element.id, { duration: parseFloat(e.target.value) })}
                         className="mt-1"
                         step="0.1"
                       />
@@ -408,6 +364,7 @@ export default function TimelineEditorSimple() {
                       <Input 
                         type="number" 
                         value={element.startTime} 
+                        onChange={(e) => updateElement(element.id, { startTime: parseFloat(e.target.value) })}
                         className="mt-1"
                         step="0.1"
                       />
@@ -418,7 +375,7 @@ export default function TimelineEditorSimple() {
                       <Slider
                         value={[element.properties.opacity || 1]}
                         onValueChange={([value]) => {
-                          // Update element opacity
+                          updateElement(element.id, { properties: { ...element.properties, opacity: value } });
                         }}
                         max={1}
                         step={0.1}
@@ -429,11 +386,14 @@ export default function TimelineEditorSimple() {
                     <Separator />
                     
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => duplicateElement(element.id)}>
                         <Copy className="mr-2 h-3 w-3" />
                         Duplicar
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+                          deleteElement(element.id);
+                          setSelectedElementId(null);
+                      }}>
                         <Trash2 className="mr-2 h-3 w-3" />
                         Excluir
                       </Button>
@@ -450,6 +410,49 @@ export default function TimelineEditorSimple() {
           )}
         </div>
       </div>
+
+      {/* Render Status Overlay */}
+      {renderJob && (
+        <div className="fixed bottom-4 right-4 w-80 z-50">
+          <Card className="bg-gray-800 border-gray-700 text-white shadow-xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center justify-between">
+                <span>Status da Renderização</span>
+                {renderJob.status === 'completed' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                {renderJob.status === 'failed' && <AlertCircle className="h-4 w-4 text-red-500" />}
+                {(renderJob.status === 'processing' || renderJob.status === 'queued') && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between text-xs text-gray-400">
+                  <span className="capitalize">
+                    {renderJob.status === 'queued' ? 'Na fila...' :
+                     renderJob.status === 'processing' ? 'Renderizando...' :
+                     renderJob.status === 'completed' ? 'Concluído' :
+                     renderJob.status === 'failed' ? 'Falhou' : renderJob.status}
+                  </span>
+                  <span>{Math.round(renderJob.progress)}%</span>
+                </div>
+                <Progress value={renderJob.progress} className="h-2" />
+                
+                {renderJob.status === 'completed' && renderJob.output_url && (
+                  <Button className="w-full mt-2 bg-green-600 hover:bg-green-700" onClick={() => window.open(renderJob.output_url, '_blank')}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Baixar Vídeo
+                  </Button>
+                )}
+                
+                {renderJob.error_message && (
+                  <div className="text-xs text-red-400 mt-2 bg-red-900/20 p-2 rounded border border-red-900/50">
+                    {renderJob.error_message}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

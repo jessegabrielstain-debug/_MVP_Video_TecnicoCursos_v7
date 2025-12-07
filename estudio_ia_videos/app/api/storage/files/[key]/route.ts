@@ -9,6 +9,8 @@ import { storageSystem } from '@/lib/storage-system-real';
 import { auditLogger, AuditAction, getRequestMetadata } from '@/lib/audit-logging-real';
 import { getServerSession } from 'next-auth';
 
+const DEFAULT_BUCKET = 'videos';
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { key: string } }
@@ -21,23 +23,22 @@ export async function GET(
 
     const { searchParams } = new URL(req.url);
     const expiresIn = parseInt(searchParams.get('expiresIn') || '3600');
+    const bucket = searchParams.get('bucket') || DEFAULT_BUCKET;
 
-    const signedUrl = await storageSystem.getSignedUrl(params.key, expiresIn);
+    const signedUrl = await storageSystem.getSignedUrl(bucket, params.key, expiresIn);
 
     // Audit log
     const { ip, userAgent } = getRequestMetadata(req);
     await auditLogger.logUserAction(
-      AuditAction.FILE_DOWNLOAD,
       session.user.id,
-      ip,
-      userAgent,
-      true,
-      { key: params.key }
+      AuditAction.FILE_DOWNLOAD,
+      `${bucket}/${params.key}`,
+      { key: params.key, bucket, ip, userAgent }
     );
 
     return NextResponse.json({ url: signedUrl });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -51,21 +52,22 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await storageSystem.delete(params.key, session.user.id);
+    const { searchParams } = new URL(req.url);
+    const bucket = searchParams.get('bucket') || DEFAULT_BUCKET;
+
+    await storageSystem.delete(bucket, params.key);
 
     // Audit log
     const { ip, userAgent } = getRequestMetadata(req);
     await auditLogger.logUserAction(
-      AuditAction.FILE_DELETE,
       session.user.id,
-      ip,
-      userAgent,
-      true,
-      { key: params.key }
+      AuditAction.FILE_DELETE,
+      `${bucket}/${params.key}`,
+      { key: params.key, bucket, ip, userAgent }
     );
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

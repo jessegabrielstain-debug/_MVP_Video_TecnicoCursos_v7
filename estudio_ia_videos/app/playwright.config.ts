@@ -1,3 +1,4 @@
+process.env.E2E_AUTH_BYPASS = process.env.E2E_AUTH_BYPASS ?? '1';
 
 /**
  * 🎭 Playwright Configuration - Sprint 44

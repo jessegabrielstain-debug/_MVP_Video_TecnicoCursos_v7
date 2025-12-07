@@ -51,8 +51,12 @@ import {
   Move,
   Maximize2,
   Save,
-  RefreshCw
+  RefreshCw,
+  UserPlus
 } from 'lucide-react';
+import { UnifiedPreviewPlayer } from './unified-preview-player';
+import AvatarTimelineIntegration, { AvatarTimelineClip } from './AvatarTimelineIntegration';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 interface TimelineTrack {
   id: string;
@@ -80,10 +84,10 @@ interface TimelineEditorProProps {
   onExport?: (format: string) => void;
 }
 
-export default function TimelineEditorPro({ 
-  projectData, 
-  onSave, 
-  onExport 
+export default function TimelineEditorPro({
+  projectData,
+  onSave,
+  onExport
 }: TimelineEditorProProps) {
   const [currentTime, setCurrentTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(120); // 2 minutos
@@ -96,6 +100,43 @@ export default function TimelineEditorPro({
   const timelineRef = useRef<HTMLDivElement>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [isAvatarCreatorOpen, setIsAvatarCreatorOpen] = useState(false);
+
+  const handleAddAvatarClip = (avatarClip: AvatarTimelineClip) => {
+    setTracks(prevTracks => {
+      const newTracks = [...prevTracks];
+      let avatarTrack = newTracks.find(t => t.type === 'avatar');
+
+      if (!avatarTrack) {
+        avatarTrack = {
+          id: `avatar-track-${Date.now()}`,
+          name: 'Avatar Track',
+          type: 'avatar',
+          color: '#3B82F6',
+          visible: true,
+          locked: false,
+          clips: []
+        };
+        newTracks.unshift(avatarTrack);
+      }
+
+      const newClip: TimelineClip = {
+        id: avatarClip.id,
+        name: `Avatar: ${avatarClip.text.substring(0, 10)}...`,
+        startTime: avatarClip.startTime / 1000, // ms to seconds
+        duration: avatarClip.duration / 1000, // ms to seconds
+        content: {
+          url: avatarClip.audioUrl, // Use audio/video URL
+          thumbnail: '/avatars/avatar-placeholder.png', // Placeholder
+          ...avatarClip
+        }
+      };
+
+      avatarTrack.clips.push(newClip);
+      return newTracks;
+    });
+    setIsAvatarCreatorOpen(false);
+  };
 
   useEffect(() => {
     // Inicializar tracks padrão
@@ -233,13 +274,13 @@ export default function TimelineEditorPro({
   };
 
   const toggleTrackVisibility = (trackId: string) => {
-    setTracks(prev => prev.map(t => 
+    setTracks(prev => prev.map(t =>
       t.id === trackId ? { ...t, visible: !t.visible } : t
     ));
   };
 
   const toggleTrackLock = (trackId: string) => {
-    setTracks(prev => prev.map(t => 
+    setTracks(prev => prev.map(t =>
       t.id === trackId ? { ...t, locked: !t.locked } : t
     ));
   };
@@ -356,45 +397,45 @@ export default function TimelineEditorPro({
                 <CardTitle className="text-sm">Biblioteca de Mídia</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button 
-                  onClick={() => addTrack('avatar')} 
-                  size="sm" 
+                <Button
+                  onClick={() => addTrack('avatar')}
+                  size="sm"
                   className="w-full justify-start"
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Avatar 3D
                 </Button>
-                <Button 
-                  onClick={() => addTrack('image')} 
-                  size="sm" 
-                  variant="outline" 
+                <Button
+                  onClick={() => addTrack('image')}
+                  size="sm"
+                  variant="outline"
                   className="w-full justify-start"
                 >
                   <Image className="h-4 w-4 mr-2" />
                   Imagem
                 </Button>
-                <Button 
-                  onClick={() => addTrack('audio')} 
-                  size="sm" 
-                  variant="outline" 
+                <Button
+                  onClick={() => addTrack('audio')}
+                  size="sm"
+                  variant="outline"
                   className="w-full justify-start"
                 >
                   <Mic className="h-4 w-4 mr-2" />
                   Áudio/TTS
                 </Button>
-                <Button 
-                  onClick={() => addTrack('text')} 
-                  size="sm" 
-                  variant="outline" 
+                <Button
+                  onClick={() => addTrack('text')}
+                  size="sm"
+                  variant="outline"
                   className="w-full justify-start"
                 >
                   <Type className="h-4 w-4 mr-2" />
                   Texto
                 </Button>
-                <Button 
-                  onClick={() => addTrack('shape')} 
-                  size="sm" 
-                  variant="outline" 
+                <Button
+                  onClick={() => addTrack('shape')}
+                  size="sm"
+                  variant="outline"
                   className="w-full justify-start"
                 >
                   <Shapes className="h-4 w-4 mr-2" />
@@ -410,10 +451,10 @@ export default function TimelineEditorPro({
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-2">
                 {['Fade', 'Slide', 'Zoom', 'Rotate', 'Blur', 'Glow'].map(effect => (
-                  <Button 
-                    key={effect} 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    key={effect}
+                    size="sm"
+                    variant="outline"
                     className="text-xs"
                     onClick={() => {
                       toast.success(`Efeito ${effect} aplicado!`)
@@ -438,10 +479,10 @@ export default function TimelineEditorPro({
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-2">
                 {['Cut', 'Wipe', 'Circle', 'Heart'].map(transition => (
-                  <Button 
-                    key={transition} 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    key={transition}
+                    size="sm"
+                    variant="outline"
                     className="text-xs"
                     onClick={() => {
                       toast.success(`Transição ${transition} aplicada!`)
@@ -464,48 +505,12 @@ export default function TimelineEditorPro({
         <div className="flex-1 flex flex-col">
           {/* Preview Area */}
           <div className="bg-gray-900 flex-1 flex items-center justify-center">
-            <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9', maxWidth: '80%', maxHeight: '70%' }}>
-              <div className="absolute inset-0 flex items-center justify-center text-white">
-                <div className="text-center space-y-4">
-                  {isPlaying ? (
-                    <div className="space-y-2">
-                      <Video className="h-16 w-16 mx-auto animate-pulse" />
-                      <div>Reproduzindo: {formatTime(currentTime)}</div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Play className="h-16 w-16 mx-auto text-gray-400" />
-                      <div>Preview do Vídeo</div>
-                      <div className="text-sm text-gray-400">
-                        {projectData?.name || 'Projeto Atual'}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Playback Controls Overlay */}
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 bg-black bg-opacity-50 rounded-full px-4 py-2">
-                <Button onClick={() => setCurrentTime(Math.max(0, currentTime - 10))} size="sm" variant="ghost">
-                  <SkipBack className="h-4 w-4 text-white" />
-                </Button>
-                <Button onClick={handlePlayPause} size="sm" variant="ghost">
-                  {isPlaying ? (
-                    <Pause className="h-4 w-4 text-white" />
-                  ) : (
-                    <Play className="h-4 w-4 text-white" />
-                  )}
-                </Button>
-                <Button onClick={handleStop} size="sm" variant="ghost">
-                  <Square className="h-4 w-4 text-white" />
-                </Button>
-                <Button onClick={() => setCurrentTime(Math.min(totalDuration, currentTime + 10))} size="sm" variant="ghost">
-                  <SkipForward className="h-4 w-4 text-white" />
-                </Button>
-                <div className="text-white text-sm ml-4">
-                  {formatTime(currentTime)} / {formatTime(totalDuration)}
-                </div>
-              </div>
+            <div className="relative bg-black rounded-lg overflow-hidden shadow-2xl" style={{ aspectRatio: '16/9', width: '80%', maxHeight: '80%' }}>
+              <UnifiedPreviewPlayer
+                currentTime={currentTime}
+                tracks={tracks}
+                isPlaying={isPlaying}
+              />
             </div>
           </div>
 
@@ -576,9 +581,21 @@ export default function TimelineEditorPro({
 
                 {/* Tools */}
                 <div className="flex items-center space-x-1">
-                  <Button 
-                    onClick={() => selectedClip && splitClip(selectedClip, currentTime)} 
-                    size="sm" 
+                  <Dialog open={isAvatarCreatorOpen} onOpenChange={setIsAvatarCreatorOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white gap-2">
+                        <UserPlus className="h-4 w-4" />
+                        Add Avatar
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                      <AvatarTimelineIntegration onClipAdded={handleAddAvatarClip} />
+                    </DialogContent>
+                  </Dialog>
+
+                  <Button
+                    onClick={() => selectedClip && splitClip(selectedClip, currentTime)}
+                    size="sm"
                     variant="outline"
                     disabled={!selectedClip}
                   >
@@ -609,7 +626,7 @@ export default function TimelineEditorPro({
                   ))}
                 </div>
                 {/* Playhead */}
-                <div 
+                <div
                   className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
                   style={{ left: `${(currentTime / totalDuration) * 100}%` }}
                 >
@@ -620,28 +637,28 @@ export default function TimelineEditorPro({
               {/* Tracks */}
               <div className="space-y-2">
                 {tracks.map((track, trackIndex) => (
-                  <div 
-                    key={track.id} 
+                  <div
+                    key={track.id}
                     className={`flex items-stretch border rounded-lg overflow-hidden ${selectedTrack === track.id ? 'ring-2 ring-blue-500' : ''}`}
                     onClick={() => setSelectedTrack(track.id)}
                   >
                     {/* Track Header */}
                     <div className="w-48 bg-gray-200 p-3 flex items-center justify-between border-r">
                       <div className="flex items-center space-x-2">
-                        <div 
+                        <div
                           className="w-4 h-4 rounded"
                           style={{ backgroundColor: track.color }}
                         ></div>
                         <span className="text-sm font-medium truncate">{track.name}</span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <Button 
+                        <Button
                           onClick={(e) => {
                             e.stopPropagation();
                             toggleTrackVisibility(track.id);
                           }}
-                          size="sm" 
-                          variant="ghost" 
+                          size="sm"
+                          variant="ghost"
                           className="p-1 h-6 w-6"
                         >
                           {track.visible ? (
@@ -650,13 +667,13 @@ export default function TimelineEditorPro({
                             <EyeOff className="h-3 w-3 text-gray-400" />
                           )}
                         </Button>
-                        <Button 
+                        <Button
                           onClick={(e) => {
                             e.stopPropagation();
                             toggleTrackLock(track.id);
                           }}
-                          size="sm" 
-                          variant="ghost" 
+                          size="sm"
+                          variant="ghost"
                           className="p-1 h-6 w-6"
                         >
                           {track.locked ? (
@@ -665,13 +682,13 @@ export default function TimelineEditorPro({
                             <Unlock className="h-3 w-3" />
                           )}
                         </Button>
-                        <Button 
+                        <Button
                           onClick={(e) => {
                             e.stopPropagation();
                             deleteTrack(track.id);
                           }}
-                          size="sm" 
-                          variant="ghost" 
+                          size="sm"
+                          variant="ghost"
                           className="p-1 h-6 w-6 text-red-500"
                         >
                           <Trash2 className="h-3 w-3" />
@@ -684,11 +701,10 @@ export default function TimelineEditorPro({
                       {track.clips.map(clip => (
                         <div
                           key={clip.id}
-                          className={`absolute top-2 bottom-2 rounded border-2 cursor-pointer transition-all ${
-                            selectedClip === clip.id 
-                              ? 'border-blue-500 bg-blue-100' 
+                          className={`absolute top-2 bottom-2 rounded border-2 cursor-pointer transition-all ${selectedClip === clip.id
+                              ? 'border-blue-500 bg-blue-100'
                               : 'border-gray-300 bg-gray-50'
-                          }`}
+                            }`}
                           style={{
                             left: `${(clip.startTime / totalDuration) * 100}%`,
                             width: `${(clip.duration / totalDuration) * 100}%`,
@@ -770,10 +786,10 @@ export default function TimelineEditorPro({
               <CardContent>
                 <div className="grid grid-cols-3 gap-2">
                   {['Entrada', 'Ênfase', 'Saída'].map(type => (
-                    <Button 
-                      key={type} 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      key={type}
+                      size="sm"
+                      variant="outline"
                       className="text-xs"
                       onClick={() => {
                         toast.success(`Tipo de animação ${type} selecionado`);
@@ -790,10 +806,10 @@ export default function TimelineEditorPro({
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   {['Fade In', 'Slide Up', 'Zoom In', 'Bounce'].map(effect => (
-                    <Button 
-                      key={effect} 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      key={effect}
+                      size="sm"
+                      variant="outline"
                       className="text-xs"
                       onClick={() => {
                         toast.success(`Animação ${effect} aplicada!`)
@@ -822,8 +838,8 @@ export default function TimelineEditorPro({
                   <Slider value={volume} onValueChange={setVolume} max={100} step={1} className="mt-1" />
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant={isRecording ? 'destructive' : 'outline'}
                     onClick={() => {
                       setIsRecording(!isRecording)
@@ -870,7 +886,7 @@ export default function TimelineEditorPro({
                     <SelectItem value="60">60 FPS</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button 
+                <Button
                   className="w-full bg-green-600"
                   onClick={() => {
                     if (tracks.some(track => track.clips.length > 0)) {

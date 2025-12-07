@@ -12,6 +12,53 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useCanvasTheme } from './theme-provider'
 import { toast } from 'react-hot-toast'
 
+interface FabricObject {
+  left: number
+  top: number
+  width: number
+  height: number
+  getBoundingRect: () => { left: number; top: number; width: number; height: number }
+  set: (options: Record<string, any>) => void
+  [key: string]: any
+}
+
+interface Canvas {
+  getElement: () => HTMLCanvasElement
+  getZoom: () => number
+  getWidth: () => number
+  getHeight: () => number
+  viewportTransform: number[]
+  getObjects: () => FabricObject[]
+  renderAll: () => void
+  on: (event: string, handler: (e: any) => void) => void
+  off: (event: string, handler?: (e: any) => void) => void
+  [key: string]: any
+}
+
+interface Guide {
+  type: 'vertical' | 'horizontal'
+  position: number
+}
+
+interface Measurement {
+  from: { x: number; y: number }
+  to: { x: number; y: number }
+  distance: number
+}
+
+interface SnapPoint {
+  x: number
+  y: number
+  type: string
+  object: FabricObject
+}
+
+interface FabricEvent {
+  target?: FabricObject
+  selected?: FabricObject[]
+  [key: string]: any
+}
+
 interface GuideOptions {
   snapToGrid: boolean
   snapToObjects: boolean
@@ -23,7 +70,7 @@ interface GuideOptions {
 }
 
 interface SmartGuidesProps {
-  canvas?: any
+  canvas?: Canvas
   options?: Partial<GuideOptions>
   onOptionsChange?: (options: GuideOptions) => void
 }
@@ -49,8 +96,8 @@ export default function SmartGuides({
     ...options
   })
   const guidesLayerRef = useRef<HTMLCanvasElement>(null)
-  const [activeGuides, setActiveGuides] = useState<any[]>([])
-  const [measurements, setMeasurements] = useState<any[]>([])
+  const [activeGuides, setActiveGuides] = useState<Guide[]>([])
+  const [measurements, setMeasurements] = useState<Measurement[]>([])
 
   // Update options
   const updateOptions = useCallback((newOptions: Partial<GuideOptions>) => {
@@ -181,13 +228,13 @@ export default function SmartGuides({
   }, [currentOptions.snapToGrid, currentOptions.gridSize])
 
   // Find snap points from other objects
-  const findSnapPoints = useCallback((activeObject: any, canvas: any) => {
+  const findSnapPoints = useCallback((activeObject: FabricObject, canvas: Canvas) => {
     if (!currentOptions.snapToObjects) return []
     
-    const snapPoints: Array<{ x: number; y: number; type: string; object: any }> = []
-    const objects = canvas.getObjects().filter((obj: any) => obj !== activeObject)
+    const snapPoints: SnapPoint[] = []
+    const objects = canvas.getObjects().filter((obj: FabricObject) => obj !== activeObject)
     
-    objects.forEach((obj: any) => {
+    objects.forEach((obj: FabricObject) => {
       const bounds = obj.getBoundingRect()
       
       // Add edge snap points
@@ -282,7 +329,7 @@ export default function SmartGuides({
     if (!canvas) return
     
     const handleObjectMoving = (e: any) => {
-      const obj = e.target
+      const obj = e.target as FabricObject
       if (!obj) return
       
       // Snap to grid
@@ -295,7 +342,7 @@ export default function SmartGuides({
       if (currentOptions.snapToObjects) {
         const snapPoints = findSnapPoints(obj, canvas)
         const objBounds = obj.getBoundingRect()
-        const newGuides: any[] = []
+        const newGuides: Guide[] = []
         
         snapPoints.forEach(point => {
           const distanceX = Math.abs(point.x - (objBounds.left + objBounds.width / 2))
@@ -324,9 +371,10 @@ export default function SmartGuides({
     }
     
     const handleSelectionCreated = (e: any) => {
-      if (currentOptions.showMeasurements && e.selected?.length > 1) {
-        const newMeasurements: any[] = []
-        const objects = e.selected
+      const evt = e as FabricEvent
+      if (currentOptions.showMeasurements && evt.selected && evt.selected.length > 1) {
+        const newMeasurements: Measurement[] = []
+        const objects = evt.selected
         
         for (let i = 0; i < objects.length - 1; i++) {
           for (let j = i + 1; j < objects.length; j++) {
@@ -427,7 +475,7 @@ export const GuideUtils = {
     return nearest
   },
   
-  calculateAlignment: (objects: any[]) => {
+  calculateAlignment: (objects: FabricObject[]) => {
     if (objects.length < 2) return null
     
     const bounds = objects.map(obj => obj.getBoundingRect())

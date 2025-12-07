@@ -5,8 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { reviewWorkflowService } from '@/lib/collab/review-workflow';
 
 export async function POST(
@@ -14,33 +13,38 @@ export async function POST(
   { params }: { params: { reviewId: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user?.id) {
+    const supabase = getSupabaseForRequest(request);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
     const body = await request.json();
     const { decision, feedback } = body;
 
-    if (!decision || !['APPROVED', 'REJECTED', 'CHANGES_REQUESTED'].includes(decision)) {
+    if (!decision || !['APPROVED', 'REJECTED', 'CHANGES_REQUESTED', 'approved', 'rejected', 'changes_requested'].includes(decision)) {
       return NextResponse.json(
-        { error: 'decision inválido (APPROVED, REJECTED, CHANGES_REQUESTED)' },
+        { error: 'decision inválido (approved, rejected, changes_requested)' },
         { status: 400 }
       );
     }
 
+    // Normalize decision to lowercase
+    const normalizedDecision = decision.toLowerCase() as 'approved' | 'rejected' | 'changes_requested';
+
     await reviewWorkflowService.submitReview({
-      reviewRequestId: params.reviewId,
-      reviewerId: session.user.id,
-      decision,
-      feedback,
+      reviewId: params.reviewId,
+      userId: user.id,
+      decision: normalizedDecision,
+      comments: feedback,
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao submeter revisão:', error);
     return NextResponse.json(
-      { error: error.message || 'Erro ao submeter revisão' },
+      { error: error instanceof Error ? error.message : String(error) || 'Erro ao submeter revisão' },
       { status: 500 }
     );
   }

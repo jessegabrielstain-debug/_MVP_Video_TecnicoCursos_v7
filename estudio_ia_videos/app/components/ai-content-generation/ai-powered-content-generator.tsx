@@ -1,4 +1,4 @@
-
+// TODO: Fixar tipos de tab states com enums apropriados
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -343,7 +343,7 @@ const AIPoweredContentGenerator = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="contentType">Tipo de Conteúdo</Label>
-                      <Select value={contentType} onValueChange={(value: string) => setContentType(value)}>
+                      <Select value={contentType} onValueChange={(value: string) => setContentType(value as any)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -396,7 +396,7 @@ const AIPoweredContentGenerator = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="complexity">Complexidade</Label>
-                      <Select value={complexity} onValueChange={(value: string) => setComplexity(value)}>
+                      <Select value={complexity} onValueChange={(value: string) => setComplexity(value as any)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>

@@ -1,4 +1,3 @@
-
 /**
  * API para parsear PPTX com parser avançado
  * POST /api/pptx/parse-advanced
@@ -6,17 +5,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { parsePPTXAdvanced } from '@/lib/pptx-parser-advanced';
-import { prisma } from '@/lib/db';
 import { uploadFile } from '@/lib/s3';
 import sharp from 'sharp';
 
+const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'pptx-uploads';
+
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user?.id) {
+    const supabase = getSupabaseForRequest(req);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Não autenticado' },
         { status: 401 }
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
     // Upload do arquivo original para S3
     const folderPrefix = process.env.AWS_FOLDER_PREFIX || '';
     const s3Key = `${folderPrefix}pptx/${Date.now()}-${file.name}`;
-    const s3Url = await uploadFile(buffer, s3Key);
+    const s3Url = await uploadFile(BUCKET_NAME, s3Key, buffer);
 
     // Salva no banco (opcional - pode ser salvo depois no upload real)
     const slidesDataJson = {
@@ -68,26 +69,34 @@ export async function POST(req: NextRequest) {
         title: parseResult.metadata.title,
         author: parseResult.metadata.author,
         subject: parseResult.metadata.subject,
-        created: parseResult.metadata.created,
-        modified: parseResult.metadata.modified,
+        created: parseResult.metadata.created ? new Date(parseResult.metadata.created).toISOString() : null,
+        modified: parseResult.metadata.modified ? new Date(parseResult.metadata.modified).toISOString() : null,
         slideCount: parseResult.metadata.slideCount
       },
       parsedAt: new Date().toISOString()
     };
 
-    const project = await prisma.project.create({
-      data: {
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .insert({
         name: parseResult.metadata.title || file.name,
         description: parseResult.metadata.subject || '',
-        userId: session.user.id,
-        type: 'presentation',
-        status: 'DRAFT',
-        pptxUrl: s3Url,
-        originalFileName: file.name,
-        totalSlides: parseResult.slides.length,
-        slidesData: slidesDataJson as unknown as Prisma.JsonValue
-      }
-    });
+        user_id: user.id,
+        type: 'pptx',
+        status: 'draft',
+        metadata: {
+            pptxUrl: s3Url,
+            originalFileName: file.name,
+            totalSlides: parseResult.slides.length,
+            slidesData: slidesDataJson
+        }
+      })
+      .select()
+      .single();
+
+    if (projectError || !project) {
+        throw new Error(`Erro ao criar projeto: ${projectError?.message}`);
+    }
 
     // Upload de imagens para S3 com otimização (se houver)
     const imageUrls: Record<string, string> = {};
@@ -103,7 +112,7 @@ export async function POST(req: NextRequest) {
 
         // Upload para S3
         const imageKey = `${folderPrefix}pptx-images/${project.id}/${image.name}`;
-        const imageUrl = await uploadFile(optimizedBuffer, imageKey, 'image/jpeg');
+        const imageUrl = await uploadFile(BUCKET_NAME, imageKey, optimizedBuffer, 'image/jpeg');
         
         // Obter dimensões da imagem otimizada
         const metadata = await sharp(optimizedBuffer).metadata();
@@ -123,7 +132,7 @@ export async function POST(req: NextRequest) {
         console.error(`❌ Erro ao processar imagem ${image.name}:`, error);
         // Fallback: upload sem otimização
         const imageKey = `${folderPrefix}pptx-images/${project.id}/${image.name}`;
-        const imageUrl = await uploadFile(image.data, imageKey);
+        const imageUrl = await uploadFile(BUCKET_NAME, imageKey, image.data);
         imageUrls[image.id] = imageUrl;
       }
     }
@@ -168,8 +177,10 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user?.id) {
+    const supabase = getSupabaseForRequest(req);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Não autenticado' },
         { status: 401 }
@@ -186,19 +197,21 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const project = await prisma.project.findUnique({
-      where: {
-        id: projectId,
-        userId: session.user.id
-      }
-    });
+    const { data: project, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', projectId)
+      .eq('user_id', user.id)
+      .single();
 
-    if (!project) {
+    if (error || !project) {
       return NextResponse.json(
         { error: 'Projeto não encontrado' },
         { status: 404 }
       );
     }
+
+    const metadata = project.metadata as any;
 
     return NextResponse.json({
       success: true,
@@ -206,11 +219,11 @@ export async function GET(req: NextRequest) {
         id: project.id,
         name: project.name,
         description: project.description,
-        slidesData: project.slidesData,
-        totalSlides: project.totalSlides,
-        pptxUrl: project.pptxUrl,
-        originalFileName: project.originalFileName,
-        createdAt: project.createdAt
+        slidesData: metadata?.slidesData,
+        totalSlides: metadata?.totalSlides,
+        pptxUrl: metadata?.pptxUrl,
+        originalFileName: metadata?.originalFileName,
+        createdAt: project.created_at
       }
     });
 
@@ -222,3 +235,5 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+

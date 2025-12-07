@@ -89,7 +89,7 @@ export async function parsePptxSlides(buffer: ArrayBuffer): Promise<ParsedPptxSl
 
 export class PPTXParser {
   async parsePPTX(buffer: Buffer): Promise<ParsedPPTXData> {
-    const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
     const slides = await parsePptxSlides(arrayBuffer);
 
     return {

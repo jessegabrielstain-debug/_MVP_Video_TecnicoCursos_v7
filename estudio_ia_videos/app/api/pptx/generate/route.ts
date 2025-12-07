@@ -70,15 +70,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`[PPTX Generate API] Generated presentation successfully (${buffer.length} bytes)`);
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers
     });
 
   } catch (error) {
     console.error('[PPTX Generate API] Generation error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Erro na geração da apresentação', details: error.message },
+      { error: 'Erro na geração da apresentação', details: errorMessage },
       { status: 500 }
     );
   }
@@ -87,15 +88,15 @@ export async function POST(request: NextRequest) {
 /**
  * Gerar curso de treinamento
  */
-async function generateTrainingCourse(generator: PPTXGenerator, data: any): Promise<Buffer> {
+async function generateTrainingCourse(generator: PPTXGenerator, data: Record<string, unknown>): Promise<Buffer> {
   const courseData = {
-    title: data.title || 'Curso de Treinamento',
+    title: (data.title as string) || 'Curso de Treinamento',
     slides: [
       // Slide de título
       {
         type: 'title',
-        title: data.title || 'Curso de Treinamento',
-        subtitle: data.subtitle || 'Treinamento Corporativo',
+        title: (data.title as string) || 'Curso de Treinamento',
+        subtitle: (data.subtitle as string) || 'Treinamento Corporativo',
         notes: 'Slide de abertura do curso'
       },
       
@@ -103,7 +104,7 @@ async function generateTrainingCourse(generator: PPTXGenerator, data: any): Prom
       {
         type: 'content',
         title: 'Objetivos do Treinamento',
-        content: data.objectives || [
+        content: (data.objectives as string[]) || [
           'Compreender os conceitos fundamentais',
           'Aplicar as melhores práticas',
           'Desenvolver habilidades práticas',
@@ -113,11 +114,11 @@ async function generateTrainingCourse(generator: PPTXGenerator, data: any): Prom
       },
       
       // Conteúdo principal
-      ...(data.modules || []).map((module: any, index: number) => ({
+      ...((data.modules as Record<string, unknown>[]) || []).map((module: Record<string, unknown>, index: number) => ({
         type: 'content',
         title: `Módulo ${index + 1}: ${module.title}`,
-        content: module.topics || [],
-        notes: module.notes || `Conteúdo do módulo ${index + 1}`
+        content: (module.topics as string[]) || [],
+        notes: (module.notes as string) || `Conteúdo do módulo ${index + 1}`
       })),
       
       // Slide de conclusão
@@ -141,14 +142,14 @@ async function generateTrainingCourse(generator: PPTXGenerator, data: any): Prom
 /**
  * Gerar apresentação de segurança
  */
-async function generateSafetyPresentation(generator: PPTXGenerator, data: any): Promise<Buffer> {
+async function generateSafetyPresentation(generator: PPTXGenerator, data: Record<string, unknown>): Promise<Buffer> {
   const safetyData = {
-    title: data.title || 'Treinamento de Segurança do Trabalho',
+    title: (data.title as string) || 'Treinamento de Segurança do Trabalho',
     slides: [
       // Título
       {
         type: 'title',
-        title: data.title || 'Segurança do Trabalho',
+        title: (data.title as string) || 'Segurança do Trabalho',
         subtitle: 'Prevenção de Acidentes e Proteção da Vida',
         notes: 'Apresentação focada em segurança ocupacional'
       },
@@ -171,7 +172,7 @@ async function generateSafetyPresentation(generator: PPTXGenerator, data: any): 
       {
         type: 'content',
         title: 'Principais Riscos no Ambiente de Trabalho',
-        content: data.risks || [
+        content: (data.risks as string[]) || [
           'Riscos físicos (ruído, calor, frio)',
           'Riscos químicos (gases, vapores, poeiras)',
           'Riscos biológicos (vírus, bactérias)',

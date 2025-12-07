@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 // Schema de validação para atualização de slide
@@ -11,7 +11,7 @@ const updateSlideSchema = z.object({
   transition_type: z.enum(['fade', 'slide', 'zoom', 'flip', 'none']).optional(),
   thumbnail_url: z.string().url().optional(),
   notes: z.string().max(2000).optional(),
-  properties: z.record(z.any()).optional()
+  properties: z.record(z.unknown()).optional()
 })
 
 // GET - Obter detalhes de um slide específico
@@ -20,7 +20,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -45,8 +45,7 @@ export async function GET(
           projects:project_id (
             id,
             name,
-            owner_id,
-            collaborators,
+            user_id,
             is_public
           )
         )
@@ -62,11 +61,24 @@ export async function GET(
     }
 
     // Verificar permissões
-    const upload = slide.pptx_uploads as Record<string, unknown>
+    const upload = slide.pptx_uploads as any
     const project = upload.projects
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id) ||
-                         project.is_public
+    
+    let hasPermission = project.user_id === user.id || project.is_public
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('role')
+        .eq('project_id', project.id)
+        .eq('user_id', user.id)
+        .in('role', ['owner', 'editor'])
+        .single()
+      
+      if (collaborator) {
+        hasPermission = true
+      }
+    }
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -92,7 +104,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -116,8 +128,8 @@ export async function PUT(
         pptx_uploads:upload_id (
           project_id,
           projects:project_id (
-            owner_id,
-            collaborators
+            id,
+            user_id
           )
         )
       `)
@@ -133,8 +145,22 @@ export async function PUT(
 
     const upload = slide.pptx_uploads as any
     const project = upload.projects
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+    
+    let hasPermission = project.user_id === user.id
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('role')
+        .eq('project_id', project.id)
+        .eq('user_id', user.id)
+        .in('role', ['owner', 'editor'])
+        .single()
+      
+      if (collaborator) {
+        hasPermission = true
+      }
+    }
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -165,7 +191,7 @@ export async function PUT(
     let updateData = { ...validatedData }
     if (validatedData.properties && slide.properties) {
       updateData.properties = {
-        ...slide.properties,
+        ...(slide.properties as any),
         ...validatedData.properties
       }
     }
@@ -175,6 +201,7 @@ export async function PUT(
       .from('pptx_slides')
       .update({
         ...updateData,
+        properties: updateData.properties as any,
         updated_at: new Date().toISOString()
       })
       .eq('id', slideId)
@@ -199,7 +226,7 @@ export async function PUT(
         entity_type: 'pptx_slide',
         entity_id: slideId,
         description: `Slide ${slide.slide_number} "${slide.title}" atualizado`,
-        changes: validatedData
+        changes: validatedData as any
       })
 
     return NextResponse.json({ slide: updatedSlide })
@@ -226,7 +253,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -247,8 +274,8 @@ export async function DELETE(
           id,
           project_id,
           projects:project_id (
-            owner_id,
-            collaborators
+            id,
+            user_id
           )
         )
       `)
@@ -264,8 +291,22 @@ export async function DELETE(
 
     const upload = slide.pptx_uploads as any
     const project = upload.projects
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+    
+    let hasPermission = project.user_id === user.id
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('role')
+        .eq('project_id', project.id)
+        .eq('user_id', user.id)
+        .in('role', ['owner', 'editor'])
+        .single()
+      
+      if (collaborator) {
+        hasPermission = true
+      }
+    }
 
     if (!hasPermission) {
       return NextResponse.json(

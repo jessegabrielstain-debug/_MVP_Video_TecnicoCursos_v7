@@ -1,37 +1,17 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
-import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
-import { analyticsCollector } from '@/lib/analytics/real-time-collector';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
 
 /**
  * POST /api/analytics/track
- * Registra eventos de analytics em tempo real usando o novo sistema
- * 
- * Body: {
- *   category: string (pptx, tts, render, etc)
- *   action: string (upload, start, complete, error, etc)
- *   label?: string
- *   metadata?: object
- *   duration?: number (ms)
- *   fileSize?: number (bytes)
- *   projectId?: string
- *   templateId?: string
- *   provider?: string
- *   errorCode?: string
- *   errorMessage?: string
- *   status?: 'success' | 'error' | 'warning' | 'info'
- * }
+ * Registra eventos de analytics em tempo real
  */
 async function postHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
-    
-    // Analytics pode ser anônimo, mas preferimos rastrear usuários logados
+    const session = await getServerSession(authOptions);
     const userId = session?.user?.id || null;
-    const organizationId = getOrgId(session?.user) || null;
 
     const body = await req.json();
     const {
@@ -39,25 +19,9 @@ async function postHandler(req: NextRequest) {
       action,
       label,
       metadata,
-      duration,
-      fileSize,
       projectId,
-      templateId,
-      provider,
-      errorCode,
-      errorMessage,
-      status = 'success',
-      value,
-      // Novos campos para analytics avançado
-      loadTime,
-      renderTime,
-      processingTime,
-      clickPosition,
-      scrollDepth,
-      timeOnPage,
       userAgent,
-      viewport,
-      connectionType
+      ...otherData
     } = body;
 
     // Validação básica
@@ -68,69 +32,53 @@ async function postHandler(req: NextRequest) {
       );
     }
 
-    // Enriquecer metadata com dados da requisição
-    const enrichedMetadata = {
-      ...metadata,
-      userAgent: userAgent || req.headers.get('user-agent'),
-      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
-      referer: req.headers.get('referer'),
-      timestamp: new Date().toISOString(),
-    };
-
-    // Usar o novo sistema de coleta de analytics
-    await analyticsCollector.trackEvent({
-      category,
+    // Enriquecer metadata
+    const eventData = {
       action,
       label,
       projectId,
-      templateId,
-      provider,
-      duration,
-      fileSize,
-      value,
-      loadTime,
-      renderTime,
-      processingTime,
-      clickPosition,
-      scrollDepth,
-      timeOnPage,
-      userAgent: enrichedMetadata.userAgent,
-      viewport,
-      connectionType,
-      status,
-      errorCode,
-      errorMessage,
-      metadata: enrichedMetadata,
-    }, userId, organizationId);
+      ...metadata,
+      ...otherData,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Registrar no banco via Prisma
+    await prisma.analyticsEvent.create({
+      data: {
+        userId,
+        eventType: category,
+        eventData: eventData as any,
+        userAgent: userAgent || req.headers.get('user-agent'),
+        ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+      }
+    });
 
     return NextResponse.json({
       success: true,
       message: 'Event tracked successfully'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics Track] Error:', error);
+    const message = error instanceof Error ? error.message : String(error);
     
-    // Não queremos que falhas de analytics quebrem o fluxo principal
     return NextResponse.json(
       {
         success: false,
-        error: error.message
+        error: message
       },
       { status: 500 }
     );
   }
 }
 
-// Aplicar middleware de performance
-
 /**
  * GET /api/analytics/track
- * Retorna estatísticas básicas de eventos para o usuário usando o novo sistema
+ * Retorna estatísticas básicas de eventos para o usuário
  */
 async function getHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -140,25 +88,45 @@ async function getHandler(req: NextRequest) {
     }
 
     const userId = session.user.id;
-    const organizationId = getOrgId(session.user) || null;
 
-    // Obter estatísticas usando o novo sistema
-    const stats = await analyticsCollector.getUserStats(userId, organizationId);
+    // Obter estatísticas básicas (últimas 24h)
+    const yesterday = new Date();
+    yesterday.setHours(yesterday.getHours() - 24);
 
-    return NextResponse.json(stats);
+    const stats = await prisma.analyticsEvent.groupBy({
+      by: ['eventType'],
+      where: {
+        userId: userId,
+        createdAt: { gte: yesterday }
+      },
+      _count: {
+        id: true
+      }
+    });
 
-  } catch (error: any) {
+    const formattedStats = stats.reduce((acc, curr) => {
+      acc[curr.eventType] = curr._count.id;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return NextResponse.json({
+      period: '24h',
+      events: formattedStats
+    });
+
+  } catch (error: unknown) {
     console.error('[Analytics Track GET] Error:', error);
+    const message = error instanceof Error ? error.message : String(error);
     
     return NextResponse.json(
       {
-        error: error.message
+        error: message
       },
       { status: 500 }
     );
   }
 }
 
-// Aplicar middleware de performance
 export const POST = withAnalytics(postHandler);
 export const GET = withAnalytics(getHandler);
+

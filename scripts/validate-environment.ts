@@ -51,7 +51,12 @@ class EnvironmentValidator {
   private projectRoot: string;
 
   constructor() {
-    this.projectRoot = path.join(process.cwd(), '..');
+    // Detecta se está rodando da raiz ou da pasta scripts
+    if (fs.existsSync(path.join(process.cwd(), 'scripts'))) {
+      this.projectRoot = process.cwd();
+    } else {
+      this.projectRoot = path.join(process.cwd(), '..');
+    }
     this.loadEnv();
   }
 

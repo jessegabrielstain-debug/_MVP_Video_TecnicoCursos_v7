@@ -5,7 +5,6 @@
  * baseados na API real do VideoTemplateLibrary
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
 import {
   VideoTemplateLibrary,
   type TemplateCategory,
@@ -294,7 +293,7 @@ describe('📚 Template Library System - Complete Tests', () => {
       expect(library.isFavorite(templateId)).toBe(true);
       
       const isStillFavorite = library.toggleFavorite(templateId);
-      expect(isStillFavorite).toBe(false);
+      expect(isStillFavorite).toBe(true); // Operation successful (removed)
       expect(library.isFavorite(templateId)).toBe(false);
     });
 
@@ -315,7 +314,7 @@ describe('📚 Template Library System - Complete Tests', () => {
       library.addToFavorites(templates[0].id);
       library.addToFavorites(templates[1].id);
       
-      const favorites = library.getFavorites();
+      const favorites = library.getFavoriteTemplates();
       
       expect(favorites.length).toBe(2);
       expect(favorites.map((t: LibraryTemplate) => t.id)).toContain(templates[0].id);
@@ -341,8 +340,8 @@ describe('📚 Template Library System - Complete Tests', () => {
       library.addToFavorites(templateId);
       library.addToFavorites(templateId);
       
-      const favorites = library.getFavorites();
-      const count = favorites.filter((t: LibraryTemplate) => t.id === templateId).length;
+      const favorites = library.getFavoriteIds();
+      const count = favorites.filter((id: string) => id === templateId).length;
       
       expect(count).toBe(1);
     });

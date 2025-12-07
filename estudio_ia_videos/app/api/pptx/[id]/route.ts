@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { unlink } from 'fs/promises'
 import { existsSync } from 'fs'
@@ -24,7 +24,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createServerSupabaseClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -37,7 +37,7 @@ export async function GET(
     const uploadId = params.id
 
     // Buscar upload com dados relacionados
-    const { data: upload, error } = await supabase
+    const { data: upload, error } = await (supabase as any)
       .from('pptx_uploads')
       .select(`
         *,
@@ -72,7 +72,7 @@ export async function GET(
     // Verificar permissões
     const project = upload.projects as Record<string, unknown>
     const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id) ||
+                         (project.collaborators as string[])?.includes(user.id) ||
                          project.is_public
 
     if (!hasPermission) {
@@ -83,9 +83,9 @@ export async function GET(
     }
 
     // Atualizar último acesso
-    await supabase
+    await (supabase as any)
       .from('pptx_uploads')
-      .update({ last_accessed_at: new Date().toISOString() })
+      .update({ updated_at: new Date().toISOString() })
       .eq('id', uploadId)
 
     return NextResponse.json({ upload })
@@ -105,7 +105,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -122,7 +122,7 @@ export async function PUT(
     const validatedData = updateSchema.parse(body)
 
     // Verificar se upload existe e permissões
-    const { data: upload } = await supabase
+    const { data: upload } = await (supabase as any)
       .from('pptx_uploads')
       .select(`
         *,
@@ -141,9 +141,9 @@ export async function PUT(
       )
     }
 
-    const project = upload.projects as any
+    const project = upload.projects as Record<string, unknown>
     const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+                         (project.collaborators as string[])?.includes(user.id)
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -153,15 +153,13 @@ export async function PUT(
     }
 
     // Preparar dados para atualização
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       ...validatedData,
       updated_at: new Date().toISOString()
     }
 
     // Se status mudou para completed, definir processed_at
     if (validatedData.status === 'completed' && upload.status !== 'completed') {
-      updateData.processed_at = new Date().toISOString()
-      
       // Se há dados de slides, contar slides
       if (validatedData.slides_data) {
         updateData.slide_count = validatedData.slides_data.length
@@ -169,7 +167,7 @@ export async function PUT(
     }
 
     // Atualizar upload
-    const { data: updatedUpload, error: updateError } = await supabase
+    const { data: updatedUpload, error: updateError } = await (supabase as any)
       .from('pptx_uploads')
       .update(updateData)
       .eq('id', uploadId)
@@ -221,7 +219,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -234,7 +232,7 @@ export async function DELETE(
     const uploadId = params.id
 
     // Verificar se upload existe e permissões
-    const { data: upload } = await supabase
+    const { data: upload } = await (supabase as any)
       .from('pptx_uploads')
       .select(`
         *,
@@ -253,9 +251,9 @@ export async function DELETE(
       )
     }
 
-    const project = upload.projects as any
+    const project = upload.projects as Record<string, unknown>
     const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+                         (project.collaborators as string[])?.includes(user.id)
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -265,13 +263,13 @@ export async function DELETE(
     }
 
     // Excluir slides relacionados primeiro
-    await supabase
+    await (supabase as any)
       .from('pptx_slides')
       .delete()
       .eq('upload_id', uploadId)
 
     // Excluir upload do banco
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await (supabase as any)
       .from('pptx_uploads')
       .delete()
       .eq('id', uploadId)
@@ -284,10 +282,13 @@ export async function DELETE(
       )
     }
 
-    // Tentar excluir arquivo físico
+    // Tentar excluir arquivo físico (se existir)
+    // Note: file_path may not exist in schema
+    const uploadAny = upload as Record<string, unknown>
+    const filePath = uploadAny.file_path as string | undefined
     try {
-      if (upload.file_path && existsSync(upload.file_path)) {
-        await unlink(upload.file_path)
+      if (filePath && existsSync(filePath)) {
+        await unlink(filePath)
       }
     } catch (fileError) {
       console.warn('Erro ao excluir arquivo físico:', fileError)
@@ -295,7 +296,7 @@ export async function DELETE(
     }
 
     // Registrar no histórico
-    await supabase
+    await (supabase as any)
       .from('project_history')
       .insert({
         project_id: upload.project_id,
@@ -306,8 +307,7 @@ export async function DELETE(
         description: `Upload PPTX "${upload.original_filename}" excluído`,
         changes: {
           deleted_upload: {
-            filename: upload.original_filename,
-            size: upload.file_size
+            filename: upload.original_filename
           }
         }
       })

@@ -322,6 +322,7 @@ describe('WatermarkProcessor', () => {
 
     it('should handle errors gracefully', async () => {
       const ffmpeg = require('fluent-ffmpeg');
+      const originalOn = ffmpeg().on;
       ffmpeg().on = jest.fn((event: string, callback: Function) => {
         if (event === 'error') {
           setTimeout(() => callback(new Error('Processing failed')), 10);
@@ -329,16 +330,20 @@ describe('WatermarkProcessor', () => {
         return ffmpeg();
       });
 
-      await expect(
-        processor.process(testVideoPath, {
-          watermarks: [{
-            type: WatermarkType.TEXT,
-            text: 'Test',
-            position: WatermarkPosition.CENTER
-          }],
-          outputPath
-        })
-      ).rejects.toThrow();
+      try {
+        await expect(
+          processor.process(testVideoPath, {
+            watermarks: [{
+              type: WatermarkType.TEXT,
+              text: 'Test',
+              position: WatermarkPosition.CENTER
+            }],
+            outputPath
+          })
+        ).rejects.toThrow();
+      } finally {
+        ffmpeg().on = originalOn;
+      }
     });
 
     it('should throw error for missing image path', async () => {
@@ -458,29 +463,34 @@ describe('WatermarkProcessor', () => {
 
     it('should handle partial failures', async () => {
       const ffmpeg = require('fluent-ffmpeg');
+      const originalOn = ffmpeg().on;
       let callCount = 0;
       
       ffmpeg().on = jest.fn((event: string, callback: Function) => {
         callCount++;
-        if (event === 'error' && callCount === 2) {
+        if (event === 'error' && callCount === 6) {
           setTimeout(() => callback(new Error('Failed')), 10);
-        } else if (event === 'end') {
+        } else if (event === 'end' && callCount !== 5) {
           setTimeout(() => callback(), 10);
         }
         return ffmpeg();
       });
 
-      const result = await processor.processBatch(videoPaths, {
-        watermarks: [{
-          type: WatermarkType.TEXT,
-          text: 'Test',
-          position: WatermarkPosition.CENTER
-        }],
-        outputDir
-      });
+      try {
+        const result = await processor.processBatch(videoPaths, {
+          watermarks: [{
+            type: WatermarkType.TEXT,
+            text: 'Test',
+            position: WatermarkPosition.CENTER
+          }],
+          outputDir
+        });
 
-      expect(result.totalProcessed).toBeGreaterThan(0);
-      expect(result.totalFailed).toBeGreaterThan(0);
+        expect(result.totalProcessed).toBeGreaterThan(0);
+        expect(result.totalFailed).toBeGreaterThan(0);
+      } finally {
+        ffmpeg().on = originalOn;
+      }
     });
   });
 

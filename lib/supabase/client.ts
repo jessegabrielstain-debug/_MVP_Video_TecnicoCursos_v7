@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
 // Criando o cliente Supabase para uso no lado do cliente (browser)
@@ -9,7 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Faltam variáveis de ambiente do Supabase. Verifique o arquivo .env');
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase: SupabaseClient<Database> = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,

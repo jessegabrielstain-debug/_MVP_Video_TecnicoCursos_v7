@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest, supabaseAdmin } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { writeFile, mkdir, readFile } from 'fs/promises'
 import { join } from 'path'
@@ -23,7 +23,7 @@ const ALLOWED_MIME_TYPES = [
 // POST - Upload de arquivo PPTX
 export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -67,7 +67,7 @@ export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POS
     // Verificar permissões no projeto
     const { data: project } = await supabase
       .from('projects')
-      .select('owner_id, collaborators')
+      .select('user_id')
       .eq('id', projectId)
       .single()
 
@@ -78,8 +78,20 @@ export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POS
       )
     }
 
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+    let hasPermission = project.user_id === user.id
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('permissions')
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .single()
+      
+      if (collaborator && (collaborator.permissions as any)?.can_edit) {
+        hasPermission = true
+      }
+    }
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -188,9 +200,9 @@ export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POS
 
     return NextResponse.json({
       upload_id: upload.id,
-      filename: upload.filename,
+      filename: (upload as any).filename,
       original_filename: upload.original_filename,
-      file_size: upload.file_size,
+      file_size: (upload as any).file_size,
       status: upload.status,
       message: 'Upload realizado com sucesso. Processamento iniciado.'
     }, { status: 201 })
@@ -214,7 +226,7 @@ export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POS
 // GET - Listar uploads de PPTX de um projeto
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -238,7 +250,7 @@ export async function GET(request: NextRequest) {
     // Verificar permissões no projeto
     const { data: project } = await supabase
       .from('projects')
-      .select('owner_id, collaborators, is_public')
+      .select('user_id, is_public')
       .eq('id', projectId)
       .single()
 
@@ -249,9 +261,18 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id) ||
-                         project.is_public
+    let hasPermission = project.user_id === user.id || project.is_public
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('user_id')
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .single()
+      
+      if (collaborator) hasPermission = true
+    }
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -298,12 +319,13 @@ export async function GET(request: NextRequest) {
 // Função para processar PPTX assincronamente (simulada)
 async function processPPTXAsync(uploadId: string, filePath: string, projectId: string) {
   try {
-    const supabase = createClient()
+    const supabase = supabaseAdmin
     // Definir sala do projeto para notificações
     const roomId = `project:${projectId}:uploads`
 
     // Atualizar status para processando
-    await supabase
+    // Note: using (supabase as any) because processing_progress may not be in generated types
+    await (supabase as any)
       .from('pptx_uploads')
       .update({ 
         status: 'processing',
@@ -335,11 +357,12 @@ async function processPPTXAsync(uploadId: string, filePath: string, projectId: s
     // Extrair dados reais do PPTX
     const extraction = await PPTXProcessorReal.extract(buffer)
     if (!extraction.success) {
-      throw new Error(extraction.error || 'Falha ao extrair dados do PPTX')
+      const errorMessage = typeof extraction.error === 'string' ? extraction.error : 'Falha ao extrair dados do PPTX'
+      throw new Error(errorMessage)
     }
 
     // Atualizar progresso após extração inicial
-    await supabase
+    await (supabase as any)
       .from('pptx_uploads')
       .update({ processing_progress: 50 })
       .eq('id', uploadId)
@@ -352,7 +375,7 @@ async function processPPTXAsync(uploadId: string, filePath: string, projectId: s
       message: 'Gerando thumbnails e salvando slides...',
       priority: 'medium',
       timestamp: Date.now(),
-      roomId,
+      roomId: roomId || '',
       data: {
         uploadId,
         phase: 'processing',
@@ -395,7 +418,6 @@ async function processPPTXAsync(uploadId: string, filePath: string, projectId: s
           layout: slide.layout,
           shapes: slide.shapes,
           textBlocks: slide.textBlocks,
-          backgroundImage: slide.backgroundImage,
           images: slide.images,
         },
       }))
@@ -413,7 +435,7 @@ async function processPPTXAsync(uploadId: string, filePath: string, projectId: s
     }
 
     // Finalizar processamento
-    await supabase
+    await (supabase as any)
       .from('pptx_uploads')
       .update({
         status: 'completed',
@@ -451,8 +473,8 @@ async function processPPTXAsync(uploadId: string, filePath: string, projectId: s
     console.error('Erro no processamento de PPTX:', error)
 
     // Marcar como falha
-    const supabase = createClient()
-    await supabase
+    const supabase = supabaseAdmin
+    await (supabase as any)
       .from('pptx_uploads')
       .update({
         status: 'failed',

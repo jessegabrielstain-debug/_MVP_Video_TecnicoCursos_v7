@@ -22,9 +22,31 @@ const TTSGenerateSchema = z.object({
   quality: z.enum(['standard', 'premium']).default('standard')
 })
 
+type TTSParams = z.infer<typeof TTSGenerateSchema>
+
+interface TTSProviderConfig {
+  api_key?: string
+  region?: string
+  endpoint?: string
+  max_characters?: number
+  rate_limit?: number
+  [key: string]: unknown
+}
+
+interface TTSProvider {
+  provider_type: string
+  config: TTSProviderConfig
+  pricing?: {
+    per_character?: number
+    per_request?: number
+  }
+  provider_id: string
+  provider_name: string
+}
+
 // TTS Provider implementations
 class TTSProviderFactory {
-  static async generateTTS(provider: any, params: any): Promise<{ audio_url: string; duration: number; size: number }> {
+  static async generateTTS(provider: TTSProvider, params: TTSParams): Promise<{ audio_url: string; duration: number; size: number }> {
     switch (provider.provider_type) {
       case 'azure':
         return await this.generateAzureTTS(provider, params)
@@ -39,7 +61,7 @@ class TTSProviderFactory {
     }
   }
 
-  private static async generateAzureTTS(provider: any, params: any) {
+  private static async generateAzureTTS(provider: TTSProvider, params: TTSParams) {
     // Azure TTS implementation
     const { api_key, region, endpoint } = provider.config
     
@@ -83,7 +105,7 @@ class TTSProviderFactory {
     }
   }
 
-  private static async generateGoogleTTS(provider: any, params: any) {
+  private static async generateGoogleTTS(provider: TTSProvider, params: TTSParams) {
     // Google TTS implementation
     const { api_key } = provider.config
     
@@ -127,7 +149,7 @@ class TTSProviderFactory {
     }
   }
 
-  private static async generateOpenAITTS(provider: any, params: any) {
+  private static async generateOpenAITTS(provider: TTSProvider, params: TTSParams) {
     // OpenAI TTS implementation
     const { api_key } = provider.config
     
@@ -165,7 +187,7 @@ class TTSProviderFactory {
     }
   }
 
-  private static async generateElevenLabsTTS(provider: any, params: any) {
+  private static async generateElevenLabsTTS(provider: TTSProvider, params: TTSParams) {
     // ElevenLabs TTS implementation
     const { api_key } = provider.config
     
@@ -224,7 +246,7 @@ export async function POST(request: NextRequest) {
     const params = TTSGenerateSchema.parse(body)
 
     // Get provider configuration
-    const { data: provider, error: providerError } = await supabaseAdmin
+    const { data: providerData, error: providerError } = await (supabaseAdmin as any)
       .from('user_external_api_configs')
       .select('*')
       .eq('user_id', session.user.id)
@@ -232,6 +254,8 @@ export async function POST(request: NextRequest) {
       .eq('provider_id', params.provider_id)
       .eq('enabled', true)
       .single()
+
+    const provider = providerData as TTSProvider
 
     if (providerError || !provider) {
       return NextResponse.json(
@@ -241,7 +265,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check rate limits and quotas
-    const { data: usage, error: usageError } = await supabaseAdmin
+    const { data: usage, error: usageError } = await (supabaseAdmin as any)
       .from('external_api_usage')
       .select('*')
       .eq('user_id', session.user.id)
@@ -255,7 +279,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate current usage
-    const dailyUsage = usage?.reduce((total, record) => total + (record.characters_used || 0), 0) || 0
+    const dailyUsage = usage?.reduce((total: number, record: any) => total + (record.characters_used || 0), 0) || 0
     const dailyRequests = usage?.length || 0
 
     // Check limits
@@ -286,7 +310,7 @@ export async function POST(request: NextRequest) {
 
     // Record usage
     try {
-      await supabaseAdmin
+      await (supabaseAdmin as any)
         .from('external_api_usage')
         .insert({
           user_id: session.user.id,
@@ -301,8 +325,7 @@ export async function POST(request: NextRequest) {
             format: params.format,
             duration: result.duration,
             file_size: result.size
-          },
-          created_at: new Date().toISOString()
+          }
         })
     } catch (usageLogError) {
       console.warn('Failed to log TTS usage:', usageLogError)
@@ -323,9 +346,9 @@ export async function POST(request: NextRequest) {
             duration: result.duration,
             cost: totalCost,
             timestamp: new Date().toISOString()
-          },
+          } as any,
           created_at: new Date().toISOString()
-        })
+        } as any)
     } catch (analyticsError) {
       console.warn('Failed to log TTS generation:', analyticsError)
     }

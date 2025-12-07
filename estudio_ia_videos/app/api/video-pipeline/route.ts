@@ -4,6 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
+import { getSupabaseForRequest } from "@/lib/supabase/server"
+import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(req: NextRequest) {
   return NextResponse.json({
@@ -18,33 +20,67 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = getSupabaseForRequest(req);
+    
+    // 1. Authenticate User
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { project_id, preset_id } = body;
 
-    if (!project_id || !preset_id) {
+    if (!project_id) {
       return NextResponse.json(
-        { error: "project_id and preset_id are required" },
+        { error: "project_id is required" },
         { status: 400 }
       );
     }
 
-    // Generate job ID
-    const job_id = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // 2. Create Render Job in DB
+    // Note: RLS policies should ensure user can only create jobs for their own projects
+    // but we can also verify project ownership here if needed.
+    
+    const jobId = uuidv4();
+    const { data: job, error: dbError } = await supabase
+      .from('render_jobs')
+      .insert({
+        id: jobId,
+        project_id: project_id,
+        user_id: user.id,
+        status: 'queued',
+        progress: 0,
+        settings: { preset_id: preset_id || 'default' }
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error("Error creating render job:", dbError);
+      return NextResponse.json(
+        { error: "Failed to create render job", details: dbError.message },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      job_id,
-      status: "queued",
-      project_id,
-      preset_id,
+      job_id: job.id,
+      status: job.status,
+      project_id: job.project_id,
       message: "Video pipeline render job created successfully",
-      created_at: new Date().toISOString()
+      created_at: job.created_at
     });
 
   } catch (error) {
+    console.error("Pipeline error:", error);
     return NextResponse.json(
-      { error: "Invalid JSON payload" },
-      { status: 400 }
+      { error: "Internal Server Error" },
+      { status: 500 }
     );
   }
 }

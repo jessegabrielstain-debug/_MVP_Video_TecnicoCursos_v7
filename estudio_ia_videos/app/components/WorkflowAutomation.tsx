@@ -45,7 +45,7 @@ import {
   Upload,
   RefreshCw
 } from 'lucide-react';
-import { useWorkflowAutomation, Workflow, WorkflowExecution, WorkflowTrigger, WorkflowAction } from '@/hooks/useWorkflowAutomation';
+import { useWorkflowAutomation, Workflow, WorkflowExecution, WorkflowTrigger, WorkflowAction, WorkflowTemplate, WorkflowStats } from '@/hooks/useWorkflowAutomation';
 
 export const WorkflowAutomation: React.FC = () => {
   const {
@@ -58,8 +58,7 @@ export const WorkflowAutomation: React.FC = () => {
     createWorkflow,
     updateWorkflow,
     deleteWorkflow,
-    triggerWorkflow,
-    stopWorkflow
+    triggerWorkflow
   } = useWorkflowAutomation();
 
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
@@ -224,7 +223,7 @@ export const WorkflowAutomation: React.FC = () => {
                 />
               </div>
             </div>
-            <Select value={filterStatus} onValueChange={(value: string) => setFilterStatus(value)}>
+            <Select value={filterStatus} onValueChange={(value: 'all' | 'active' | 'inactive') => setFilterStatus(value)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -234,7 +233,7 @@ export const WorkflowAutomation: React.FC = () => {
                 <SelectItem value="inactive">Inativos</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <Select value={filterCategory} onValueChange={(value: string) => setFilterCategory(value)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
@@ -527,7 +526,7 @@ const ExecutionsList: React.FC<{
 
 // Templates List Component
 const TemplatesList: React.FC<{
-  templates: any[];
+  templates: WorkflowTemplate[];
 }> = ({ templates }) => {
   return (
     <div className="space-y-4">
@@ -566,7 +565,7 @@ const TemplatesList: React.FC<{
 
 // Analytics Dashboard Component
 const AnalyticsDashboard: React.FC<{
-  stats: any;
+  stats: WorkflowStats | null;
 }> = ({ stats }) => {
   if (!stats) return null;
 
@@ -582,7 +581,7 @@ const AnalyticsDashboard: React.FC<{
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {stats.mostUsedWorkflows.map((workflow: any, index: number) => (
+              {stats.mostUsedWorkflows.map((workflow: { workflowId: string, name: string, count: number }, index: number) => (
                 <div key={workflow.workflowId} className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Badge variant="outline">{index + 1}</Badge>
@@ -640,7 +639,7 @@ const AnalyticsDashboard: React.FC<{
 const CreateWorkflowDialog: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (workflow: any) => Promise<any>;
+  onCreate: (workflow: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' | 'executionCount' | 'lastExecuted' | 'averageExecutionTime' | 'successRate'>) => Promise<any>;
 }> = ({ isOpen, onClose, onCreate }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -751,7 +750,7 @@ const EditWorkflowDialog: React.FC<{
   workflow: Workflow;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (id: string, updates: any) => Promise<any>;
+  onUpdate: (id: string, updates: Partial<Workflow>) => Promise<void>;
 }> = ({ workflow, isOpen, onClose, onUpdate }) => {
   const [formData, setFormData] = useState({
     name: workflow.name,

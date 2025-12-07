@@ -76,3 +76,4 @@ export async function GET() {
     processing_time: '15-30 minutes'
   })
 }
+

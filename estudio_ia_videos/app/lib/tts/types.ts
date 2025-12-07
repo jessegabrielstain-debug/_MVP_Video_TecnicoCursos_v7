@@ -1,4 +1,3 @@
-```typescript
 export interface TTSRequest {
   text: string;
   voice?: string; // e.g., 'alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'
@@ -15,4 +14,3 @@ export interface TTSResponse {
 export interface ITTSService {
   generate(request: TTSRequest): Promise<TTSResponse>;
 }
-```

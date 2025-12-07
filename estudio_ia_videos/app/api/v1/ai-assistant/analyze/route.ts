@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 interface AnalysisRequest {
   contentId: string
   contentType: 'pptx' | 'video' | 'avatar' | 'template'
-  contentData?: any
+  contentData?: Record<string, unknown>
 }
 
 interface ContentAnalysis {
@@ -122,3 +122,4 @@ export async function GET() {
     }
   })
 }
+

@@ -11,3 +11,4 @@ export async function GET() {
     return NextResponse.json({ ok: false, message: 'Error captured to Sentry' }, { status: 500 })
   }
 }
+

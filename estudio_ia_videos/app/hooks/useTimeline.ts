@@ -79,16 +79,25 @@ export interface PPTXData {
   metadata?: Record<string, unknown>;
 }
 
+export interface RenderJob {
+  id: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  output_url?: string;
+  error_message?: string;
+}
+
 interface UseTimelineReturn {
   project: TimelineProject | null;
   selectedElementId: string | null;
   isLoading: boolean;
   error: string | null;
+  renderJob: RenderJob | null;
   
   // Project management
   createProject: (name: string, settings?: Partial<TimelineProject>) => void;
   loadProject: (projectId: string) => Promise<void>;
-  saveProject: () => Promise<void>;
+  saveProject: () => Promise<TimelineProject | null>;
   updateProject: (updates: Partial<TimelineProject>) => void;
   
   // Playback controls
@@ -120,7 +129,9 @@ export function useTimeline(): UseTimelineReturn {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [renderJob, setRenderJob] = useState<RenderJob | null>(null);
   const playbackTimer = useRef<NodeJS.Timeout>();
+  const pollingTimer = useRef<NodeJS.Timeout>();
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -128,8 +139,49 @@ export function useTimeline(): UseTimelineReturn {
       if (playbackTimer.current) {
         clearInterval(playbackTimer.current);
       }
+      if (pollingTimer.current) {
+        clearInterval(pollingTimer.current);
+      }
     };
   }, []);
+
+  // Polling for render job status
+  useEffect(() => {
+    if (renderJob && (renderJob.status === 'queued' || renderJob.status === 'processing')) {
+      if (!pollingTimer.current) {
+        pollingTimer.current = setInterval(async () => {
+          try {
+            const response = await fetch(`/api/render/jobs/${renderJob.id}`);
+            if (response.ok) {
+              const result = await response.json();
+              if (result.success && result.data) {
+                setRenderJob(result.data);
+                if (result.data.status === 'completed' || result.data.status === 'failed') {
+                  if (pollingTimer.current) {
+                    clearInterval(pollingTimer.current);
+                    pollingTimer.current = undefined;
+                  }
+                  if (result.data.status === 'completed') {
+                    toast.success('Renderização concluída!');
+                  } else {
+                    toast.error(`Renderização falhou: ${result.data.error_message}`);
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.error('Error polling job status', e);
+          }
+        }, 2000);
+      }
+    } else {
+      if (pollingTimer.current) {
+        clearInterval(pollingTimer.current);
+        pollingTimer.current = undefined;
+      }
+    }
+  }, [renderJob]);
+
 
   // Project Management
   const createProject = useCallback((name: string, settings?: Partial<TimelineProject>) => {
@@ -199,13 +251,17 @@ export function useTimeline(): UseTimelineReturn {
     }
   }, []);
 
-  const saveProject = useCallback(async () => {
-    if (!project) return;
+  const saveProject = useCallback(async (): Promise<TimelineProject | null> => {
+    if (!project) return null;
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/timeline/projects/${project.id}`, {
-        method: 'PUT',
+      const isNewProject = project.id.startsWith('project-') || project.id.startsWith('pptx-project-');
+      const url = isNewProject ? '/api/timeline/projects' : `/api/timeline/projects/${project.id}`;
+      const method = isNewProject ? 'POST' : 'PUT';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(project)
       });
@@ -214,10 +270,22 @@ export function useTimeline(): UseTimelineReturn {
         throw new Error('Erro ao salvar projeto');
       }
 
+      const data = await response.json();
+      
+      let savedProject = project;
+      if (isNewProject && data.data?.id) {
+        savedProject = { ...project, id: data.data.id };
+        setProject(savedProject);
+        // Update URL without reload if possible, or just let the state handle it
+        window.history.replaceState(null, '', `?project=${data.data.id}`);
+      }
+
       toast.success('Projeto salvo com sucesso!');
+      return savedProject;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro desconhecido';
       toast.error(`Erro ao salvar projeto: ${message}`);
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -547,31 +615,49 @@ export function useTimeline(): UseTimelineReturn {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/render/export', {
+      // Save project first to ensure backend has latest data
+      const savedProject = await saveProject();
+      if (!savedProject) {
+        throw new Error('Falha ao salvar projeto antes da exportação');
+      }
+
+      const response = await fetch('/api/render/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project })
+        body: JSON.stringify({ 
+          project_id: savedProject.id,
+          type: 'video',
+          metadata: {
+            project_name: savedProject.name,
+            duration: savedProject.duration,
+            fps: savedProject.fps,
+            resolution: `${savedProject.width}x${savedProject.height}`
+          }
+        })
       });
 
       if (!response.ok) {
-        throw new Error('Erro ao iniciar renderização');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao iniciar renderização');
       }
 
       const result = await response.json();
-      toast.success(`Renderização iniciada! Job ID: ${result.jobId}`);
+      setRenderJob(result.data);
+      toast.success(`Renderização iniciada! Job ID: ${result.data.id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro desconhecido';
       toast.error(`Erro na renderização: ${message}`);
     } finally {
       setIsLoading(false);
     }
-  }, [project]);
+  }, [project, saveProject]);
 
   return {
     project,
     selectedElementId,
     isLoading,
     error,
+    renderJob,
     
     // Project management
     createProject,

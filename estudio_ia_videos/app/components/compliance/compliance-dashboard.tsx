@@ -62,7 +62,7 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
     startMonitoring,
     stopMonitoring,
     exportReport,
-    getRecommendations,
+    getComplianceRecommendations,
   } = useComplianceAnalyzer();
 
   const [activeTab, setActiveTab] = useState('overview');

@@ -3,7 +3,8 @@ import { supabase } from './client';
 import type { Database } from './database.types';
 import type {
   RealtimeChannel,
-  RealtimePostgresChangesPayload
+  RealtimePostgresChangesPayload,
+  PostgrestError
 } from '@supabase/supabase-js';
 
 type CourseRow = Database['public']['Tables']['courses']['Row'];
@@ -31,7 +32,7 @@ export const getCourseById = async (id: string): Promise<CourseWithVideos | null
     .single();
   
   if (error) throw error;
-  return data;
+  return data as unknown as CourseWithVideos;
 };
 
 // Funções para gerenciar vídeos
@@ -138,8 +139,10 @@ export const subscribeToUserProgress = (
 
 // Função para obter estatísticas do usuário
 export const getUserStats = async (userId: string): Promise<unknown> => {
-  const { data, error } = await supabase
-    .rpc('get_user_course_stats', { user_id: userId });
+  // Cast supabase to include the RPC function which is missing from generated types
+  const { data, error } = await (supabase as unknown as { 
+    rpc: (fn: string, args: { user_id: string }) => Promise<{ data: unknown, error: PostgrestError | null }> 
+  }).rpc('get_user_course_stats', { user_id: userId });
   
   if (error) throw error;
   return data;

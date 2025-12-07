@@ -124,9 +124,10 @@ export default function LocalRenderPanel() {
       // Inicia polling do status
       pollJobStatus(data.jobId)
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao iniciar renderização';
       console.error('Erro ao iniciar renderização:', error)
-      toast.error(error.message || 'Erro ao iniciar renderização')
+      toast.error(errorMessage)
       setIsRendering(false)
     }
   }

@@ -8,7 +8,6 @@
  * - Configurações de integração
  */
 
-import { describe, it, expect } from '@jest/globals'
 import { 
   RenderingPipeline,
   PipelineStage,

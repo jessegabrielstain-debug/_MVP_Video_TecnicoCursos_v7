@@ -1,3 +1,4 @@
+// TODO: Fix Prisma slide data type for metadata
 
 /**
  * 🎙️ API de Auto-Narração
@@ -95,8 +96,8 @@ export async function POST(request: NextRequest) {
 
     // 3. Configurar opções de narração
     const narrationOptions = {
-      provider: options?.provider || 'azure',
-      voice: options?.voice || 'pt-BR-FranciscaNeural',
+      provider: options?.provider || 'elevenlabs',
+      voice: options?.voice || '21m00Tcm4TlvDq8ikWAM', // Rachel (ElevenLabs default)
       speed: options?.speed || 1.0,
       pitch: options?.pitch || 1.0,
       preferNotes: options?.preferNotes !== false // default true
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
         await prisma.project.update({
           where: { id: projectId },
           data: {
-            slidesData: slidesData,
+            slidesData: slidesData as any,
             autoNarration: true,
             updatedAt: new Date()
           }
@@ -206,7 +207,7 @@ export async function GET(request: NextRequest) {
       where: { id: projectId },
       select: {
         id: true,
-        name: true,
+        title: true,
         autoNarration: true,
         slidesData: true,
         totalSlides: true
@@ -236,7 +237,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       projectId: project.id,
-      projectName: project.name,
+      projectName: project.title,
       autoNarration: project.autoNarration,
       narratedSlides,
       totalSlides,
@@ -251,3 +252,4 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+

@@ -1,4 +1,3 @@
-
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
@@ -102,7 +101,7 @@ export function AdvancedThemeProvider({ children }: { children: React.ReactNode 
   
   const actualTheme = theme === 'system' ? systemTheme : theme
   const colors = themes[actualTheme]
-  const themeInlineStyle: React.CSSProperties = {
+  const themeInlineStyle = {
     background: colors.background,
     color: colors.text,
     '--theme-canvas': colors.canvas,
@@ -114,7 +113,7 @@ export function AdvancedThemeProvider({ children }: { children: React.ReactNode 
     '--theme-border': colors.border,
     '--theme-background': colors.background,
     '--theme-surface': colors.surface
-  }
+  } as React.CSSProperties
   
   // Aplicar CSS variables
   useEffect(() => {

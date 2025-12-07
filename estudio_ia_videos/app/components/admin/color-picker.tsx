@@ -1,4 +1,4 @@
-
+// TODO: Fixar tipos HexColorPicker do react-colorful
 'use client'
 
 import { HexColorPicker } from 'react-colorful'
@@ -62,11 +62,10 @@ export default function ColorPicker({
         </div>
 
         {/* Color Picker */}
-        <div className="flex justify-center">
+        <div className="flex justify-center" style={{ width: '200px', height: '200px', margin: '0 auto' }}>
           <HexColorPicker 
             color={color} 
             onChange={handleColorChange}
-            style={{ width: '200px', height: '200px' }}
           />
         </div>
 

@@ -1,4 +1,3 @@
-
 /**
  * E2E Tests: Compliance Flow
  * Sprint 44

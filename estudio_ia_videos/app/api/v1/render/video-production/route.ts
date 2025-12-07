@@ -107,10 +107,10 @@ export async function GET(request: NextRequest) {
 
   if (!jobId) {
     // Retornar lista de todos os jobs
-    const jobs = renderEngine.getAllJobs();
+    const jobs = await renderEngine.getAllJobs();
     return NextResponse.json({
       success: true,
-      jobs: jobs.map(job => ({
+      jobs: jobs.map((job: any) => ({
         id: job.id,
         status: job.status,
         progress: job.progress,
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Retornar status de job específico
-  const job = renderEngine.getJobStatus(jobId);
+  const job = await renderEngine.getJobStatus(jobId);
   
   if (!job) {
     return NextResponse.json(
@@ -179,3 +179,4 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+

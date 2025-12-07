@@ -1,0 +1,580 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?  @map("avatar_url")
+  role      String?  @default("user")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  metadata  Json?    @default("{}")
+
+  courses         Course[]
+  userProgress    UserProgress[]
+  projects        Project[]
+  videoExports    VideoExport[]
+  analyticsEvents AnalyticsEvent[]
+  comments        ProjectComment[]
+  timelineSnapshots TimelineSnapshot[]
+  timelineTrackLocks TimelineTrackLock[]
+  timelinePresences TimelinePresence[]
+  timelineTemplates TimelineTemplate[]
+  renderJobs      RenderJob[]
+  certificates    Certificate[]
+
+  @@map("users")
+}
+
+model Course {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  thumbnailUrl String?  @map("thumbnail_url")
+  authorId     String?  @map("author_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  author User?   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  videos Video[]
+
+  @@index([authorId])
+  @@map("courses")
+}
+
+model Video {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  videoUrl     String   @map("video_url")
+  thumbnailUrl String?  @map("thumbnail_url")
+  duration     Int?
+  courseId     String?  @map("course_id")
+  orderIndex   Int?     @default(0) @map("order_index")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  course       Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userProgress UserProgress[]
+
+  @@index([courseId])
+  @@map("videos")
+}
+
+model UserProgress {
+  id                 String   @id @default(uuid())
+  userId             String?  @map("user_id")
+  videoId            String?  @map("video_id")
+  progressPercentage Int?     @default(0) @map("progress_percentage")
+  completed          Boolean? @default(false)
+  lastWatchedAt      DateTime @default(now()) @map("last_watched_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user  User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video? @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@index([videoId])
+  @@map("user_progress")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  title       String   @map("name")
+  description String?
+  status      String?  @default("draft")
+  settings    Json?    @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  
+  // Campos adicionais para compatibilidade com o código existente
+  slidesData  Json?    @map("slides_data") // Armazena dados processados do PPTX
+  totalSlides Int?     @default(0) @map("total_slides")
+  duration    Int?     @default(0)
+  autoNarration Boolean? @default(false) @map("auto_narration")
+  pptxUrl     String?  @map("pptx_url")
+  originalFileName String? @map("original_file_name")
+  metadata    Json?    @default("{}")  // Metadados adicionais do projeto
+  processingLog Json?    @map("processing_log")
+  thumbnailUrl  String?  @map("thumbnail_url")
+
+  user       User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slides     Slide[]
+  renderJobs RenderJob[]
+  videoExports VideoExport[]
+  timeline   Timeline?
+  complianceRecords NRComplianceRecord[]
+  comments        ProjectComment[]
+  timelineTrackLocks TimelineTrackLock[]
+  timelinePresences TimelinePresence[]
+  certificates    Certificate[]
+
+  @@index([userId])
+  @@map("projects")
+}
+
+model ProjectComment {
+  id        String   @id @default(uuid())
+  projectId String   @map("project_id")
+  userId    String   @map("user_id")
+  content   String
+  position  Json?
+  parentId  String?  @map("parent_id")
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    ProjectComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ProjectComment[] @relation("CommentReplies")
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([parentId])
+  @@map("project_comments")
+}
+
+model Slide {
+  id              String   @id @default(uuid())
+  projectId       String?  @map("project_id")
+  orderIndex      Int      @map("order_index")
+  title           String?
+  content         String?
+  duration        Int?     @default(5)
+  backgroundColor String?  @map("background_color")
+  backgroundImage String?  @map("background_image")
+  avatarConfig    Json?    @default("{}") @map("avatar_config")
+  audioConfig     Json?    @default("{}") @map("audio_config")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("slides")
+}
+
+model RenderJob {
+  id             String    @id @default(uuid())
+  projectId      String?   @map("project_id")
+  status         String?   @default("queued")
+  progress       Int?      @default(0)
+  outputUrl      String?  @map("output_url")
+  errorMessage   String?  @map("error_message")
+  renderSettings Json?     @default("{}") @map("render_settings")
+  attempts       Int?      @default(1)
+  durationMs     Int?      @map("duration_ms")
+  startedAt      DateTime? @map("started_at")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+  userId         String?   @map("user_id")
+  thumbnailUrl   String?   @map("thumbnail_url")
+  avatarModelId  String?   @map("avatar_model_id")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  avatarModels AvatarModel? @relation(fields: [avatarModelId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([avatarModelId])
+  @@map("render_jobs")
+}
+
+model AvatarModel {
+  id                  String   @id @default(uuid())
+  name                String
+  displayName         String?  @map("display_name")
+  description         String?
+  category            String?  // Renamed from type to match usage
+  gender              String?
+  quality             String?
+  thumbnailUrl        String?  @map("thumbnail_url")
+  modelUrl            String?  @map("model_url")
+  previewVideoUrl     String?  @map("preview_video_url")
+  isActive            Boolean  @default(true) @map("is_active")
+  audio2FaceCompatible Boolean @default(false) @map("audio2face_compatible")
+  realTimeLipSync     Boolean  @default(false) @map("real_time_lipsync")
+  rayTracingSupport   Boolean  @default(false) @map("ray_tracing_support")
+  lipSyncAccuracy     Int?     @default(90) @map("lipsync_accuracy")
+  modelFilePath       String?  @map("model_file_path")
+  textureFiles        Json?    @map("texture_files")
+  rigFilePath         String?  @map("rig_file_path")
+  animationSets       Json?    @map("animation_sets")
+  blendShapesFile     String?  @map("blend_shapes_file")
+  supportedLanguages  String[] @map("supported_languages")
+  usageCount          Int      @default(0) @map("usage_count")
+  rating              Float?   @default(5.0)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
+
+  renderJobs          RenderJob[]
+  avatarStats         AvatarStats[]
+
+  @@map("avatar_models")
+}
+
+model AvatarStats {
+  id            String   @id @default(uuid())
+  avatarModelId String   @map("avatar_model_id")
+  totalRenders  Int      @default(0) @map("total_renders")
+  avgRenderTime Int?     @map("avg_render_time")
+  lastUsedAt    DateTime @default(now()) @map("last_used_at")
+  
+  avatarModel   AvatarModel @relation(fields: [avatarModelId], references: [id], onDelete: Cascade)
+
+  @@map("avatar_stats")
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  eventType String   @map("event_type")
+  eventData Json?    @default("{}") @map("event_data")
+  sessionId String?  @map("session_id")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("analytics_events")
+}
+
+model NrCourse {
+  id           String   @id @default(uuid())
+  courseCode   String   @unique @map("course_code")
+  title        String
+  description  String?
+  thumbnailUrl String?  @map("thumbnail_url")
+  duration     Int?
+  modulesCount Int?     @default(0) @map("modules_count")
+  status       String?  @default("active")
+  metadata     Json?    @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  modules NrModule[]
+
+  @@map("nr_courses")
+}
+
+model NrModule {
+  id           String   @id @default(uuid())
+  courseId     String?  @map("course_id")
+  orderIndex   Int      @map("order_index")
+  title        String
+  description  String?
+  thumbnailUrl String?  @map("thumbnail_url")
+  videoUrl     String?  @map("video_url")
+  duration     Int?
+  content      Json?    @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  course NrCourse? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("nr_modules")
+}
+
+// Modelo adicional para Timeline (relacionado a Project)
+model Timeline {
+  id        String   @id @default(uuid())
+  projectId String   @unique @map("project_id")
+  tracks    Json?    @default("[]")
+  totalDuration  Int?     @default(0) @map("total_duration")
+  version   Int      @default(1)
+  settings  Json?    @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  snapshots TimelineSnapshot[]
+
+  @@map("timelines")
+}
+
+model TimelineSnapshot {
+  id         String   @id @default(uuid())
+  timelineId String   @map("timeline_id")
+  version    Int
+  tracks     Json?    @default("[]")
+  settings   Json?    @default("{}")
+  totalDuration Int?  @default(0) @map("total_duration")
+  description String?
+  createdBy  String?  @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  timeline Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  creator  User?    @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([timelineId])
+  @@map("timeline_snapshots")
+}
+
+model TimelineTrackLock {
+  id        String   @id @default(uuid())
+  projectId String   @map("project_id")
+  trackId   String   @map("track_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, trackId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("timeline_track_locks")
+}
+
+model TimelinePresence {
+  id             String   @id @default(uuid())
+  projectId      String   @map("project_id")
+  userId         String   @map("user_id")
+  currentTrackId String?  @map("current_track_id")
+  lastSeenAt     DateTime @default(now()) @map("last_seen_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("timeline_presence")
+}
+
+model TimelineTemplate {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  category      String   @default("custom")
+  isPublic      Boolean  @default(false) @map("is_public")
+  tracks        Json?    @default("[]")
+  settings      Json?    @default("{}")
+  totalDuration Int?     @default(0) @map("total_duration")
+  metadata      Json?    @default("{}")
+  usageCount    Int      @default(0) @map("usage_count")
+  createdBy     String   @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  creator User @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([isPublic])
+  @@index([createdBy])
+  @@map("timeline_templates")
+}
+
+model Webhook {
+  id                   String    @id @default(uuid())
+  userId               String    @map("user_id")
+  url                  String
+  secret               String
+  events               Json
+  active               Boolean   @default(true)
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at")
+  lastDeliveryAt       DateTime? @map("last_delivery_at")
+  totalDeliveries      Int       @default(0) @map("total_deliveries")
+  successfulDeliveries Int       @default(0) @map("successful_deliveries")
+  failedDeliveries     Int       @default(0) @map("failed_deliveries")
+  retryInterval        Int       @default(60) @map("retry_interval")
+
+  deliveries WebhookDelivery[]
+
+  @@index([userId])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id           String    @id @default(uuid())
+  webhookId    String    @map("webhook_id")
+  event        String
+  payload      Json
+  url          String
+  status       String
+  scheduledFor DateTime  @default(now()) @map("scheduled_for")
+  deliveredAt  DateTime? @map("delivered_at")
+  responseCode Int?      @map("response_code")
+  responseBody String?   @map("response_body")
+  responseTime Int?      @map("response_time")
+  attempts     Int       @default(0)
+  error        String?
+  nextRetryAt  DateTime? @map("next_retry_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([status])
+  @@map("webhook_deliveries")
+}
+
+model VideoExport {
+  id            String   @id @default(uuid())
+  projectId     String   @map("project_id")
+  userId        String?  @map("user_id")
+  format        String   @default("mp4")
+  quality       String   @default("hd")
+  resolution    String?
+  fps           Int      @default(30)
+  status        String   @default("queued")
+  progress      Int      @default(0)
+  processingLog Json?    @map("processing_log")
+  videoUrl      String?  @map("video_url")
+  fileUrl       String?  @map("file_url")
+  fileName      String?  @map("file_name")
+  fileSize      BigInt?  @map("file_size")
+  duration      Int?
+  errorMessage  String?  @map("error_message")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("video_exports")
+}
+
+model ProcessingQueue {
+  id           String   @id @default(uuid())
+  jobType      String   @map("job_type")
+  jobData      Json     @map("job_data")
+  status       String   @default("pending")
+  priority     Int      @default(0)
+  scheduledFor DateTime @default(now()) @map("scheduled_for")
+  progress     Int      @default(0)
+  currentStep  String?  @map("current_step")
+  maxAttempts  Int      @default(3)
+  attempts     Int      @default(0)
+  errorMessage String?  @map("error_message")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([jobType])
+  @@index([status])
+  @@index([priority])
+  @@index([scheduledFor])
+  @@map("processing_queue")
+}
+
+model NrTemplate {
+  id              String   @id @default(uuid())
+  nrNumber        String   @unique @map("nr_number")
+  title           String
+  description     String?
+  slideCount      Int      @default(5) @map("slide_count")
+  durationSeconds Int      @default(300) @map("duration_seconds")
+  templateConfig  Json?    @default("{}") @map("template_config")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("nr_templates")
+}
+
+model NRComplianceRecord {
+  id              String   @id @default(uuid())
+  projectId       String   @map("project_id")
+  nr              String
+  nrName          String   @map("nr_name")
+  status          String
+  score           Float
+  finalScore      Float    @map("final_score")
+  requirementsMet Int      @map("requirements_met")
+  requirementsTotal Int    @map("requirements_total")
+  validatedAt     DateTime @default(now()) @map("validated_at")
+  validatedBy     String   @map("validated_by")
+  recommendations Json?
+  criticalPoints  Json?    @map("critical_points")
+  aiAnalysis      Json?    @map("ai_analysis")
+  aiScore         Float?   @map("ai_score")
+  confidence      Float?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  certificates    Certificate[]
+
+  @@index([projectId])
+  @@map("nr_compliance_records")
+}
+
+model VoiceClone {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  name           String
+  description    String?
+  provider       String   @default("elevenlabs")
+  voiceId        String   @map("voice_id")
+  sampleCount    Int      @default(0) @map("sample_count")
+  trainingStatus String?  @map("training_status")
+  qualityScore   Float?   @map("quality_score")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("voice_clones")
+}
+
+model SystemSettings {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+
+model Certificate {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  userId      String   @map("user_id")
+  nrRecordId  String?  @map("nr_record_id")
+  
+  studentName String   @map("student_name")
+  courseName  String   @map("course_name")
+  
+  code        String   @unique
+  issuedAt    DateTime @default(now()) @map("issued_at")
+  validUntil  DateTime? @map("valid_until")
+  
+  certificateUrl String? @map("certificate_url")
+  metadata    Json?    @default("{}")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nrRecord    NRComplianceRecord? @relation(fields: [nrRecordId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([code])
+  @@map("certificates")
+}

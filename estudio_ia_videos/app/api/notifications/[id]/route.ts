@@ -31,7 +31,7 @@ export async function GET(
     const notificationId = params.id
 
     // Get notification
-    const { data: notification, error } = await supabaseAdmin
+    const { data: notification, error } = await (supabaseAdmin as any)
       .from('notifications')
       .select('*')
       .eq('id', notificationId)
@@ -95,7 +95,7 @@ export async function PATCH(
       )
     }
 
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString()
     }
 
@@ -105,7 +105,7 @@ export async function PATCH(
     }
 
     // Update notification
-    const { data: updatedNotification, error } = await supabaseAdmin
+    const { data: updatedNotification, error } = await (supabaseAdmin as any)
       .from('notifications')
       .update(updateData)
       .eq('id', notificationId)
@@ -125,13 +125,12 @@ export async function PATCH(
 
     // Log the action for analytics
     try {
-      await supabaseAdmin
+      await (supabaseAdmin as any)
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
-          category: 'notifications',
-          action: `notification_${body.status || 'updated'}`,
-          metadata: {
+          event_type: `notification_${body.status || 'updated'}`,
+          event_data: {
             notification_id: notificationId,
             changes: updates,
             timestamp: new Date().toISOString()
@@ -140,25 +139,6 @@ export async function PATCH(
         })
     } catch (analyticsError) {
       console.warn('Failed to log notification update:', analyticsError)
-    }
-
-    // Send WebSocket update
-    try {
-      await fetch(`${process.env.NEXTAUTH_URL}/api/websocket/broadcast`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.WEBSOCKET_SECRET}`
-        },
-        body: JSON.stringify({
-          type: 'notification_updated',
-          channel: 'notifications',
-          userId: session.user.id,
-          data: updatedNotification
-        })
-      })
-    } catch (wsError) {
-      console.warn('Failed to send WebSocket update:', wsError)
     }
 
     return NextResponse.json({
@@ -198,7 +178,7 @@ export async function DELETE(
     const notificationId = params.id
 
     // Delete notification
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from('notifications')
       .delete()
       .eq('id', notificationId)
@@ -208,13 +188,12 @@ export async function DELETE(
 
     // Log the action for analytics
     try {
-      await supabaseAdmin
+      await (supabaseAdmin as any)
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
-          category: 'notifications',
-          action: 'notification_deleted',
-          metadata: {
+          event_type: 'notification_deleted',
+          event_data: {
             notification_id: notificationId,
             timestamp: new Date().toISOString()
           },
@@ -222,25 +201,6 @@ export async function DELETE(
         })
     } catch (analyticsError) {
       console.warn('Failed to log notification deletion:', analyticsError)
-    }
-
-    // Send WebSocket update
-    try {
-      await fetch(`${process.env.NEXTAUTH_URL}/api/websocket/broadcast`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.WEBSOCKET_SECRET}`
-        },
-        body: JSON.stringify({
-          type: 'notification_deleted',
-          channel: 'notifications',
-          userId: session.user.id,
-          data: { id: notificationId }
-        })
-      })
-    } catch (wsError) {
-      console.warn('Failed to send WebSocket update:', wsError)
     }
 
     return NextResponse.json({

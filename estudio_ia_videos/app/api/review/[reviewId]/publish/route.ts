@@ -5,8 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { reviewWorkflowService } from '@/lib/collab/review-workflow';
 
 export async function POST(
@@ -14,8 +13,10 @@ export async function POST(
   { params }: { params: { reviewId: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user?.id) {
+    const supabase = getSupabaseForRequest(request);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
@@ -28,14 +29,14 @@ export async function POST(
 
     await reviewWorkflowService.publishProject({
       projectId,
-      userId: session.user.id,
+      userId: user.id,
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao publicar projeto:', error);
     return NextResponse.json(
-      { error: error.message || 'Erro ao publicar projeto' },
+      { error: error instanceof Error ? error.message : 'Erro ao publicar projeto' },
       { status: 500 }
     );
   }

@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 // Schema para adicionar colaborador
 const addCollaboratorSchema = z.object({
   email: z.string().email('Email inválido')
-})
-
-// Schema para remover colaborador
-const removeCollaboratorSchema = z.object({
-  user_id: z.string().uuid('ID de usuário inválido')
 })
 
 interface RouteParams {
@@ -24,7 +19,7 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -39,7 +34,7 @@ export async function GET(
     // Verificar se o usuário tem acesso ao projeto
     const { data: project } = await supabase
       .from('projects')
-      .select('owner_id, collaborators')
+      .select('user_id')
       .eq('id', projectId)
       .single()
 
@@ -50,24 +45,36 @@ export async function GET(
       )
     }
 
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+    const ownerId = project.user_id
+    const isOwner = ownerId === user.id
 
-    if (!hasPermission) {
+    // Check if user is collaborator
+    const { data: collaboratorRecord } = await supabase
+      .from('project_collaborators')
+      .select('id')
+      .eq('project_id', projectId)
+      .eq('user_id', user.id)
+      .single()
+
+    const isCollaborator = !!collaboratorRecord
+
+    if (!isOwner && !isCollaborator) {
       return NextResponse.json(
         { error: 'Sem permissão para acessar este projeto' },
         { status: 403 }
       )
     }
 
-    // Buscar dados dos colaboradores
-    const collaboratorIds = project.collaborators || []
-    const allUserIds = [project.owner_id, ...collaboratorIds]
-
-    const { data: users, error } = await supabase
-      .from('auth.users')
-      .select('id, email, user_metadata')
-      .in('id', allUserIds)
+    // Buscar colaboradores
+    const { data: collaboratorsData, error } = await (supabase as any)
+      .from('project_collaborators')
+      .select(`
+        id,
+        user_id,
+        role,
+        joined_at
+      `)
+      .eq('project_id', projectId)
 
     if (error) {
       console.error('Erro ao buscar colaboradores:', error)
@@ -77,17 +84,56 @@ export async function GET(
       )
     }
 
-    // Mapear usuários com suas funções
-    const collaborators = users?.map(u => ({
-      id: u.id,
-      email: u.email,
-      name: u.user_metadata?.name || u.email,
-      avatar: u.user_metadata?.avatar_url,
-      role: u.id === project.owner_id ? 'owner' : 'collaborator',
-      joined_at: u.id === project.owner_id ? null : new Date().toISOString()
-    })) || []
+    // Buscar dados dos usuários colaboradores
+    const collaboratorUserIds = collaboratorsData?.map((c: any) => c.user_id) || []
+    let usersMap: Record<string, any> = {}
+    
+    if (collaboratorUserIds.length > 0) {
+      const { data: usersData } = await (supabase as any)
+        .from('users')
+        .select('id, email, name, avatar_url')
+        .in('id', collaboratorUserIds)
+      
+      if (usersData) {
+        usersMap = usersData.reduce((acc: any, u: any) => {
+          acc[u.id] = u
+          return acc
+        }, {})
+      }
+    }
 
-    return NextResponse.json({ collaborators })
+    // Buscar dados do dono
+    const { data: ownerData } = await (supabase as any)
+      .from('users')
+      .select('id, email, name, avatar_url')
+      .eq('id', ownerId)
+      .single()
+
+    const formattedCollaborators = [
+      // Owner
+      ...(ownerData ? [{
+        id: ownerData.id,
+        email: ownerData.email,
+        name: ownerData.name || ownerData.email,
+        avatar: ownerData.avatar_url,
+        role: 'owner',
+        joined_at: null
+      }] : []),
+      // Collaborators
+      ...(collaboratorsData?.map((c: any) => {
+        const userData = usersMap[c.user_id] || {}
+        return {
+          id: userData.id || c.user_id,
+          email: userData.email,
+          name: userData.name || userData.email,
+          avatar: userData.avatar_url,
+          role: c.role || 'collaborator',
+          joined_at: c.joined_at
+        }
+      }) || [])
+    ]
+
+    return NextResponse.json({ collaborators: formattedCollaborators })
 
   } catch (error) {
     console.error('Erro na API de colaboradores:', error)
@@ -104,7 +150,7 @@ export async function POST(
   { params }: RouteParams
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -121,7 +167,7 @@ export async function POST(
     // Verificar se o usuário é o dono do projeto
     const { data: project } = await supabase
       .from('projects')
-      .select('owner_id, collaborators, name')
+      .select('user_id, name')
       .eq('id', projectId)
       .single()
 
@@ -132,16 +178,16 @@ export async function POST(
       )
     }
 
-    if (project.owner_id !== user.id) {
+    if (project.user_id !== user.id) {
       return NextResponse.json(
         { error: 'Apenas o dono pode adicionar colaboradores' },
         { status: 403 }
       )
     }
 
-    // Buscar usuário pelo email
+    // Buscar usuário pelo email na tabela users (public)
     const { data: targetUser, error: userError } = await supabase
-      .from('auth.users')
+      .from('users')
       .select('id, email')
       .eq('email', email)
       .single()
@@ -154,8 +200,14 @@ export async function POST(
     }
 
     // Verificar se já é colaborador
-    const currentCollaborators = project.collaborators || []
-    if (currentCollaborators.includes(targetUser.id) || targetUser.id === project.owner_id) {
+    const { data: existingCollaborator } = await supabase
+      .from('project_collaborators')
+      .select('id')
+      .eq('project_id', projectId)
+      .eq('user_id', targetUser.id)
+      .single()
+
+    if (existingCollaborator || targetUser.id === project.user_id) {
       return NextResponse.json(
         { error: 'Usuário já é colaborador deste projeto' },
         { status: 400 }
@@ -163,17 +215,18 @@ export async function POST(
     }
 
     // Adicionar colaborador
-    const updatedCollaborators = [...currentCollaborators, targetUser.id]
-    
-    const { data: updatedProject, error } = await supabase
-      .from('projects')
-      .update({ collaborators: updatedCollaborators })
-      .eq('id', projectId)
-      .select()
-      .single()
+    const { error: insertError } = await supabase
+      .from('project_collaborators')
+      .insert({
+        project_id: projectId,
+        user_id: targetUser.id,
+        role: 'editor', // Default role
+        invited_by: user.id,
+        permissions: ['read', 'write']
+      })
 
-    if (error) {
-      console.error('Erro ao adicionar colaborador:', error)
+    if (insertError) {
+      console.error('Erro ao adicionar colaborador:', insertError)
       return NextResponse.json(
         { error: 'Erro ao adicionar colaborador' },
         { status: 500 }
@@ -203,7 +256,7 @@ export async function POST(
       collaborator: {
         id: targetUser.id,
         email: targetUser.email,
-        role: 'collaborator'
+        role: 'editor'
       }
     })
 
@@ -229,7 +282,7 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -253,7 +306,7 @@ export async function DELETE(
     // Verificar se o usuário é o dono do projeto
     const { data: project } = await supabase
       .from('projects')
-      .select('owner_id, collaborators')
+      .select('user_id')
       .eq('id', projectId)
       .single()
 
@@ -265,7 +318,7 @@ export async function DELETE(
     }
 
     // Permitir que o próprio colaborador se remova ou que o dono remova qualquer um
-    const canRemove = project.owner_id === user.id || collaboratorId === user.id
+    const canRemove = project.user_id === user.id || collaboratorId === user.id
 
     if (!canRemove) {
       return NextResponse.json(
@@ -275,7 +328,7 @@ export async function DELETE(
     }
 
     // Não permitir remover o dono
-    if (collaboratorId === project.owner_id) {
+    if (collaboratorId === project.user_id) {
       return NextResponse.json(
         { error: 'Não é possível remover o dono do projeto' },
         { status: 400 }
@@ -283,13 +336,11 @@ export async function DELETE(
     }
 
     // Remover colaborador
-    const currentCollaborators = project.collaborators || []
-    const updatedCollaborators = currentCollaborators.filter(id => id !== collaboratorId)
-
     const { error } = await supabase
-      .from('projects')
-      .update({ collaborators: updatedCollaborators })
-      .eq('id', projectId)
+      .from('project_collaborators')
+      .delete()
+      .eq('project_id', projectId)
+      .eq('user_id', collaboratorId)
 
     if (error) {
       console.error('Erro ao remover colaborador:', error)
@@ -298,13 +349,6 @@ export async function DELETE(
         { status: 500 }
       )
     }
-
-    // Remover sessões de colaboração ativas
-    await supabase
-      .from('collaboration_sessions')
-      .update({ status: 'disconnected' })
-      .eq('project_id', projectId)
-      .eq('user_id', collaboratorId)
 
     // Registrar no histórico
     await supabase

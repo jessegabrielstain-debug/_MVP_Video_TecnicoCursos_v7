@@ -124,5 +124,7 @@
     "Invoke-Expression": false,
     "iex": false
   },
-  "git.ignoreLimitWarning": true
+  "git.ignoreLimitWarning": true,
+  "chat.agent.maxRequests": 300,
+  "prisma.pinToPrisma6": true
 }

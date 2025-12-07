@@ -28,7 +28,8 @@ import {
 
 interface CanvasObject {
   id?: string;
-  [key: string]: unknown;
+  set?: (props: any) => void;
+  [key: string]: any;
 }
 
 interface QuickActionsBarProps {
@@ -292,7 +293,7 @@ export function QuickActionsBar({
 }
 
 // Hook para integrar com canvas
-export function useQuickActions(canvas: unknown) {
+export function useQuickActions(canvas: any) {
   const [selectedObjects, setSelectedObjects] = useState<CanvasObject[]>([])
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)

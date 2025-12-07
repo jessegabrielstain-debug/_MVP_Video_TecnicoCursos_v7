@@ -5,10 +5,26 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { NRTemplate } from '@/lib/nr-templates'
 import {
   NEW_NR_TEMPLATES,
-  NR_TEMPLATES_METADATA
+  NR_TEMPLATES_METADATA,
+  NRTemplate as NRTemplateBasic
 } from '@/lib/nr-templates/nr-7-9-11-13-15'
+
+// Extended template type that combines both interfaces
+interface ExtendedNRTemplate {
+  id?: string;
+  nr?: string;
+  number?: string;
+  title: string;
+  description?: string;
+  duration?: number;
+  duration_minutes?: number;
+  category?: string;
+  slides?: unknown[];
+  sections?: unknown[];
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,29 +33,32 @@ export async function GET(req: NextRequest) {
     const minDuration = req.nextUrl.searchParams.get('minDuration')
     const maxDuration = req.nextUrl.searchParams.get('maxDuration')
 
-    let templates = NEW_NR_TEMPLATES
+    // Convert object to array for filtering
+    let templates = Object.values(NEW_NR_TEMPLATES) as ExtendedNRTemplate[]
 
     // Filtrar por categoria
     if (category) {
-      templates = templates.filter(t => t.category === category)
+      templates = templates.filter((t) => t.category === category)
     }
 
     // Filtrar por busca
     if (search) {
       const searchLower = search.toLowerCase()
-      templates = templates.filter(t =>
+      templates = templates.filter((t) =>
         t.title.toLowerCase().includes(searchLower) ||
-        t.nr.toLowerCase().includes(searchLower) ||
-        t.description.toLowerCase().includes(searchLower)
+        (t.nr || t.number || '').toLowerCase().includes(searchLower) ||
+        (t.description || '').toLowerCase().includes(searchLower)
       )
     }
 
     // Filtrar por duração
     if (minDuration) {
-      templates = templates.filter(t => t.duration >= parseInt(minDuration))
+      const minDur = parseInt(minDuration)
+      templates = templates.filter((t) => (t.duration || t.duration_minutes || 0) >= minDur)
     }
     if (maxDuration) {
-      templates = templates.filter(t => t.duration <= parseInt(maxDuration))
+      const maxDur = parseInt(maxDuration)
+      templates = templates.filter((t) => (t.duration || t.duration_minutes || 0) <= maxDur)
     }
 
     return NextResponse.json({
@@ -47,7 +66,6 @@ export async function GET(req: NextRequest) {
       templates,
       metadata: NR_TEMPLATES_METADATA,
       total: templates.length,
-      categories: NR_TEMPLATES_METADATA.categories,
       timestamp: new Date().toISOString()
     })
   } catch (error) {
@@ -65,7 +83,8 @@ export async function POST(req: NextRequest) {
     const { templateId, projectName, customizations } = body
 
     // Buscar template
-    const template = NEW_NR_TEMPLATES.find(t => t.id === templateId)
+    const templates = Object.values(NEW_NR_TEMPLATES) as ExtendedNRTemplate[]
+    const template = templates.find((t) => t.id === templateId || t.number === templateId)
 
     if (!template) {
       return NextResponse.json(
@@ -79,8 +98,8 @@ export async function POST(req: NextRequest) {
       id: `project-${Date.now()}`,
       name: projectName || template.title,
       templateId,
-      templateNR: template.nr,
-      slides: template.slides,
+      templateNR: template.nr || template.number,
+      slides: template.slides || template.sections,
       customizations,
       createdAt: new Date().toISOString()
     }
@@ -98,3 +117,4 @@ export async function POST(req: NextRequest) {
     )
   }
 }
+

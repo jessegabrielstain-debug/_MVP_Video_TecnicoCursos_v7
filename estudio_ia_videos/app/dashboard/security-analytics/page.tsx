@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Shield, AlertTriangle, Users, Activity, TrendingUp, Lock, CheckCircle, XCircle } from 'lucide-react';
-import { createBrowserSupabaseClient } from '@/lib/services';
+import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
 interface SecurityStats {
@@ -95,10 +95,10 @@ export default function SecurityAnalyticsPage() {
       // Busca alertas
       const alertsRes = await fetch(
         `/api/org/${orgId}/alerts/statistics?` +
-          new URLSearchParams({
-            startDate: startDate.toISOString(),
-            endDate: endDate.toISOString(),
-          })
+        new URLSearchParams({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        })
       );
       const alertsData = await alertsRes.json();
 
@@ -189,11 +189,10 @@ export default function SecurityAnalyticsPage() {
           <button
             key={p}
             onClick={() => setPeriod(p)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              period === p
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${period === p
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
           >
             {p === '7d' ? '7 dias' : p === '30d' ? '30 dias' : '90 dias'}
           </button>

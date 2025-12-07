@@ -1,15 +1,31 @@
-
+'use client'
 
 import React from 'react'
-import ProfessionalCanvasEditorV3 from '@/components/canvas-editor-pro/professional-canvas-editor-v3'
+import dynamicImport from 'next/dynamic'
+
+// Importação dinâmica para evitar problemas de SSR com fabric.js
+const ProfessionalCanvasEditorV3 = dynamicImport(
+  () => import('@/components/canvas-editor-pro/professional-canvas-editor-v3'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando Canvas Editor...</p>
+        </div>
+      </div>
+    )
+  }
+)
 
 export default function CanvasEditorProPage() {
-  const handleExportTimeline = (timelineData: any) => {
+  const handleExportTimeline = (timelineData: unknown) => {
     console.log('Timeline exported:', timelineData)
     // Aqui seria integrado com o sistema de timeline do PPTX
   }
 
-  const handleSceneUpdate = (sceneData: any) => {
+  const handleSceneUpdate = (sceneData: unknown) => {
     console.log('Scene updated:', sceneData)
     // Aqui seria sincronizado com o sistema de cenas
   }

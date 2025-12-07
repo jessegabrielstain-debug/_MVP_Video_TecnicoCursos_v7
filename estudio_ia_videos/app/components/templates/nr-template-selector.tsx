@@ -26,7 +26,7 @@ interface NRTemplate {
   duration: number;
   thumbnailUrl: string;
   certification?: string;
-  slides: any[];
+  slides: Record<string, unknown>[];
 }
 
 interface NRTemplateSelectorProps {

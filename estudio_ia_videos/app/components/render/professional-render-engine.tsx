@@ -62,13 +62,16 @@ export default function ProfessionalRenderEngine() {
   const [renderProgress, setRenderProgress] = useState<RenderProgress | null>(null)
   
   const [renderSettings, setRenderSettings] = useState<RenderSettings>({
-    width: 1920,
-    height: 1080,
-    fps: 30,
-    quality: 'high',
+    resolution: '1080p',
     format: 'mp4',
+    quality: 'high',
+    fps: 30,
     codec: 'h264',
-    audioCodec: 'aac'
+    bitrate: '5000k',
+    audioEnabled: true,
+    audioBitrate: '128k',
+    hardwareAcceleration: true,
+    preset: 'medium'
   })
 
   const converterRef = useRef<CanvasToVideoConverter | null>(null)
@@ -122,7 +125,7 @@ export default function ProfessionalRenderEngine() {
       ffmpegService.setProgressCallback((progress) => {
         setRenderProgress(progress)
         setRenderJobs(prev => prev.map(job => 
-          job.id === jobId ? { ...job, progress: progress.progress } : job
+          job.id === jobId ? { ...job, progress: progress.percent } : job
         ))
       })
 
@@ -130,6 +133,8 @@ export default function ProfessionalRenderEngine() {
       const mockScene: VideoScene = {
         id: 'demo_scene',
         name: 'Demo Scene',
+        duration: 10,
+        elements: [],
         frames: [], // In real implementation, this would come from the canvas editor
         totalDuration: 10, // 10 seconds demo video
         audioTrack: projectData.tts?.audioBase64 ? {
@@ -194,12 +199,10 @@ export default function ProfessionalRenderEngine() {
 
   const getQualityLabel = (quality: string) => {
     const labels = {
-      low: '480p - Rápido',
-      medium: '720p - Balanceado', 
-      high: '1080p - Alta Qualidade',
-      ultra: '1080p - Ultra',
-      '4k': '4K - Premium',
-      '8k': '8K - Máxima'
+      draft: 'Draft',
+      standard: 'Standard',
+      high: 'High',
+      premium: 'Premium'
     }
     return labels[quality as keyof typeof labels] || quality
   }
@@ -208,7 +211,6 @@ export default function ProfessionalRenderEngine() {
     switch (format) {
       case 'mp4': return '🎬'
       case 'webm': return '🌐'
-      case 'avi': return '📹'
       case 'mov': return '🎭'
       default: return '🎥'
     }
@@ -316,19 +318,17 @@ export default function ProfessionalRenderEngine() {
                 <Select
                   value={renderSettings.quality}
                   onValueChange={(value: string) => 
-                    setRenderSettings(prev => ({ ...prev, quality: value }))
+                    setRenderSettings(prev => ({ ...prev, quality: value as RenderSettings['quality'] }))
                   }
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">📱 {getQualityLabel('low')}</SelectItem>
-                    <SelectItem value="medium">💻 {getQualityLabel('medium')}</SelectItem>
-                    <SelectItem value="high">🖥️ {getQualityLabel('high')}</SelectItem>
-                    <SelectItem value="ultra">⚡ {getQualityLabel('ultra')}</SelectItem>
-                    <SelectItem value="4k">🎬 {getQualityLabel('4k')}</SelectItem>
-                    <SelectItem value="8k">🌟 {getQualityLabel('8k')}</SelectItem>
+                    <SelectItem value="draft">Draft - Rápido</SelectItem>
+                    <SelectItem value="standard">Standard - Balanceado</SelectItem>
+                    <SelectItem value="high">High - Alta Qualidade</SelectItem>
+                    <SelectItem value="premium">Premium - Máxima</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -339,7 +339,7 @@ export default function ProfessionalRenderEngine() {
                 <Select
                   value={renderSettings.format}
                   onValueChange={(value: string) => 
-                    setRenderSettings(prev => ({ ...prev, format: value }))
+                    setRenderSettings(prev => ({ ...prev, format: value as RenderSettings['format'] }))
                   }
                 >
                   <SelectTrigger>
@@ -349,7 +349,6 @@ export default function ProfessionalRenderEngine() {
                     <SelectItem value="mp4">🎬 MP4 - Universal</SelectItem>
                     <SelectItem value="webm">🌐 WebM - Web Optimized</SelectItem>
                     <SelectItem value="mov">🎭 MOV - Apple/Pro</SelectItem>
-                    <SelectItem value="avi">📹 AVI - Compatibilidade</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -360,7 +359,7 @@ export default function ProfessionalRenderEngine() {
                 <Select
                   value={renderSettings.codec}
                   onValueChange={(value: string) => 
-                    setRenderSettings(prev => ({ ...prev, codec: value }))
+                    setRenderSettings(prev => ({ ...prev, codec: value as RenderSettings['codec'] }))
                   }
                 >
                   <SelectTrigger>
@@ -410,20 +409,20 @@ export default function ProfessionalRenderEngine() {
                   Renderizando: {currentJob.name}
                 </CardTitle>
                 <CardDescription>
-                  {renderProgress.currentStep}
+                  {renderProgress.stage}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Progress value={renderProgress.progress} className="w-full" />
+                <Progress value={renderProgress.percent} className="w-full" />
                 
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
                     <Label className="text-xs text-muted-foreground">Fase</Label>
-                    <p className="font-medium capitalize">{renderProgress.phase}</p>
+                    <p className="font-medium capitalize">{renderProgress.stage}</p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Progresso</Label>
-                    <p className="font-medium">{Math.round(renderProgress.progress)}%</p>
+                    <p className="font-medium">{Math.round(renderProgress.percent)}%</p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Tempo Decorrido</Label>

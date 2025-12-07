@@ -7,6 +7,7 @@
 import { Queue, Worker, QueueEvents, ConnectionOptions, Job } from 'bullmq';
 import { getRedisClient } from './redis-service';
 import { logger } from './logger-service';
+import { bullMQMetrics } from './bullmq-metrics';
 
 // =====================================
 // Types
@@ -59,7 +60,7 @@ function getConnectionOptions(): ConnectionOptions {
 
 let queueInstance: Queue<VideoRenderJobData> | null = null;
 let eventsInstance: QueueEvents | null = null;
-let metricsInterval: NodeJS.Timer | null = null;
+let metricsInterval: NodeJS.Timeout | null = null;
 
 /**
  * Obtém instância singleton da fila de renderização
@@ -86,6 +87,9 @@ export function getVideoRenderQueue(): Queue<VideoRenderJobData> {
     queueInstance.on('error', (err) => {
       logger.error('BullMQ Queue', 'Error', err);
     });
+
+    // Registra fila no sistema de métricas
+    bullMQMetrics.registerQueue(QUEUE_NAME, queueInstance);
   }
 
   return queueInstance;

@@ -6,14 +6,47 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { lipSyncProcessor, LipSyncResult } from '@/lib/sync/lip-sync-processor'
+import { createRateLimiter, rateLimitPresets } from '@/lib/utils/rate-limit-middleware';
+import { lipSyncProcessor } from '@/lib/sync/lip-sync-processor'
 import { Logger } from '@/lib/logger'
-import { supabase } from '@/lib/supabase'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 
 const logger = new Logger('LipSyncAPI')
 
+// Interface for sync_jobs table
+interface SyncJob {
+  id: string;
+  job_id: string;
+  project_id: string;
+  avatar_id?: string;
+  user_id?: string;
+  status: string;
+  progress: number;
+  file_name?: string;
+  file_size?: number;
+  file_type?: string;
+  options?: Record<string, unknown>;
+  visemes_data?: unknown[];
+  phonemes_data?: unknown[];
+  blend_shapes_data?: unknown[];
+  emotions_data?: unknown[];
+  breathing_data?: unknown[];
+  audio_duration?: number;
+  processing_time?: number;
+  accuracy_score?: number;
+  confidence_avg?: number;
+  visemes_count?: number;
+  phonemes_count?: number;
+  created_at: string;
+  completed_at?: string;
+  error_message?: string;
+}
+
+const rateLimiterPost = createRateLimiter(rateLimitPresets.authenticated);
 export async function POST(request: NextRequest) {
+  return rateLimiterPost(request, async (request: NextRequest) => {
   try {
+    const supabase = getSupabaseForRequest(request)
     const formData = await request.formData()
     
     // Extrair parâmetros
@@ -52,17 +85,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Extrair user_id do header de autenticação
-    const authHeader = request.headers.get('authorization')
     let userId: string | undefined
 
-    if (authHeader) {
-      try {
-        const token = authHeader.replace('Bearer ', '')
-        const { data: { user } } = await supabase.auth.getUser(token)
-        userId = user?.id
-      } catch (error) {
-        logger.warn('Failed to extract user from token', { error })
-      }
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      userId = user?.id
+    } catch (error) {
+      logger.warn('Failed to extract user from token', { error })
     }
 
     logger.info('Lip-sync processing request received', {
@@ -90,7 +119,8 @@ export async function POST(request: NextRequest) {
     })
 
     // Salvar informações adicionais no banco
-    await supabase.from('sync_jobs').update({
+    // Using 'as any' for table name if it's not in the generated types yet
+    await supabase.from('sync_jobs' as any).update({
       project_id: projectId,
       avatar_id: avatarId,
       user_id: userId,
@@ -125,22 +155,27 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error) {
-    logger.error('Lip-sync processing failed', { error: error.message })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Lip-sync processing failed', error instanceof Error ? error : new Error(errorMessage))
     
     return NextResponse.json(
       { 
         error: 'Lip-sync processing failed',
-        message: error.message,
+        message: errorMessage,
         timestamp: new Date().toISOString()
       },
       { status: 500 }
     )
   }
+  });
 }
 
+const rateLimiterGet = createRateLimiter(rateLimitPresets.authenticated);
 export async function GET(request: NextRequest) {
+  return rateLimiterGet(request, async (request: NextRequest) => {
   try {
+    const supabase = getSupabaseForRequest(request)
     const { searchParams } = new URL(request.url)
     const action = searchParams.get('action')
     const jobId = searchParams.get('job_id')
@@ -155,19 +190,20 @@ export async function GET(request: NextRequest) {
         }
 
         // Buscar status do job
-        const { data: job, error } = await supabase
-          .from('sync_jobs')
+        const { data: jobData, error } = await supabase
+          .from('sync_jobs' as any)
           .select('*')
           .eq('job_id', jobId)
           .single()
 
-        if (error || !job) {
+        if (error || !jobData) {
           return NextResponse.json(
             { error: 'Job not found' },
             { status: 404 }
           )
         }
 
+        const job = jobData as unknown as SyncJob;
         return NextResponse.json({
           success: true,
           data: {
@@ -196,20 +232,21 @@ export async function GET(request: NextRequest) {
         }
 
         // Buscar resultado completo do job
-        const { data: resultJob, error: resultError } = await supabase
-          .from('sync_jobs')
+        const { data: resultJobData, error: resultError } = await supabase
+          .from('sync_jobs' as any)
           .select('*')
           .eq('job_id', jobId)
           .eq('status', 'completed')
           .single()
 
-        if (resultError || !resultJob) {
+        if (resultError || !resultJobData) {
           return NextResponse.json(
             { error: 'Job not found or not completed' },
             { status: 404 }
           )
         }
 
+        const resultJob = resultJobData as unknown as SyncJob;
         return NextResponse.json({
           success: true,
           data: {
@@ -234,7 +271,7 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '10')
 
         let query = supabase
-          .from('sync_jobs')
+          .from('sync_jobs' as any)
           .select('job_id, status, created_at, accuracy_score, audio_duration, file_name')
           .order('created_at', { ascending: false })
           .limit(limit)
@@ -260,8 +297,8 @@ export async function GET(request: NextRequest) {
 
       case 'stats':
         // Estatísticas gerais de processamento
-        const { data: stats, error: statsError } = await supabase
-          .from('sync_jobs')
+        const { data: statsData, error: statsError } = await supabase
+          .from('sync_jobs' as any)
           .select('accuracy_score, processing_time, audio_duration, status')
           .eq('status', 'completed')
 
@@ -269,10 +306,11 @@ export async function GET(request: NextRequest) {
           throw statsError
         }
 
-        const totalJobs = stats.length
-        const avgAccuracy = stats.reduce((sum, job) => sum + (job.accuracy_score || 0), 0) / totalJobs
-        const avgProcessingTime = stats.reduce((sum, job) => sum + (job.processing_time || 0), 0) / totalJobs
-        const totalAudioDuration = stats.reduce((sum, job) => sum + (job.audio_duration || 0), 0)
+        const typedStats = (statsData || []) as unknown as SyncJob[];
+        const totalJobs = typedStats.length
+        const avgAccuracy = totalJobs > 0 ? typedStats.reduce((sum, job) => sum + (job.accuracy_score || 0), 0) / totalJobs : 0
+        const avgProcessingTime = totalJobs > 0 ? typedStats.reduce((sum, job) => sum + (job.processing_time || 0), 0) / totalJobs : 0
+        const totalAudioDuration = typedStats.reduce((sum, job) => sum + (job.audio_duration || 0), 0)
 
         return NextResponse.json({
           success: true,
@@ -293,21 +331,26 @@ export async function GET(request: NextRequest) {
         )
     }
 
-  } catch (error) {
-    logger.error('Lip-sync API GET failed', { error: error.message })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Lip-sync API GET failed', error instanceof Error ? error : new Error(errorMessage))
     
     return NextResponse.json(
       { 
         error: 'Request failed',
-        message: error.message 
+        message: errorMessage 
       },
       { status: 500 }
     )
   }
+  });
 }
 
+const rateLimiterDelete = createRateLimiter(rateLimitPresets.authenticated);
 export async function DELETE(request: NextRequest) {
+  return rateLimiterDelete(request, async (request: NextRequest) => {
   try {
+    const supabase = getSupabaseForRequest(request)
     const { searchParams } = new URL(request.url)
     const jobId = searchParams.get('job_id')
 
@@ -320,7 +363,7 @@ export async function DELETE(request: NextRequest) {
 
     // Marcar job como cancelado
     const { error } = await supabase
-      .from('sync_jobs')
+      .from('sync_jobs' as any)
       .update({ 
         status: 'cancelled',
         updated_at: new Date().toISOString()
@@ -338,15 +381,17 @@ export async function DELETE(request: NextRequest) {
       message: 'Job cancelled successfully'
     })
 
-  } catch (error) {
-    logger.error('Lip-sync job cancellation failed', { error: error.message })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Lip-sync job cancellation failed', error instanceof Error ? error : new Error(errorMessage))
     
     return NextResponse.json(
       { 
         error: 'Cancellation failed',
-        message: error.message 
+        message: errorMessage 
       },
       { status: 500 }
     )
   }
+  });
 }

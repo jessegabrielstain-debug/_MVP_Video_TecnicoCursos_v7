@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { webhookManager } from '@/app/lib/webhooks-system-real'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { webhookManager } from '@/lib/webhooks-system-real'
 
 /**
  * GET /api/webhooks
@@ -14,7 +14,8 @@ import { webhookManager } from '@/app/lib/webhooks-system-real'
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const supabase = getSupabaseForRequest(request)
+    const { data: { session } } = await supabase.auth.getSession()
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -34,7 +35,8 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const supabase = getSupabaseForRequest(request)
+    const { data: { session } } = await supabase.auth.getSession()
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -59,3 +61,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

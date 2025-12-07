@@ -1,12 +1,12 @@
 
-'use client'
+"use client"
 
 /**
  * Production PPTX Upload V2 - Complete S3 Integration
  * Real upload with progress tracking and processing
  */
 
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,8 +30,11 @@ import {
   Settings,
   Zap
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import 'react-circular-progressbar/dist/styles.css'
+import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/use-auth'
 
 interface UploadedFile {
   id: string
@@ -78,10 +81,29 @@ export function ProductionPPTXUploadV2({
   acceptedTypes = ['.pptx', '.ppt', '.pdf']
 }: ProductionPPTXUploadV2Props) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const { user, loading: authLoading } = useAuth()
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
-  const [isProcessing, setIsProcessing] = useState(false)
+
+  const search = useMemo(() => searchParams?.toString() ?? '', [searchParams])
+  const redirectTarget = useMemo(() => {
+    const basePath = pathname || '/pptx-upload-production-test'
+    return search ? `${basePath}?${search}` : basePath
+  }, [pathname, search])
+  const loginHref = useMemo(
+    () => `/login?redirect=${encodeURIComponent(redirectTarget)}`,
+    [redirectTarget]
+  )
+  const canUpload = !!user && !authLoading
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (!user) {
+      toast.error('Faça login para enviar apresentações PPTX.')
+      router.push(loginHref)
+      return
+    }
+
     console.log('📁 Files dropped:', acceptedFiles.length)
     
     const newFiles: UploadedFile[] = acceptedFiles.map(file => ({
@@ -101,7 +123,7 @@ export function ProductionPPTXUploadV2({
     for (const fileObj of newFiles) {
       await processFile(fileObj)
     }
-  }, [])
+  }, [loginHref, router, user])
 
   const processFile = async (fileObj: UploadedFile) => {
     try {
@@ -115,9 +137,25 @@ export function ProductionPPTXUploadV2({
       // Upload to S3
       updateFileStatus(fileObj.id, 'uploading', 50)
       
+      // Get auth token
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        console.warn('⚠️ No auth token found in session')
+      } else {
+        console.log('🔑 Auth token found, length:', token.length)
+      }
+
+      const headers: Record<string, string> = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const uploadResponse = await fetch('/api/v1/pptx/upload-production', {
         method: 'POST',
-        body: formData
+        headers,
+        body: formData,
+        credentials: 'include'
       })
       
       if (!uploadResponse.ok) {
@@ -160,11 +198,23 @@ export function ProductionPPTXUploadV2({
     try {
       updateFileStatus(fileId, 'processing', 0)
       
+      // Get auth token
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+      else console.warn('⚠️ No auth token found while processing PPTX job')
+
       // Process content
       const processResponse = await fetch('/api/v1/pptx/process-production', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ s3Key, jobId })
+        headers,
+        body: JSON.stringify({ s3Key, jobId }),
+        credentials: 'include'
       })
       
       if (!processResponse.ok) {
@@ -237,7 +287,8 @@ export function ProductionPPTXUploadV2({
     },
     maxFiles,
     maxSize: 100 * 1024 * 1024, // 100MB
-    multiple: true
+    multiple: true,
+    disabled: !canUpload
   })
 
   const removeFile = (fileId: string) => {
@@ -272,6 +323,7 @@ export function ProductionPPTXUploadV2({
             ${isDragActive && !isDragReject ? 'border-blue-500 bg-blue-50' : ''}
             ${isDragReject ? 'border-red-500 bg-red-50' : ''}
             ${!isDragActive ? 'border-gray-300 hover:border-gray-400' : ''}
+            ${!canUpload ? 'opacity-60 cursor-not-allowed' : ''}
           `}
         >
           <input {...getInputProps()} />
@@ -285,9 +337,13 @@ export function ProductionPPTXUploadV2({
               )
             ) : (
               <>
-                <p className="text-lg font-medium">Arraste arquivos PPTX aqui</p>
+                <p className="text-lg font-medium">
+                  {canUpload ? 'Arraste arquivos PPTX aqui' : 'Faça login para enviar arquivos'}
+                </p>
                 <p className="text-sm text-gray-500">
-                  ou clique para selecionar • Máximo {maxFiles} arquivos • Até 100MB cada
+                  {canUpload
+                    ? `ou clique para selecionar • Máximo ${maxFiles} arquivos • Até 100MB cada`
+                    : 'Esta área fica ativa após autenticação.'}
                 </p>
                 <Badge variant="outline" className="mt-2">
                   .pptx • .ppt • .pdf
@@ -296,6 +352,27 @@ export function ProductionPPTXUploadV2({
             )}
           </div>
         </div>
+
+        {!authLoading && !user && (
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="flex flex-col gap-3 text-yellow-900">
+              <span>
+                É necessário estar autenticado para usar o upload de PPTX em produção. Faça login e tente novamente.
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <Link href={loginHref} prefetch={false}>
+                  <Button size="sm">
+                    Ir para login
+                  </Button>
+                </Link>
+                <Button size="sm" variant="outline" onClick={() => router.refresh()}>
+                  Já fiz login
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Upload Progress */}
         {uploadedFiles.length > 0 && (

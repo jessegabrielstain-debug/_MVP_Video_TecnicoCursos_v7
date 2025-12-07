@@ -9,7 +9,6 @@
  * 5. Geração de thumbnails
  */
 
-import { describe, it, expect, beforeAll } from '@jest/globals'
 import path from 'path'
 import fs from 'fs'
 import { PPTXProcessorReal } from '@/lib/pptx/pptx-processor-real'

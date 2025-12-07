@@ -4,10 +4,20 @@
 import React from 'react'
 import { Button } from "@/components/ui/button"
 
+interface SceneData {
+  canvas: string;
+  [key: string]: unknown;
+}
+
+interface TimelineData {
+  id: number;
+  [key: string]: unknown;
+}
+
 interface ProfessionalCanvasEditorProps {
-  onSceneUpdate?: (sceneData: any) => void
-  onExportTimeline?: (timeline: any) => void
-  initialData?: any
+  onSceneUpdate?: (sceneData: SceneData) => void
+  onExportTimeline?: (timeline: TimelineData) => void
+  initialData?: Record<string, unknown>
 }
 
 export default function ProfessionalCanvasEditor({ 

@@ -1,4 +1,6 @@
 
+export const dynamic = 'force-dynamic';
+
 /**
  * 🔍 API: Mention Search
  * Buscar usuários para autocompletar menções
@@ -6,12 +8,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { commentsService } from '@/lib/collab/comments-service';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
@@ -32,11 +34,13 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ users });
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erro ao buscar usuários para menção:', error);
     return NextResponse.json(
-      { error: error.message || 'Erro ao buscar usuários' },
+      { error: error instanceof Error ? error.message : 'Erro ao buscar usuários' },
       { status: 500 }
     );
   }
 }
+
+

@@ -1,0 +1,150 @@
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import type { Database } from '@/lib/supabase/types'
+
+const PUBLIC_ROUTES = [
+  '/',
+  '/login',
+  '/auth/callback',
+  '/auth/reset-password',
+  '/auth/change-password',
+  '/api/health'
+]
+
+const PUBLIC_PREFIXES = [
+  '/auth/confirm',
+  '/auth/verify',
+  '/docs',
+  '/public',
+  '/api/v1/video-jobs'
+]
+
+const ADMIN_ROUTES = ['/admin', '/dashboard/admin']
+const ADMIN_PREFIXES = ['/api/admin', '/api/analytics/admin']
+
+const SECURITY_HEADERS: Record<string, string> = {
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
+}
+
+const applySecurityHeaders = (response: NextResponse) => {
+  Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
+    response.headers.set(key, value)
+  })
+  return response
+}
+
+const isRouteInList = (pathname: string, routes: string[]) =>
+  routes.some((route) => pathname === route || pathname.startsWith(`${route}/`))
+
+const isRouteWithPrefix = (pathname: string, prefixes: string[]) =>
+  prefixes.some((prefix) => pathname.startsWith(prefix))
+
+const shouldBypassAuth = (pathname: string) => {
+  if (PUBLIC_ROUTES.includes(pathname)) return true
+  if (isRouteWithPrefix(pathname, PUBLIC_PREFIXES)) return true
+  if (pathname.startsWith('/api/public')) return true
+  if (/\.(ico|svg|png|jpg|jpeg|gif|webp|css|js|map)$/.test(pathname)) return true
+  return false
+}
+
+const isAdminRoute = (pathname: string) =>
+  isRouteInList(pathname, ADMIN_ROUTES) || isRouteWithPrefix(pathname, ADMIN_PREFIXES)
+
+export async function middleware(request: NextRequest) {
+  const response = NextResponse.next({
+    request: {
+      headers: new Headers(request.headers)
+    }
+  })
+
+  applySecurityHeaders(response)
+
+  const { pathname } = request.nextUrl
+
+  if (process.env.E2E_AUTH_BYPASS === '1') {
+    response.headers.set('x-e2e-auth-bypass', 'true')
+    return response
+  }
+
+  if (shouldBypassAuth(pathname)) {
+    return response
+  }
+
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({ name, value, ...options })
+          response.cookies.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({ name, value: '', ...options })
+          response.cookies.set({ name, value: '', ...options })
+        },
+      },
+    }
+  )
+
+  const {
+    data: { session },
+    error
+  } = await supabase.auth.getSession()
+
+  if (error) {
+    console.error('Erro ao recuperar sessão Supabase no middleware:', error)
+  }
+
+  if (!session) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('reason', 'unauthorized')
+    const redirectTarget = `${pathname}${request.nextUrl.search}`
+    loginUrl.searchParams.set('redirect', redirectTarget)
+
+    const redirectResponse = NextResponse.redirect(loginUrl)
+    return applySecurityHeaders(redirectResponse)
+  }
+
+  if (isAdminRoute(pathname)) {
+    try {
+      // Usar função RLS is_admin() para verificar permissões
+      const { data: isAdmin, error: adminError } = await (supabase.rpc as any)('is_admin')
+
+      if (adminError) {
+        console.error('Erro ao verificar role admin no middleware:', adminError)
+        const dashboardUrl = new URL('/dashboard', request.url)
+        dashboardUrl.searchParams.set('reason', 'permission-check-failed')
+        const redirectResponse = NextResponse.redirect(dashboardUrl)
+        return applySecurityHeaders(redirectResponse)
+      }
+
+      if (!isAdmin) {
+        const dashboardUrl = new URL('/dashboard', request.url)
+        dashboardUrl.searchParams.set('reason', 'forbidden')
+        const redirectResponse = NextResponse.redirect(dashboardUrl)
+        return applySecurityHeaders(redirectResponse)
+      }
+    } catch (err) {
+      console.error('Exceção ao verificar permissões admin:', err)
+      const dashboardUrl = new URL('/dashboard', request.url)
+      dashboardUrl.searchParams.set('reason', 'permission-check-error')
+      const redirectResponse = NextResponse.redirect(dashboardUrl)
+      return applySecurityHeaders(redirectResponse)
+    }
+  }
+
+  return response
+}
+
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest).*)'
+  ]
+}

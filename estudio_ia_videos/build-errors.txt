@@ -1,0 +1,51 @@
+
+> estudio-ia-videos@1.0.0 build
+> next build
+
+  Ôû▓ Next.js 14.2.33
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./app/lib/supabase/server.ts
+Error: 
+  x You're importing a component that needs next/headers. That only works in a Server Component but one of its parents is marked with "use client", so it's a Client Component.
+  | Learn more: https://nextjs.org/docs/getting-started/react-essentials
+  | 
+  | 
+   ,-[C:\xampp\htdocs\_MVP_Video_TecnicoCursos_v7\estudio_ia_videos\app\lib\supabase\server.ts:1:1]
+ 1 | import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+ 2 | import { cookies } from 'next/headers';
+   : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 3 | import { Database } from './database.types';
+ 4 | 
+ 4 | // Criando o cliente Supabase para uso no lado do servidor
+   `----
+
+Import trace for requested module:
+./app/lib/supabase/server.ts
+./app/lib/services/index.ts
+./app/supabase-test/page.tsx
+
+./app/.next/types/app/layout.ts
+Module not found: Can't resolve '../../../app/layout.js'
+
+https://nextjs.org/docs/messages/module-not-found
+
+./app/.next/types/app/page.ts
+Module not found: Can't resolve '../../../app/page.js'
+
+https://nextjs.org/docs/messages/module-not-found
+
+./app/.next/types/app/upload/page.ts
+Module not found: Can't resolve '../../../../app/upload/page.js'
+
+https://nextjs.org/docs/messages/module-not-found
+
+./app/api/admin/roles/route.ts
+Module not found: Can't resolve 'next-auth'
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+> Build failed because of webpack errors

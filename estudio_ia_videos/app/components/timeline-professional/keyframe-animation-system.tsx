@@ -51,7 +51,7 @@ interface Keyframe {
   id: string;
   time: number;
   property: string;
-  value: any;
+  value: number;
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce' | 'elastic' | 'back';
   interpolation: 'linear' | 'bezier' | 'step';
 }
@@ -732,7 +732,7 @@ export default function KeyframeAnimationSystem() {
                               <Select
                                 value={keyframe.easing}
                                 onValueChange={(value: string) => 
-                                  updateKeyframe(track.id, keyframe.id, { easing: value })
+                                  updateKeyframe(track.id, keyframe.id, { easing: value as Keyframe['easing'] })
                                 }
                               >
                                 <SelectTrigger className="h-8">

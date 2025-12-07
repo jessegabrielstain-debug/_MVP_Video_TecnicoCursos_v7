@@ -73,12 +73,12 @@ interface UnifiedWorkflow {
   projectId: string
   currentStep: 'import' | 'edit' | 'avatar' | 'tts' | 'render' | 'export' | 'complete'
   steps: {
-    import: { status: 'pending' | 'processing' | 'completed' | 'error', data?: any }
-    edit: { status: 'pending' | 'processing' | 'completed' | 'error', data?: any }
-    avatar: { status: 'pending' | 'processing' | 'completed' | 'error', data?: any }
-    tts: { status: 'pending' | 'processing' | 'completed' | 'error', data?: any }
-    render: { status: 'pending' | 'processing' | 'completed' | 'error', data?: any }
-    export: { status: 'pending' | 'processing' | 'completed' | 'error', data?: any }
+    import: { status: 'pending' | 'processing' | 'completed' | 'error', data?: Record<string, unknown> }
+    edit: { status: 'pending' | 'processing' | 'completed' | 'error', data?: Record<string, unknown> }
+    avatar: { status: 'pending' | 'processing' | 'completed' | 'error', data?: Record<string, unknown> }
+    tts: { status: 'pending' | 'processing' | 'completed' | 'error', data?: Record<string, unknown> }
+    render: { status: 'pending' | 'processing' | 'completed' | 'error', data?: Record<string, unknown> }
+    export: { status: 'pending' | 'processing' | 'completed' | 'error', data?: Record<string, unknown> }
   }
   metadata: {
     createdAt: Date
@@ -97,7 +97,7 @@ function useUnifiedWorkflow() {
   const createProject = useCallback(async (data: {
     name: string
     type: 'pptx' | 'template-nr' | 'talking-photo' | 'custom'
-    source: { type: 'upload' | 'template' | 'blank', data?: any }
+    source: { type: 'upload' | 'template' | 'blank', data?: Record<string, unknown> }
   }) => {
     setLoading(true)
     try {
@@ -123,7 +123,7 @@ function useUnifiedWorkflow() {
     }
   }, [])
 
-  const updateProject = useCallback(async (projectId: string, action: string, data?: any) => {
+  const updateProject = useCallback(async (projectId: string, action: string, data?: Record<string, unknown>) => {
     setLoading(true)
     try {
       const response = await fetch('/api/unified', {
@@ -172,6 +172,15 @@ function useUnifiedWorkflow() {
   }
 }
 
+interface NewProjectState {
+  name: string;
+  type: 'pptx' | 'template-nr' | 'talking-photo' | 'custom';
+  source: {
+    type: 'blank' | 'upload' | 'template';
+    data: any;
+  };
+}
+
 // Componente principal
 export default function UnifiedDashboard() {
   const router = useRouter()
@@ -186,10 +195,10 @@ export default function UnifiedDashboard() {
   const [authLoading, setAuthLoading] = useState(true)
 
   // Estados para criação de projeto
-  const [newProject, setNewProject] = useState({
+  const [newProject, setNewProject] = useState<NewProjectState>({
     name: '',
-    type: 'pptx' as const,
-    source: { type: 'blank' as const, data: null }
+    type: 'pptx',
+    source: { type: 'blank', data: null }
   })
 
   // Estados para edição
@@ -306,7 +315,7 @@ export default function UnifiedDashboard() {
     }
   }
 
-  const handleStepExecution = async (projectId: string, step: string, data?: any) => {
+  const handleStepExecution = async (projectId: string, step: string, data?: Record<string, unknown>) => {
     try {
       await updateProject(projectId, step, data)
       await getWorkflow(projectId) // Refresh workflow status
@@ -752,7 +761,7 @@ export default function UnifiedDashboard() {
               <label className="text-sm font-medium">Tipo de Projeto</label>
               <Select 
                 value={newProject.type} 
-                onValueChange={(value: string) => setNewProject(prev => ({ ...prev, type: value }))}
+                onValueChange={(value: string) => setNewProject(prev => ({ ...prev, type: value as NewProjectState['type'] }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -772,7 +781,7 @@ export default function UnifiedDashboard() {
                 value={newProject.source.type} 
                 onValueChange={(value: string) => setNewProject(prev => ({ 
                   ...prev, 
-                  source: { ...prev.source, type: value } 
+                  source: { ...prev.source, type: value as NewProjectState['source']['type'] } 
                 }))}
               >
                 <SelectTrigger>

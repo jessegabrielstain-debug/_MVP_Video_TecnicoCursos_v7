@@ -12,11 +12,18 @@ export interface Slide {
   duration: number;
   transition: SlideTransition;
   images?: string[];
+  layout?: string;
+  textBoxes?: Record<string, unknown>[];
+  animations?: Record<string, unknown>[];
+  backgroundType?: string;
+  backgroundColor?: string;
+  shapes?: Record<string, unknown>[];
 }
 
 export interface ParsedPPTXMetadata {
   title: string;
   author: string;
+  subject?: string;
   slideCount: number;
 }
 
@@ -28,6 +35,10 @@ export interface ParsedPPTXData {
 export interface ProcessingOptions {
   defaultDuration?: number;
   transition?: SlideTransition;
+  extractImages?: boolean;
+  extractNotes?: boolean;
+  extractFormatting?: boolean;
+  generateThumbnails?: boolean;
 }
 
 export type ProgressStage =

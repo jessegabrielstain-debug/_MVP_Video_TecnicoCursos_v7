@@ -22,7 +22,9 @@ import {
 } from 'lucide-react';
 
 // Import client-only WebSocket hooks
-import { useWebSocketClient, useRenderProgressClient, useSystemNotificationsClient } from '../../hooks/useWebSocketClient';
+import { useWebSocketStore } from '../../lib/stores/websocket-store';
+import { useRenderPipeline } from '../../hooks/use-render-pipeline';
+import { useNotifications } from '../../hooks/use-notifications';
 
 // Import other components
 import { RealTimeNotifications } from './real-time-notifications';
@@ -32,42 +34,20 @@ export function UnifiedDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
 
   // WebSocket connection for real-time updates
-  const { isConnected, connectionState } = useWebSocketClient({
-    url: 'ws://localhost:8080',
-    autoConnect: true,
-    onConnect: () => {
-      toast.success('Conectado ao sistema em tempo real');
-    },
-    onDisconnect: () => {
-      toast.error('Desconectado do sistema em tempo real');
-    },
-    onError: () => {
-      toast.error('Erro na conexão WebSocket');
-    }
-  });
+  const { isConnected } = useWebSocketStore();
 
   // Real-time data hooks
-  const { progress, isRendering } = useRenderProgressClient();
-  const { notifications } = useSystemNotificationsClient();
+  const { renderQueue } = useRenderPipeline();
+  const { realTimeNotifications: notifications } = useNotifications();
 
-  // Show notifications as toasts
-  useEffect(() => {
-    notifications.forEach(notification => {
-      switch (notification.type) {
-        case 'success':
-          toast.success(notification.message);
-          break;
-        case 'error':
-          toast.error(notification.message);
-          break;
-        case 'warning':
-          toast.warning(notification.message);
-          break;
-        default:
-          toast.info(notification.message);
-      }
-    });
-  }, [notifications]);
+  const activeJob = renderQueue?.processing?.[0];
+  const isRendering = !!activeJob;
+  
+  const progress = activeJob ? {
+    jobId: activeJob.id,
+    progress: activeJob.progress,
+    status: activeJob.status
+  } : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">

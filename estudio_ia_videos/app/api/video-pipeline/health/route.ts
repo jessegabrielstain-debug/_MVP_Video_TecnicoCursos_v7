@@ -22,7 +22,19 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const checks: any = {
+  interface HealthChecks {
+    timestamp: string;
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    services: {
+      database?: string;
+      redis?: string;
+      websocket?: string;
+      tts?: string;
+      [key: string]: string | undefined;
+    };
+  }
+
+  const checks: HealthChecks = {
     timestamp: new Date().toISOString(),
     status: 'healthy',
     services: {}
@@ -55,3 +67,4 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(checks, { status: httpStatus })
 }
+

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { useAdvancedEditor, EditorLayer, Keyframe, TimelineMarker } from '@/app/hooks/useAdvancedEditor';
+import { useAdvancedEditor, EditorLayer, Keyframe, TimelineMarker } from '@/hooks/useAdvancedEditor';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +33,7 @@ import {
   Bookmark,
   Flag,
   Zap,
-  Waveform
+  Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -45,7 +45,7 @@ interface TimelineAdvancedProps {
 
 interface DragState {
   isDragging: boolean;
-  dragType: 'layer' | 'keyframe' | 'marker' | 'playhead' | 'selection';
+  dragType: 'layer' | 'keyframe' | 'marker' | 'playhead' | 'selection' | 'clip' | 'effect';
   dragData: any;
   startX: number;
   startTime: number;
@@ -480,7 +480,7 @@ export const TimelineAdvanced: React.FC<TimelineAdvancedProps> = ({
             {/* Waveform for audio layers */}
             {layer.type === 'audio' && showWaveforms && (
               <div className="absolute inset-1 bg-black bg-opacity-20 rounded">
-                <Waveform className="w-full h-full opacity-50" />
+                <Activity className="w-full h-full opacity-50" />
               </div>
             )}
 
@@ -642,7 +642,7 @@ export const TimelineAdvanced: React.FC<TimelineAdvancedProps> = ({
             onClick={() => setShowWaveforms(!showWaveforms)}
             title="Show waveforms"
           >
-            <Waveform className="w-4 h-4" />
+            <Activity className="w-4 h-4" />
           </Button>
 
           <div className="flex items-center gap-1">

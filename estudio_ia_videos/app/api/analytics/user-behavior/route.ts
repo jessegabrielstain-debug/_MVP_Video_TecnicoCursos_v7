@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
-import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
-import { prisma } from '@/lib/db';
-import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Utilitários locais para normalização
 const toNumber = (v: unknown): number => (typeof v === 'number' ? v : Number(v ?? 0));
-/**
- * GET /api/analytics/user-behavior
- * Retorna métricas detalhadas de comportamento do usuário
- * 
- * Query params:
- * - period: '24h' | '7d' | '30d' | '90d' (default: '7d')
- * - metric: 'engagement' | 'navigation' | 'conversion' | 'retention' | 'all' (default: 'all')
- * - userId?: string (filtrar por usuário específico)
- */
+
 async function getHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -31,38 +22,22 @@ async function getHandler(req: NextRequest) {
     const period = searchParams.get('period') || '7d';
     const metric = searchParams.get('metric') || 'all';
     const targetUserId = searchParams.get('userId');
-    const organizationId = getOrgId(session.user);
-
-    // Calcular data de início baseada no período
+    
+    // Calculate start date
     const startDate = new Date();
     switch (period) {
-      case '24h':
-        startDate.setHours(startDate.getHours() - 24);
-        break;
-      case '7d':
-        startDate.setDate(startDate.getDate() - 7);
-        break;
-      case '30d':
-        startDate.setDate(startDate.getDate() - 30);
-        break;
-      case '90d':
-        startDate.setDate(startDate.getDate() - 90);
-        break;
-      default:
-        startDate.setDate(startDate.getDate() - 7);
+      case '24h': startDate.setHours(startDate.getHours() - 24); break;
+      case '7d': startDate.setDate(startDate.getDate() - 7); break;
+      case '30d': startDate.setDate(startDate.getDate() - 30); break;
+      case '90d': startDate.setDate(startDate.getDate() - 90); break;
+      default: startDate.setDate(startDate.getDate() - 7);
     }
-
-    const whereClause = {
-      createdAt: { gte: startDate },
-      ...(organizationId && { organizationId }),
-      ...(targetUserId && { userId: targetUserId })
-    };
 
     const behaviorData: Record<string, unknown> = {};
 
-    // Métricas de engajamento
+    // Engagement Metrics
     if (metric === 'engagement' || metric === 'all') {
-      // Tempo médio de sessão por usuário
+      // Session Data
       const sessionData = await prisma.$queryRaw`
         SELECT 
           user_id,
@@ -70,131 +45,125 @@ async function getHandler(req: NextRequest) {
           MIN(created_at) as session_start,
           MAX(created_at) as session_end,
           COUNT(*) as events,
-          TIMESTAMPDIFF(SECOND, MIN(created_at), MAX(created_at)) as session_duration
-        FROM analytics_event 
+          EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) as session_duration
+        FROM analytics_events 
         WHERE created_at >= ${startDate}
         AND user_id IS NOT NULL
-        ${organizationId ? prisma.$queryRaw`AND organization_id = ${organizationId}` : prisma.$queryRaw``}
-        ${targetUserId ? prisma.$queryRaw`AND user_id = ${targetUserId}` : prisma.$queryRaw``}
+        ${targetUserId ? Prisma.sql`AND user_id = ${targetUserId}::uuid` : Prisma.sql``}
         GROUP BY user_id, DATE(created_at)
-        HAVING session_duration > 0
-      `;
+        HAVING EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) > 0
+      ` as any[];
 
-      // Páginas mais visitadas
-      const pageViews = await prisma.analyticsEvent.groupBy({
-        by: ['label'],
-        where: {
-          ...whereClause,
-          category: 'page_view',
-          label: { not: null }
-        },
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-        take: 10
-      });
+      // Page Views (Top 10)
+      const pageViews = await prisma.$queryRaw`
+        SELECT 
+          event_data->>'label' as page,
+          COUNT(*) as views
+        FROM analytics_events
+        WHERE created_at >= ${startDate}
+        AND event_type = 'page_view'
+        AND event_data->>'label' IS NOT NULL
+        ${targetUserId ? Prisma.sql`AND user_id = ${targetUserId}::uuid` : Prisma.sql``}
+        GROUP BY event_data->>'label'
+        ORDER BY views DESC
+        LIMIT 10
+      ` as any[];
 
-      // Eventos de interação
-      const interactions = await prisma.analyticsEvent.groupBy({
-        by: ['action'],
-        where: {
-          ...whereClause,
-          category: { in: ['click', 'scroll', 'form', 'download'] }
-        },
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } }
-      });
+      // Interactions
+      const interactions = await prisma.$queryRaw`
+        SELECT 
+          event_data->>'action' as action,
+          COUNT(*) as count
+        FROM analytics_events
+        WHERE created_at >= ${startDate}
+        AND event_type IN ('click', 'scroll', 'form', 'download')
+        ${targetUserId ? Prisma.sql`AND user_id = ${targetUserId}::uuid` : Prisma.sql``}
+        GROUP BY event_data->>'action'
+        ORDER BY count DESC
+      ` as any[];
 
-      // Calcular métricas de engajamento
-      const sessionRows = sessionData as unknown as Array<Record<string, unknown>>;
-      const avgSessionDuration = sessionRows.reduce((sum, session) => 
-        sum + toNumber(session.session_duration), 0) / Math.max(1, sessionRows.length);
-
-      const avgEventsPerSession = sessionRows.reduce((sum, session) => 
-        sum + toNumber(session.events), 0) / Math.max(1, sessionRows.length);
+      const sessionRows = sessionData;
+      const avgSessionDuration = sessionRows.reduce((sum, s) => sum + toNumber(s.session_duration), 0) / Math.max(1, sessionRows.length);
+      const avgEventsPerSession = sessionRows.reduce((sum, s) => sum + toNumber(s.events), 0) / Math.max(1, sessionRows.length);
 
       behaviorData.engagement = {
         avgSessionDuration: Math.round(avgSessionDuration),
         avgEventsPerSession: Math.round(avgEventsPerSession),
         totalSessions: sessionRows.length,
-        uniqueUsers: new Set(sessionRows.map(s => String(s.user_id))).size,
-        pageViews: (pageViews as unknown as Array<{ label: string | null; _count: { id: number } }>).map(item => ({
-          page: item.label,
-          views: item._count.id
-        })),
-        interactions: (interactions as unknown as Array<{ action: string | null; _count: { id: number } }>).map(item => ({
-          action: item.action,
-          count: item._count.id
-        }))
+        uniqueUsers: new Set(sessionRows.map(s => s.user_id)).size,
+        pageViews: pageViews,
+        interactions: interactions
       };
     }
 
-    // Métricas de navegação
+    // Navigation Metrics
     if (metric === 'navigation' || metric === 'all') {
-      // Fluxo de navegação (páginas mais comuns após cada página)
+      // Navigation Flow
       const navigationFlow = await prisma.$queryRaw`
         SELECT 
-          prev.label as from_page,
-          curr.label as to_page,
+          prev.event_data->>'label' as from_page,
+          curr.event_data->>'label' as to_page,
           COUNT(*) as transitions
-        FROM analytics_event prev
-        JOIN analytics_event curr ON (
+        FROM analytics_events prev
+        JOIN analytics_events curr ON (
           curr.user_id = prev.user_id 
           AND curr.created_at > prev.created_at
-          AND curr.created_at <= DATE_ADD(prev.created_at, INTERVAL 30 MINUTE)
+          AND curr.created_at <= (prev.created_at + interval '30 minutes')
         )
         WHERE prev.created_at >= ${startDate}
-        AND prev.category = 'page_view'
-        AND curr.category = 'page_view'
-        AND prev.label IS NOT NULL
-        AND curr.label IS NOT NULL
-        ${organizationId ? prisma.$queryRaw`AND prev.organization_id = ${organizationId}` : prisma.$queryRaw``}
-        GROUP BY prev.label, curr.label
+        AND prev.event_type = 'page_view'
+        AND curr.event_type = 'page_view'
+        AND prev.event_data->>'label' IS NOT NULL
+        AND curr.event_data->>'label' IS NOT NULL
+        ${targetUserId ? Prisma.sql`AND prev.user_id = ${targetUserId}::uuid` : Prisma.sql``}
+        GROUP BY prev.event_data->>'label', curr.event_data->>'label'
         ORDER BY transitions DESC
         LIMIT 20
-      `;
+      ` as any[];
 
-      // Páginas de entrada e saída
+      // Entry Pages
       const entryPages = await prisma.$queryRaw`
         SELECT 
-          label as page,
+          page,
           COUNT(*) as entries
         FROM (
           SELECT 
             user_id,
-            label,
+            event_data->>'label' as page,
             ROW_NUMBER() OVER (PARTITION BY user_id, DATE(created_at) ORDER BY created_at) as rn
-          FROM analytics_event
+          FROM analytics_events
           WHERE created_at >= ${startDate}
-          AND category = 'page_view'
-          AND label IS NOT NULL
-          ${organizationId ? prisma.$queryRaw`AND organization_id = ${organizationId}` : prisma.$queryRaw``}
+          AND event_type = 'page_view'
+          AND event_data->>'label' IS NOT NULL
+          ${targetUserId ? Prisma.sql`AND user_id = ${targetUserId}::uuid` : Prisma.sql``}
         ) first_pages
         WHERE rn = 1
-        GROUP BY label
+        GROUP BY page
         ORDER BY entries DESC
         LIMIT 10
-      `;
+      ` as any[];
 
+      // Exit Pages
       const exitPages = await prisma.$queryRaw`
         SELECT 
-          label as page,
+          page,
           COUNT(*) as exits
         FROM (
           SELECT 
             user_id,
-            label,
+            event_data->>'label' as page,
             ROW_NUMBER() OVER (PARTITION BY user_id, DATE(created_at) ORDER BY created_at DESC) as rn
-          FROM analytics_event
+          FROM analytics_events
           WHERE created_at >= ${startDate}
-          AND category = 'page_view'
-          AND label IS NOT NULL
-          ${organizationId ? prisma.$queryRaw`AND organization_id = ${organizationId}` : prisma.$queryRaw``}
+          AND event_type = 'page_view'
+          AND event_data->>'label' IS NOT NULL
+          ${targetUserId ? Prisma.sql`AND user_id = ${targetUserId}::uuid` : Prisma.sql``}
         ) last_pages
         WHERE rn = 1
-        GROUP BY label
+        GROUP BY page
         ORDER BY exits DESC
         LIMIT 10
-      `;
+      ` as any[];
 
       behaviorData.navigation = {
         flow: navigationFlow,
@@ -203,33 +172,38 @@ async function getHandler(req: NextRequest) {
       };
     }
 
-    // Métricas de conversão
+    // Conversion Metrics
     if (metric === 'conversion' || metric === 'all') {
-      // Funil de conversão
       const funnelSteps = [
-        { step: 'visit', category: 'page_view', action: null },
-        { step: 'signup', category: 'auth', action: 'signup' },
-        { step: 'project_create', category: 'project', action: 'create' },
-        { step: 'content_upload', category: 'pptx', action: 'upload' },
-        { step: 'video_render', category: 'render', action: 'start' }
+        { step: 'visit', type: 'page_view', action: null },
+        { step: 'signup', type: 'auth', action: 'signup' },
+        { step: 'project_create', type: 'project', action: 'create' },
+        { step: 'content_upload', type: 'pptx', action: 'upload' },
+        { step: 'video_render', type: 'render', action: 'start' }
       ];
 
       const funnelData = await Promise.all(
         funnelSteps.map(async (step) => {
-          const count = await prisma.analyticsEvent.count({
-            where: {
-              ...whereClause,
-              category: step.category,
-              ...(step.action && { action: step.action })
-            }
-          });
+          const where: Prisma.AnalyticsEventWhereInput = {
+            createdAt: { gte: startDate },
+            eventType: step.type,
+            ...(targetUserId && { userId: targetUserId })
+          };
+          
+          if (step.action) {
+            where.eventData = {
+              path: ['action'],
+              equals: step.action
+            };
+          }
 
+          const count = await prisma.analyticsEvent.count({ where });
+          
+          // For unique users, we need to use groupBy or distinct
           const uniqueUsers = await prisma.analyticsEvent.groupBy({
             by: ['userId'],
             where: {
-              ...whereClause,
-              category: step.category,
-              ...(step.action && { action: step.action }),
+              ...where,
               userId: { not: null }
             }
           });
@@ -242,14 +216,11 @@ async function getHandler(req: NextRequest) {
         })
       );
 
-      // Calcular taxas de conversão
+      // Calculate rates
       const conversionRates = funnelData.map((current, index) => {
         if (index === 0) return { ...current, conversionRate: 100 };
-        
         const previous = funnelData[index - 1];
-        const rate = previous.users > 0 ? 
-          ((current.users / previous.users) * 100).toFixed(1) : '0';
-        
+        const rate = previous.users > 0 ? ((current.users / previous.users) * 100).toFixed(1) : '0';
         return { ...current, conversionRate: parseFloat(rate) };
       });
 
@@ -261,9 +232,8 @@ async function getHandler(req: NextRequest) {
       };
     }
 
-    // Métricas de retenção
+    // Retention Metrics
     if (metric === 'retention' || metric === 'all') {
-      // Usuários que retornaram em diferentes períodos
       const retentionData = await prisma.$queryRaw`
         SELECT 
           DATE(first_visit) as cohort_date,
@@ -275,48 +245,25 @@ async function getHandler(req: NextRequest) {
           SELECT 
             user_id,
             MIN(DATE(created_at)) as first_visit,
-            DATEDIFF(DATE(created_at), MIN(DATE(created_at)) OVER (PARTITION BY user_id)) as days_since_first
-          FROM analytics_event
+            (DATE(created_at) - MIN(DATE(created_at)) OVER (PARTITION BY user_id)) as days_since_first
+          FROM analytics_events
           WHERE created_at >= ${startDate}
           AND user_id IS NOT NULL
-          ${organizationId ? prisma.$queryRaw`AND organization_id = ${organizationId}` : prisma.$queryRaw``}
+          ${targetUserId ? Prisma.sql`AND user_id = ${targetUserId}::uuid` : Prisma.sql``}
           GROUP BY user_id, DATE(created_at)
         ) user_visits
         GROUP BY DATE(first_visit)
         ORDER BY cohort_date DESC
         LIMIT 30
-      `;
+      ` as any[];
 
-      // Usuários ativos por período
       const activeUsers = await prisma.$queryRaw`
-        SELECT 
-          'daily' as period,
-          COUNT(DISTINCT user_id) as count
-        FROM analytics_event
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)
-        AND user_id IS NOT NULL
-        ${organizationId ? prisma.$queryRaw`AND organization_id = ${organizationId}` : prisma.$queryRaw``}
-        
+        SELECT 'daily' as period, COUNT(DISTINCT user_id) as count FROM analytics_events WHERE created_at >= NOW() - interval '1 day' AND user_id IS NOT NULL
         UNION ALL
-        
-        SELECT 
-          'weekly' as period,
-          COUNT(DISTINCT user_id) as count
-        FROM analytics_event
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-        AND user_id IS NOT NULL
-        ${organizationId ? prisma.$queryRaw`AND organization_id = ${organizationId}` : prisma.$queryRaw``}
-        
+        SELECT 'weekly' as period, COUNT(DISTINCT user_id) as count FROM analytics_events WHERE created_at >= NOW() - interval '7 days' AND user_id IS NOT NULL
         UNION ALL
-        
-        SELECT 
-          'monthly' as period,
-          COUNT(DISTINCT user_id) as count
-        FROM analytics_event
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-        AND user_id IS NOT NULL
-        ${organizationId ? prisma.$queryRaw`AND organization_id = ${organizationId}` : prisma.$queryRaw``}
-      `;
+        SELECT 'monthly' as period, COUNT(DISTINCT user_id) as count FROM analytics_events WHERE created_at >= NOW() - interval '30 days' AND user_id IS NOT NULL
+      ` as any[];
 
       behaviorData.retention = {
         cohorts: retentionData,
@@ -324,54 +271,49 @@ async function getHandler(req: NextRequest) {
       };
     }
 
-    // Dados demográficos e tecnológicos
+    // Demographics (from User Agent in eventData)
     if (metric === 'all') {
-      const deviceData = await prisma.analyticsEvent.groupBy({
-        by: ['metadata'],
-        where: whereClause,
-        _count: { id: true },
-        // Prisma requires orderBy when using take/skip with groupBy
-        orderBy: { _count: { id: 'desc' } },
-        take: 100
-      });
+      // We can't easily group by JSON field in Prisma without raw query.
+      // Let's fetch user agents via raw query
+      const userAgents = await prisma.$queryRaw`
+        SELECT 
+          event_data->>'userAgent' as ua,
+          COUNT(*) as count
+        FROM analytics_events
+        WHERE created_at >= ${startDate}
+        AND event_data->>'userAgent' IS NOT NULL
+        ${targetUserId ? Prisma.sql`AND user_id = ${targetUserId}::uuid` : Prisma.sql``}
+        GROUP BY event_data->>'userAgent'
+        ORDER BY count DESC
+        LIMIT 100
+      ` as any[];
 
-      // Extrair informações de dispositivo dos metadados
       const devices = { desktop: 0, mobile: 0, tablet: 0 };
       const browsers = new Map();
       const os = new Map();
 
-      (deviceData as unknown as Array<{ metadata: unknown; _count: { id: number } }>).forEach((item) => {
-        const metadata = item.metadata;
-        const uaRaw = (metadata && typeof metadata === 'object' && 'userAgent' in (metadata as Record<string, unknown>)
-          ? (metadata as Record<string, unknown>).userAgent
-          : undefined);
-        if (typeof uaRaw === 'string' && uaRaw.length > 0) {
-          const ua = uaRaw.toLowerCase();
-          
-          // Detectar tipo de dispositivo
-          if (ua.includes('mobile')) devices.mobile += item._count.id;
-          else if (ua.includes('tablet')) devices.tablet += item._count.id;
-          else devices.desktop += item._count.id;
-          
-          // Detectar navegador
-          let browser = 'Other';
-          if (ua.includes('chrome')) browser = 'Chrome';
-          else if (ua.includes('firefox')) browser = 'Firefox';
-          else if (ua.includes('safari')) browser = 'Safari';
-          else if (ua.includes('edge')) browser = 'Edge';
-          
-          browsers.set(browser, (browsers.get(browser) || 0) + item._count.id);
-          
-          // Detectar OS
-          let operatingSystem = 'Other';
-          if (ua.includes('windows')) operatingSystem = 'Windows';
-          else if (ua.includes('mac')) operatingSystem = 'macOS';
-          else if (ua.includes('linux')) operatingSystem = 'Linux';
-          else if (ua.includes('android')) operatingSystem = 'Android';
-          else if (ua.includes('ios')) operatingSystem = 'iOS';
-          
-          os.set(operatingSystem, (os.get(operatingSystem) || 0) + item._count.id);
-        }
+      (userAgents).forEach((item: any) => {
+        const ua = item.ua.toLowerCase();
+        const count = Number(item.count);
+
+        if (ua.includes('mobile')) devices.mobile += count;
+        else if (ua.includes('tablet')) devices.tablet += count;
+        else devices.desktop += count;
+
+        let browser = 'Other';
+        if (ua.includes('chrome')) browser = 'Chrome';
+        else if (ua.includes('firefox')) browser = 'Firefox';
+        else if (ua.includes('safari')) browser = 'Safari';
+        else if (ua.includes('edge')) browser = 'Edge';
+        browsers.set(browser, (browsers.get(browser) || 0) + count);
+
+        let operatingSystem = 'Other';
+        if (ua.includes('windows')) operatingSystem = 'Windows';
+        else if (ua.includes('mac')) operatingSystem = 'macOS';
+        else if (ua.includes('linux')) operatingSystem = 'Linux';
+        else if (ua.includes('android')) operatingSystem = 'Android';
+        else if (ua.includes('ios')) operatingSystem = 'iOS';
+        os.set(operatingSystem, (os.get(operatingSystem) || 0) + count);
       });
 
       behaviorData.demographics = {
@@ -391,25 +333,16 @@ async function getHandler(req: NextRequest) {
 
   } catch (error: unknown) {
     console.error('[Analytics User Behavior] Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    
     return NextResponse.json(
-      {
-        error: 'Failed to fetch user behavior metrics',
-        message
-      },
+      { error: 'Failed to fetch user behavior metrics', details: error instanceof Error ? error.message : 'Unknown' },
       { status: 500 }
     );
   }
 }
 
-/**
- * POST /api/analytics/user-behavior
- * Registra eventos de comportamento do usuário
- */
 async function postHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     const body = await req.json();
     
     const {
@@ -424,32 +357,25 @@ async function postHandler(req: NextRequest) {
       metadata
     } = body;
 
-    // Validação básica
     if (!eventType) {
-      return NextResponse.json(
-        { error: 'eventType is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'eventType is required' }, { status: 400 });
     }
 
     const userId = session?.user?.id || null;
-    const organizationId = (session?.user ? getOrgId(session.user) : undefined) || null;
 
-    // Registrar evento de comportamento
-      await prisma.analyticsEvent.create({
-        data: {
-          organizationId,
-          userId,
-          category: 'user_behavior',
-          action: eventType,
+    await prisma.analyticsEvent.create({
+      data: {
+        userId,
+        eventType: 'user_behavior', // or use eventType from body if it maps to valid types
+        eventData: {
+          action: eventType, // Store original eventType as action
           label: page,
-          metadata: {
-            value,
-            element,
-            coordinates,
-            scrollDepth,
-            timeOnPage,
-            sessionId,
+          value,
+          element,
+          coordinates,
+          scrollDepth,
+          timeOnPage,
+          sessionId,
           userAgent: req.headers.get('user-agent'),
           ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
           referer: req.headers.get('referer'),
@@ -458,25 +384,15 @@ async function postHandler(req: NextRequest) {
       }
     });
 
-    return NextResponse.json({
-      success: true,
-      message: 'User behavior event recorded'
-    });
+    return NextResponse.json({ success: true });
 
   } catch (error: unknown) {
     console.error('[Analytics User Behavior POST] Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    
     return NextResponse.json(
-      {
-        error: 'Failed to record user behavior event',
-        message
-      },
+      { error: 'Failed to record user behavior event' },
       { status: 500 }
     );
   }
 }
 
-// Aplicar middleware de performance
-export const GET = withAnalytics(getHandler);
-export const POST = withAnalytics(postHandler);
+export { getHandler as GET, postHandler as POST };

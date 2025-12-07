@@ -3,6 +3,31 @@ import { NextRequest, NextResponse } from 'next/server';
 // import { MonitoringService } from '@/lib/monitoring/monitoring-service';
 
 // Inline implementations
+interface RenderConfig {
+  tts?: Record<string, unknown>;
+  avatar?: Record<string, unknown>;
+  video?: Record<string, unknown>;
+  processing?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface RenderJob {
+  id: string;
+  userId: string;
+  text: string;
+  config: RenderConfig;
+  status: 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  progress: number;
+  results: unknown;
+  error: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  estimatedDuration: number;
+  actualDuration: number | null;
+}
+
 class MonitoringService {
   private static instance: MonitoringService;
   
@@ -13,14 +38,14 @@ class MonitoringService {
     return this.instance;
   }
   
-  logEvent(event: string, data: any) {
+  logEvent(event: string, data: Record<string, unknown>) {
     console.log(`📊 [${event}]`, data);
   }
 }
 
 class IntegratedTTSAvatarPipeline {
   private static instance: IntegratedTTSAvatarPipeline;
-  private jobs: Map<string, any> = new Map();
+  private jobs: Map<string, RenderJob> = new Map();
   
   static getInstance(): IntegratedTTSAvatarPipeline {
     if (!this.instance) {
@@ -29,9 +54,9 @@ class IntegratedTTSAvatarPipeline {
     return this.instance;
   }
   
-  async createJob(userId: string, text: string, config: any): Promise<string> {
+  async createJob(userId: string, text: string, config: RenderConfig): Promise<string> {
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const job = {
+    const job: RenderJob = {
       id: jobId,
       userId,
       text,
@@ -67,8 +92,21 @@ class IntegratedTTSAvatarPipeline {
       queuedJobs: jobs.filter(j => j.status === 'queued').length,
       processingJobs: jobs.filter(j => j.status === 'processing').length,
       completedJobs: jobs.filter(j => j.status === 'completed').length,
-      failedJobs: jobs.filter(j => j.status === 'failed').length
+      failedJobs: jobs.filter(j => j.status === 'failed').length,
+      cancelledJobs: jobs.filter(j => j.status === 'cancelled').length
     };
+  }
+
+  async cancelJob(jobId: string): Promise<boolean> {
+    const job = this.jobs.get(jobId);
+    if (job && (job.status === 'queued' || job.status === 'processing')) {
+      job.status = 'cancelled';
+      job.error = 'Cancelled by user';
+      job.completedAt = new Date();
+      job.updatedAt = new Date();
+      return true;
+    }
+    return false;
   }
 }
 
@@ -120,7 +158,7 @@ export async function POST(request: NextRequest) {
     const pipeline = IntegratedTTSAvatarPipeline.getInstance();
 
     // Configuração padrão com merge das configurações do usuário
-    const pipelineConfig = {
+    const pipelineConfig: RenderConfig = {
       tts: {
         engine: 'elevenlabs',
         voice: 'pt-BR-AntonioNeural',
@@ -129,7 +167,7 @@ export async function POST(request: NextRequest) {
         pitch: 1.0,
         stability: 0.75,
         clarity: 0.85,
-        ...config.tts
+        ...(config.tts as Record<string, unknown> || {})
       },
       avatar: {
         modelId: 'default-male',
@@ -138,14 +176,14 @@ export async function POST(request: NextRequest) {
         fps: 30,
         background: 'studio',
         lighting: 'natural',
-        ...config.avatar
+        ...(config.avatar as Record<string, unknown> || {})
       },
       video: {
         format: 'mp4',
         codec: 'h264',
         bitrate: 5000000,
         watermark: false,
-        ...config.video
+        ...(config.video as Record<string, unknown> || {})
       },
       processing: {
         priority: priority as 'low' | 'normal' | 'high' | 'urgent',
@@ -153,7 +191,7 @@ export async function POST(request: NextRequest) {
         enableOptimizations: true,
         maxRetries: 3,
         timeout: 300000,
-        ...config.processing
+        ...(config.processing as Record<string, unknown> || {})
       }
     };
 
@@ -179,11 +217,12 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Log do erro
+    const err = error instanceof Error ? error : new Error(String(error));
     monitoring.logEvent('video_render_error', {
-      error: error.message,
-      stack: error.stack,
+      error: err.message,
+      stack: err.stack,
       processingTime: Date.now() - startTime
     });
 
@@ -192,7 +231,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Erro interno do servidor',
-        message: error.message,
+        message: err.message,
         code: 'VIDEO_RENDER_ERROR'
       },
       { status: 500 }
@@ -267,13 +306,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao obter informações de renderização:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
     
     return NextResponse.json(
       { 
         error: 'Erro ao obter informações',
-        message: error.message 
+        message: err.message 
       },
       { status: 500 }
     );
@@ -308,13 +348,14 @@ export async function DELETE(request: NextRequest) {
       data: { jobId }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao cancelar job:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
     
     return NextResponse.json(
       { 
         error: 'Erro ao cancelar job',
-        message: error.message 
+        message: err.message 
       },
       { status: 500 }
     );

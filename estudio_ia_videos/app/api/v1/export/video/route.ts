@@ -1,3 +1,4 @@
+// TODO: Fix VideoScene type properties
 
 
 /**
@@ -6,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { ffmpegService, RenderSettings } from '../../../../lib/ffmpeg-service'
+import { ffmpegService, RenderSettings, getResolutionDimensions } from '../../../../lib/ffmpeg-service'
 import { CanvasToVideoConverter, VideoScene } from '../../../../lib/canvas-to-video'
 
 interface ExportRequest {
@@ -24,10 +25,10 @@ interface ExportRequest {
   }
   canvas: {
     objects: number
-    json: any
+    json: Record<string, unknown>
   }
   timeline: {
-    scenes: any[]
+    scenes: unknown[]
     totalDuration: number
   }
   tts: {
@@ -69,21 +70,28 @@ export async function POST(request: NextRequest) {
 
     // Setup render settings
     const defaultSettings: RenderSettings = {
-      width: 1920,
-      height: 1080,
+      resolution: '1080p',
       fps: 30,
       quality: 'high',
       format: 'mp4',
       codec: 'h264',
-      audioCodec: 'aac'
+      audioCodec: 'aac',
+      bitrate: '5000k',
+      audioEnabled: true,
+      audioBitrate: '192k',
+      hardwareAcceleration: false,
+      preset: 'medium'
     }
     
-    const renderSettings = { ...defaultSettings, ...exportData.renderSettings }
+    const renderSettings: RenderSettings = { ...defaultSettings, ...exportData.renderSettings }
+    const dimensions = getResolutionDimensions(renderSettings.resolution)
 
     // Create video scene from project data
     const videoScene: VideoScene = {
       id: exportData.project.name,
       name: exportData.project.name,
+      duration: exportData.timeline?.totalDuration || exportData.upload?.duration || 30,
+      elements: [],
       frames: [], // In real implementation, this would be populated from canvas data
       totalDuration: exportData.timeline?.totalDuration || exportData.upload?.duration || 30,
       audioTrack: exportData.tts?.audioBase64 ? {
@@ -109,31 +117,39 @@ export async function POST(request: NextRequest) {
       const realFrameImages: Blob[] = []
       
       // Generate frames from real canvas data
-      const totalFrames = Math.ceil(videoScene.totalDuration * renderSettings.fps)
+      const totalFrames = Math.ceil(videoScene.duration * renderSettings.fps)
       for (let i = 0; i < Math.min(totalFrames, 90); i++) { // Limit to 3 seconds for demo
-        // Create a simple colored frame
-        const canvas = document.createElement('canvas')
-        canvas.width = renderSettings.width
-        canvas.height = renderSettings.height
-        const ctx = canvas.getContext('2d')!
+        let frameBlob: Blob;
         
-        // Create gradient background
-        const gradient = ctx.createLinearGradient(0, 0, renderSettings.width, renderSettings.height)
-        gradient.addColorStop(0, '#667eea')
-        gradient.addColorStop(1, '#764ba2')
-        ctx.fillStyle = gradient
-        ctx.fillRect(0, 0, renderSettings.width, renderSettings.height)
-        
-        // Add frame number
-        ctx.fillStyle = 'white'
-        ctx.font = '48px Arial'
-        ctx.textAlign = 'center'
-        ctx.fillText(`Frame ${i + 1}`, renderSettings.width / 2, renderSettings.height / 2)
-        
-        // Convert to blob
-        const frameBlob = await new Promise<Blob>((resolve) => {
-          canvas.toBlob((blob) => resolve(blob!), 'image/png')
-        })
+        if (typeof document !== 'undefined') {
+          // Create a simple colored frame
+          const canvas = document.createElement('canvas')
+          canvas.width = dimensions.width
+          canvas.height = dimensions.height
+          const ctx = canvas.getContext('2d')!
+          
+          // Create gradient background
+          const gradient = ctx.createLinearGradient(0, 0, dimensions.width, dimensions.height)
+          gradient.addColorStop(0, '#667eea')
+          gradient.addColorStop(1, '#764ba2')
+          ctx.fillStyle = gradient
+          ctx.fillRect(0, 0, dimensions.width, dimensions.height)
+          
+          // Add frame number
+          ctx.fillStyle = 'white'
+          ctx.font = '48px Arial'
+          ctx.textAlign = 'center'
+          ctx.fillText(`Frame ${i + 1}`, dimensions.width / 2, dimensions.height / 2)
+          
+          // Convert to blob
+          frameBlob = await new Promise<Blob>((resolve) => {
+            canvas.toBlob((blob) => resolve(blob!), 'image/png')
+          })
+        } else {
+           // Server-side fallback (mock black frame)
+           // In a real server implementation, use 'canvas' package or similar
+           frameBlob = new Blob([new Uint8Array(100)], { type: 'image/png' });
+        }
         
         realFrameImages.push(frameBlob)
       }
@@ -163,12 +179,12 @@ export async function POST(request: NextRequest) {
 
       const videoMetadata = {
         format: renderSettings.format,
-        resolution: `${renderSettings.width}x${renderSettings.height}`,
+        resolution: `${dimensions.width}x${dimensions.height}`,
         framerate: renderSettings.fps,
         duration: videoScene.totalDuration,
         bitrate: renderSettings.bitrate || '5000kbps',
         codec: renderSettings.codec.toUpperCase(),
-        audioCodec: renderSettings.audioCodec.toUpperCase(),
+        audioCodec: (renderSettings.audioCodec || 'aac').toUpperCase(),
         fileSize: Math.round(videoBlob.size / (1024 * 1024) * 100) / 100 // MB with 2 decimals
       }
 
@@ -209,16 +225,17 @@ export async function POST(request: NextRequest) {
        }, { status: 500 })
     }
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Professional video export error:', error)
     
     return NextResponse.json(
       { 
         success: false,
-        error: error.message || 'Erro na renderização profissional de vídeo'
+        error: error instanceof Error ? error.message : String(error) || 'Erro na renderização profissional de vídeo'
       },
       { status: 500 }
     )
   }
 }
+
 

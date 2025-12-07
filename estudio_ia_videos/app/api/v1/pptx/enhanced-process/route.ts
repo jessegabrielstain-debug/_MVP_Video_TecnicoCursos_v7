@@ -1,3 +1,4 @@
+// TODO: Fix possibly undefined assets/timeline
 
 /**
  * 🔧 Enhanced PPTX Processing API - Production
@@ -31,9 +32,9 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Processamento concluído:', {
       slides: result.slides.length,
-      elements: result.slides.reduce((acc, slide) => acc + slide.elements.length, 0),
-      assets: result.assets.images.length + result.assets.videos.length + result.assets.audio.length,
-      duration: result.timeline.totalDuration,
+      elements: result.slides.reduce((acc: any, slide: any) => acc + (slide.elements?.length || 0), 0),
+      assets: (result.assets?.images.length || 0) + (result.assets?.videos.length || 0) + (result.assets?.audio.length || 0),
+      duration: result.timeline?.totalDuration || 0,
       compliance: result.compliance?.score
     });
 
@@ -42,9 +43,9 @@ export async function POST(request: NextRequest) {
       data: result,
       statistics: {
         processedSlides: result.slides.length,
-        totalElements: result.slides.reduce((acc, slide) => acc + slide.elements.length, 0),
-        totalAssets: result.assets.images.length + result.assets.videos.length + result.assets.audio.length,
-        estimatedDuration: result.timeline.totalDuration,
+        totalElements: result.slides.reduce((acc: any, slide: any) => acc + (slide.elements?.length || 0), 0),
+        totalAssets: (result.assets?.images.length || 0) + (result.assets?.videos.length || 0) + (result.assets?.audio.length || 0),
+        estimatedDuration: result.timeline?.totalDuration || 0,
         complianceScore: result.compliance?.score || 0
       },
       message: `Processamento concluído: ${result.slides.length} slides analisados`
@@ -83,3 +84,4 @@ export async function GET(request: NextRequest) {
     message: 'Processamento concluído com sucesso'
   });
 }
+

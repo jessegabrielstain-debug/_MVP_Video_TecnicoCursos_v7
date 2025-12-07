@@ -1,3 +1,4 @@
+// TODO: Fix timeline multi-track types
 /**
  * 📋 Timeline Templates API - Reusable Templates
  * Sprint 44 - Save and load timeline templates
@@ -6,14 +7,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 
 /**
  * POST - Create template from timeline
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
@@ -53,8 +54,8 @@ export async function POST(request: NextRequest) {
         category: category || 'custom',
         isPublic: isPublic || false,
         createdBy: session.user.id,
-        tracks: timeline.tracks as unknown,
-        settings: timeline.settings as unknown,
+        tracks: timeline.tracks as any,
+        settings: timeline.settings as any,
         totalDuration: timeline.totalDuration,
         metadata: {
           originalProjectId: projectId,
@@ -74,17 +75,18 @@ export async function POST(request: NextRequest) {
         description: template.description,
         category: template.category,
         isPublic: template.isPublic,
-        tracksCount: template.metadata?.tracksCount || 0,
+        tracksCount: (template.metadata as any)?.tracksCount || 0,
         totalDuration: template.totalDuration,
         createdAt: template.createdAt.toISOString(),
       },
       message: 'Template criado com sucesso',
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao criar template:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, message: 'Erro ao criar template', error: error.message },
+      { success: false, message: 'Erro ao criar template', error: message },
       { status: 500 }
     );
   }
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
@@ -119,7 +121,7 @@ export async function GET(request: NextRequest) {
             select: {
               id: true,
               name: true,
-              image: true,
+              avatarUrl: true,
             },
           },
         },
@@ -140,6 +142,8 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      const metadata = (template.metadata as any) || {};
+
       return NextResponse.json({
         success: true,
         data: {
@@ -155,7 +159,7 @@ export async function GET(request: NextRequest) {
           creator: {
             id: template.creator.id,
             name: template.creator.name,
-            image: template.creator.image,
+            image: template.creator.avatarUrl,
           },
           createdAt: template.createdAt.toISOString(),
           usageCount: template.usageCount,
@@ -164,7 +168,7 @@ export async function GET(request: NextRequest) {
     }
 
     // List templates
-    const where: any = {
+    const where: import('@prisma/client').Prisma.TimelineTemplateWhereInput = {
       OR: [
         { isPublic: true },
         { createdBy: session.user.id },
@@ -189,7 +193,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            image: true,
+            avatarUrl: true,
           },
         },
       },
@@ -206,19 +210,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        templates: templates.map(t => ({
+        templates: templates.map((t: any) => ({
           id: t.id,
           name: t.name,
           description: t.description,
           category: t.category,
           isPublic: t.isPublic,
-          tracksCount: t.metadata?.tracksCount || 0,
+          tracksCount: (t.metadata as any)?.tracksCount || 0,
           totalDuration: t.totalDuration,
           usageCount: t.usageCount,
           creator: {
             id: t.creator.id,
             name: t.creator.name,
-            image: t.creator.image,
+            image: t.creator.avatarUrl,
           },
           createdAt: t.createdAt.toISOString(),
         })),
@@ -231,10 +235,11 @@ export async function GET(request: NextRequest) {
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao buscar templates:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, message: 'Erro ao buscar templates', error: error.message },
+      { success: false, message: 'Erro ao buscar templates', error: message },
       { status: 500 }
     );
   }
@@ -245,7 +250,7 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
@@ -305,14 +310,14 @@ export async function PUT(request: NextRequest) {
       where: { projectId },
       create: {
         projectId,
-        tracks: template.tracks as unknown,
-        settings: template.settings as unknown,
+        tracks: template.tracks as any,
+        settings: template.settings as any,
         totalDuration: template.totalDuration,
         version: 1,
       },
       update: {
-        tracks: template.tracks as unknown,
-        settings: template.settings as unknown,
+        tracks: template.tracks as any,
+        settings: template.settings as any,
         totalDuration: template.totalDuration,
         version: { increment: 1 },
         updatedAt: new Date(),
@@ -343,10 +348,11 @@ export async function PUT(request: NextRequest) {
       message: 'Template aplicado com sucesso',
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao aplicar template:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, message: 'Erro ao aplicar template', error: error.message },
+      { success: false, message: 'Erro ao aplicar template', error: message },
       { status: 500 }
     );
   }
@@ -357,7 +363,7 @@ export async function PUT(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
@@ -406,11 +412,14 @@ export async function DELETE(request: NextRequest) {
       message: 'Template deletado com sucesso',
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao deletar template:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, message: 'Erro ao deletar template', error: error.message },
+      { success: false, message: 'Erro ao deletar template', error: message },
       { status: 500 }
     );
   }
 }
+
+

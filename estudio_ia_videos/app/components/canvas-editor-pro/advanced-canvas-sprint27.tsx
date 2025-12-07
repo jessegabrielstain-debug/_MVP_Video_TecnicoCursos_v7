@@ -1,4 +1,4 @@
-
+// TODO: Fixar fabric.getInstance() com tipos corretos
 'use client'
 
 /**
@@ -26,14 +26,15 @@ import {
   ArrowDown
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import type * as Fabric from 'fabric'
 
 // Fabric.js import
-let fabric: any = null
+let fabric: typeof Fabric | null = null
 
 interface Layer {
   id: string
   name: string
-  object: any
+  object: Fabric.Object
   visible: boolean
   locked: boolean
   order: number
@@ -42,8 +43,8 @@ interface Layer {
 interface CanvasEditorProps {
   width?: number
   height?: number
-  initialSlide?: any
-  onSave?: (data: any) => void
+  initialSlide?: Record<string, unknown>
+  onSave?: (data: Record<string, unknown>) => void
 }
 
 export default function AdvancedCanvasEditorSprint27({
@@ -53,7 +54,7 @@ export default function AdvancedCanvasEditorSprint27({
   onSave
 }: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [canvas, setCanvas] = useState<any>(null)
+  const [canvas, setCanvas] = useState<Fabric.Canvas | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   
   // History for undo/redo
@@ -75,8 +76,8 @@ export default function AdvancedCanvasEditorSprint27({
       try {
         if (!fabric) {
           // ✅ CORRIGIDO: Usa FabricManager singleton
-          const { default: FabricManager } = await import('@/lib/fabric-singleton')
-          fabric = await FabricManager.getInstance()
+          const { FabricManager } = await import('@/lib/fabric-singleton')
+          fabric = FabricManager.getInstance()
         }
         initializeCanvas()
       } catch (error) {
@@ -115,14 +116,16 @@ export default function AdvancedCanvasEditorSprint27({
       updateLayers()
     })
 
-    newCanvas.on('selection:created', (e: any) => {
+    newCanvas.on('selection:created', (e: Fabric.IEvent) => {
       if (e.selected && e.selected[0]) {
+        // @ts-ignore
         setSelectedLayer(e.selected[0].id || null)
       }
     })
 
-    newCanvas.on('selection:updated', (e: any) => {
+    newCanvas.on('selection:updated', (e: Fabric.IEvent) => {
       if (e.selected && e.selected[0]) {
+        // @ts-ignore
         setSelectedLayer(e.selected[0].id || null)
       }
     })
@@ -149,13 +152,13 @@ export default function AdvancedCanvasEditorSprint27({
   /**
    * Load slide data
    */
-  const loadSlideData = (canvas: any, slide: any) => {
-    if (!canvas) return
+  const loadSlideData = (canvas: Fabric.Canvas, slide: Record<string, unknown>) => {
+    if (!canvas || !fabric) return
 
     try {
       // Load background
-      if (slide.backgroundImage) {
-        fabric.Image.fromURL(slide.backgroundImage, (img: any) => {
+      if (slide.backgroundImage && typeof slide.backgroundImage === 'string') {
+        fabric.Image.fromURL(slide.backgroundImage, (img: Fabric.Image) => {
           img.scaleToWidth(width)
           img.scaleToHeight(height)
           img.selectable = false
@@ -165,25 +168,27 @@ export default function AdvancedCanvasEditorSprint27({
       }
 
       // Load objects
-      if (slide.elements) {
+      if (Array.isArray(slide.elements)) {
         slide.elements.forEach((element: any) => {
           if (element.type === 'text') {
-            const text = new fabric.IText(element.content || 'Text', {
+            const text = new fabric!.IText(element.content || 'Text', {
               left: element.x || 100,
               top: element.y || 100,
               fontSize: element.fontSize || 40,
               fill: element.color || '#000000',
               fontFamily: element.fontFamily || 'Arial',
+              // @ts-ignore
               id: element.id || generateId()
             })
             canvas.add(text)
           } else if (element.type === 'image' && element.src) {
-            fabric.Image.fromURL(element.src, (img: any) => {
+            fabric!.Image.fromURL(element.src, (img: Fabric.Image) => {
               img.set({
                 left: element.x || 100,
                 top: element.y || 100,
                 scaleX: element.scaleX || 1,
                 scaleY: element.scaleY || 1,
+                // @ts-ignore
                 id: element.id || generateId()
               })
               canvas.add(img)
@@ -260,8 +265,9 @@ export default function AdvancedCanvasEditorSprint27({
     if (!canvas) return
 
     const objects = canvas.getObjects()
-    const newLayers: Layer[] = objects.map((obj: any, index: number) => ({
-      id: obj.id || `layer-${index}`,
+    const newLayers: Layer[] = objects.map((obj: Fabric.Object, index: number) => ({
+      // @ts-ignore
+      id: (obj as any).id || `layer-${index}`,
       name: obj.type === 'i-text' ? `Texto ${index + 1}` : `${obj.type} ${index + 1}`,
       object: obj,
       visible: obj.visible !== false,
@@ -298,31 +304,35 @@ export default function AdvancedCanvasEditorSprint27({
    * Add image
    */
   const addImage = useCallback(() => {
-    if (!canvas) return
+    if (!canvas || !fabric) return
 
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
     
-    input.onchange = (e: any) => {
-      const file = e.target.files[0]
+    input.onchange = (e: Event) => {
+      const target = e.target as HTMLInputElement
+      const file = target.files?.[0]
       if (!file) return
 
       const reader = new FileReader()
-      reader.onload = (event: any) => {
-        fabric.Image.fromURL(event.target.result, (img: any) => {
-          img.scaleToWidth(400)
-          img.set({
-            left: 100,
-            top: 100,
-            id: generateId()
+      reader.onload = (event: ProgressEvent<FileReader>) => {
+        if (event.target?.result && typeof event.target.result === 'string') {
+          fabric!.Image.fromURL(event.target.result, (img: Fabric.Image) => {
+            img.scaleToWidth(400)
+            img.set({
+              left: 100,
+              top: 100,
+              // @ts-ignore
+              id: generateId()
+            })
+            canvas.add(img)
+            canvas.setActiveObject(img)
+            canvas.renderAll()
+            saveHistory()
+            toast.success('Imagem adicionada')
           })
-          canvas.add(img)
-          canvas.setActiveObject(img)
-          canvas.renderAll()
-          saveHistory()
-          toast.success('Imagem adicionada')
-        })
+        }
       }
       reader.readAsDataURL(file)
     }

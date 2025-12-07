@@ -14,14 +14,14 @@ class MonitoringService {
     return this.instance;
   }
   
-  logEvent(event: string, data: any) {
+  logEvent(event: string, data: Record<string, unknown>) {
     console.log(`📊 [${event}]`, data);
   }
 }
 
 class IntegratedTTSAvatarPipeline {
   private static instance: IntegratedTTSAvatarPipeline;
-  private jobs: Map<string, any> = new Map();
+  private jobs: Map<string, Record<string, unknown>> = new Map();
   
   static getInstance(): IntegratedTTSAvatarPipeline {
     if (!this.instance) {
@@ -30,7 +30,7 @@ class IntegratedTTSAvatarPipeline {
     return this.instance;
   }
   
-  async createJob(userId: string, text: string, config: any): Promise<string> {
+  async createJob(userId: string, text: string, config: Record<string, unknown>): Promise<string> {
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     const job = {
@@ -96,6 +96,15 @@ class IntegratedTTSAvatarPipeline {
       processingJobs: allJobs.filter(job => job.status === 'processing').length,
       averageProcessingTime: 25000
     };
+  }
+  
+  async cancelJob(jobId: string): Promise<boolean> {
+    const job = this.jobs.get(jobId);
+    if (!job) return false;
+    
+    job.status = 'cancelled';
+    job.updatedAt = new Date();
+    return true;
   }
 }
 
@@ -164,18 +173,18 @@ export async function POST(request: NextRequest) {
           }
         });
 
-      } catch (processingError: any) {
+      } catch (processingError: unknown) {
         monitoring.logEvent('pipeline_integrated_processing_error', {
           userId,
           jobId,
-          error: processingError.message,
+          error: processingError instanceof Error ? processingError.message : String(processingError),
           processingTime: Date.now() - startTime
         });
 
         return NextResponse.json(
           { 
             error: 'Erro no processamento do pipeline',
-            message: processingError.message,
+            message: processingError instanceof Error ? processingError.message : String(processingError),
             jobId,
             code: 'PIPELINE_PROCESSING_ERROR'
           },
@@ -194,11 +203,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Log do erro
     monitoring.logEvent('pipeline_integrated_error', {
-      error: error.message,
-      stack: error.stack,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       processingTime: Date.now() - startTime
     });
 
@@ -207,7 +216,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Erro interno do servidor',
-        message: error.message,
+        message: error instanceof Error ? error.message : String(error),
         code: 'PIPELINE_INTEGRATED_ERROR'
       },
       { status: 500 }
@@ -287,13 +296,13 @@ export async function GET(request: NextRequest) {
         );
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao consultar pipeline:', error);
     
     return NextResponse.json(
       { 
         error: 'Erro ao consultar pipeline',
-        message: error.message 
+        message: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );
@@ -327,11 +336,11 @@ export async function PUT(request: NextRequest) {
               results
             }
           });
-        } catch (processingError: any) {
+        } catch (processingError: unknown) {
           return NextResponse.json(
             { 
               error: 'Erro no processamento',
-              message: processingError.message,
+              message: processingError instanceof Error ? processingError.message : String(processingError),
               jobId
             },
             { status: 500 }
@@ -364,13 +373,13 @@ export async function PUT(request: NextRequest) {
         );
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao atualizar job:', error);
     
     return NextResponse.json(
       { 
         error: 'Erro ao atualizar job',
-        message: error.message 
+        message: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );

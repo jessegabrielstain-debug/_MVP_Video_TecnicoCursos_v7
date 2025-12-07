@@ -203,8 +203,17 @@ function generateTransitions(slideIndex: number, totalSlides: number): string[] 
   return [transitions[Math.floor(Math.random() * transitions.length)]]
 }
 
+interface SlideData {
+  slideNumber: number
+  duration?: number
+  content?: string
+  title?: string
+  images?: string[]
+  backgroundImage?: string
+}
+
 // Gerar elementos da cena baseados no conteúdo do slide
-function generateSceneElements(slide: any) {
+function generateSceneElements(slide: SlideData) {
   const elements: Array<{
     type: 'text' | 'image' | 'shape'
     content: string
@@ -253,3 +262,4 @@ function generateSceneElements(slide: any) {
 
   return elements
 }
+

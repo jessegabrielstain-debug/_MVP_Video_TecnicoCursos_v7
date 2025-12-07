@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { realTimeMonitor } from '@/lib/monitoring/real-time-monitor'
+import { realTimeMonitor, SystemMetric } from '@/lib/monitoring/real-time-monitor'
 import { Logger } from '@/lib/logger'
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
@@ -72,9 +72,9 @@ export async function GET(request: NextRequest) {
 
     // Verificar se é admin
     const { data: profile } = await supabase
-      .from('user_profiles')
+      .from('users')
       .select('role')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .single()
 
     if (profile?.role !== 'admin') {
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    logger.error('Monitoring API error', { error })
+    logger.error('Monitoring API error', error instanceof Error ? error : new Error(String(error)))
     return NextResponse.json(
       { 
         error: 'Erro interno do servidor',
@@ -157,9 +157,9 @@ export async function POST(request: NextRequest) {
 
     // Verificar se é admin
     const { data: profile } = await supabase
-      .from('user_profiles')
+      .from('users')
       .select('role')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .single()
 
     if (profile?.role !== 'admin') {
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    logger.error('Monitoring POST error', { error })
+    logger.error('Monitoring POST error', error instanceof Error ? error : new Error(String(error)))
     return NextResponse.json(
       { 
         error: 'Erro interno do servidor',
@@ -250,7 +250,7 @@ async function handleGetMetrics(searchParams: URLSearchParams): Promise<NextResp
   const metrics = realTimeMonitor.getMetrics(filters.limit)
   
   // Filtrar por data se especificado
-  let filteredMetrics = metrics
+  let filteredMetrics: (SystemMetric | Record<string, unknown>)[] = metrics
   if (filters.from || filters.to) {
     const fromTime = filters.from ? new Date(filters.from).getTime() : 0
     const toTime = filters.to ? new Date(filters.to).getTime() : Date.now()
@@ -262,19 +262,19 @@ async function handleGetMetrics(searchParams: URLSearchParams): Promise<NextResp
 
   // Filtrar métricas específicas se especificado
   if (filters.metrics) {
-    filteredMetrics = filteredMetrics.map(m => {
-      const filtered: any = { timestamp: m.timestamp }
+    filteredMetrics = (filteredMetrics as SystemMetric[]).map(m => {
+      const filtered: Record<string, unknown> = { timestamp: m.timestamp }
       
       for (const metricPath of filters.metrics!) {
         const parts = metricPath.split('.')
-        let source: any = m
-        let target: any = filtered
+        let source: Record<string, unknown> = m as unknown as Record<string, unknown>
+        let target: Record<string, unknown> = filtered
         
         for (let i = 0; i < parts.length - 1; i++) {
           const part = parts[i]
           if (!target[part]) target[part] = {}
-          source = source[part]
-          target = target[part]
+          source = source[part] as Record<string, unknown>
+          target = target[part] as Record<string, unknown>
         }
         
         const lastPart = parts[parts.length - 1]
@@ -303,8 +303,8 @@ async function handleGetMetrics(searchParams: URLSearchParams): Promise<NextResp
 async function handleGetAlerts(searchParams: URLSearchParams): Promise<NextResponse> {
   const filterParams = {
     limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined,
-    type: searchParams.get('type') as 'warning' | 'error' | 'critical' | null,
-    category: searchParams.get('category') as 'performance' | 'system' | 'application' | 'security' | null,
+    type: (searchParams.get('type') as 'warning' | 'error' | 'critical') || undefined,
+    category: (searchParams.get('category') as 'performance' | 'system' | 'application' | 'security') || undefined,
     resolved: searchParams.get('resolved') ? searchParams.get('resolved') === 'true' : undefined,
     from: searchParams.get('from') || undefined,
     to: searchParams.get('to') || undefined
@@ -339,9 +339,10 @@ async function handleGetAlerts(searchParams: URLSearchParams): Promise<NextRespo
     const fromTime = filters.from ? new Date(filters.from).getTime() : 0
     const toTime = filters.to ? new Date(filters.to).getTime() : Date.now()
     
-    alerts = alerts.filter(a => 
-      a.timestamp >= fromTime && a.timestamp <= toTime
-    )
+    alerts = alerts.filter(a => {
+      const alertTime = a.timestamp instanceof Date ? a.timestamp.getTime() : Number(a.timestamp)
+      return alertTime >= fromTime && alertTime <= toTime
+    })
   }
 
   // Limitar resultados
@@ -396,13 +397,13 @@ async function handleGetDashboard(): Promise<NextResponse> {
       recent_alerts: recentAlerts,
       health: healthStatus,
       summary: {
-        total_requests: recentMetrics.reduce((sum, m) => sum + m.application.throughput, 0),
+        total_requests: recentMetrics.reduce((sum, m) => sum + (m.application?.throughput || 0), 0),
         average_response_time: recentMetrics.length > 0 
-          ? recentMetrics.reduce((sum, m) => sum + m.application.response_time, 0) / recentMetrics.length 
+          ? recentMetrics.reduce((sum, m) => sum + (m.application?.response_time || 0), 0) / recentMetrics.length 
           : 0,
-        error_rate: latestMetrics?.application.error_rate || 0,
-        cache_hit_rate: latestMetrics?.cache.hit_rate || 0,
-        active_jobs: latestMetrics?.application.concurrent_jobs || 0
+        error_rate: latestMetrics?.application?.error_rate || 0,
+        cache_hit_rate: latestMetrics?.cache?.hit_rate || 0,
+        active_jobs: latestMetrics?.application?.concurrent_jobs || 0
       }
     }
   })
@@ -413,21 +414,21 @@ async function handleGetDashboard(): Promise<NextResponse> {
  */
 async function handleGetStats(): Promise<NextResponse> {
   // Buscar estatísticas do banco
-  const { data: systemStats } = await supabase
+  const { data: systemStats } = await (supabase as any)
     .from('system_stats')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
 
-  const { data: ttsStats } = await supabase
+  const { data: ttsStats } = await (supabase as any)
     .from('tts_jobs')
     .select('status, engine, processing_time')
     .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
 
   const { data: renderStats } = await supabase
     .from('render_jobs')
-    .select('status, render_time, quality_score')
+    .select('status, duration_ms')
     .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
 
   // Calcular estatísticas
@@ -435,16 +436,16 @@ async function handleGetStats(): Promise<NextResponse> {
     system: systemStats || {},
     tts: {
       total_jobs: ttsStats?.length || 0,
-      completed_jobs: ttsStats?.filter(j => j.status === 'completed').length || 0,
-      failed_jobs: ttsStats?.filter(j => j.status === 'failed').length || 0,
+      completed_jobs: ttsStats?.filter((j: any) => j.status === 'completed').length || 0,
+      failed_jobs: ttsStats?.filter((j: any) => j.status === 'failed').length || 0,
       average_processing_time: ttsStats?.length 
-        ? ttsStats.reduce((sum, j) => sum + (j.processing_time || 0), 0) / ttsStats.length 
+        ? ttsStats.reduce((sum: number, j: any) => sum + (j.processing_time || 0), 0) / ttsStats.length 
         : 0,
       engines: {
-        elevenlabs: ttsStats?.filter(j => j.engine === 'elevenlabs').length || 0,
-        google: ttsStats?.filter(j => j.engine === 'google').length || 0,
-        azure: ttsStats?.filter(j => j.engine === 'azure').length || 0,
-        aws: ttsStats?.filter(j => j.engine === 'aws').length || 0
+        elevenlabs: ttsStats?.filter((j: any) => j.engine === 'elevenlabs').length || 0,
+        google: ttsStats?.filter((j: any) => j.engine === 'google').length || 0,
+        azure: ttsStats?.filter((j: any) => j.engine === 'azure').length || 0,
+        aws: ttsStats?.filter((j: any) => j.engine === 'aws').length || 0
       }
     },
     avatar: {
@@ -452,11 +453,9 @@ async function handleGetStats(): Promise<NextResponse> {
       completed_renders: renderStats?.filter(j => j.status === 'completed').length || 0,
       failed_renders: renderStats?.filter(j => j.status === 'failed').length || 0,
       average_render_time: renderStats?.length 
-        ? renderStats.reduce((sum, j) => sum + (j.render_time || 0), 0) / renderStats.length 
+        ? renderStats.reduce((sum, j) => sum + (j.duration_ms || 0), 0) / renderStats.length 
         : 0,
-      average_quality_score: renderStats?.length 
-        ? renderStats.reduce((sum, j) => sum + (j.quality_score || 0), 0) / renderStats.length 
-        : 0
+      average_quality_score: 0
     }
   }
 
@@ -488,7 +487,7 @@ async function handleGetOverview(): Promise<NextResponse> {
 /**
  * Resolver alerta
  */
-async function handleResolveAlert(body: any): Promise<NextResponse> {
+async function handleResolveAlert(body: { alertId?: string }): Promise<NextResponse> {
   const { alertId } = body
 
   if (!alertId) {
@@ -533,12 +532,12 @@ async function handleStopMonitoring(): Promise<NextResponse> {
 /**
  * Disparar alerta de teste
  */
-async function handleTriggerAlert(body: any): Promise<NextResponse> {
+async function handleTriggerAlert(body: { type?: string; category?: string; title?: string; message?: string }): Promise<NextResponse> {
   const { type, category, title, message } = body
 
   realTimeMonitor.emit('alert.test', {
-    type: type || 'warning',
-    category: category || 'system',
+    type: (type as 'warning' | 'error' | 'critical') || 'warning',
+    category: (category as 'performance' | 'system' | 'application' | 'security') || 'system',
     title: title || 'Test Alert',
     message: message || 'This is a test alert'
   })
@@ -552,17 +551,16 @@ async function handleTriggerAlert(body: any): Promise<NextResponse> {
 /**
  * Calcular tendências
  */
-function calculateTrends(metrics: any[]): Record<string, number> {
+function calculateTrends(metrics: SystemMetric[]): Record<string, number> {
   if (metrics.length < 2) return {}
 
   const latest = metrics[metrics.length - 1]
   const previous = metrics[metrics.length - 2]
 
   return {
-    cpu_usage: latest.system.cpu_usage - previous.system.cpu_usage,
-    memory_usage: latest.system.memory_usage - previous.system.memory_usage,
-    response_time: latest.application.response_time - previous.application.response_time,
-    error_rate: latest.application.error_rate - previous.application.error_rate,
-    cache_hit_rate: latest.cache.hit_rate - previous.cache.hit_rate
+    cpu: ((latest.cpu - previous.cpu) / previous.cpu) * 100,
+    memory: ((latest.memory - previous.memory) / previous.memory) * 100,
+    activeConnections: ((latest.activeConnections - previous.activeConnections) / previous.activeConnections) * 100,
+    requestsPerSecond: ((latest.requestsPerSecond - previous.requestsPerSecond) / previous.requestsPerSecond) * 100
   }
 }

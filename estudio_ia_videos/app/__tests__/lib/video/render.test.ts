@@ -8,7 +8,7 @@ import { createRenderQueue, addRenderJob, getJobStatus, cancelJob } from '@/lib/
 
 // Mock do FFmpeg
 jest.mock('fluent-ffmpeg', () => {
-  return jest.fn(() => ({
+  const mockFfmpeg = jest.fn(() => ({
     input: jest.fn().mockReturnThis(),
     loop: jest.fn().mockReturnThis(),
     outputOptions: jest.fn().mockReturnThis(),
@@ -18,8 +18,40 @@ jest.mock('fluent-ffmpeg', () => {
       return this
     }),
     run: jest.fn(),
-  }))
+  }));
+
+  (mockFfmpeg as any).getAvailableFormats = jest.fn((cb) => cb(null, { mp4: 'mp4' }));
+  (mockFfmpeg as any).ffprobe = jest.fn((path, cb) => cb(null, { format: {}, streams: [] }));
+
+  return mockFfmpeg;
 })
+
+// Mock BullMQ
+jest.mock('bullmq', () => {
+  return {
+    Queue: jest.fn().mockImplementation((name) => ({
+      name,
+      add: jest.fn().mockResolvedValue({ id: 'test-job-1', data: { projectId: 'project-1' } }),
+      getJob: jest.fn().mockResolvedValue({
+        id: 'test-job-1',
+        getState: jest.fn().mockResolvedValue('completed'),
+        remove: jest.fn().mockResolvedValue(undefined),
+        data: { jobId: 'test-job-1' }
+      }),
+      close: jest.fn().mockResolvedValue(undefined),
+    })),
+    QueueEvents: jest.fn(),
+    Worker: jest.fn(),
+  }
+})
+
+// Mock config
+jest.mock('@/lib/queue/config', () => ({
+  getQueueConfig: () => ({
+    redisUrl: 'redis://localhost:6379',
+    queueName: 'render-jobs'
+  })
+}))
 
 describe('Video Renderer', () => {
   it('deve validar FFmpeg instalado', async () => {
@@ -48,7 +80,7 @@ describe('Render Queue', () => {
 
   it('deve criar fila de renderização', () => {
     expect(queue).toBeDefined()
-    expect(queue.name).toBe('video-render')
+    expect(queue.name).toBe('render-jobs')
   })
 
   it('deve adicionar job à fila', async () => {

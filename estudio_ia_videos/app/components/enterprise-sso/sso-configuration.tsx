@@ -12,26 +12,51 @@ import { Button } from '@/components/ui/button';
 
 type SSOStatus = 'active' | 'inactive' | 'testing'
 
+interface SSOConfiguration {
+  clientId?: string;
+  discoveryUrl?: string;
+  entityId?: string;
+  ssoUrl?: string;
+  [key: string]: unknown;
+}
+
 interface SSOProvider {
   id: string;
   name: string;
   type: string;
   status: SSOStatus;
   enabled?: boolean;
+  domain: string;
+  users: number;
+  lastTest: string | null;
+  configuration: SSOConfiguration;
   [key: string]: unknown;
 }
 
 interface TestResult {
   success: boolean;
   message?: string;
+  details: {
+    connectivity?: boolean;
+    responseTime?: number;
+    error?: string;
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 }
 
 interface AuditStats {
+  activeSessions: number;
+  totalLogins24h: number;
+  failedLogins24h: number;
+  providersUsed: number;
+  averageSessionDuration: number;
   securityAlerts: Array<{
-    id: string;
-    level: string;
+    id?: string;
+    level?: string;
     message: string;
+    severity: string;
+    timestamp: string;
     [key: string]: unknown;
   }>;
   [key: string]: unknown;
@@ -98,7 +123,7 @@ export default function SSOConfiguration() {
     }
   };
 
-  const mockProviders = [
+  const mockProviders: SSOProvider[] = [
     {
       id: 'azure-ad',
       name: 'Microsoft Azure AD',
@@ -574,7 +599,7 @@ export default function SSOConfiguration() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {auditStats.securityAlerts.map((alert: any, index: number) => (
+                    {auditStats.securityAlerts.map((alert, index: number) => (
                       <div key={index} className="flex items-start space-x-3 p-4 bg-red-50 border border-red-200 rounded-lg">
                         <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
                         <div className="flex-1">

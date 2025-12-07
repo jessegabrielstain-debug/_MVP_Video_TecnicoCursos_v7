@@ -1,13 +1,10 @@
-
 /**
  * 🎬 Timeline Multi-Track API - REAL IMPLEMENTATION
  * Sprint 42 - Persistência real no banco de dados
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { AnalyticsTracker } from '@/lib/analytics/analytics-tracker';
 
 // Types for Timeline structures
@@ -42,6 +39,7 @@ interface TimelineSettings {
   zoom: number;
   snapToGrid: boolean;
   autoSave: boolean;
+  [key: string]: unknown;
 }
 
 interface Analytics {
@@ -51,10 +49,33 @@ interface Analytics {
   complexity: string;
 }
 
+// Helper interface for Supabase responses
+interface Project {
+  id: string;
+  user_id: string;
+}
+
+interface ProjectCollaborator {
+  role: string;
+}
+
+interface TimelineRecord {
+  id: string;
+  project_id: string;
+  version: number;
+  tracks: unknown; // JSON
+  settings: unknown; // JSON
+  total_duration: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user) {
+    const supabase = getSupabaseForRequest(request);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -74,18 +95,41 @@ export async function POST(request: NextRequest) {
     console.log(`🎬 Salvando timeline para projeto ${projectId}...`);
 
     // Verify project exists and user has access
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId: session.user.id,
-      },
-    });
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('id, user_id')
+      .eq('id', projectId)
+      .single();
 
-    if (!project) {
+    if (projectError || !project) {
       return NextResponse.json(
         { success: false, message: 'Projeto não encontrado' },
         { status: 404 }
       );
+    }
+
+    const projectData = project as Project;
+
+    // Check permission
+    let hasPermission = projectData.user_id === user.id;
+    if (!hasPermission) {
+        const { data: collaborator } = await supabase
+            .from('project_collaborators')
+            .select('role')
+            .eq('project_id', projectId)
+            .eq('user_id', user.id)
+            .single();
+        
+        if (collaborator && ['owner', 'editor'].includes((collaborator as ProjectCollaborator).role)) {
+            hasPermission = true;
+        }
+    }
+
+    if (!hasPermission) {
+        return NextResponse.json(
+            { success: false, message: 'Sem permissão para editar este projeto' },
+            { status: 403 }
+        );
     }
 
     // Prepare settings
@@ -100,33 +144,53 @@ export async function POST(request: NextRequest) {
     };
 
     // Save or update timeline in database
-    const timeline = await prisma.timeline.upsert({
-      where: { projectId },
-      create: {
-        projectId,
-        tracks: tracks as unknown,
-        settings: settings as unknown,
-        totalDuration: Math.ceil(totalDuration || 0),
-        version: 1,
-      },
-      update: {
-        tracks: tracks as unknown,
-        settings: settings as unknown,
-        totalDuration: Math.ceil(totalDuration || 0),
-        version: { increment: 1 },
-        updatedAt: new Date(),
-      },
-    });
+    // First check if timeline exists
+    const { data: existingTimeline } = await supabase
+        .from('timelines')
+        .select('id, version')
+        .eq('project_id', projectId)
+        .single();
+
+    let timeline: TimelineRecord;
+    
+    if (existingTimeline) {
+        const { data, error } = await supabase
+            .from('timelines')
+            .update({
+                tracks: tracks,
+                settings: settings as any,
+                total_duration: Math.ceil(totalDuration || 0),
+                version: (existingTimeline as TimelineRecord).version + 1,
+                updated_at: new Date().toISOString()
+            })
+            .eq('project_id', projectId)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        timeline = data as TimelineRecord;
+    } else {
+        const { data, error } = await supabase
+            .from('timelines')
+            .insert({
+                project_id: projectId,
+                tracks: tracks,
+                settings: settings as any,
+                total_duration: Math.ceil(totalDuration || 0),
+                version: 1
+            })
+            .select()
+            .single();
+            
+        if (error) throw error;
+        timeline = data as TimelineRecord;
+    }
 
     console.log(`✅ Timeline salva: ${timeline.id} (v${timeline.version})`);
 
-    const user = session.user as { id: string; organizationId?: string; currentOrgId?: string };
-    const orgId = user.organizationId || user.currentOrgId || undefined;
-
     // Track analytics event
     await AnalyticsTracker.trackTimelineEdit({
-      userId: session.user.id,
-      organizationId: orgId,
+      userId: user.id,
       projectId,
       action: 'update',
       trackCount: tracks?.length || 0,
@@ -153,12 +217,12 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         id: timeline.id,
-        projectId: timeline.projectId,
+        projectId: timeline.project_id,
         version: timeline.version,
-        totalDuration: timeline.totalDuration,
+        totalDuration: timeline.total_duration,
         tracks: timeline.tracks,
         settings: timeline.settings,
-        updatedAt: timeline.updatedAt.toISOString(),
+        updatedAt: timeline.updated_at,
         analytics,
       },
       message: 'Timeline salva com sucesso',
@@ -190,8 +254,10 @@ function calculateComplexity(tracks: Track[]): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user) {
+    const supabase = getSupabaseForRequest(request);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -211,29 +277,47 @@ export async function GET(request: NextRequest) {
     console.log(`🎬 Carregando timeline do projeto ${projectId}...`);
 
     // Load timeline from database
-    const timeline = await prisma.timeline.findUnique({
-      where: { projectId },
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            status: true,
-            userId: true,
-          },
-        },
-      },
-    });
+    const { data: timelineData, error } = await supabase
+      .from('timelines')
+      .select(`
+        *,
+        projects:project_id (
+            id,
+            name,
+            status,
+            user_id
+        )
+      `)
+      .eq('project_id', projectId)
+      .single();
 
-    if (!timeline) {
+    if (error || !timelineData) {
       return NextResponse.json(
         { success: false, message: 'Timeline não encontrada' },
         { status: 404 }
       );
     }
 
+    // Type assertion for the joined query result
+    const timeline = timelineData as unknown as TimelineRecord & { projects: { id: string; name: string; status: string; user_id: string } };
+    const project = timeline.projects;
+
     // Check access
-    if (timeline.project.userId !== session.user.id) {
+    let hasPermission = project.user_id === user.id;
+    if (!hasPermission) {
+        const { data: collaborator } = await supabase
+            .from('project_collaborators')
+            .select('role')
+            .eq('project_id', projectId)
+            .eq('user_id', user.id)
+            .single();
+        
+        if (collaborator && ['owner', 'editor'].includes((collaborator as ProjectCollaborator).role)) {
+            hasPermission = true;
+        }
+    }
+
+    if (!hasPermission) {
       return NextResponse.json(
         { success: false, message: 'Acesso negado' },
         { status: 403 }
@@ -246,14 +330,14 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         id: timeline.id,
-        projectId: timeline.projectId,
-        projectName: timeline.project.name,
+        projectId: timeline.project_id,
+        projectName: project.name,
         tracks: timeline.tracks,
         settings: timeline.settings,
-        totalDuration: timeline.totalDuration,
+        totalDuration: timeline.total_duration,
         version: timeline.version,
-        createdAt: timeline.createdAt.toISOString(),
-        updatedAt: timeline.updatedAt.toISOString(),
+        createdAt: timeline.created_at,
+        updatedAt: timeline.updated_at,
       },
       message: 'Timeline carregada com sucesso',
     });
@@ -269,40 +353,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { timelineId, tracks, settings } = body;
-
-    // Simulate timeline update
-    const updatedTimeline = {
-      id: timelineId,
-      tracks,
-      settings,
-      lastModified: new Date().toISOString(),
-      version: Math.floor(Date.now() / 1000),
-      changeLog: [
-        {
-          timestamp: new Date().toISOString(),
-          action: 'timeline_updated',
-          user: 'current_user',
-          changes: ['tracks_modified', 'settings_updated']
-        }
-      ]
-    };
-
-    return NextResponse.json({
-      success: true,
-      data: updatedTimeline,
-      message: 'Timeline atualizada com sucesso'
-    });
-
-  } catch (error) {
-    console.error('Update timeline error:', error);
-    return NextResponse.json(
-      { success: false, message: 'Erro ao atualizar timeline' },
-      { status: 500 }
-    );
-  }
+    // Reusing POST logic for now as it handles upsert
+    return POST(request);
 }
 
 /**
@@ -310,8 +362,10 @@ export async function PUT(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user) {
+    const supabase = getSupabaseForRequest(request);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -331,12 +385,11 @@ export async function DELETE(request: NextRequest) {
     console.log(`🗑️ Deletando timeline do projeto ${projectId}...`);
 
     // Verify project exists and user has access
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId: session.user.id,
-      },
-    });
+    const { data: project } = await supabase
+      .from('projects')
+      .select('id, user_id')
+      .eq('id', projectId)
+      .single();
 
     if (!project) {
       return NextResponse.json(
@@ -345,31 +398,50 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete timeline
-    const deletedTimeline = await prisma.timeline.delete({
-      where: { projectId },
-    });
+    const projectData = project as Project;
 
-    console.log(`✅ Timeline deletada: ${deletedTimeline.id}`);
+    // Check permission (only owner can delete timeline?)
+    // Let's assume editors can too for now, or stick to owner
+    let hasPermission = projectData.user_id === user.id;
+    if (!hasPermission) {
+        const { data: collaborator } = await supabase
+            .from('project_collaborators')
+            .select('role')
+            .eq('project_id', projectId)
+            .eq('user_id', user.id)
+            .single();
+        
+        if (collaborator && ['owner', 'editor'].includes((collaborator as ProjectCollaborator).role)) {
+            hasPermission = true;
+        }
+    }
+
+    if (!hasPermission) {
+        return NextResponse.json(
+            { success: false, message: 'Sem permissão para deletar timeline' },
+            { status: 403 }
+        );
+    }
+
+    // Delete timeline
+    const { error: deleteError } = await supabase
+      .from('timelines')
+      .delete()
+      .eq('project_id', projectId);
+
+    if (deleteError) throw deleteError;
+
+    console.log(`✅ Timeline deletada para projeto: ${projectId}`);
 
     return NextResponse.json({
       success: true,
       message: 'Timeline deletada com sucesso',
       data: {
-        id: deletedTimeline.id,
-        projectId: deletedTimeline.projectId,
+        projectId: projectId,
       },
     });
 
   } catch (error) {
-    // Timeline não encontrada
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
-      return NextResponse.json(
-        { success: false, message: 'Timeline não encontrada' },
-        { status: 404 }
-      );
-    }
-
     console.error('❌ Erro ao deletar timeline:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
@@ -384,8 +456,10 @@ export async function DELETE(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user) {
+    const supabase = getSupabaseForRequest(request);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -405,12 +479,11 @@ export async function PATCH(request: NextRequest) {
     console.log(`🔧 Atualizando parcialmente timeline do projeto ${projectId}...`);
 
     // Verify project exists and user has access
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId: session.user.id,
-      },
-    });
+    const { data: project } = await supabase
+      .from('projects')
+      .select('id, user_id')
+      .eq('id', projectId)
+      .single();
 
     if (!project) {
       return NextResponse.json(
@@ -419,74 +492,114 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const projectData = project as Project;
+
+    // Check permission
+    let hasPermission = projectData.user_id === user.id;
+    if (!hasPermission) {
+        const { data: collaborator } = await supabase
+            .from('project_collaborators')
+            .select('role')
+            .eq('project_id', projectId)
+            .eq('user_id', user.id)
+            .single();
+        
+        if (collaborator && ['owner', 'editor'].includes((collaborator as ProjectCollaborator).role)) {
+            hasPermission = true;
+        }
+    }
+
+    if (!hasPermission) {
+        return NextResponse.json(
+            { success: false, message: 'Sem permissão para editar este projeto' },
+            { status: 403 }
+        );
+    }
+
     // Build update data object with only provided fields
-    const updateData: {
-      version: { increment: number };
-      updatedAt: Date;
-      tracks?: unknown;
-      settings?: unknown;
-      totalDuration?: number;
-    } = {
-      version: { increment: 1 },
-      updatedAt: new Date(),
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
     };
 
     if (tracks !== undefined) {
-      updateData.tracks = tracks as unknown;
+      updateData.tracks = tracks;
     }
 
     if (settings !== undefined) {
-      updateData.settings = settings as unknown;
+      updateData.settings = settings;
     }
 
     if (totalDuration !== undefined) {
-      updateData.totalDuration = Math.ceil(totalDuration);
+      updateData.total_duration = Math.ceil(totalDuration);
     }
 
     // Update timeline
-    const timeline = await prisma.timeline.update({
-      where: { projectId },
-      data: updateData,
-    });
+    // We need to increment version manually or fetch first. 
+    // Let's fetch first to be safe and get current version
+    const { data: currentTimeline } = await supabase
+        .from('timelines')
+        .select('version')
+        .eq('project_id', projectId)
+        .single();
+    
+    if (currentTimeline) {
+        updateData.version = ((currentTimeline as TimelineRecord).version || 0) + 1;
+    }
 
-    console.log(`✅ Timeline parcialmente atualizada: ${timeline.id} (v${timeline.version})`);
+    const { data: timeline, error: updateError } = await supabase
+      .from('timelines')
+      .update(updateData)
+      .eq('project_id', projectId)
+      .select()
+      .single();
 
-    const user = session.user as { id: string; organizationId?: string; currentOrgId?: string };
-    const orgId = user.organizationId || user.currentOrgId || undefined;
+    if (updateError) throw updateError;
+
+    const timelineRecord = timeline as TimelineRecord;
+
+    console.log(`✅ Timeline parcialmente atualizada: ${timelineRecord.id} (v${timelineRecord.version})`);
 
     // Track analytics event
     await AnalyticsTracker.trackTimelineEdit({
-      userId: session.user.id,
-      organizationId: orgId,
+      userId: user.id,
       projectId,
       action: 'partial_update',
       trackCount: tracks?.length || 0,
-      totalDuration: timeline.totalDuration,
+      totalDuration: timelineRecord.total_duration,
     });
+
+    // Calculate analytics for response
+    const typedTracks = (timelineRecord.tracks || []) as Track[];
+    const analytics: Analytics = {
+      tracksCount: typedTracks.length,
+      keyframesCount: typedTracks.reduce(
+        (acc: number, track: Track) => acc + (track.keyframes?.length || 0),
+        0
+      ),
+      avgTrackDuration:
+        typedTracks.length > 0
+          ? typedTracks.reduce((acc: number, track: Track) => acc + (track.duration || 0), 0) /
+            typedTracks.length
+          : 0,
+      complexity: calculateComplexity(typedTracks),
+    };
 
     return NextResponse.json({
       success: true,
       data: {
-        id: timeline.id,
-        projectId: timeline.projectId,
-        version: timeline.version,
-        totalDuration: timeline.totalDuration,
-        tracks: timeline.tracks,
-        settings: timeline.settings,
-        updatedAt: timeline.updatedAt.toISOString(),
+        id: timelineRecord.id,
+        projectId: timelineRecord.project_id,
+        version: timelineRecord.version,
+        totalDuration: timelineRecord.total_duration,
+        tracks: timelineRecord.tracks,
+        settings: timelineRecord.settings,
+        updatedAt: timelineRecord.updated_at,
+        analytics,
       },
       message: 'Timeline atualizada parcialmente com sucesso',
     });
 
   } catch (error) {
-    // Timeline não encontrada
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
-      return NextResponse.json(
-        { success: false, message: 'Timeline não encontrada' },
-        { status: 404 }
-      );
-    }
-
     console.error('❌ Erro ao atualizar parcialmente timeline:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
@@ -495,3 +608,5 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
+
+

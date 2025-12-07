@@ -123,7 +123,7 @@ interface FilterConfig {
   name: string;
   type: FilterType;
   enabled: boolean;
-  parameters: { [key: string]: any };
+  parameters: Record<string, unknown>;
   order: number;
 }
 
@@ -468,7 +468,7 @@ export default function BatchProcessor({
           await new Promise(resolve => setTimeout(resolve, 500));
           
           const updatedFiles = job.inputFiles.map((f, idx) => 
-            idx === i ? { ...f, progress, status: progress === 100 ? 'completed' : 'processing' } : f
+            idx === i ? { ...f, progress, status: (progress === 100 ? 'completed' : 'processing') as FileStatus } : f
           );
           
           const overallProgress = Math.round(
@@ -731,7 +731,7 @@ export default function BatchProcessor({
 
       {/* Main Content */}
       <div className="flex-1">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="h-full">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)} className="h-full">
           {/* Tabs Navigation */}
           <div className="bg-gray-800 border-b border-gray-700 px-6">
             <TabsList className="bg-gray-700">

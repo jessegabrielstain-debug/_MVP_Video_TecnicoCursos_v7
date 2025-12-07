@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const projectIds = userProjects.map(p => p.id);
 
     // Get recent validations with issues
-    const recentValidations = await prisma.complianceValidation.findMany({
+    const recentValidations = await prisma.nRComplianceRecord.findMany({
       where: {
         projectId: { in: projectIds },
         createdAt: {
@@ -46,13 +46,13 @@ export async function GET(request: NextRequest) {
           id: `critical-${validation.id}`,
           type: 'critical',
           title: 'Compliance Crítico Detectado',
-          message: `Projeto "${project?.title}" tem score muito baixo (${validation.score}%) para ${validation.nrType}`,
+          message: `Projeto "${project?.title}" tem score muito baixo (${validation.score}%) para ${validation.nr}`,
           projectId: validation.projectId,
           projectTitle: project?.title,
-          nrType: validation.nrType,
+          nrType: validation.nr,
           score: validation.score,
           createdAt: validation.createdAt,
-          suggestions: validation.suggestions ? JSON.parse(validation.suggestions) : [],
+          suggestions: validation.recommendations ? (validation.recommendations as any) : [],
           action: 'review_immediately'
         });
       }
@@ -62,29 +62,29 @@ export async function GET(request: NextRequest) {
           id: `warning-${validation.id}`,
           type: 'warning',
           title: 'Compliance Precisa de Atenção',
-          message: `Projeto "${project?.title}" tem score baixo (${validation.score}%) para ${validation.nrType}`,
+          message: `Projeto "${project?.title}" tem score baixo (${validation.score}%) para ${validation.nr}`,
           projectId: validation.projectId,
           projectTitle: project?.title,
-          nrType: validation.nrType,
+          nrType: validation.nr,
           score: validation.score,
           createdAt: validation.createdAt,
-          suggestions: validation.suggestions ? JSON.parse(validation.suggestions) : [],
+          suggestions: validation.recommendations ? (validation.recommendations as any) : [],
           action: 'review_soon'
         });
       }
 
       // Check for missing critical topics
-      if (validation.criticalPointsMissing) {
-        const missingPoints = JSON.parse(validation.criticalPointsMissing);
-        if (missingPoints.length > 0) {
+      if (validation.criticalPoints) {
+        const missingPoints = (validation.criticalPoints as any);
+        if (Array.isArray(missingPoints) && missingPoints.length > 0) {
           alerts.push({
             id: `missing-${validation.id}`,
             type: 'warning',
             title: 'Pontos Críticos Ausentes',
-            message: `${missingPoints.length} pontos críticos ausentes em "${project?.title}" (${validation.nrType})`,
+            message: `${missingPoints.length} pontos críticos ausentes em "${project?.title}" (${validation.nr})`,
             projectId: validation.projectId,
             projectTitle: project?.title,
-            nrType: validation.nrType,
+            nrType: validation.nr,
             score: validation.score,
             createdAt: validation.createdAt,
             missingPoints,
@@ -102,8 +102,8 @@ export async function GET(request: NextRequest) {
 
     // Sort by severity and date
     filteredAlerts.sort((a, b) => {
-      const severityOrder = { critical: 3, warning: 2, info: 1 };
-      const severityDiff = severityOrder[b.type] - severityOrder[a.type];
+      const severityOrder: Record<string, number> = { critical: 3, warning: 2, info: 1 };
+      const severityDiff = (severityOrder[b.type] || 0) - (severityOrder[a.type] || 0);
       if (severityDiff !== 0) return severityDiff;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });

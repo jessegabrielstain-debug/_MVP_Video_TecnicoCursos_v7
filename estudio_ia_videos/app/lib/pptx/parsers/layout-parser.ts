@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
+import { PPTXSlideData, PPTXShape, getString, getNumber, isArray, ensureArray } from './types';
 
 export interface SlideLayoutInfo {
   name: string;
@@ -72,10 +73,10 @@ export class PPTXLayoutParser {
         if (relsFile) {
           const relsXml = await relsFile.async('string');
           const relsData = this.xmlParser.parse(relsXml);
-          const relationships = this.toArray(relsData?.['Relationships']?.['Relationship']);
+          const relationships = ensureArray(relsData?.['Relationships']?.['Relationship']);
           
           const layoutRelation = relationships.find(
-            (rel: any) => rel['@_Id'] === layoutRel
+            (rel: { '@_Id': string; '@_Target': string }) => rel['@_Id'] === layoutRel
           );
 
           if (layoutRelation) {
@@ -178,10 +179,15 @@ export class PPTXLayoutParser {
     }
   }
 
-  private extractElementInfo(shape: any, type: SlideLayoutElement['elementType']): SlideLayoutElement | null {
+  private extractElementInfo(shape: PPTXShape, type: SlideLayoutElement['elementType']): SlideLayoutElement | null {
     try {
       const spPr = shape['p:spPr'];
-      const position: any = {};
+      let position: {
+        x: number;
+        y: number;
+        width?: number;
+        height?: number;
+      } | undefined;
 
       if (spPr) {
         const xfrm = spPr['a:xfrm'];
@@ -190,12 +196,14 @@ export class PPTXLayoutParser {
           const ext = xfrm['a:ext'];
 
           if (off) {
-            position.x = parseInt(off['@_x'], 10) || 0;
-            position.y = parseInt(off['@_y'], 10) || 0;
+            position = {
+              x: getNumber(off['@_x']),
+              y: getNumber(off['@_y']),
+            };
           }
-          if (ext) {
-            position.width = parseInt(ext['@_cx'], 10) || 0;
-            position.height = parseInt(ext['@_cy'], 10) || 0;
+          if (ext && position) {
+            position.width = getNumber(ext['@_cx']);
+            position.height = getNumber(ext['@_cy']);
           }
         }
       }
@@ -203,7 +211,7 @@ export class PPTXLayoutParser {
       return {
         id: `element-${type}-${Math.random().toString(36).substr(2, 9)}`,
         elementType: type,
-        position: Object.keys(position).length > 0 ? position : undefined,
+        position,
       };
     } catch {
       return null;

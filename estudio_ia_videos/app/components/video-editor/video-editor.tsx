@@ -1,8 +1,7 @@
-
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -110,7 +109,7 @@ export default function VideoEditor({
   }, [slides, videoConfig, selectedAvatar, selectedVoice])
 
   // Gerenciar reordenação de slides via drag and drop
-  const handleDragEnd = useCallback((result: any) => {
+  const handleDragEnd = useCallback((result: DropResult) => {
     if (!result.destination) return
 
     const items = Array.from(slides)
@@ -223,13 +222,26 @@ export default function VideoEditor({
     setRenderJob(null)
 
     try {
-      const response = await fetch('/api/videos/render', {
+      const response = await fetch('/api/render/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          scenes: scenes,
-          projectId: projectId,
-          quality: 'fhd'
+          project_id: projectId,
+          type: 'video',
+          priority: 'normal',
+          metadata: {
+            slides: slides,
+            renderConfig: {
+              resolution: '1080p',
+              quality: 'high',
+              format: 'mp4',
+              fps: 30,
+              includeSubtitles: true,
+              includeWatermark: false,
+              transitionStyle: 'fade',
+              avatarSync: true
+            }
+          }
         })
       })
 
@@ -237,13 +249,13 @@ export default function VideoEditor({
       
       if (data.success) {
         setRenderJob({
-          id: data.jobId,
-          status: data.status,
-          progress: data.progress
+          id: data.renderJob.id,
+          status: data.renderJob.status,
+          progress: data.renderJob.progress
         })
         
-        toast.success(`Renderização iniciada! Tempo estimado: ${Math.round(data.estimatedTime / 1000)}s`)
-        pollRenderStatus(data.jobId)
+        toast.success(`Renderização iniciada!`)
+        pollRenderStatus(data.renderJob.id)
       } else {
         throw new Error(data.error)
       }
@@ -252,7 +264,7 @@ export default function VideoEditor({
       toast.error('Erro ao iniciar renderização')
       setIsGeneratingFinal(false)
     }
-  }, [scenes, projectId])
+  }, [scenes, projectId, slides])
 
   // Poll status da renderização final
   const pollRenderStatus = useCallback(async (jobId: string) => {
@@ -267,11 +279,11 @@ export default function VideoEditor({
       }
 
       try {
-        const response = await fetch(`/api/render-status/${jobId}`)
+        const response = await fetch(`/api/render/jobs?jobId=${jobId}`)
         const data = await response.json()
         
         if (data.success) {
-          const job = data.job
+          const job = data.renderJob
           setRenderJob(job)
 
           if (job.status === 'completed') {
@@ -281,7 +293,7 @@ export default function VideoEditor({
             return
           } else if (job.status === 'failed') {
             setIsGeneratingFinal(false)
-            toast.error(`Erro na renderização: ${job.error}`)
+            toast.error(`Erro na renderização: ${job.errorMessage}`)
             return
           }
         }
@@ -366,7 +378,7 @@ export default function VideoEditor({
   }, [slides])
 
   // Calcular duração total do vídeo
-  const totalDuration = slides.reduce((sum, slide) => sum + slide.duration, 0)
+  const totalDuration = slides.reduce((sum, slide) => sum + (slide.duration || 0), 0)
 
   const currentSlide = slides.find(slide => slide.id === selectedSlide)
 
@@ -577,7 +589,7 @@ export default function VideoEditor({
                     Duração: {currentSlide.duration}s
                   </label>
                   <Slider
-                    value={[currentSlide.duration]}
+                    value={[currentSlide.duration || 5]}
                     onValueChange={([value]) => updateSlide(currentSlide.id, { duration: value })}
                     min={5}
                     max={60}

@@ -20,7 +20,7 @@ import {
   Plus,
   Save,
 } from 'lucide-react';
-import type { Track, Clip, TrackType } from '@/lib/types/timeline';
+import type { Track, Clip, TrackType } from '@/lib/types/timeline-types';
 
 interface TimelineRealProps {
   projectId: string;
@@ -264,14 +264,14 @@ export function TimelineReal({ projectId, onSave }: TimelineRealProps) {
                         }}
                       >
                         <div className="px-2 py-1 text-xs text-white truncate">
-                          {clip.name}
+                          {clip.name || 'Untitled'}
                         </div>
                         
                         {/* Thumbnail se houver */}
-                        {clip.content.thumbnail && (
+                        {clip.content?.thumbnail && (
                           <img
                             src={clip.content.thumbnail}
-                            alt={clip.name}
+                            alt={clip.name || 'Clip'}
                             className="absolute inset-0 w-full h-full object-cover opacity-30 rounded"
                           />
                         )}
@@ -362,8 +362,9 @@ export function TimelineReal({ projectId, onSave }: TimelineRealProps) {
 }
 
 // Helper para cor dos clips
-function getClipColor(type: TrackType): string {
-  const colors = {
+function getClipColor(type?: TrackType): string {
+  if (!type) return '#6b7280';
+  const colors: Record<string, string> = {
     video: '#3b82f6',
     audio: '#10b981',
     text: '#f59e0b',

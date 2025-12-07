@@ -1,3 +1,4 @@
+// TODO: Fixar tipos de estilo/gender/age após estabilizar enums
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -35,7 +36,8 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  Brain
+  Brain,
+  Library
 } from 'lucide-react'
 
 import VoiceCloningIntegration from './VoiceCloningIntegration'
@@ -64,6 +66,21 @@ interface Avatar3D {
   }
 }
 
+interface AvatarConfig {
+  name: string
+  description: string
+  style: 'realistic' | 'cartoon' | 'professional' | 'casual'
+  gender: 'male' | 'female' | 'neutral'
+  age_range: 'young' | 'adult' | 'senior'
+  ethnicity: string
+  hair_color: string
+  hair_style: string
+  skin_tone: string
+  eye_color: string
+  clothing_style: string
+  accessories: string[]
+}
+
 interface FacialExpression {
   id: string
   name: string
@@ -89,7 +106,7 @@ export default function AvatarSystemReal() {
   const [isLoading, setIsLoading] = useState(false)
   
   // Estados para geração de avatar
-  const [avatarConfig, setAvatarConfig] = useState({
+  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>({
     name: '',
     description: '',
     style: 'realistic',
@@ -467,7 +484,7 @@ export default function AvatarSystemReal() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>Estilo</Label>
-                        <Select value={avatarConfig.style} onValueChange={(value) => setAvatarConfig(prev => ({ ...prev, style: value }))}>
+                        <Select value={avatarConfig.style} onValueChange={(value) => setAvatarConfig(prev => ({ ...prev, style: value as AvatarConfig['style'] }))}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -482,7 +499,7 @@ export default function AvatarSystemReal() {
                       
                       <div>
                         <Label>Gênero</Label>
-                        <Select value={avatarConfig.gender} onValueChange={(value) => setAvatarConfig(prev => ({ ...prev, gender: value }))}>
+                        <Select value={avatarConfig.gender} onValueChange={(value) => setAvatarConfig(prev => ({ ...prev, gender: value as AvatarConfig['gender'] }))}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -503,7 +520,7 @@ export default function AvatarSystemReal() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>Faixa Etária</Label>
-                        <Select value={avatarConfig.age_range} onValueChange={(value) => setAvatarConfig(prev => ({ ...prev, age_range: value }))}>
+                        <Select value={avatarConfig.age_range} onValueChange={(value) => setAvatarConfig(prev => ({ ...prev, age_range: value as AvatarConfig['age_range'] }))}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>

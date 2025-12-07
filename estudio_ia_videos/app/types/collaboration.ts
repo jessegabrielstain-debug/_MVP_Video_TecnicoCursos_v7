@@ -6,6 +6,7 @@ export interface User {
   role: 'owner' | 'editor' | 'viewer';
   isOnline: boolean;
   lastSeen: Date;
+  cursorColor?: string;
   cursor?: {
     x: number;
     y: number;
@@ -15,6 +16,7 @@ export interface User {
 
 export interface Comment {
   id: string;
+  projectId: string;
   userId: string;
   user: User;
   content: string;

@@ -3,11 +3,10 @@
  * Geração de frames a partir de slides usando Remotion + Canvas
  */
 
-import { renderMedia, selectComposition, bundle } from '@remotion/renderer';
-import { renderStill } from '@remotion/renderer';
+import { renderMedia, selectComposition, renderStill } from '@remotion/renderer';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { createCanvas, loadImage, Image } from 'canvas';
+import { createCanvas, loadImage, Image, CanvasRenderingContext2D } from 'canvas';
 
 export interface SlideFrame {
   slideNumber: number;
@@ -52,6 +51,29 @@ export interface FrameGenerationResult {
   framesDir: string;
   duration: number; // segundos totais
   errors: string[];
+}
+
+export interface PPTXSlideData {
+  estimatedDuration: number;
+  images?: Array<{
+    id: string;
+    url: string;
+    position?: { x: number; y: number; width: number; height: number };
+  }>;
+  textBoxes?: Array<{
+    text: string;
+    position: { x: number; y: number; width: number; height: number };
+    formatting?: {
+      fontSize?: number;
+      fontFamily?: string;
+      bold?: boolean;
+      italic?: boolean;
+      color?: string;
+      alignment?: 'left' | 'center' | 'right';
+    };
+  }>;
+  background?: string;
+  transition?: { type: string; duration: number };
 }
 
 export class FrameGenerator {
@@ -131,7 +153,7 @@ export class FrameGenerator {
             }
 
             // Salvar frame
-            const framePath = path.join(outputDir, `frame_${String(frameIndex).padStart(4, '0')}.${this.format}`);
+            const framePath = path.join(outputDir, `frame_${String(frameIndex).padStart(6, '0')}.${this.format}`);
             await this.saveFrame(canvas, framePath);
 
             frameIndex++;
@@ -350,14 +372,14 @@ export class FrameGenerator {
    * Converte slides PPTX para formato de frames
    */
   static convertPPTXSlidesToFrames(
-    slides: any[], // Array de slides parseados do PPTX
+    slides: PPTXSlideData[], // Array de slides parseados do PPTX
     defaultDuration: number = 5
   ): SlideFrame[] {
     return slides.map((slide, index) => ({
       slideNumber: index + 1,
       frameIndex: 0,
-      duration: slide.duration || defaultDuration,
-      text: slide.textBoxes?.map((tb: any) => ({
+      duration: slide.estimatedDuration || defaultDuration,
+      text: slide.textBoxes?.map((tb) => ({
         content: tb.text,
         formatting: {
           bold: tb.formatting?.bold,
@@ -369,12 +391,14 @@ export class FrameGenerator {
         },
         position: tb.position,
       })),
-      images: slide.images?.map((img: any) => ({
+      images: slide.images?.map((img) => ({
         url: img.url,
         position: img.position,
       })),
       background: slide.background,
-      transition: slide.transition || { type: 'fade', duration: 0.5 },
+      transition: (slide.transition && ['fade', 'push', 'wipe', 'zoom', 'none'].includes(slide.transition.type)) 
+        ? { type: slide.transition.type as 'fade' | 'push' | 'wipe' | 'zoom' | 'none', duration: slide.transition.duration }
+        : { type: 'fade', duration: 0.5 },
     }));
   }
 }
@@ -383,7 +407,7 @@ export class FrameGenerator {
  * NOVA IMPLEMENTAÇÃO REAL - Integração com PPTX Parser
  */
 export async function generateFramesFromSlides(
-  slides: any[],
+  slides: PPTXSlideData[],
   outputDir: string,
   options: {
     resolution: { width: number; height: number };
@@ -432,11 +456,16 @@ export async function generateFramesFromSlides(
  * Gera frames para um slide usando Canvas (mais rápido que Remotion)
  */
 async function generateSlideFramesWithCanvas(
-  slide: any,
+  slide: PPTXSlideData,
   outputDir: string,
   startFrame: number,
   frameCount: number,
-  options: any
+  options: {
+    resolution: { width: number; height: number };
+    fps: number;
+    transitionsEnabled: boolean;
+    onProgress?: (progress: number) => void;
+  }
 ): Promise<number> {
   const canvas = createCanvas(options.resolution.width, options.resolution.height);
   const ctx = canvas.getContext('2d');

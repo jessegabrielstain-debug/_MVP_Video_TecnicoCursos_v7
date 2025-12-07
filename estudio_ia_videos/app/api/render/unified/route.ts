@@ -195,10 +195,10 @@ class UnifiedRenderPipeline {
         completedAt: new Date()
       })
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       await this.updateRenderJob(jobId, {
         status: 'failed',
-        errorMessage: error.message,
+        errorMessage: error instanceof Error ? error.message : String(error),
         currentStage: 'Erro na renderização'
       })
       throw error
@@ -206,7 +206,7 @@ class UnifiedRenderPipeline {
   }
 
   // Validate assets
-  private async validateAssets(slides: RenderRequest['slides']): Promise<any> {
+  private async validateAssets(slides: RenderRequest['slides']): Promise<Record<string, unknown>> {
     // Simulate asset validation
     await new Promise(resolve => setTimeout(resolve, 1000))
     
@@ -300,7 +300,7 @@ class UnifiedRenderPipeline {
   }
 
   // Composite video layers
-  private async compositeVideoLayers(composition: CompositionStep[], config: RenderRequest['renderConfig']): Promise<any> {
+  private async compositeVideoLayers(composition: CompositionStep[], config: RenderRequest['renderConfig']): Promise<Record<string, unknown>> {
     // Simulate video compositing
     await new Promise(resolve => setTimeout(resolve, 2000))
     
@@ -313,7 +313,7 @@ class UnifiedRenderPipeline {
   }
 
   // Sync audio and avatar
-  private async syncAudioAndAvatar(video: any, slides: RenderRequest['slides'], config: RenderRequest['renderConfig']): Promise<any> {
+  private async syncAudioAndAvatar(video: Record<string, unknown>, slides: RenderRequest['slides'], config: RenderRequest['renderConfig']): Promise<Record<string, unknown>> {
     // Simulate audio/avatar sync
     await new Promise(resolve => setTimeout(resolve, 1500))
     
@@ -326,7 +326,7 @@ class UnifiedRenderPipeline {
   }
 
   // Add effects and transitions
-  private async addEffectsAndTransitions(video: any, config: RenderRequest['renderConfig']): Promise<any> {
+  private async addEffectsAndTransitions(video: Record<string, unknown>, config: RenderRequest['renderConfig']): Promise<Record<string, unknown>> {
     // Simulate effects and transitions
     await new Promise(resolve => setTimeout(resolve, 1000))
     
@@ -338,7 +338,7 @@ class UnifiedRenderPipeline {
   }
 
   // Encode final video
-  private async encodeVideo(video: any, config: RenderRequest['renderConfig']): Promise<{ url: string; size: number }> {
+  private async encodeVideo(video: Record<string, unknown> & { totalDuration?: number }, config: RenderRequest['renderConfig']): Promise<{ url: string; size: number }> {
     // Simulate video encoding
     await new Promise(resolve => setTimeout(resolve, 2000))
     
@@ -346,7 +346,7 @@ class UnifiedRenderPipeline {
     const outputUrl = `/api/files/renders/${outputFilename}`
     
     // Simulate file size calculation
-    const estimatedSize = this.calculateFileSize(video.totalDuration, config)
+    const estimatedSize = this.calculateFileSize(video.totalDuration || 0, config)
     
     return {
       url: outputUrl,
@@ -432,11 +432,11 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Render API error:', error)
     return NextResponse.json({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error instanceof Error ? error.message : String(error) 
     }, { status: 500 })
   }
 }
@@ -481,11 +481,11 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Render status API error:', error)
     return NextResponse.json({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error instanceof Error ? error.message : String(error) 
     }, { status: 500 })
   }
 }

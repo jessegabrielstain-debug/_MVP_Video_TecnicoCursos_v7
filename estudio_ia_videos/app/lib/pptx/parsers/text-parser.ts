@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
+import { PPTXShape, PPTXParagraph, PPTXRun, getString, getNumber, ensureArray } from './types';
 
 export interface SlideTextBoxSummary {
   id: string;
@@ -52,13 +53,52 @@ export class PPTXTextParser {
       ignoreAttributes: false,
       attributeNamePrefix: '@_',
       allowBooleanAttributes: true,
-      parseNodeValue: true,
       parseAttributeValue: true,
       trimValues: true,
     });
   }
 
-  async extractText(zip: JSZip, slideNumber: number): Promise<SlideTextExtractionResult> {
+  /**
+   * Extrai texto de múltiplos slides como array (compatível com testes)
+   */
+  async extractText(zip: JSZip): Promise<Array<{
+    slideNumber: number;
+    text: string;
+    formatting: SlideTextFormatting[];
+    bulletPoints: string[];
+    hyperlinks: SlideHyperlink[];
+  }>> {
+    try {
+      const slideFiles = zip.filter((path) => !!path.match(/^ppt\/slides\/slide\d+\.xml$/));
+      const results = [];
+
+      for (let i = 0; i < slideFiles.length; i++) {
+        const slideNumber = i + 1;
+        const result = await this.extractTextFromSlide(zip, slideNumber);
+        
+        if (result.success) {
+          const formatting = result.textBoxes?.map(tb => tb.formatting).filter(Boolean) as SlideTextFormatting[] || [];
+          results.push({
+            slideNumber,
+            text: result.plainText || '',
+            formatting,
+            bulletPoints: result.bulletPoints || [],
+            hyperlinks: await this.extractHyperlinks(zip, slideNumber),
+          });
+        }
+      }
+
+      return results;
+    } catch (error) {
+      console.error('Error extracting text from slides:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Extrai texto de um slide específico (método original)
+   */
+  async extractTextFromSlide(zip: JSZip, slideNumber: number): Promise<SlideTextExtractionResult> {
     try {
       const slidePath = `ppt/slides/slide${slideNumber}.xml`;
       const slideFile = zip.file(slidePath);
@@ -88,7 +128,7 @@ export class PPTXTextParser {
       }
 
       // Processar todos os shapes (p:sp) que contêm texto
-      const shapes = this.toArray(spTree['p:sp']);
+      const shapes = ensureArray<PPTXShape>(spTree['p:sp']);
       
       for (let i = 0; i < shapes.length; i++) {
         const shape = shapes[i];
@@ -99,7 +139,7 @@ export class PPTXTextParser {
         const formatting = this.extractFormattingFromShape(shape, `shape-${i}`);
         
         let shapeText = '';
-        const paragraphs = this.toArray(txBody['a:p']);
+        const paragraphs = ensureArray<PPTXParagraph>(txBody['a:p']);
 
         for (const paragraph of paragraphs) {
           if (!paragraph) continue;
@@ -107,13 +147,13 @@ export class PPTXTextParser {
           // Verificar se é bullet point
           const isBullet = paragraph['a:pPr']?.['a:buFont'] || paragraph['a:pPr']?.['a:buChar'];
           
-          const runs = this.toArray(paragraph['a:r']);
+          const runs = ensureArray<PPTXRun>(paragraph['a:r']);
           let paragraphText = '';
 
           for (const run of runs) {
             if (!run) continue;
-            const text = run['a:t'];
-            if (typeof text === 'string') {
+            const text = getString(run['a:t']);
+            if (text) {
               paragraphText += text;
             }
           }
@@ -157,7 +197,7 @@ export class PPTXTextParser {
     }
   }
 
-  private extractPosition(shape: any): SlideTextBoxPosition | undefined {
+  private extractPosition(shape: PPTXShape): SlideTextBoxPosition | undefined {
     try {
       const spPr = shape['p:spPr'];
       if (!spPr) return undefined;
@@ -171,17 +211,17 @@ export class PPTXTextParser {
       const position: SlideTextBoxPosition = {};
 
       if (off) {
-        if (off['@_x'] !== undefined) position.x = parseInt(off['@_x'], 10);
-        if (off['@_y'] !== undefined) position.y = parseInt(off['@_y'], 10);
+        position.x = getNumber(off['@_x']);
+        position.y = getNumber(off['@_y']);
       }
 
       if (ext) {
-        if (ext['@_cx'] !== undefined) position.width = parseInt(ext['@_cx'], 10);
-        if (ext['@_cy'] !== undefined) position.height = parseInt(ext['@_cy'], 10);
+        position.width = getNumber(ext['@_cx']);
+        position.height = getNumber(ext['@_cy']);
       }
 
       if (xfrm['@_rot']) {
-        position.rotation = parseInt(xfrm['@_rot'], 10) / 60000; // Converter de 1/60000 graus
+        position.rotation = getNumber(xfrm['@_rot']) / 60000; // Converter de 1/60000 graus
       }
 
       return position;
@@ -190,14 +230,14 @@ export class PPTXTextParser {
     }
   }
 
-  private extractFormattingFromShape(shape: any, id: string): SlideTextFormatting {
+  private extractFormattingFromShape(shape: PPTXShape, id: string): SlideTextFormatting {
     const formatting: SlideTextFormatting = { id };
 
     try {
       const txBody = shape['p:txBody'];
       if (!txBody) return formatting;
 
-      const paragraphs = this.toArray(txBody['a:p']);
+      const paragraphs = ensureArray<PPTXParagraph>(txBody['a:p']);
       if (paragraphs.length === 0) return formatting;
 
       const firstParagraph = paragraphs[0];
@@ -213,27 +253,30 @@ export class PPTXTextParser {
       }
 
       // Pegar formatação do primeiro run
-      const runs = this.toArray(firstParagraph['a:r']);
+      const runs = ensureArray<PPTXRun>(firstParagraph['a:r']);
       if (runs.length > 0) {
         const rPr = runs[0]['a:rPr'];
         if (rPr) {
-          if (rPr['@_sz']) formatting.fontSize = parseInt(rPr['@_sz'], 10) / 100; // Converter de centésimos de ponto
-          if (rPr['@_b'] === '1' || rPr['@_b'] === true) formatting.bold = true;
-          if (rPr['@_i'] === '1' || rPr['@_i'] === true) formatting.italic = true;
+          const fontSize = getNumber(rPr['@_sz']);
+          if (fontSize) formatting.fontSize = fontSize / 100; // Converter de centésimos de ponto
+          if (rPr['@_b'] === '1' || rPr['@_b'] === 1 || rPr['@_b'] === true) formatting.bold = true;
+          if (rPr['@_i'] === '1' || rPr['@_i'] === 1 || rPr['@_i'] === true) formatting.italic = true;
           if (rPr['@_u'] !== 'none' && rPr['@_u']) formatting.underline = true;
 
           // Font family
           const latin = rPr['a:latin'];
-          if (latin?.['@_typeface']) {
-            formatting.fontFamily = latin['@_typeface'];
+          const fontFamily = getString(latin?.['@_typeface']);
+          if (fontFamily) {
+            formatting.fontFamily = fontFamily;
           }
 
           // Cor
           const solidFill = rPr['a:solidFill'];
           if (solidFill) {
             const srgbClr = solidFill['a:srgbClr'];
-            if (srgbClr?.['@_val']) {
-              formatting.color = `#${srgbClr['@_val']}`;
+            const colorVal = getString(srgbClr?.['@_val']);
+            if (colorVal) {
+              formatting.color = `#${colorVal}`;
             }
           }
         }
@@ -245,14 +288,9 @@ export class PPTXTextParser {
     return formatting;
   }
 
-  private toArray<T>(value: T | T[] | undefined): T[] {
-    if (value === undefined) return [];
-    return Array.isArray(value) ? value : [value];
-  }
-
   async extractFormatting(zip: JSZip, slideNumber: number): Promise<{ success: boolean; formatting: SlideTextFormatting[] }> {
     try {
-      const result = await this.extractText(zip, slideNumber);
+      const result = await this.extractTextFromSlide(zip, slideNumber);
       if (!result.success || !result.textBoxes) {
         return { success: false, formatting: [] };
       }
@@ -269,7 +307,7 @@ export class PPTXTextParser {
 
   async extractBulletPoints(zip: JSZip, slideNumber: number): Promise<string[]> {
     try {
-      const result = await this.extractText(zip, slideNumber);
+      const result = await this.extractTextFromSlide(zip, slideNumber);
       return result.bulletPoints || [];
     } catch {
       return [];
@@ -286,22 +324,39 @@ export class PPTXTextParser {
       const slideXml = await slideFile.async('string');
       const slideData = this.xmlParser.parse(slideXml);
 
+      // Parse relationships to resolve hyperlink targets
+      const relsPath = `ppt/slides/_rels/slide${slideNumber}.xml.rels`;
+      const relsFile = zip.file(relsPath);
+      const relationships: Record<string, string> = {};
+
+      if (relsFile) {
+        const relsXml = await relsFile.async('string');
+        const relsData = this.xmlParser.parse(relsXml);
+        const rels = ensureArray(relsData?.Relationships?.Relationship);
+        
+        for (const rel of rels) {
+          if (rel && rel['@_Id'] && rel['@_Target']) {
+            relationships[rel['@_Id']] = rel['@_Target'];
+          }
+        }
+      }
+
       const hyperlinks: SlideHyperlink[] = [];
       const spTree = slideData?.['p:sld']?.['p:cSld']?.['p:spTree'];
       if (!spTree) return [];
 
-      const shapes = this.toArray(spTree['p:sp']);
+      const shapes = ensureArray<PPTXShape>(spTree['p:sp']);
       
       for (let i = 0; i < shapes.length; i++) {
         const shape = shapes[i];
         if (!shape?.['p:txBody']) continue;
 
-        const paragraphs = this.toArray(shape['p:txBody']['a:p']);
+        const paragraphs = ensureArray<PPTXParagraph>(shape['p:txBody']['a:p']);
         
         for (const paragraph of paragraphs) {
           if (!paragraph) continue;
           
-          const runs = this.toArray(paragraph['a:r']);
+          const runs = ensureArray<PPTXRun>(paragraph['a:r']);
           for (const run of runs) {
             if (!run) continue;
             
@@ -309,13 +364,17 @@ export class PPTXTextParser {
             const hlinkClick = rPr?.['a:hlinkClick'];
             
             if (hlinkClick) {
-              const text = run['a:t'] || '';
-              const url = hlinkClick['@_r:id'] || hlinkClick['@_tooltip'] || '';
+              const text = getString(run['a:t']);
+              const rId = getString(hlinkClick['@_r:id']);
+              const tooltip = getString(hlinkClick['@_tooltip']);
+              
+              // Resolve URL from relationships if rId exists, otherwise use tooltip or rId itself
+              const url = (rId && relationships[rId]) || tooltip || rId;
               
               if (url) {
                 hyperlinks.push({
                   id: `hyperlink-${i}-${hyperlinks.length}`,
-                  text: typeof text === 'string' ? text : '',
+                  text,
                   url,
                   target: '_blank',
                 });
@@ -337,5 +396,5 @@ export async function extractTextFromSlide(
   slideNumber: number,
 ): Promise<SlideTextExtractionResult> {
   const parser = new PPTXTextParser();
-  return parser.extractText(zip, slideNumber);
+  return parser.extractTextFromSlide(zip, slideNumber);
 }

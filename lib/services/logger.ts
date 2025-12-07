@@ -238,7 +238,7 @@ class LoggerService {
               extra: context,
               tags: {
                 service: this.config.serviceName,
-                component: context?.component || 'unknown',
+                component: (context?.component as string) || 'unknown',
               },
             });
           } else {
@@ -247,7 +247,7 @@ class LoggerService {
               extra: context,
               tags: {
                 service: this.config.serviceName,
-                component: context?.component || 'unknown',
+                component: (context?.component as string) || 'unknown',
               },
             });
           }

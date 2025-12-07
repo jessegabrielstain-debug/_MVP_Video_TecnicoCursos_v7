@@ -6,9 +6,23 @@
  *   inicializa Sentry (server-side) sob demanda.
  * - Em desenvolvimento ou sem DSN, mantém comportamento de stub seguro.
  */
+interface SentryScope {
+  setUser: (user: { id: string; email?: string }) => void;
+  setContext: (key: string, context: Record<string, unknown>) => void;
+  setExtras: (extras: Record<string, unknown>) => void;
+  setLevel: (level: string) => void;
+}
+
+interface SentryInstance {
+  addBreadcrumb: (data: unknown) => void;
+  captureException: (error: unknown, callback?: (scope: SentryScope) => void) => void;
+  init: (config: unknown) => void;
+  isEnabled: () => boolean;
+}
+
 let sentryReady = false;
 // Usamos `any` para não exigir tipagens/instalação de @sentry/node em ambientes sem Sentry
-let sentry: any | null = null;
+let sentry: SentryInstance | null = null;
 
 export async function ensureMonitoringReady() {
   if (sentryReady) return true;
@@ -16,7 +30,7 @@ export async function ensureMonitoringReady() {
   if (!dsn) return false;
   try {
     // Import dinâmico para não impor dependência direta
-    const mod: any = await import('@sentry/node');
+    const mod = await import('@sentry/node') as unknown as SentryInstance;
     sentry = mod;
     if (!mod.isEnabled()) {
       mod.init({
@@ -74,11 +88,11 @@ export function recordMetric(metric: MetricData): void {
 export function captureError(error: Error, context?: ErrorContext): void {
   ensureMonitoringReady().then((ok) => {
     if (ok && sentry) {
-      sentry?.captureException(error, (scope) => {
+      sentry?.captureException(error, (scope: SentryScope) => {
         if (context?.user) scope.setUser({ id: context.user.id, email: context.user.email });
         if (context?.request) scope.setContext('request', context.request as Record<string, unknown>);
         if (context?.extra) scope.setExtras(context.extra);
-        return scope;
+        return scope; // Sentry expects scope to be returned sometimes or just void, but let's keep it safe
       });
     } else {
       console.error('[Error Captured]', {
@@ -100,8 +114,8 @@ export function captureException(
   ensureMonitoringReady().then((ok) => {
     if (ok && sentry) {
       const lvl = level === 'fatal' ? 'fatal' : level;
-      sentry?.captureException(error, (scope) => {
-        scope.setLevel(lvl as any);
+      sentry?.captureException(error, (scope: SentryScope) => {
+        scope.setLevel(lvl);
         return scope;
       });
     } else {

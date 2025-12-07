@@ -361,7 +361,7 @@ describe('VideoTemplateLibrary', () => {
       library.addToFavorites(templates[0].id);
       library.addToFavorites(templates[1].id);
 
-      const favorites = library.getFavorites();
+      const favorites = library.getFavoriteTemplates();
 
       expect(favorites.length).toBe(2);
       expect(favorites[0].id).toBe(templates[0].id);

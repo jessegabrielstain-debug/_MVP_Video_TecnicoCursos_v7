@@ -3,7 +3,6 @@
  * Sprint 50 - Advanced Features
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals'
 import { RenderingCache } from '../../../lib/export/rendering-cache'
 import { ExportFormat, ExportResolution, ExportQuality } from '../../../types/export.types'
 import type { ExportSettings } from '../../../types/export.types'

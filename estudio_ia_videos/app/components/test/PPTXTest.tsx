@@ -9,6 +9,17 @@ import React, { useState, useRef } from 'react';
 import { usePPTX } from '../../hooks/use-pptx';
 import { PPTXDocument, PPTXProcessingJob } from '../../types/pptx-types';
 
+interface PreviewData {
+  title: string;
+  slideCount: number;
+  author: string;
+  slides: Array<{
+    slideNumber: number;
+    title: string;
+    contentPreview: string;
+  }>;
+}
+
 const PPTXTest: React.FC = () => {
   const {
     isUploading,
@@ -35,7 +46,7 @@ const PPTXTest: React.FC = () => {
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [generationData, setGenerationData] = useState<unknown>({});
-  const [preview, setPreview] = useState<unknown>(null);
+  const [preview, setPreview] = useState<PreviewData | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -130,7 +141,7 @@ const PPTXTest: React.FC = () => {
 
   const handleGeneratePPTX = async (templateType: string) => {
     try {
-      const data = exampleData[templateType];
+      const data = exampleData[templateType as keyof typeof exampleData];
       if (!data) {
         alert('Dados de exemplo não encontrados para este template');
         return;
@@ -168,7 +179,7 @@ const PPTXTest: React.FC = () => {
     if (!currentJob) return;
     
     const previewData = await getDocumentPreview(currentJob.id);
-    setPreview(previewData);
+    setPreview(previewData as unknown as PreviewData);
   };
 
   const handleConvertToVideo = async () => {

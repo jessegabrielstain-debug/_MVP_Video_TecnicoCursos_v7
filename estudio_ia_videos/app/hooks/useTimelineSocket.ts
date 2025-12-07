@@ -1,24 +1,59 @@
 /**
- * Timeline WebSocket Client SDK
- * Hook React para comunicação real-time
+ * Timeline WebSocket Client SDK (Supabase Realtime Version)
+ * Hook React para comunicação real-time via Supabase
  */
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { io, Socket } from 'socket.io-client'
-import { TimelineEvent } from '@/lib/websocket/timeline-websocket'
-import {
-  JoinProjectPayload,
-  TrackLockedPayload,
-  TrackUnlockedPayload,
-  CursorMovePayload,
-  TimelineUpdatePayload,
-  NotificationPayload,
-  UserPresence,
-  ActiveUsersPayload,
-  UserJoinedPayload,
-  UserLeftPayload,
-} from '@/lib/websocket/timeline-websocket'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client'
+import { RealtimeChannel } from '@supabase/supabase-js'
+
+// Re-export types from legacy file or define them here if needed
+// For now, we define compatible types
+export interface UserPresence {
+  userId: string
+  userName: string
+  userImage?: string
+  currentTrackId?: string
+  lastActive: number
+}
+
+export interface CursorMovePayload {
+  projectId: string
+  userId: string
+  trackId?: string
+  position: { x: number; y: number; time: number }
+}
+
+export interface TrackLockedPayload {
+  projectId: string
+  trackId: string
+  userId: string
+  userName: string
+}
+
+export interface TrackUnlockedPayload {
+  projectId: string
+  trackId: string
+  userId: string
+}
+
+export interface TimelineUpdatePayload {
+  projectId: string
+  userId: string
+  version: number
+  changes: Record<string, unknown>
+}
+
+export interface NotificationPayload {
+  projectId: string
+  type: 'info' | 'success' | 'warning' | 'error'
+  message: string
+  timestamp: number
+}
+
+export interface UserJoinedPayload extends UserPresence {}
+export interface UserLeftPayload { userId: string; userName?: string }
 
 export interface UseTimelineSocketOptions {
   projectId: string
@@ -32,33 +67,24 @@ export interface UseTimelineSocketOptions {
 }
 
 export interface TimelineSocketReturn {
-  // Connection state
   isConnected: boolean;
   error: Error | null;
-  
-  // Active users
   activeUsers: UserPresence[];
-  
-  // Actions
-  connect: () => void
-  disconnect: () => void
-  
-  // Events
-  lockTrack: (trackId: string) => void
-  unlockTrack: (trackId: string) => void
-  updateCursor: (trackId: string | undefined, position: { x: number; y: number; time: number }) => void
-  updatePresence: (currentTrackId?: string) => void
-  broadcastTimelineUpdate: (version: number, changes: Record<string, unknown>) => void
-  sendNotification: (notification: Omit<NotificationPayload, 'projectId'>) => void
-  
-  // Event listeners
-  onUserJoined: (callback: (data: UserJoinedPayload) => void) => void
-  onUserLeft: (callback: (data: UserLeftPayload) => void) => void
-  onTrackLocked: (callback: (data: TrackLockedPayload) => void) => void
-  onTrackUnlocked: (callback: (data: TrackUnlockedPayload) => void) => void
-  onCursorMove: (callback: (data: CursorMovePayload) => void) => void
-  onTimelineUpdated: (callback: (data: TimelineUpdatePayload) => void) => void
-  onNotification: (callback: (data: NotificationPayload) => void) => void
+  connect: () => void;
+  disconnect: () => void;
+  lockTrack: (trackId: string) => void;
+  unlockTrack: (trackId: string) => void;
+  updateCursor: (trackId: string | undefined, position: { x: number; y: number; time: number }) => void;
+  updatePresence: (currentTrackId?: string) => void;
+  broadcastTimelineUpdate: (version: number, changes: Record<string, unknown>) => void;
+  sendNotification: (notification: Omit<NotificationPayload, 'projectId'>) => void;
+  onUserJoined: (callback: (data: UserJoinedPayload) => void) => void;
+  onUserLeft: (callback: (data: UserLeftPayload) => void) => void;
+  onTrackLocked: (callback: (data: TrackLockedPayload) => void) => void;
+  onTrackUnlocked: (callback: (data: TrackUnlockedPayload) => void) => void;
+  onCursorMove: (callback: (data: CursorMovePayload) => void) => void;
+  onTimelineUpdated: (callback: (data: TimelineUpdatePayload) => void) => void;
+  onNotification: (callback: (data: NotificationPayload) => void) => void;
 }
 
 export function useTimelineSocket({
@@ -71,207 +97,214 @@ export function useTimelineSocket({
   onDisconnected,
   onError
 }: UseTimelineSocketOptions): TimelineSocketReturn {
-  const socketRef = useRef<Socket | null>(null)
+  const supabase = useMemo(() => createBrowserSupabaseClient(), [])
+  const channelRef = useRef<RealtimeChannel | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [activeUsers, setActiveUsers] = useState<UserPresence[]>([])
   
-  // Event listener refs para cleanup
+  // Event listeners storage
   const listenersRef = useRef<Map<string, Set<(payload: unknown) => void>>>(new Map())
 
-  // Conectar ao WebSocket
-  const connect = useCallback(() => {
-    if (socketRef.current?.connected) {
-      console.log('[Timeline Socket] Already connected')
-      return
+  // Helper to dispatch events to listeners
+  const dispatchEvent = useCallback((event: string, payload: unknown) => {
+    const listeners = listenersRef.current.get(event)
+    if (listeners) {
+      listeners.forEach(listener => listener(payload))
     }
+  }, [])
 
-    const socket = io({
-      path: '/api/socket/timeline',
-      auth: {
-        token: 'dev-token', // Em produção, usar JWT real
-        userId,
-        userName
-      },
-      transports: ['websocket', 'polling']
-    })
+  const connect = useCallback(() => {
+    if (channelRef.current) return
 
-    socket.on('connect', () => {
-      console.log('[Timeline Socket] Connected')
-      setIsConnected(true)
-      setError(null)
+    try {
+      console.log('[Timeline Realtime] Connecting to channel:', `timeline:${projectId}`)
       
-      // Join project room
-      socket.emit(TimelineEvent.JOIN_PROJECT, {
-        projectId,
-        userId,
-        userName,
-        userImage
+      const channel = supabase.channel(`timeline:${projectId}`, {
+        config: {
+          presence: {
+            key: userId,
+          },
+          broadcast: {
+            self: false, // Don't receive own messages
+          }
+        }
       })
-      
-      onConnected?.()
-    })
 
-    socket.on('disconnect', () => {
-      console.log('[Timeline Socket] Disconnected')
+      channel
+        // Presence
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState<UserPresence>()
+          const users: UserPresence[] = []
+          
+          Object.values(state).forEach(presences => {
+            presences.forEach(p => users.push(p))
+          })
+          
+          setActiveUsers(users)
+        })
+        .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+          newPresences.forEach(p => {
+            dispatchEvent('user-joined', p)
+          })
+        })
+        .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+          leftPresences.forEach((p: any) => {
+            const userName = p.userName || 'Usuário'
+            dispatchEvent('user-left', { userId: key, userName })
+          })
+        })
+
+        // Broadcast Events
+        .on('broadcast', { event: 'cursor-move' }, ({ payload }) => {
+          dispatchEvent('cursor-move', payload)
+        })
+        .on('broadcast', { event: 'track-locked' }, ({ payload }) => {
+          dispatchEvent('track-locked', payload)
+        })
+        .on('broadcast', { event: 'track-unlocked' }, ({ payload }) => {
+          dispatchEvent('track-unlocked', payload)
+        })
+        .on('broadcast', { event: 'timeline-updated' }, ({ payload }) => {
+          dispatchEvent('timeline-updated', payload)
+        })
+        .on('broadcast', { event: 'notification' }, ({ payload }) => {
+          dispatchEvent('notification', payload)
+        })
+
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('[Timeline Realtime] Connected')
+            setIsConnected(true)
+            setError(null)
+            onConnected?.()
+            
+            // Track presence
+            await channel.track({
+              userId,
+              userName,
+              userImage,
+              lastActive: Date.now()
+            })
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('[Timeline Realtime] Connection error')
+            const err = new Error('Connection error')
+            setError(err)
+            setIsConnected(false)
+            onError?.(err)
+          } else if (status === 'TIMED_OUT') {
+            console.error('[Timeline Realtime] Connection timeout')
+            const err = new Error('Connection timeout')
+            setError(err)
+            setIsConnected(false)
+            onError?.(err)
+          }
+        })
+
+      channelRef.current = channel
+
+    } catch (err) {
+      console.error('[Timeline Realtime] Setup error:', err)
+      setError(err as Error)
+      onError?.(err as Error)
+    }
+  }, [projectId, userId, userName, userImage, supabase, onConnected, onError, dispatchEvent])
+
+  const disconnect = useCallback(() => {
+    if (channelRef.current) {
+      console.log('[Timeline Realtime] Disconnecting')
+      supabase.removeChannel(channelRef.current)
+      channelRef.current = null
       setIsConnected(false)
       onDisconnected?.()
-    })
-
-    socket.on('connect_error', (err) => {
-      console.error('[Timeline Socket] Connection error:', err)
-      setError(err)
-      setIsConnected(false)
-      onError?.(err)
-    })
-
-    // Active users list
-    socket.on(TimelineEvent.ACTIVE_USERS, ({ users }: ActiveUsersPayload) => {
-      console.log('[Timeline Socket] Active users:', users)
-      setActiveUsers(users)
-    })
-
-    // User joined
-    socket.on(TimelineEvent.USER_JOINED, (payload: UserJoinedPayload) => {
-      setActiveUsers(prev => {
-        const existingUser = prev.find(u => u.userId === payload.userId);
-        if (existingUser) {
-          return prev.map(u => u.userId === payload.userId ? { ...u, ...payload } : u);
-        }
-        return [...prev, payload];
-      });
-    })
-
-    // User left
-    socket.on(TimelineEvent.USER_LEFT, ({ userId: leftUserId }: UserLeftPayload) => {
-      setActiveUsers(prev => prev.filter(u => u.userId !== leftUserId))
-    })
-
-    socketRef.current = socket
-  }, [projectId, userId, userName, userImage, onConnected, onDisconnected, onError])
-
-  // Desconectar
-  const disconnect = useCallback(() => {
-    if (socketRef.current) {
-      socketRef.current.emit(TimelineEvent.LEAVE_PROJECT, { projectId })
-      socketRef.current.disconnect()
-      socketRef.current = null
-      setIsConnected(false)
     }
-  }, [projectId])
+  }, [supabase, onDisconnected])
 
-  // Lock track
+  // Actions
   const lockTrack = useCallback((trackId: string) => {
-    if (!socketRef.current?.connected) return
-    
-    socketRef.current.emit(TimelineEvent.TRACK_LOCKED, {
-      projectId,
-      trackId,
-      userId,
-      userName
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'track-locked',
+      payload: { projectId, trackId, userId, userName }
     })
   }, [projectId, userId, userName])
 
-  // Unlock track
   const unlockTrack = useCallback((trackId: string) => {
-    if (!socketRef.current?.connected) return
-    
-    socketRef.current.emit(TimelineEvent.TRACK_UNLOCKED, {
-      projectId,
-      trackId,
-      userId
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'track-unlocked',
+      payload: { projectId, trackId, userId }
     })
   }, [projectId, userId])
 
-  // Update cursor position (throttled no componente)
   const updateCursor = useCallback((trackId: string | undefined, position: { x: number; y: number; time: number }) => {
-    if (!socketRef.current?.connected) return
-    
-    socketRef.current.emit(TimelineEvent.CURSOR_MOVE, {
-      projectId,
-      userId,
-      trackId,
-      position
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'cursor-move',
+      payload: { projectId, userId, trackId, position }
     })
   }, [projectId, userId])
 
-  // Update presence
   const updatePresence = useCallback((currentTrackId?: string) => {
-    if (!socketRef.current?.connected) return
-    
-    socketRef.current.emit(TimelineEvent.PRESENCE_UPDATE, {
-      projectId,
-      currentTrackId
-    })
-  }, [projectId])
-
-  // Broadcast timeline update
-  const broadcastTimelineUpdate = useCallback((version: number, changes: Record<string, unknown>) => {
-    if (!socketRef.current?.connected) return
-    
-    socketRef.current.emit(TimelineEvent.TIMELINE_UPDATED, {
-      projectId,
+    channelRef.current?.track({
       userId,
-      version,
-      changes
+      userName,
+      userImage,
+      currentTrackId,
+      lastActive: Date.now()
+    })
+  }, [userId, userName, userImage])
+
+  const broadcastTimelineUpdate = useCallback((version: number, changes: Record<string, unknown>) => {
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'timeline-updated',
+      payload: { projectId, userId, version, changes }
     })
   }, [projectId, userId])
 
-  // Send notification
   const sendNotification = useCallback((notification: Omit<NotificationPayload, 'projectId'>) => {
-    if (!socketRef.current?.connected) return
-    
-    socketRef.current.emit(TimelineEvent.NOTIFICATION, {
-      ...notification,
-      projectId
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'notification',
+      payload: { ...notification, projectId }
     })
   }, [projectId])
 
-  // Event listeners
-  const addEventListener = useCallback(<T>(event: string, callback: (data: T) => void) => {
-    if (!socketRef.current) {
-      return
-    }
-
-    const listener = (payload: unknown) => {
-      callback(payload as T)
-    }
-
-    socketRef.current.on(event, listener)
-
+  // Event Listeners Registration
+  const addEventListener = useCallback(<T,>(event: string, callback: (data: T) => void) => {
     if (!listenersRef.current.has(event)) {
       listenersRef.current.set(event, new Set())
     }
-
-    listenersRef.current.get(event)!.add(listener)
+    listenersRef.current.get(event)!.add(callback as (payload: unknown) => void)
   }, [])
 
   const onUserJoined = useCallback((callback: (data: UserJoinedPayload) => void) => {
-    addEventListener(TimelineEvent.USER_JOINED, callback)
+    addEventListener('user-joined', callback)
   }, [addEventListener])
 
   const onUserLeft = useCallback((callback: (data: UserLeftPayload) => void) => {
-    addEventListener(TimelineEvent.USER_LEFT, callback)
+    addEventListener('user-left', callback)
   }, [addEventListener])
 
   const onTrackLocked = useCallback((callback: (data: TrackLockedPayload) => void) => {
-    addEventListener(TimelineEvent.TRACK_LOCKED, callback)
+    addEventListener('track-locked', callback)
   }, [addEventListener])
 
   const onTrackUnlocked = useCallback((callback: (data: TrackUnlockedPayload) => void) => {
-    addEventListener(TimelineEvent.TRACK_UNLOCKED, callback)
+    addEventListener('track-unlocked', callback)
   }, [addEventListener])
 
   const onCursorMove = useCallback((callback: (data: CursorMovePayload) => void) => {
-    addEventListener(TimelineEvent.CURSOR_MOVE, callback)
+    addEventListener('cursor-move', callback)
   }, [addEventListener])
 
   const onTimelineUpdated = useCallback((callback: (data: TimelineUpdatePayload) => void) => {
-    addEventListener(TimelineEvent.TIMELINE_UPDATED, callback)
+    addEventListener('timeline-updated', callback)
   }, [addEventListener])
 
   const onNotification = useCallback((callback: (data: NotificationPayload) => void) => {
-    addEventListener(TimelineEvent.NOTIFICATION, callback)
+    addEventListener('notification', callback)
   }, [addEventListener])
 
   // Auto-connect
@@ -279,16 +312,7 @@ export function useTimelineSocket({
     if (autoConnect) {
       connect()
     }
-
     return () => {
-      // Cleanup listeners
-      listenersRef.current.forEach((handlers, event) => {
-        handlers.forEach(handler => {
-          socketRef.current?.off(event, handler)
-        })
-      })
-      listenersRef.current.clear()
-      
       disconnect()
     }
   }, [autoConnect, connect, disconnect])

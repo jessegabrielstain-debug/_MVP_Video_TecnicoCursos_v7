@@ -3,6 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createRateLimiter, rateLimitPresets } from '@/lib/utils/rate-limit-middleware';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -30,7 +31,9 @@ interface UploadMetadata {
   lastUpdated: string;
 }
 
+const rateLimiterPost = createRateLimiter(rateLimitPresets.upload);
 export async function POST(request: NextRequest) {
+  return rateLimiterPost(request, async (request: NextRequest) => {
   await ensureDirectories();
 
   try {
@@ -95,4 +98,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

@@ -139,10 +139,9 @@ export async function GET(request: NextRequest) {
             select: {
               id: true,
               title: true,
-              audioUrl: true,
-              ttsGenerated: true
+              audioConfig: true
             },
-            orderBy: { slideNumber: 'asc' }
+            orderBy: { orderIndex: 'asc' }
           }
         }
       })
@@ -154,29 +153,30 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      const slidesWithTTS = project.slides.filter((slide: any) => slide.ttsGenerated)
-      const processingLog = project.processingLog as Record<string, unknown> | null
+      const slidesWithTTS = project.slides.filter((slide: any) => slide.audioConfig?.audioUrl)
+      const metadata = (project.metadata as any) || {}
+      const processingLog = metadata.processingLog || {}
 
       return NextResponse.json({
         success: true,
         project: {
           id: project.id,
-          name: project.name,
-          hasProjectAudio: !!project.audioUrl,
-          projectAudioUrl: project.audioUrl,
-          ttsProvider: project.ttsProvider,
-          voiceId: project.voiceId,
+          name: project.title,
+          hasProjectAudio: !!metadata.audioUrl,
+          projectAudioUrl: metadata.audioUrl,
+          ttsProvider: metadata.ttsProvider,
+          voiceId: metadata.voiceId,
           totalDuration: project.duration
         },
         slides: {
           total: project.slides.length,
           withTTS: slidesWithTTS.length,
-          percentage: Math.round((slidesWithTTS.length / project.slides.length) * 100),
+          percentage: project.slides.length > 0 ? Math.round((slidesWithTTS.length / project.slides.length) * 100) : 0,
           details: project.slides.map((slide: any) => ({
             id: slide.id,
             title: slide.title,
-            hasTTS: slide.ttsGenerated,
-            audioUrl: slide.audioUrl
+            hasTTS: !!slide.audioConfig?.audioUrl,
+            audioUrl: slide.audioConfig?.audioUrl
           }))
         },
         timeline: processingLog?.audioTimeline || [],
@@ -207,3 +207,4 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+

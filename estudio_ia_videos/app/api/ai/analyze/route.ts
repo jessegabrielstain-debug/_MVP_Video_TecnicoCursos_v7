@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const { videoId, videoPath, config } = body as {
       videoId: string;
       videoPath: string;
-      config?: any;
+      config?: Record<string, unknown>;
     };
 
     if (!videoId || !videoPath) {
@@ -96,3 +96,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

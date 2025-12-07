@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -27,18 +29,6 @@ export async function GET(request: NextRequest) {
 
     const projectIds = userProjects.map(p => p.id);
 
-    // Get compliance validations
-    const validations = await prisma.complianceValidation.findMany({
-      where: {
-        projectId: { in: projectIds },
-        createdAt: {
-          gte: startDate,
-          lte: endDate
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
     // Get NR compliance records
     const nrRecords = await prisma.nRComplianceRecord.findMany({
       where: {
@@ -52,14 +42,14 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculate metrics
-    const totalValidations = validations.length;
-    const averageScore = validations.length > 0 
-      ? validations.reduce((sum, v) => sum + v.score, 0) / validations.length 
+    const totalValidations = nrRecords.length;
+    const averageScore = nrRecords.length > 0 
+      ? nrRecords.reduce((sum, v) => sum + v.score, 0) / nrRecords.length 
       : 0;
 
     // Compliance by NR type
-    const complianceByNR = validations.reduce((acc, validation) => {
-      const nr = validation.nrType;
+    const complianceByNR = nrRecords.reduce((acc, validation) => {
+      const nr = validation.nr;
       if (!acc[nr]) {
         acc[nr] = { total: 0, scores: [] };
       }
@@ -72,7 +62,7 @@ export async function GET(request: NextRequest) {
       nr,
       total: data.total,
       averageScore: data.scores.reduce((sum, score) => sum + score, 0) / data.scores.length,
-      lastValidation: validations.find(v => v.nrType === nr)?.createdAt
+      lastValidation: nrRecords.find(v => v.nr === nr)?.createdAt
     }));
 
     // Trend data (last 7 days)
@@ -83,7 +73,7 @@ export async function GET(request: NextRequest) {
       const dayStart = new Date(date.setHours(0, 0, 0, 0));
       const dayEnd = new Date(date.setHours(23, 59, 59, 999));
 
-      const dayValidations = validations.filter(v => 
+      const dayValidations = nrRecords.filter(v => 
         v.createdAt >= dayStart && v.createdAt <= dayEnd
       );
 
@@ -97,16 +87,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Critical issues (scores below 70)
-    const criticalIssues = validations.filter(v => v.score < 70).length;
+    const criticalIssues = nrRecords.filter(v => v.score < 70).length;
 
     // Recent validations
-    const recentValidations = validations.slice(0, 10).map(v => ({
+    const recentValidations = nrRecords.slice(0, 10).map(v => ({
       id: v.id,
       projectId: v.projectId,
-      nrType: v.nrType,
+      nrType: v.nr,
       score: v.score,
       createdAt: v.createdAt,
-      suggestions: v.suggestions ? JSON.parse(v.suggestions) : []
+      suggestions: v.recommendations ? (v.recommendations as any) : []
     }));
 
     return NextResponse.json({
@@ -114,7 +104,7 @@ export async function GET(request: NextRequest) {
         totalValidations,
         averageScore: Math.round(averageScore),
         criticalIssues,
-        complianceRate: Math.round((validations.filter(v => v.score >= 80).length / Math.max(totalValidations, 1)) * 100)
+        complianceRate: Math.round((nrRecords.filter(v => v.score >= 80).length / Math.max(totalValidations, 1)) * 100)
       },
       nrMetrics,
       trendData,

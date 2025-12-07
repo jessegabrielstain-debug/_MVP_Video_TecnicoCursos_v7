@@ -35,7 +35,7 @@ import {
   X
 } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
-import { UnifiedParseResult, convertRealToUnified } from '@/lib/types-unified'
+import { UnifiedParseResult, convertRealToUnifiedParseResult } from '@/lib/types-unified-v2'
 
 interface EnhancedPPTXUploaderProps {
   onAnalysisComplete: (result: UnifiedParseResult & { fileInfo: any }) => void
@@ -150,7 +150,7 @@ export function EnhancedPPTXUploader({ onAnalysisComplete, onCancel }: EnhancedP
       await progressPromise
 
       // Converter resultado do parser real para formato unificado
-      const unifiedResult = convertRealToUnified(result.data)
+      const unifiedResult = convertRealToUnifiedParseResult(result.data)
       
       console.log('✅ Análise real concluída:', {
         slides: unifiedResult.slides.length,
@@ -268,7 +268,7 @@ export function EnhancedPPTXUploader({ onAnalysisComplete, onCancel }: EnhancedP
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {slides.reduce((acc, slide) => acc + slide.elements.length, 0)}
+                {slides.reduce((acc: number, slide: any) => acc + slide.elements.length, 0)}
               </div>
               <div className="text-sm text-gray-600">Elementos</div>
             </div>
@@ -290,8 +290,8 @@ export function EnhancedPPTXUploader({ onAnalysisComplete, onCancel }: EnhancedP
           <div>
             <h4 className="font-semibold mb-2">Elementos Extraídos:</h4>
             <div className="flex flex-wrap gap-2">
-              {slides.map(slide => {
-                const elementTypes = slide.elements.reduce((acc, el) => {
+              {slides.map((slide: any) => {
+                const elementTypes = slide.elements.reduce((acc: Record<string, number>, el: any) => {
                   acc[el.type] = (acc[el.type] || 0) + 1
                   return acc
                 }, {} as Record<string, number>)
@@ -302,7 +302,7 @@ export function EnhancedPPTXUploader({ onAnalysisComplete, onCancel }: EnhancedP
                     {type === 'image' && <ImageIcon className="w-3 h-3 mr-1" />}
                     {type === 'video' && <Video className="w-3 h-3 mr-1" />}
                     {type === 'shape' && <Layers className="w-3 h-3 mr-1" />}
-                    {count} {type}
+                    {count as number} {type}
                   </Badge>
                 ))
               }).flat()}
@@ -315,7 +315,7 @@ export function EnhancedPPTXUploader({ onAnalysisComplete, onCancel }: EnhancedP
           <div>
             <h4 className="font-semibold mb-2">Preview dos Slides:</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto">
-              {slides.slice(0, 6).map((slide, index) => (
+              {slides.slice(0, 6).map((slide: any, index: number) => (
                 <div
                   key={slide.id}
                   className="aspect-video bg-gray-100 rounded-lg p-2 border text-center flex flex-col justify-center"

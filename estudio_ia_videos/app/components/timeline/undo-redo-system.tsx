@@ -51,7 +51,8 @@ import {
   SkipForward,
   Play,
   Pause,
-  Square
+  Square,
+  Eye
 } from 'lucide-react';
 
 // Interfaces para o sistema de undo/redo

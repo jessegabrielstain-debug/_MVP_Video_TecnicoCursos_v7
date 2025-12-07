@@ -81,7 +81,7 @@ export class PPTXAdvancedParser {
     } = options;
 
     // Extrair texto
-    const text = await this.textParser.extractText(zip, slideNumber);
+    const text = await this.textParser.extractTextFromSlide(zip, slideNumber);
 
     // Extrair imagens (se solicitado)
     let images: ExtractedImage[] = [];

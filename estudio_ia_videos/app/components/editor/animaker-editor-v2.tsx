@@ -86,7 +86,9 @@ const DEFAULT_EDITOR_CONFIG: EditorConfig = {
     gridSize: 20,
     showRulers: false,
     snapToGrid: true,
-    snapDistance: 5
+    snapDistance: 5,
+    pan: { x: 0, y: 0 },
+    backgroundColor: '#ffffff'
   },
   timeline: {
     pixelsPerSecond: 50,
@@ -135,7 +137,7 @@ export function AnimakerEditorV2({ projectData, onSave, onExport }: AnimakerEdit
 
   const canvasRef = useRef<CanvasEditorHandle | null>(null)
   const timelineRef = useRef<TimelineEditorHandle | null>(null)
-  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoSaveTimerRef = useRef<number | NodeJS.Timeout | null>(null)
 
   const createSnapshot = useCallback(
     (overrides: Partial<AnimakerProjectSnapshot> = {}): AnimakerProjectSnapshot => ({
@@ -158,12 +160,13 @@ export function AnimakerEditorV2({ projectData, onSave, onExport }: AnimakerEdit
   // Event handling
   const handleEditorEvent = useCallback((event: EditorEvent) => {
     console.log('🎬 Editor Event:', event)
+    const data = event.data as { action?: string; elementIds?: string[]; updates?: Partial<UnifiedElement>; settings?: any; jobId?: string };
     
     switch (event.type) {
       case 'element_select':
         setEditorState(prev => ({
           ...prev,
-          selectedElements: event.data.elementIds || []
+          selectedElements: data.elementIds || []
         }))
         break
       case 'element_update':
@@ -178,11 +181,11 @@ export function AnimakerEditorV2({ projectData, onSave, onExport }: AnimakerEdit
         }
         break
       case 'timeline_update':
-        if (event.data.action === 'play') {
+        if (data.action === 'play') {
           setEditorState(prev => ({ ...prev, playback: { ...prev.playback, isPlaying: true }}))
-        } else if (event.data.action === 'pause') {
+        } else if (data.action === 'pause') {
           setEditorState(prev => ({ ...prev, playback: { ...prev.playback, isPlaying: false }}))
-        } else if (event.data.action === 'stop') {
+        } else if (data.action === 'stop') {
           setEditorState(prev => ({ 
             ...prev, 
             playback: { ...prev.playback, isPlaying: false, currentTime: 0 }

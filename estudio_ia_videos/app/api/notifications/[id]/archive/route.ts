@@ -25,7 +25,7 @@ export async function PATCH(
     const notificationId = params.id
 
     // Archive notification
-    const { data: updatedNotification, error } = await supabaseAdmin
+    const { data: updatedNotification, error } = await (supabaseAdmin as any)
       .from('notifications')
       .update({
         status: 'archived',
@@ -48,13 +48,12 @@ export async function PATCH(
 
     // Log the action for analytics
     try {
-      await supabaseAdmin
+      await (supabaseAdmin as any)
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
-          category: 'notifications',
-          action: 'notification_archived',
-          metadata: {
+          event_type: 'notification_archived',
+          event_data: {
             notification_id: notificationId,
             timestamp: new Date().toISOString()
           },
@@ -62,25 +61,6 @@ export async function PATCH(
         })
     } catch (analyticsError) {
       console.warn('Failed to log notification archive action:', analyticsError)
-    }
-
-    // Send WebSocket update
-    try {
-      await fetch(`${process.env.NEXTAUTH_URL}/api/websocket/broadcast`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.WEBSOCKET_SECRET}`
-        },
-        body: JSON.stringify({
-          type: 'notification_updated',
-          channel: 'notifications',
-          userId: session.user.id,
-          data: updatedNotification
-        })
-      })
-    } catch (wsError) {
-      console.warn('Failed to send WebSocket update:', wsError)
     }
 
     return NextResponse.json({

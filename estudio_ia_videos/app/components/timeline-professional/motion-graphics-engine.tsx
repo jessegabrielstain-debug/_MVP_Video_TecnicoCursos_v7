@@ -61,7 +61,7 @@ interface MotionElement {
   visible: boolean;
   locked: boolean;
   animations: MotionAnimation[];
-  properties: any;
+  properties: Record<string, unknown>;
 }
 
 interface MotionAnimation {
@@ -297,14 +297,14 @@ export default function MotionGraphicsEngine() {
       opacity: currentValue.opacity / 100,
       transform: `rotate(${currentValue.rotation}deg)`,
       backgroundColor: element.type === 'shape' ? element.color : undefined,
-      border: element.type === 'shape' ? `${element.properties?.borderWidth || 0}px solid ${element.properties?.borderColor || element.color}` : undefined,
+      border: element.type === 'shape' ? `${(element.properties?.borderWidth as number) || 0}px solid ${(element.properties?.borderColor as string) || element.color}` : undefined,
       borderRadius: element.type === 'shape' && element.properties?.shapeType === 'circle' ? '50%' : undefined,
       display: element.visible ? 'block' : 'none',
       zIndex: element.type === 'text' ? 10 : 1,
       color: element.type === 'text' ? element.color : undefined,
-      fontSize: element.type === 'text' ? `${element.properties?.fontSize || 16}px` : undefined,
-      fontWeight: element.type === 'text' ? element.properties?.fontWeight || 'normal' : undefined,
-      fontFamily: element.type === 'text' ? element.properties?.fontFamily || 'Inter' : undefined,
+      fontSize: element.type === 'text' ? `${(element.properties?.fontSize as number) || 16}px` : undefined,
+      fontWeight: element.type === 'text' ? (element.properties?.fontWeight as string) || 'normal' : undefined,
+      fontFamily: element.type === 'text' ? (element.properties?.fontFamily as string) || 'Inter' : undefined,
       pointerEvents: selectedElements.includes(element.id) ? 'auto' : 'none'
     };
   };
@@ -430,7 +430,7 @@ export default function MotionGraphicsEngine() {
   };
 
   // Update element property
-  const updateElementProperty = (elementId: string, property: string, value: any) => {
+  const updateElementProperty = (elementId: string, property: string, value: unknown) => {
     setMotionElements(prev => prev.map(element => {
       if (element.id === elementId) {
         if (property.startsWith('properties.')) {
@@ -651,14 +651,14 @@ export default function MotionGraphicsEngine() {
                       >
                         {element.type === 'text' && (
                           <div className="w-full h-full flex items-center justify-center">
-                            {element.properties?.text || 'Texto'}
+                            {(element.properties?.text as string) || 'Texto'}
                           </div>
                         )}
                         
                         {element.type === 'image' && (
                           <img 
-                            src={element.properties?.src || '/api/placeholder/100/100'} 
-                            alt={element.properties?.alt || 'Imagem'}
+                            src={(element.properties?.src as string) || '/api/placeholder/100/100'} 
+                            alt={(element.properties?.alt as string) || 'Imagem'}
                             className="w-full h-full object-cover rounded"
                           />
                         )}
@@ -802,7 +802,7 @@ export default function MotionGraphicsEngine() {
                                 <div>
                                   <label className="text-xs text-gray-400">Tamanho Fonte</label>
                                   <Slider
-                                    value={[element.properties?.fontSize || 16]}
+                                    value={[(element.properties?.fontSize as number) || 16]}
                                     onValueChange={([value]) => updateElementProperty(element.id, 'properties.fontSize', value)}
                                     min={8}
                                     max={72}

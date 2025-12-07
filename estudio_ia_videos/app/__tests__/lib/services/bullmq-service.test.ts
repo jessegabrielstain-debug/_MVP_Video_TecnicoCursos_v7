@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals'
 import { getVideoRenderQueue, addRenderJob, getQueueMetrics, cancelJob } from '@/lib/services/bullmq-service'
 
 describe('BullMQ Service (interface)', () => {

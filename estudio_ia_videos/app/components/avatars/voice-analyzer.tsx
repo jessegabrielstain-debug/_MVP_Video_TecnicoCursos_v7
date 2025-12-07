@@ -21,8 +21,19 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 
+interface Session {
+  isPlaying: boolean;
+  [key: string]: unknown;
+}
+
+interface WaveformPoint {
+  time: number;
+  amplitude: number;
+  pitch: number;
+}
+
 interface VoiceAnalyzerProps {
-  session: any;
+  session: Session | null;
 }
 
 export default function VoiceAnalyzer({ session }: VoiceAnalyzerProps) {
@@ -35,7 +46,7 @@ export default function VoiceAnalyzer({ session }: VoiceAnalyzerProps) {
     speed: 0
   });
 
-  const [waveformData, setWaveformData] = useState<any[]>([]);
+  const [waveformData, setWaveformData] = useState<WaveformPoint[]>([]);
 
   useEffect(() => {
     if (session?.isPlaying) {

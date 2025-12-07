@@ -1,4 +1,6 @@
 
+export const dynamic = 'force-dynamic';
+
 /**
  * 📊 API: Review Status
  * Obter status de revisão de um projeto
@@ -6,12 +8,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { reviewWorkflowService } from '@/lib/collab/review-workflow';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
@@ -26,11 +28,13 @@ export async function GET(request: NextRequest) {
     const status = await reviewWorkflowService.getReviewStatus(projectId);
 
     return NextResponse.json({ status });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao buscar status de revisão:', error);
     return NextResponse.json(
-      { error: error.message || 'Erro ao buscar status de revisão' },
+      { error: error instanceof Error ? error.message : 'Erro ao buscar status de revisão' },
       { status: 500 }
     );
   }
 }
+
+

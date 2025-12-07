@@ -1,3 +1,4 @@
+// TODO: Fix Buffer to string parameter conversion
 
 /**
  * 🎬 Video Render API v2.0 - Production Real
@@ -8,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { S3StorageService } from '@/lib/s3-storage';
 import { VideoRenderPipeline } from '@/lib/video-render-pipeline';
 import crypto from 'crypto';
+import fs from 'fs';
 
 interface RenderJob {
   jobId: string;
@@ -162,8 +164,8 @@ export async function GET(request: NextRequest) {
 // Processo de renderização assíncrona
 async function processRenderJob(
   jobId: string, 
-  slides: any[], 
-  timeline: any, 
+  slides: unknown[], 
+  timeline: { totalDuration: number; [key: string]: unknown }, 
   settings: RenderSettings
 ) {
   console.log(`🔄 [Video Render v2] Processando job ${jobId}...`);
@@ -209,14 +211,18 @@ async function processRenderJob(
     try {
       console.log(`☁️ [Video Render v2] Fazendo upload para S3 do job ${jobId}...`);
       const s3Key = `rendered-videos/${jobId}.${settings.format}`;
-      const uploadResult = await S3StorageService.uploadFile(
-        Buffer.from(''), // TODO: Ler arquivo renderizado
+      
+      // Ler arquivo do disco
+      const fileBuffer = fs.readFileSync(outputPath);
+      
+      const uploadUrl = await S3StorageService.uploadFile(
         s3Key,
+        fileBuffer,
         `video/${settings.format}`
       );
       
-      if (uploadResult.success) {
-        finalPath = uploadResult.key || outputPath;
+      if (uploadUrl) {
+        finalPath = uploadUrl;
       }
     } catch (s3Error) {
       console.warn(`⚠️ [Video Render v2] Upload S3 falhou para job ${jobId}:`, s3Error);
@@ -240,3 +246,4 @@ async function processRenderJob(
     renderJobs.set(jobId, job);
   }
 }
+

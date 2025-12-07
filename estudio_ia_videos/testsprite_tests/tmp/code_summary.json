@@ -1,0 +1,53 @@
+{
+  "tech_stack": [
+    "Next.js 14",
+    "TypeScript",
+    "TailwindCSS",
+    "Fabric.js",
+    "Remotion",
+    "Three.js",
+    "Supabase",
+    "BullMQ"
+  ],
+  "features": [
+    {
+      "name": "Professional Timeline Editor",
+      "description": "Editor de vídeo não-linear com suporte a múltiplas trilhas, drag-and-drop, keyframes e visualização em tempo real.",
+      "files": [
+        "app/components/timeline/ProfessionalTimelineEditor.tsx",
+        "app/editor/timeline/[id]/page.tsx"
+      ]
+    },
+    {
+      "name": "Unified Preview Player",
+      "description": "Player unificado que renderiza vídeo, avatares 3D e elementos de canvas sincronizados.",
+      "files": [
+        "app/components/editor/unified-preview-player.tsx"
+      ]
+    },
+    {
+      "name": "Avatar 3D Renderer",
+      "description": "Renderizador de avatares 3D com suporte a lip-sync e animações faciais.",
+      "files": [
+        "app/components/avatars/Avatar3DRenderer.tsx",
+        "app/lib/avatar-client-logic.ts"
+      ]
+    },
+    {
+      "name": "PPTX Advanced Import",
+      "description": "Importação avançada de apresentações PowerPoint com extração de imagens, notas e layout.",
+      "files": [
+        "app/api/pptx/route.ts",
+        "app/lib/pptx/parsers/advanced-parser.ts"
+      ]
+    },
+    {
+      "name": "Cloud Rendering Orchestrator",
+      "description": "Orquestrador de renderização híbrida (Local/Cloud) usando BullMQ.",
+      "files": [
+        "app/lib/hybrid-rendering/cloud-orchestrator.ts",
+        "scripts/render-worker.js"
+      ]
+    }
+  ]
+}

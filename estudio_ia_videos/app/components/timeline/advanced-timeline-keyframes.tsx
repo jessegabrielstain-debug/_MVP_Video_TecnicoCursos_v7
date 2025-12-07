@@ -36,9 +36,9 @@ import {
 
 interface AdvancedTimelineKeyframesProps {
   projectId?: string
-  initialData?: unknown
-  onSave?: (timelineData: unknown) => void
-  onRender?: (timelineData: unknown) => void
+  initialData?: any
+  onSave?: (timelineData: any) => void
+  onRender?: (timelineData: any) => void
 }
 
 export default function AdvancedTimelineKeyframes({
@@ -62,6 +62,7 @@ export default function AdvancedTimelineKeyframes({
     removeTrack,
     addKeyframe,
     removeKeyframe,
+    updateKeyframe,
     exportData,
     importData,
     generatePreview
@@ -440,6 +441,7 @@ export default function AdvancedTimelineKeyframes({
                       onClick={(e) => {
                         e.stopPropagation()
                         setSelectedKeyframe(keyframe)
+                        setSelectedTrack(track.id)
                       }}
                       title={`Keyframe em ${keyframe.time.toFixed(2)}s`}
                     />
@@ -481,7 +483,7 @@ export default function AdvancedTimelineKeyframes({
         </div>
 
         {/* Properties Panel */}
-        {selectedKeyframe && (
+        {selectedKeyframe && selectedTrack && (
           <div className="w-64 border-l border-gray-800 bg-gray-900 p-4">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -495,7 +497,11 @@ export default function AdvancedTimelineKeyframes({
                   type="number"
                   value={selectedKeyframe.time}
                   onChange={(e) => {
-                    // Update keyframe time
+                    const newTime = parseFloat(e.target.value)
+                    if (!isNaN(newTime)) {
+                      updateKeyframe(selectedTrack, selectedKeyframe.id, { time: newTime })
+                      setSelectedKeyframe({ ...selectedKeyframe, time: newTime })
+                    }
                   }}
                   step={0.1}
                   min={0}
@@ -509,7 +515,9 @@ export default function AdvancedTimelineKeyframes({
                 <Slider
                   value={[selectedKeyframe.properties.x || 0]}
                   onValueChange={([value]) => {
-                    // Update keyframe property
+                    const newProps = { ...selectedKeyframe.properties, x: value }
+                    updateKeyframe(selectedTrack, selectedKeyframe.id, { properties: newProps })
+                    setSelectedKeyframe({ ...selectedKeyframe, properties: newProps })
                   }}
                   min={-100}
                   max={100}
@@ -523,7 +531,9 @@ export default function AdvancedTimelineKeyframes({
                 <Slider
                   value={[selectedKeyframe.properties.y || 0]}
                   onValueChange={([value]) => {
-                    // Update keyframe property
+                    const newProps = { ...selectedKeyframe.properties, y: value }
+                    updateKeyframe(selectedTrack, selectedKeyframe.id, { properties: newProps })
+                    setSelectedKeyframe({ ...selectedKeyframe, properties: newProps })
                   }}
                   min={-100}
                   max={100}
@@ -535,9 +545,11 @@ export default function AdvancedTimelineKeyframes({
               <div>
                 <label className="text-sm text-gray-400">Opacity</label>
                 <Slider
-                  value={[selectedKeyframe.properties.opacity || 1]}
+                  value={[selectedKeyframe.properties.opacity ?? 1]}
                   onValueChange={([value]) => {
-                    // Update keyframe property
+                    const newProps = { ...selectedKeyframe.properties, opacity: value }
+                    updateKeyframe(selectedTrack, selectedKeyframe.id, { properties: newProps })
+                    setSelectedKeyframe({ ...selectedKeyframe, properties: newProps })
                   }}
                   min={0}
                   max={1}
@@ -550,14 +562,9 @@ export default function AdvancedTimelineKeyframes({
                 variant="destructive"
                 size="sm"
                 onClick={() => {
-                  const trackId = tracks.find(t => 
-                    t.keyframes.some(k => k.id === selectedKeyframe.id)
-                  )?.id
-                  if (trackId) {
-                    removeKeyframe(trackId, selectedKeyframe.id)
-                    setSelectedKeyframe(null)
-                    toast.success('Keyframe removido')
-                  }
+                  removeKeyframe(selectedTrack, selectedKeyframe.id)
+                  setSelectedKeyframe(null)
+                  toast.success('Keyframe removido')
                 }}
                 className="w-full"
               >

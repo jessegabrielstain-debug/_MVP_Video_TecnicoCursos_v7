@@ -6,14 +6,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
 
 /**
  * POST - Create snapshot of current timeline
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
@@ -65,8 +66,8 @@ export async function POST(request: NextRequest) {
       data: {
         timelineId: timeline.id,
         version: timeline.version,
-        tracks: timeline.tracks as unknown,
-        settings: timeline.settings as unknown,
+        tracks: timeline.tracks as Prisma.InputJsonValue,
+        settings: timeline.settings as Prisma.InputJsonValue,
         totalDuration: timeline.totalDuration,
         createdBy: session.user.id,
         description: description || `Snapshot v${timeline.version}`,
@@ -88,11 +89,14 @@ export async function POST(request: NextRequest) {
       message: 'Snapshot criado com sucesso',
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao criar snapshot:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, message: 'Erro ao criar snapshot', error: error.message },
+      { success: false, message: 'Erro ao criar snapshot', error: message },
       { status: 500 }
     );
   }
 }
+
+

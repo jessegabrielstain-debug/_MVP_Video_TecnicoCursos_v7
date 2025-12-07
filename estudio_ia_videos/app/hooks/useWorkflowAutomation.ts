@@ -408,9 +408,9 @@ export const useWorkflowAutomation = () => {
       case 'not_equals':
         return fieldValue !== cond.value;
       case 'greater_than':
-        return fieldValue > cond.value;
+        return (fieldValue as any) > (cond.value as any);
       case 'less_than':
-        return fieldValue < cond.value;
+        return (fieldValue as any) < (cond.value as any);
       case 'contains':
         return String(fieldValue).includes(String(cond.value));
       case 'starts_with':
@@ -424,8 +424,8 @@ export const useWorkflowAutomation = () => {
 
 
   const getNestedValue = (obj: Record<string, unknown>, path: string): unknown => {
-    return path.split('.').reduce((acc, part) => {
-      if (acc && typeof acc === 'object' && part in acc) {
+    return path.split('.').reduce((acc: unknown, part: string) => {
+      if (acc && typeof acc === 'object' && acc !== null && part in acc) {
         return (acc as Record<string, unknown>)[part];
       }
       return undefined;

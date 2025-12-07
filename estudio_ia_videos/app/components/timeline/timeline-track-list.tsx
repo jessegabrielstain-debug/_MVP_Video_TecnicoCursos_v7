@@ -19,7 +19,7 @@ import {
   ChevronRight,
   ChevronDown
 } from 'lucide-react'
-import { TimelineTrack, TimelineLayer } from '@/lib/types/timeline-types'
+import { TimelineTrack, TimelineLayer, TimelineElement } from '@/lib/types/timeline-types'
 
 interface TimelineTrackListProps {
   tracks: TimelineTrack[]
@@ -121,10 +121,10 @@ export const TimelineTrackList: React.FC<TimelineTrackListProps> = ({
 
           {/* Layers */}
           <div className="layers">
-            {track.layers.map((layer) => {
+            {track.layers.map((layer: TimelineLayer) => {
               const isSelected = selectedLayers.includes(layer.id)
               const isParentFolded = layer.parentId && tracks.some(t => 
-                t.layers.some(l => l.id === layer.parentId && l.folded)
+                t.layers.some((l: TimelineLayer) => l.id === layer.parentId && l.folded)
               )
 
               if (isParentFolded) return null
@@ -145,7 +145,7 @@ export const TimelineTrackList: React.FC<TimelineTrackListProps> = ({
                   <div className="flex items-center justify-between h-full">
                     <div className="flex items-center space-x-2 flex-1 min-w-0">
                       {/* Fold Toggle (if has children) */}
-                      {track.layers.some(l => l.parentId === layer.id) && (
+                      {track.layers.some((l: TimelineLayer) => l.parentId === layer.id) && (
                         <button className="flex-shrink-0 p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded">
                           {layer.folded ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                         </button>
@@ -181,7 +181,7 @@ export const TimelineTrackList: React.FC<TimelineTrackListProps> = ({
                       </button>
 
                       {/* Mute button (for audio layers) */}
-                      {(layer.type === 'audio' || layer.elements.some(el => el.type === 'audio')) && (
+                      {(layer.type === 'audio' || layer.elements.some((el: TimelineElement) => el.type === 'audio')) && (
                         <button
                           onClick={(event) => handleLayerToggleMute(layer.id, event)}
                           className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded opacity-70 hover:opacity-100"

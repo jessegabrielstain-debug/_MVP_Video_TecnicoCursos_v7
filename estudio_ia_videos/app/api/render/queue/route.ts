@@ -1,19 +1,18 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * 🎬 Render Queue API
  * Manages render job queue with real-time monitoring
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { supabaseAdmin } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 
 // Validation schemas
 const QueueQuerySchema = z.object({
   status: z.string().optional(),
-  type: z.string().optional(),
-  priority: z.string().optional(),
   project_id: z.string().optional(),
   search: z.string().optional(),
   start_date: z.string().optional(),
@@ -23,8 +22,8 @@ const QueueQuerySchema = z.object({
 })
 
 // Helper function to build filters
-function buildFilters(query: any, userId: string) {
-  let baseQuery = supabaseAdmin
+function buildFilters(supabase: SupabaseClient, query: z.infer<typeof QueueQuerySchema>, userId: string) {
+  let baseQuery = supabase
     .from('render_jobs')
     .select('*')
     .eq('user_id', userId)
@@ -32,16 +31,6 @@ function buildFilters(query: any, userId: string) {
   if (query.status) {
     const statuses = query.status.split(',')
     baseQuery = baseQuery.in('status', statuses)
-  }
-
-  if (query.type) {
-    const types = query.type.split(',')
-    baseQuery = baseQuery.in('type', types)
-  }
-
-  if (query.priority) {
-    const priorities = query.priority.split(',')
-    baseQuery = baseQuery.in('priority', priorities)
   }
 
   if (query.project_id) {
@@ -57,17 +46,17 @@ function buildFilters(query: any, userId: string) {
   }
 
   if (query.search) {
-    baseQuery = baseQuery.or(`id.ilike.%${query.search}%,metadata->>title.ilike.%${query.search}%`)
+    baseQuery = baseQuery.or(`id.ilike.%${query.search}%`)
   }
 
   return baseQuery
 }
 
 // Helper function to calculate queue statistics
-async function calculateQueueStats(userId: string) {
+async function calculateQueueStats(supabase: SupabaseClient, userId: string) {
   try {
     // Get queue counts
-    const { data: queueCounts } = await supabaseAdmin
+    const { data: queueCounts } = await supabase
       .from('render_jobs')
       .select('status')
       .eq('user_id', userId)
@@ -78,7 +67,7 @@ async function calculateQueueStats(userId: string) {
     }, {} as Record<string, number>) || {}
 
     // Get processing jobs for wait time calculation
-    const { data: processingJobs } = await supabaseAdmin
+    const { data: processingJobs } = await supabase
       .from('render_jobs')
       .select('created_at, started_at')
       .eq('user_id', userId)
@@ -98,7 +87,7 @@ async function calculateQueueStats(userId: string) {
     }
 
     // Estimate completion time for pending jobs
-    const pendingCount = statusCounts.pending || 0
+    const pendingCount = statusCounts.queued || 0
     const estimatedCompletion = new Date(Date.now() + (pendingCount * averageWaitTime * 1000)).toISOString()
 
     return {
@@ -120,9 +109,10 @@ async function calculateQueueStats(userId: string) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const supabase = getSupabaseForRequest(request)
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
@@ -135,20 +125,19 @@ export async function GET(request: NextRequest) {
 
     // Get jobs by status
     const [pendingJobs, processingJobs, completedJobs, failedJobs] = await Promise.all([
-      buildFilters({ ...query, status: 'pending' }, session.user.id)
-        .order('priority', { ascending: false })
+      buildFilters(supabase, { ...query, status: 'queued' }, user.id)
         .order('created_at', { ascending: true })
         .limit(query.limit || 50),
       
-      buildFilters({ ...query, status: 'processing' }, session.user.id)
+      buildFilters(supabase, { ...query, status: 'processing' }, user.id)
         .order('started_at', { ascending: true })
         .limit(query.limit || 50),
       
-      buildFilters({ ...query, status: 'completed' }, session.user.id)
+      buildFilters(supabase, { ...query, status: 'completed' }, user.id)
         .order('completed_at', { ascending: false })
         .limit(query.limit || 50),
       
-      buildFilters({ ...query, status: 'failed' }, session.user.id)
+      buildFilters(supabase, { ...query, status: 'failed' }, user.id)
         .order('updated_at', { ascending: false })
         .limit(query.limit || 50)
     ])
@@ -160,14 +149,27 @@ export async function GET(request: NextRequest) {
     if (failedJobs.error) throw failedJobs.error
 
     // Calculate queue statistics
-    const queueStats = await calculateQueueStats(session.user.id)
+    const queueStats = await calculateQueueStats(supabase, user.id)
+
+    // Helper function to map job data
+    const mapJobData = (job: any) => {
+      const settings = job.render_settings || {};
+      return {
+        ...job,
+        priority: settings.priority || 'normal',
+        type: settings.type || 'video',
+        input_data: settings.input_data || {},
+        metadata: settings.metadata || {},
+        render_settings: settings
+      };
+    };
 
     // Build response
     const renderQueue = {
-      pending: pendingJobs.data || [],
-      processing: processingJobs.data || [],
-      completed: completedJobs.data || [],
-      failed: failedJobs.data || [],
+      pending: (pendingJobs.data || []).map(mapJobData),
+      processing: (processingJobs.data || []).map(mapJobData),
+      completed: (completedJobs.data || []).map(mapJobData),
+      failed: (failedJobs.data || []).map(mapJobData),
       ...queueStats
     }
 

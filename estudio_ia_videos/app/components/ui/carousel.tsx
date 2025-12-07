@@ -1,18 +1,43 @@
 'use client';
 
 import * as React from 'react';
-import useEmblaCarousel, {
-  type UseEmblaCarouselType,
-} from 'embla-carousel-react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-type CarouselApi = UseEmblaCarouselType[1];
-type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
-type CarouselOptions = UseCarouselParameters[0];
-type CarouselPlugin = UseCarouselParameters[1];
+// Mock Embla Carousel types and hook since the package is missing
+type EmblaApi = {
+  scrollPrev: () => void;
+  scrollNext: () => void;
+  canScrollPrev: () => boolean;
+  canScrollNext: () => boolean;
+  on: (event: string, callback: (api: EmblaApi) => void) => void;
+  off: (event: string, callback: (api: EmblaApi) => void) => void;
+} | undefined;
+
+type UseEmblaCarouselType = [
+  (node: HTMLElement | null) => void,
+  EmblaApi
+];
+
+function useEmblaCarousel(options?: any, plugins?: any): UseEmblaCarouselType {
+  const ref = React.useCallback((node: HTMLElement | null) => {}, []);
+  const api = React.useMemo(() => ({
+    scrollPrev: () => {},
+    scrollNext: () => {},
+    canScrollPrev: () => false,
+    canScrollNext: () => false,
+    on: () => {},
+    off: () => {},
+  }), []);
+  return [ref, api];
+}
+
+type CarouselApi = EmblaApi;
+type UseCarouselParameters = [any, any]; // Mock parameters
+type CarouselOptions = any;
+type CarouselPlugin = any;
 
 type CarouselProps = {
   opts?: CarouselOptions;

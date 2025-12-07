@@ -48,7 +48,7 @@ import {
   Music,
   Square
 } from 'lucide-react';
-import { useAdvancedKeyframes } from '@/app/hooks/useAdvancedKeyframes';
+import { useAdvancedKeyframes } from '@/hooks/useAdvancedKeyframes';
 import { useToast } from '@/hooks/use-toast';
 
 // Motionity-style Project Structure
@@ -540,7 +540,7 @@ export default function MotionityIntegration({
 
       {/* Main Content */}
       <div className="flex-1">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="h-full">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'overview' | 'timeline' | 'keyframes' | 'settings')} className="h-full">
           {/* Tabs Navigation */}
           <div className="bg-gray-800 border-b border-gray-700 px-6">
             <TabsList className="bg-gray-700">
@@ -838,7 +838,7 @@ export default function MotionityIntegration({
                         value={project.settings.quality}
                         onValueChange={(value: string) => setProject(prev => ({
                           ...prev,
-                          settings: { ...prev.settings, quality: value }
+                          settings: { ...prev.settings, quality: value as 'draft' | 'preview' | 'final' }
                         }))}
                       >
                         <SelectTrigger>
@@ -857,7 +857,7 @@ export default function MotionityIntegration({
                         value={project.settings.codec}
                         onValueChange={(value: string) => setProject(prev => ({
                           ...prev,
-                          settings: { ...prev.settings, codec: value }
+                          settings: { ...prev.settings, codec: value as 'h264' | 'h265' | 'vp9' | 'av1' }
                         }))}
                       >
                         <SelectTrigger>

@@ -319,11 +319,12 @@ O avatar agora está realmente falando com sincronização labial hiper-realista
         throw new Error(result.error || 'Erro na geração do talking photo PRO')
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error('❌ Erro na geração PRO:', error)
       alert(`❌ Erro na geração do talking photo PRO:
 
-${error.message || 'Erro desconhecido'}
+${errorMessage}
 
 Tente novamente. Se o problema persistir:
 • Verifique se o texto não é muito longo (máx. ${isPro ? '10.000' : '3.000'} caracteres)

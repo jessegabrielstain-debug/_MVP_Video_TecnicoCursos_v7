@@ -4,9 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { supabaseAdmin } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 // Validation schema for render settings
@@ -47,9 +45,10 @@ const defaultSettings = {
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const supabase = getSupabaseForRequest(request)
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
@@ -57,10 +56,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's render settings
-    const { data: settings, error } = await supabaseAdmin
+    // Note: user_render_settings may not be in generated types
+    const { data: settings, error } = await (supabase as any)
       .from('user_render_settings')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (error && error.code !== 'PGRST116') {
@@ -69,10 +69,10 @@ export async function GET(request: NextRequest) {
 
     // If no settings exist, create default settings
     if (!settings) {
-      const { data: newSettings, error: createError } = await supabaseAdmin
+      const { data: newSettings, error: createError } = await (supabase as any)
         .from('user_render_settings')
         .insert({
-          user_id: session.user.id,
+          user_id: user.id,
           settings: defaultSettings,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -84,14 +84,14 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        data: newSettings.settings,
+        data: newSettings?.settings,
         message: 'Default render settings created'
       })
     }
 
     return NextResponse.json({
       success: true,
-      data: settings.settings,
+      data: settings?.settings,
       message: 'Render settings retrieved successfully'
     })
 
@@ -111,9 +111,10 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const supabase = getSupabaseForRequest(request)
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
@@ -125,26 +126,26 @@ export async function PATCH(request: NextRequest) {
     const settingsUpdate = RenderSettingsSchema.parse(body)
 
     // Get current settings
-    const { data: currentSettings, error: fetchError } = await supabaseAdmin
+    const { data: currentSettings, error: fetchError } = await (supabase as any)
       .from('user_render_settings')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (fetchError && fetchError.code !== 'PGRST116') {
       throw fetchError
     }
 
-    let updatedSettings: any
+    let updatedSettings: Record<string, unknown>
 
     if (!currentSettings) {
       // Create new settings if none exist
       updatedSettings = { ...defaultSettings, ...settingsUpdate }
       
-      const { data: newSettings, error: createError } = await supabaseAdmin
+      const { data: newSettings, error: createError } = await (supabase as any)
         .from('user_render_settings')
         .insert({
-          user_id: session.user.id,
+          user_id: user.id,
           settings: updatedSettings,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -154,50 +155,49 @@ export async function PATCH(request: NextRequest) {
 
       if (createError) throw createError
 
-      updatedSettings = newSettings.settings
+      updatedSettings = newSettings?.settings
     } else {
       // Update existing settings (deep merge)
       updatedSettings = {
-        ...currentSettings.settings,
+        ...currentSettings?.settings,
         ...settingsUpdate,
         notifications: {
-          ...currentSettings.settings.notifications,
+          ...currentSettings?.settings?.notifications,
           ...settingsUpdate.notifications
         },
         resource_limits: {
-          ...currentSettings.settings.resource_limits,
+          ...currentSettings?.settings?.resource_limits,
           ...settingsUpdate.resource_limits
         }
       }
 
-      const { data: updated, error: updateError } = await supabaseAdmin
+      const { data: updated, error: updateError } = await (supabase as any)
         .from('user_render_settings')
         .update({
           settings: updatedSettings,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', session.user.id)
+        .eq('user_id', user.id)
         .select()
         .single()
 
       if (updateError) throw updateError
 
-      updatedSettings = updated.settings
+      updatedSettings = (updated as any).settings
     }
 
     // Log the action for analytics
     try {
-      await supabaseAdmin
+      await (supabase as any)
         .from('analytics_events')
         .insert({
-          user_id: session.user.id,
-          category: 'render',
-          action: 'settings_updated',
-          metadata: {
+          user_id: user.id,
+          event_type: 'settings_updated',
+          event_data: {
+            scope: 'render',
             updated_fields: Object.keys(settingsUpdate),
             timestamp: new Date().toISOString()
-          },
-          created_at: new Date().toISOString()
+          }
         })
     } catch (analyticsError) {
       console.warn('Failed to log render settings update:', analyticsError)
@@ -236,9 +236,10 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const supabase = getSupabaseForRequest(request)
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
@@ -246,10 +247,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Reset to default settings
-    const { data: resetSettings, error } = await supabaseAdmin
+    const { data: resetSettings, error } = await (supabase as any)
       .from('user_render_settings')
       .upsert({
-        user_id: session.user.id,
+        user_id: user.id,
         settings: defaultSettings,
         updated_at: new Date().toISOString()
       })
@@ -260,16 +261,15 @@ export async function DELETE(request: NextRequest) {
 
     // Log the action for analytics
     try {
-      await supabaseAdmin
+      await (supabase as any)
         .from('analytics_events')
         .insert({
-          user_id: session.user.id,
-          category: 'render',
-          action: 'settings_reset',
-          metadata: {
+          user_id: user.id,
+          event_type: 'settings_reset',
+          event_data: {
+            scope: 'render',
             timestamp: new Date().toISOString()
-          },
-          created_at: new Date().toISOString()
+          }
         })
     } catch (analyticsError) {
       console.warn('Failed to log render settings reset:', analyticsError)
@@ -277,7 +277,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: resetSettings.settings,
+      data: (resetSettings as any).settings,
       message: 'Render settings reset to defaults'
     })
 

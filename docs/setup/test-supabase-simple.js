@@ -35,7 +35,7 @@ async function testConnection() {
     console.log('\n🔍 Testando conexão com banco de dados...');
 
     // Teste 1: Verificar se consegue fazer uma query simples
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('users')
       .select('count')
       .limit(1);
@@ -76,7 +76,7 @@ async function testConnection() {
     let allTablesExist = true;
 
     for (const table of tables) {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from(table)
         .select('count')
         .limit(1);

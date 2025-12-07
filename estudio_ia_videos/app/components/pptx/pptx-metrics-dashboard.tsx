@@ -21,9 +21,39 @@ import {
   Activity
 } from 'lucide-react'
 
+interface PerformanceStats {
+  totalConversions: number
+  successRate: number
+  averageProcessingTime: number
+  averageSlideCount: number
+  mostUsedTemplates: Array<{ templateId: string; usage: number }>
+  mostUsedVoices: Array<{ voiceId: string; usage: number }>
+  errorBreakdown: Array<{ error: string; count: number }>
+}
+
+interface QualityMetrics {
+  contentAnalysis: {
+    averageTextLength: number
+    slidesWithImages: number
+    slidesWithNotes: number
+    slidesWithLongContent: number
+  }
+  narrationAnalysis: {
+    totalAudioDuration: number
+    averageSegmentDuration: number
+    segmentCount: number
+    estimatedCost: number
+  }
+  templateAnalysis: {
+    autoSelectedTemplates: number
+    manuallyChangedTemplates: number
+    templateDistribution: Record<string, number>
+  }
+}
+
 export function PPTXMetricsDashboard() {
-  const [performanceStats, setPerformanceStats] = useState<unknown>(null)
-  const [qualityMetrics, setQualityMetrics] = useState<unknown>(null)
+  const [performanceStats, setPerformanceStats] = useState<PerformanceStats | null>(null)
+  const [qualityMetrics, setQualityMetrics] = useState<QualityMetrics | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -213,7 +243,7 @@ export function PPTXMetricsDashboard() {
           </div>
 
           {/* Error Analysis */}
-          {performanceStats?.errorBreakdown?.length > 0 && (
+          {(performanceStats?.errorBreakdown?.length ?? 0) > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Análise de Erros</CardTitle>
@@ -221,7 +251,7 @@ export function PPTXMetricsDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {performanceStats.errorBreakdown.map((error: any, index: number) => (
+                  {performanceStats?.errorBreakdown?.map((error: any, index: number) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950 rounded-lg">
                       <div className="flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 text-red-600" />
@@ -399,31 +429,31 @@ export function PPTXMetricsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {performanceStats?.successRate < 95 && (
+            {(performanceStats?.successRate ?? 100) < 95 && (
               <div className="flex items-start gap-3 p-3 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
                 <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
                 <div>
                   <p className="font-medium text-sm">Taxa de sucesso baixa</p>
                   <p className="text-xs text-gray-600">
-                    Taxa atual: {performanceStats.successRate}%. Considere melhorar validação de arquivos PPTX.
+                    Taxa atual: {performanceStats?.successRate}%. Considere melhorar validação de arquivos PPTX.
                   </p>
                 </div>
               </div>
             )}
             
-            {performanceStats?.averageProcessingTime > 30 && (
+            {(performanceStats?.averageProcessingTime ?? 0) > 30 && (
               <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                 <Clock className="w-5 h-5 text-blue-600 mt-0.5" />
                 <div>
                   <p className="font-medium text-sm">Tempo de processamento alto</p>
                   <p className="text-xs text-gray-600">
-                    Média atual: {performanceStats.averageProcessingTime}s. Considere otimização de parser.
+                    Média atual: {performanceStats?.averageProcessingTime}s. Considere otimização de parser.
                   </p>
                 </div>
               </div>
             )}
             
-            {qualityMetrics?.contentAnalysis?.slidesWithLongContent > qualityMetrics?.contentAnalysis?.averageTextLength && (
+            {(qualityMetrics?.contentAnalysis?.slidesWithLongContent ?? 0) > (qualityMetrics?.contentAnalysis?.averageTextLength ?? 0) && (
               <div className="flex items-start gap-3 p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
                 <FileText className="w-5 h-5 text-purple-600 mt-0.5" />
                 <div>

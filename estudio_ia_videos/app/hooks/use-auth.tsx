@@ -84,7 +84,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         console.error('Error initializing auth:', err)
-        setError(err instanceof Error ? err.message : 'Unknown error')
+        const msg = err instanceof Error ? err.message : String(err)
+        setError(msg)
+        if (msg && msg.toLowerCase().includes('jwt expired')) {
+          try {
+            await supabase.auth.signOut()
+          } catch {}
+          const path = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/'
+          const redirect = encodeURIComponent(path)
+          router.push(`/login?reason=unauthorized&redirect=${redirect}`)
+        }
       } finally {
         setLoading(false)
       }
@@ -98,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('Auth state changed:', event)
-        
+
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
 
@@ -119,8 +128,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Redirecionar baseado no evento
         if (event === 'SIGNED_IN') {
-          toast.success('Login realizado com sucesso!')
-          router.push('/dashboard')
+          // Não redirecionar automaticamente aqui para evitar loops.
+          // O Middleware e o LoginForm já lidam com o redirecionamento inicial.
+          // Apenas notificar se não for a carga inicial (session change)
+          if (!loading) {
+            // toast.success('Sessão ativa!')
+          }
         } else if (event === 'SIGNED_OUT') {
           toast.success('Logout realizado com sucesso!')
           router.push('/login')
@@ -136,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     setLoading(true)
     setError(null)
-    
+
     try {
       await authSignIn(email, password)
     } catch (err) {
@@ -152,7 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
     setLoading(true)
     setError(null)
-    
+
     try {
       await authSignUp(email, password, fullName)
       toast.success('Conta criada! Verifique seu email.')
@@ -169,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       await authSignOut()
     } catch (err) {
@@ -185,7 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       await authSignInWithGoogle()
     } catch (err) {
@@ -201,7 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGithub = useCallback(async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       await authSignInWithGithub()
     } catch (err) {
@@ -217,7 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = useCallback(async (email: string) => {
     setLoading(true)
     setError(null)
-    
+
     try {
       await authResetPassword(email)
       toast.success('Email de recuperação enviado!')
@@ -234,7 +247,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updatePassword = useCallback(async (newPassword: string) => {
     setLoading(true)
     setError(null)
-    
+
     try {
       await authUpdatePassword(newPassword)
       toast.success('Senha atualizada com sucesso!')
@@ -250,7 +263,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     if (!user) return
-    
+
     try {
       const userProfile = await getUserProfile(user.id)
       if (userProfile) {
@@ -276,8 +289,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updatePassword,
     refreshProfile,
     isAdmin: profile?.role === 'admin',
-    isPro: profile?.subscription_tier === 'pro',
-    isEnterprise: profile?.subscription_tier === 'enterprise',
+    isPro: (profile?.metadata as any)?.subscription_tier === 'pro',
+    isEnterprise: (profile?.metadata as any)?.subscription_tier === 'enterprise',
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

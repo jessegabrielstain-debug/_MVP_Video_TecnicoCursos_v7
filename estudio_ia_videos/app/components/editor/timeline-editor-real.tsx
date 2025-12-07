@@ -1,4 +1,3 @@
-
 'use client'
 
 /**
@@ -77,10 +76,16 @@ import {
   MessageCircle,
   Share2
 } from 'lucide-react'
+import { PropertiesPanel } from './properties-panel'
+import { ExportDialog, ExportOptions } from './export-dialog'
+import { ExportHistoryDialog } from './export-history-dialog'
+import { RenderProgressDialog } from './render-progress-dialog'
+import { HeyGenCreditsWidget } from './heygen-credits-widget'
+import { useToast } from '@/components/ui/use-toast'
 
 interface TimelineElement {
   id: string
-  type: 'video' | 'image' | 'text' | 'audio' | 'voice' | 'effect'
+  type: 'video' | 'image' | 'text' | 'audio' | 'voice' | 'effect' | 'avatar'
   name: string
   startTime: number
   duration: number
@@ -92,6 +97,17 @@ interface TimelineElement {
     volume?: number
     effects?: string[]
   }
+  // Visual properties for canvas
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  rotation?: number
+  opacity?: number
+  style?: any
+  metadata?: any
+  animation?: any
+  
   locked: boolean
   visible: boolean
 }
@@ -118,6 +134,12 @@ export default function TimelineEditorReal() {
   const [draggedElement, setDraggedElement] = useState<TimelineElement | null>(null)
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [tool, setTool] = useState<'select' | 'move' | 'cut' | 'zoom'>('select')
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
+  const [isExportHistoryOpen, setIsExportHistoryOpen] = useState(false)
+  const [isRenderProgressOpen, setIsRenderProgressOpen] = useState(false)
+  const [currentRenderJobId, setCurrentRenderJobId] = useState<string | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
+  const { toast } = useToast()
   
   const timelineRef = useRef<HTMLDivElement>(null)
   const playheadRef = useRef<HTMLDivElement>(null)
@@ -125,6 +147,7 @@ export default function TimelineEditorReal() {
   const [tracks, setTracks] = useState<Track[]>([
     { id: 'video-1', type: 'video', name: 'Vídeo Principal', locked: false, visible: true, height: TRACK_HEIGHT },
     { id: 'text-1', type: 'text', name: 'Títulos e Textos', locked: false, visible: true, height: TRACK_HEIGHT },
+    { id: 'avatar-1', type: 'video', name: 'Avatar IA', locked: false, visible: true, height: TRACK_HEIGHT },
     { id: 'audio-1', type: 'audio', name: 'Narração (TTS)', locked: false, visible: true, height: TRACK_HEIGHT },
     { id: 'music-1', type: 'audio', name: 'Música de Fundo', locked: false, visible: true, height: TRACK_HEIGHT },
     { id: 'effects-1', type: 'effect', name: 'Efeitos Especiais', locked: false, visible: true, height: TRACK_HEIGHT }
@@ -139,6 +162,25 @@ export default function TimelineEditorReal() {
       duration: 30,
       track: 0,
       content: { src: '/nr12-intro.jpg' },
+      x: 0, y: 0, width: 1920, height: 1080,
+      locked: false,
+      visible: true
+    },
+    {
+      id: 'element-avatar-1',
+      type: 'avatar',
+      name: 'Avatar Instrutor',
+      startTime: 0,
+      duration: 30,
+      track: 2,
+      content: { src: '' },
+      x: 1200, y: 300, width: 600, height: 800,
+      metadata: {
+        engine: 'heygen',
+        avatarId: 'default_avatar',
+        avatarName: 'Instrutor Padrão',
+        voiceId: '2d5b0e6cf361460aa7fc47e3eee4ba54' // Default voice
+      },
       locked: false,
       visible: true
     },
@@ -153,6 +195,8 @@ export default function TimelineEditorReal() {
         text: 'NR-12: Segurança em Máquinas e Equipamentos',
         style: { fontSize: 32, fontWeight: 'bold', color: '#ffffff' }
       },
+      x: 100, y: 100, width: 800, height: 200,
+      style: { fontSize: 32, fontWeight: 'bold', color: '#ffffff' },
       locked: false,
       visible: true
     },
@@ -162,7 +206,7 @@ export default function TimelineEditorReal() {
       name: 'Narração - Introdução',
       startTime: 5,
       duration: 25,
-      track: 2,
+      track: 3,
       content: { 
         text: 'Bem-vindos ao treinamento sobre segurança em máquinas e equipamentos...',
         volume: 85
@@ -178,6 +222,7 @@ export default function TimelineEditorReal() {
       duration: 25,
       track: 0,
       content: { src: '/nr12-objetivos.jpg' },
+      x: 0, y: 0, width: 1920, height: 1080,
       locked: false,
       visible: true
     },
@@ -187,7 +232,7 @@ export default function TimelineEditorReal() {
       name: 'Música de Fundo',
       startTime: 0,
       duration: 300,
-      track: 3,
+      track: 4,
       content: { src: '/background-music.mp3', volume: 20 },
       locked: false,
       visible: true
@@ -276,6 +321,7 @@ export default function TimelineEditorReal() {
       case 'voice': return 'bg-orange-500'
       case 'audio': return 'bg-cyan-500'
       case 'effect': return 'bg-pink-500'
+      case 'avatar': return 'bg-indigo-500'
       default: return 'bg-gray-500'
     }
   }
@@ -291,7 +337,7 @@ export default function TimelineEditorReal() {
 
     return (
       <div
-        ref={drag}
+        ref={drag as unknown as React.LegacyRef<HTMLDivElement>}
         className={cn(
           "absolute rounded cursor-move border border-white/20 text-white text-xs font-medium flex items-center px-2 select-none",
           getElementColor(element.type),
@@ -344,6 +390,117 @@ export default function TimelineEditorReal() {
       <span className="text-sm font-medium truncate flex-1">{track.name}</span>
     </div>
   )
+
+  const handleUpdateElement = (elementId: string, updates: any) => {
+    setElements(prev => prev.map(el => 
+      el.id === elementId ? { ...el, ...updates } : el
+    ))
+  }
+
+  const handleDeleteElement = (elementId: string) => {
+    setElements(prev => prev.filter(el => el.id !== elementId))
+    setSelectedElements(prev => prev.filter(id => id !== elementId))
+  }
+
+  const handleDuplicateElement = (elementId: string) => {
+    const element = elements.find(el => el.id === elementId)
+    if (element) {
+      const newElement = {
+        ...element,
+        id: `element-${Date.now()}`,
+        name: `${element.name} (Cópia)`,
+        startTime: element.startTime + 5 // Offset slightly
+      }
+      setElements(prev => [...prev, newElement])
+    }
+  }
+
+  const handleExport = async (options: ExportOptions) => {
+    setIsExporting(true)
+    try {
+      // Validate slides before export
+      const validSlides = elements.filter(el => 
+        (el.type === 'image' || el.type === 'video' || el.type === 'avatar') && el.visible
+      )
+      
+      if (validSlides.length === 0) {
+        toast({
+          title: "Nenhum Conteúdo",
+          description: "Adicione pelo menos uma imagem, vídeo ou avatar antes de exportar.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Prepare slides data for API
+      const slidesData = validSlides.map((el, index) => ({
+        id: el.id,
+        imageUrl: el.content?.src || '',
+        duration: el.duration,
+        title: el.name,
+        content: el.content?.text || '',
+        avatar_config: el.type === 'avatar' ? {
+          engine: el.metadata?.engine,
+          avatarId: el.metadata?.avatarId,
+          voiceId: el.metadata?.voiceId,
+        } : undefined,
+        transition: 'fade' as const,
+        transitionDuration: 0.5,
+      }))
+
+      const projectId = 'editor-project-' + Date.now()
+      
+      const response = await fetch('/api/render/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          slides: slidesData,
+          config: {
+            test: options.mode === 'draft',
+            quality: options.mode === 'production' ? 'high' : 'low',
+            resolution: options.resolution === '1080p' ? 1080 : 720,
+            format: options.format,
+            width: options.resolution === '1080p' ? 1920 : 1280,
+            height: options.resolution === '1080p' ? 1080 : 720,
+          }
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to start render job')
+      }
+
+      const data = await response.json()
+      
+      // Show progress dialog
+      setCurrentRenderJobId(data.jobId)
+      setIsRenderProgressOpen(true)
+      
+      toast({
+        title: "Renderização Iniciada",
+        description: `Modo: ${options.mode === 'draft' ? 'Rascunho' : 'Produção'}`,
+      })
+
+    } catch (error) {
+      console.error('Export failed:', error)
+      toast({
+        title: "Erro na Exportação",
+        description: error instanceof Error ? error.message : "Não foi possível iniciar a renderização.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleRenderComplete = (url: string) => {
+    toast({
+      title: "Vídeo Pronto!",
+      description: "Seu vídeo foi renderizado com sucesso.",
+    })
+  }
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -462,6 +619,30 @@ export default function TimelineEditorReal() {
               <Share2 className="h-4 w-4 mr-1" />
               Compartilhar
             </Button>
+
+            <div className="h-6 w-px bg-gray-600 mx-2" />
+
+            <HeyGenCreditsWidget />
+
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-2"
+              onClick={() => setIsExportHistoryOpen(true)}
+            >
+              <Video className="h-4 w-4 mr-1" />
+              Histórico
+            </Button>
+
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="bg-blue-600 hover:bg-blue-700 ml-2"
+              onClick={() => setIsExportDialogOpen(true)}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Exportar
+            </Button>
           </div>
         </div>
 
@@ -480,6 +661,7 @@ export default function TimelineEditorReal() {
                   <h3 className="text-sm font-semibold mb-2">Biblioteca de Mídia</h3>
                   <div className="grid grid-cols-2 gap-2">
                     {[
+
                       { name: 'NR-12 Intro', src: '/nr12-intro.jpg' },
                       { name: 'Objetivos', src: '/nr12-objetivos.jpg' },
                       { name: 'Segurança', src: '/nr12-seguranca.jpg' },
@@ -493,6 +675,7 @@ export default function TimelineEditorReal() {
                         <span className="text-center">{item.name}</span>
                       </div>
                     ))}
+
                   </div>
                   
                   <Button className="w-full mt-4" variant="outline">
@@ -507,6 +690,7 @@ export default function TimelineEditorReal() {
                   <h3 className="text-sm font-semibold">Estilos de Texto</h3>
                   <div className="space-y-2">
                     {[
+
                       { name: 'Título Principal', style: 'text-2xl font-bold' },
                       { name: 'Subtítulo', style: 'text-lg font-medium' },
                       { name: 'Texto Normal', style: 'text-base' },
@@ -520,6 +704,7 @@ export default function TimelineEditorReal() {
                         <span className={textStyle.style}>{textStyle.name}</span>
                       </div>
                     ))}
+
                   </div>
                 </div>
               </TabsContent>
@@ -545,6 +730,7 @@ export default function TimelineEditorReal() {
                   <div className="space-y-2 pt-4">
                     <h4 className="text-xs font-medium text-gray-400">TTS Disponível</h4>
                     {[
+
                       { name: 'Voz Feminina BR', provider: 'ElevenLabs' },
                       { name: 'Voz Masculina BR', provider: 'Azure' },
                       { name: 'Narrador Profissional', provider: 'Google' }
@@ -554,6 +740,7 @@ export default function TimelineEditorReal() {
                         <div className="text-gray-400">{voice.provider}</div>
                       </div>
                     ))}
+
                   </div>
                 </div>
               </TabsContent>
@@ -597,6 +784,7 @@ export default function TimelineEditorReal() {
                     className="absolute w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center cursor-pointer"
                     style={{
                       left: `${(comment.position.time / totalDuration) * 100}%`,
+
                       top: `${comment.position.track * 20}%`
                     }}
                   >
@@ -656,6 +844,7 @@ export default function TimelineEditorReal() {
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="sm">
                   {volume[0] > 0 ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+
                 </Button>
                 <Slider
                   value={volume}
@@ -769,40 +958,13 @@ export default function TimelineEditorReal() {
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="properties" className="p-4">
-                {selectedElements.length > 0 ? (
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold">Elemento Selecionado</h3>
-                    {/* Properties for selected element */}
-                    <div className="space-y-2">
-                      <Label>Nome</Label>
-                      <Input 
-                        value={elements.find(el => el.id === selectedElements[0])?.name || ''}
-                        className="bg-gray-700 border-gray-600"
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-2">
-                        <Label>Início (s)</Label>
-                        <Input type="number" className="bg-gray-700 border-gray-600" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Duração (s)</Label>
-                        <Input type="number" className="bg-gray-700 border-gray-600" />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Volume</Label>
-                      <Slider defaultValue={[80]} max={100} step={1} />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    Selecione um elemento na timeline para ver as propriedades
-                  </div>
-                )}
+              <TabsContent value="properties" className="p-4 h-[calc(100%-40px)] overflow-y-auto">
+                <PropertiesPanel
+                  selectedElement={elements.find(el => el.id === selectedElements[0]) as any}
+                  onUpdateElement={handleUpdateElement}
+                  onDeleteElement={handleDeleteElement}
+                  onDuplicateElement={handleDuplicateElement}
+                />
               </TabsContent>
               
               <TabsContent value="comments" className="p-4">
@@ -884,6 +1046,25 @@ export default function TimelineEditorReal() {
             Salvo automaticamente às {new Date().toLocaleTimeString()}
           </span>
         </div>
+
+        <ExportDialog 
+          open={isExportDialogOpen} 
+          onOpenChange={setIsExportDialogOpen}
+          onExport={handleExport}
+          isExporting={isExporting}
+        />
+
+        <ExportHistoryDialog 
+          open={isExportHistoryOpen} 
+          onOpenChange={setIsExportHistoryOpen}
+        />
+
+        <RenderProgressDialog 
+          open={isRenderProgressOpen} 
+          onOpenChange={setIsRenderProgressOpen}
+          jobId={currentRenderJobId}
+          onComplete={handleRenderComplete}
+        />
       </div>
     </DndProvider>
   )

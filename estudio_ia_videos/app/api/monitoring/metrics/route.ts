@@ -16,14 +16,14 @@ class MonitoringService {
     return this.instance;
   }
   
-  logEvent(event: string, data: any) {
+  logEvent(event: string, data: Record<string, unknown>) {
     console.log(`📊 [${event}]`, data);
   }
 }
 
 class IntegratedTTSAvatarPipeline {
   private static instance: IntegratedTTSAvatarPipeline;
-  private jobs: any[] = [];
+  private jobs: Array<{ userId: string; status: string; actualDuration?: number; createdAt: Date }> = [];
   
   static getInstance(): IntegratedTTSAvatarPipeline {
     if (!this.instance) {
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
     const ttsManager = TTSEngineManager.getInstance();
     const avatarEngine = Avatar3DRenderEngine.getInstance();
 
-    let responseData: any = {};
+    let responseData: Record<string, unknown> = {};
 
     switch (type) {
       case 'system':
@@ -261,13 +261,13 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao obter métricas:', error);
     
     return NextResponse.json(
       { 
         error: 'Erro ao obter métricas',
-        message: error.message 
+        message: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );
@@ -305,13 +305,13 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao registrar evento:', error);
     
     return NextResponse.json(
       { 
         error: 'Erro ao registrar evento',
-        message: error.message 
+        message: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );
@@ -360,13 +360,13 @@ export async function PUT(request: NextRequest) {
         );
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao configurar monitoramento:', error);
     
     return NextResponse.json(
       { 
         error: 'Erro ao configurar monitoramento',
-        message: error.message 
+        message: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );

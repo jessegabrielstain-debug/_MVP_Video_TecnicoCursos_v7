@@ -47,7 +47,7 @@ interface RenderJob {
 
 interface Props {
   projectId: string
-  timeline: any
+  timeline: Record<string, unknown>
   onRenderComplete?: (videoUrl: string) => void
   onRenderError?: (error: string) => void
 }
@@ -98,7 +98,8 @@ export function RealTimeRenderer({ projectId, timeline, onRenderComplete, onRend
   }, [currentJob, onRenderComplete, onRenderError])
 
   const handleStartRender = async () => {
-    if (!timeline || timeline.scenes.length === 0) {
+    const scenes = (timeline as { scenes: unknown[] })?.scenes || []
+    if (scenes.length === 0) {
       toast.error('❌ Timeline vazia. Adicione slides para renderizar.')
       return
     }
@@ -199,7 +200,7 @@ export function RealTimeRenderer({ projectId, timeline, onRenderComplete, onRend
             <label className="text-sm font-medium">Qualidade do Vídeo</label>
             <Select 
               value={renderOptions.quality} 
-              onValueChange={(value: string) => setRenderOptions(prev => ({ ...prev, quality: value }))}
+              onValueChange={(value: string) => setRenderOptions(prev => ({ ...prev, quality: value as RenderOptions['quality'] }))}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -221,7 +222,7 @@ export function RealTimeRenderer({ projectId, timeline, onRenderComplete, onRend
             <label className="text-sm font-medium">Formato de Saída</label>
             <Select 
               value={renderOptions.format} 
-              onValueChange={(value: string) => setRenderOptions(prev => ({ ...prev, format: value }))}
+              onValueChange={(value: string) => setRenderOptions(prev => ({ ...prev, format: value as RenderOptions['format'] }))}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -277,11 +278,11 @@ export function RealTimeRenderer({ projectId, timeline, onRenderComplete, onRend
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-gray-600">Total de Slides:</span>
-              <span className="ml-2 font-medium">{timeline?.scenes?.length || 0}</span>
+              <span className="ml-2 font-medium">{(timeline as { scenes: unknown[] })?.scenes?.length || 0}</span>
             </div>
             <div>
               <span className="text-gray-600">Duração:</span>
-              <span className="ml-2 font-medium">{timeline?.totalDuration || 0}s</span>
+              <span className="ml-2 font-medium">{(timeline as { totalDuration: number })?.totalDuration || 0}s</span>
             </div>
             <div>
               <span className="text-gray-600">Resolução:</span>
@@ -330,7 +331,7 @@ export function RealTimeRenderer({ projectId, timeline, onRenderComplete, onRend
             <Button 
               onClick={handleStartRender}
               className="bg-blue-600 hover:bg-blue-700"
-              disabled={!timeline || timeline.scenes?.length === 0}
+              disabled={!timeline || ((timeline as { scenes: unknown[] })?.scenes?.length || 0) === 0}
             >
               <Play className="h-4 w-4 mr-2" />
               Renderizar Vídeo
@@ -363,10 +364,10 @@ export function RealTimeRenderer({ projectId, timeline, onRenderComplete, onRend
         </div>
 
         {/* Informações de Custo (TTS) */}
-        {generateTTS && timeline?.scenes && (
+        {generateTTS && (timeline as { scenes: unknown[] })?.scenes && (
           <div className="text-xs text-gray-600 bg-blue-50 p-2 rounded">
-            💡 <strong>TTS:</strong> ~{timeline.scenes.filter((s: any) => s.narrationText).length} narrações, 
-            ~{timeline.scenes.reduce((total: number, s: any) => total + (s.narrationText?.length || 0), 0)} caracteres
+            💡 <strong>TTS:</strong> ~{(timeline as { scenes: { narrationText?: string }[] }).scenes.filter((s) => s.narrationText).length} narrações, 
+            ~{(timeline as { scenes: { narrationText?: string }[] }).scenes.reduce((total, s) => total + (s.narrationText?.length || 0), 0)} caracteres
             (Custo estimado: $0.02)
           </div>
         )}

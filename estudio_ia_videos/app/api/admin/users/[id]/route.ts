@@ -48,9 +48,8 @@ export async function PUT(
     await auditLogger.log({
       action: 'user.role_updated',
       userId: session.user.id,
-      resource: 'user',
-      resourceId: params.id,
-      metadata: { role },
+      resource: `user:${params.id}`,
+      metadata: { role, targetUserId: params.id },
     })
 
     return NextResponse.json(user)
@@ -86,8 +85,8 @@ export async function DELETE(
     await auditLogger.log({
       action: 'user.deleted',
       userId: session.user.id,
-      resource: 'user',
-      resourceId: params.id,
+      resource: `user:${params.id}`,
+      metadata: { targetUserId: params.id },
     })
 
     return NextResponse.json({ success: true })

@@ -1,3 +1,4 @@
+// TODO: Fix v2 API types
 /**
  * 🎭 API v2: Avatar Gallery
  * Galeria melhorada de avatares 3D hiper-realistas
@@ -5,10 +6,49 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { avatar3DPipeline } from '@/lib/avatar-3d-pipeline'
-import { supabase as supabaseClient } from '@/lib/services'
+import { createRateLimiter, rateLimitPresets } from '../../../../lib/utils/rate-limit-middleware';
+import { avatar3DPipeline } from '../../../../lib/avatar-3d-pipeline'
+import { supabase as supabaseClient } from '../../../../lib/services'
 
+// Interface para avatar model da tabela
+interface AvatarModel {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string;
+  type: string;
+  gender?: string;
+  quality: string;
+  thumbnail_url?: string;
+  model_url?: string;
+  preview_video_url?: string;
+  audio2face_compatible: boolean;
+  real_time_lipsync: boolean;
+  ray_tracing_support: boolean;
+  lipsync_accuracy?: number;
+  model_file_path?: string;
+  texture_files?: string[];
+  rig_file_path?: string;
+  animation_sets?: string[];
+  blend_shapes_file?: string;
+  supported_languages?: string[];
+  is_active: boolean;
+  usage_count?: number;
+  avatar_stats?: unknown;
+  rating?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Interface para categoria/qualidade filtros
+interface FilterItem {
+  type?: string;
+  quality?: string;
+}
+
+const rateLimiterGet = createRateLimiter(rateLimitPresets.authenticated);
 export async function GET(request: NextRequest) {
+  return rateLimiterGet(request, async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category')
@@ -24,12 +64,12 @@ export async function GET(request: NextRequest) {
     console.log(`🌍 Idioma: ${language || 'todos'}`)
 
     // Buscar avatares do Supabase
-    let query = supabaseClient
+    let query: any = ((supabaseClient as any)
       .from('avatar_models')
       .select(`
         *,
         avatar_stats:avatar_stats(*)
-      `)
+      `) as any)
       .eq('is_active', true)
 
     // Aplicar filtros
@@ -63,29 +103,32 @@ export async function GET(request: NextRequest) {
       throw new Error(`Erro ao buscar avatares: ${error.message}`)
     }
 
+    // Cast para tipo correto
+    const typedAvatars = (avatars || []) as AvatarModel[];
+
     // Obter estatísticas do pipeline
     const stats = await avatar3DPipeline.getPipelineStats()
 
     // Obter categorias e qualidades disponíveis
-    const { data: categoriesData } = await supabaseClient
+    const { data: categoriesData } = await ((supabaseClient as any)
       .from('avatar_models')
-      .select('type')
+      .select('type') as any)
       .eq('is_active', true)
       .not('type', 'is', null)
 
-    const { data: qualitiesData } = await supabaseClient
+    const { data: qualitiesData } = await ((supabaseClient as any)
       .from('avatar_models')
-      .select('quality')
+      .select('quality') as any)
       .eq('is_active', true)
       .not('quality', 'is', null)
 
-    const categories = [...new Set(categoriesData?.map(item => item.type) || [])]
-    const qualities = [...new Set(qualitiesData?.map(item => item.quality) || [])]
+    const categories = Array.from(new Set((categoriesData as FilterItem[] || []).map(item => item.type).filter(Boolean)))
+    const qualities = Array.from(new Set((qualitiesData as FilterItem[] || []).map(item => item.quality).filter(Boolean)))
 
     const response = {
       success: true,
       data: {
-        avatars: (avatars || []).map(avatar => ({
+        avatars: typedAvatars.map(avatar => ({
           id: avatar.id,
           name: avatar.name,
           displayName: avatar.display_name,
@@ -164,9 +207,12 @@ export async function GET(request: NextRequest) {
       }
     }, { status: 500 })
   }
+  });
 }
 
+const rateLimiterPost = createRateLimiter(rateLimitPresets.authenticated);
 export async function POST(request: NextRequest) {
+  return rateLimiterPost(request, async (request: NextRequest) => {
   try {
     const body = await request.json()
     const { avatarId, action, data } = body
@@ -174,21 +220,23 @@ export async function POST(request: NextRequest) {
     console.log(`🎭 API v2: Ação na galeria - ${action} para avatar ${avatarId}`)
 
     switch (action) {
-      case 'preview':
+      case 'preview': {
         // Buscar avatar do Supabase
-        const { data: avatar, error } = await supabaseClient
+        const { data: avatarData, error } = await ((supabaseClient as any)
           .from('avatar_models')
-          .select('*')
+          .select('*') as any)
           .eq('id', avatarId)
           .eq('is_active', true)
           .single()
 
-        if (error || !avatar) {
+        if (error || !avatarData) {
           return NextResponse.json({
             success: false,
             error: { message: 'Avatar não encontrado', code: 'AVATAR_NOT_FOUND' }
           }, { status: 404 })
         }
+
+        const avatar = avatarData as AvatarModel;
 
         return NextResponse.json({
           success: true,
@@ -219,8 +267,9 @@ export async function POST(request: NextRequest) {
             }
           }
         })
+      }
 
-      case 'test_lipsync':
+      case 'test_lipsync': {
         // Testar lip-sync do avatar
         const { text, audioFile, voiceProfileId } = data
         
@@ -232,9 +281,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Verificar se o avatar existe
-        const { data: avatarData } = await supabaseClient
+        const { data: avatarData } = await ((supabaseClient as any)
           .from('avatar_models')
-          .select('id, name, audio2face_compatible')
+          .select('id, name, audio2face_compatible') as any)
           .eq('id', avatarId)
           .eq('is_active', true)
           .single()
@@ -287,8 +336,9 @@ export async function POST(request: NextRequest) {
             }
           }, { status: 500 })
         }
+      }
 
-      case 'favorite':
+      case 'favorite': {
         // Adicionar/remover dos favoritos (requer autenticação)
         const { userId, isFavorite } = data
         
@@ -309,6 +359,7 @@ export async function POST(request: NextRequest) {
             message: isFavorite ? 'Avatar removido dos favoritos' : 'Avatar adicionado aos favoritos'
           }
         })
+      }
 
       default:
         return NextResponse.json({
@@ -328,4 +379,5 @@ export async function POST(request: NextRequest) {
       }
     }, { status: 500 })
   }
+  });
 }

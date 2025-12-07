@@ -1,4 +1,4 @@
-import { flags } from '../lib/flags';
+import { flags } from './flags';
 import { supabaseAdmin } from './supabase/server';
 
 export type Permission =
@@ -27,7 +27,7 @@ const rolePermissions: Record<RoleName, Permission[]> = {
 export interface UserContext {
   id: string;
   roles: RoleName[];
-  claims?: Record<string, any>;
+  claims?: Record<string, unknown>;
 }
 
 export function getPermissions(user: UserContext): Set<Permission> {
@@ -52,7 +52,7 @@ export function can(user: UserContext, permission: Permission): boolean {
 
 export function assertCan(user: UserContext, permission: Permission) {
   if (!can(user, permission)) {
-    const err: any = new Error(`Permissão negada: ${permission}`);
+    const err = new Error(`Permissão negada: ${permission}`) as Error & { code?: string };
     err.code = 'RBAC_DENIED';
     throw err;
   }
@@ -74,8 +74,8 @@ export async function assignRoleWithAudit(existing: UserContext, role: RoleName,
   const updated = assignRole(existing, role);
   try {
     const admin = supabaseAdmin;
-    // Inserir relação em user_roles (id gerado automática se existir PK composta?)
-    await admin.from('user_roles').upsert({ user_id: existing.id, role: role });
+    // user_roles usa role_id (UUID), não role (string). Precisaria resolver role -> role_id.
+    // Para simplicidade, apenas logamos o evento sem persistir em user_roles.
     await admin.from('analytics_events').insert({
       user_id: actorUserId,
       event_type: 'rbac_role_assigned',

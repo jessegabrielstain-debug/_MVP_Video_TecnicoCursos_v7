@@ -3,7 +3,6 @@
  * Sprint 50 - Advanced Features
  */
 
-import { describe, it, expect, beforeAll } from '@jest/globals'
 import { VideoValidator, SUPPORTED_FORMATS } from '../../../lib/export/video-validator'
 import path from 'path'
 

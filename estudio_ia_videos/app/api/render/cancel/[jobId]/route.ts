@@ -5,6 +5,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import type { AuthOptions } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
 
 export async function POST(
@@ -12,7 +13,7 @@ export async function POST(
   { params }: { params: { jobId: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authConfig as unknown as AuthOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }

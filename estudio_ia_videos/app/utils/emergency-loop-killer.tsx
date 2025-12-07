@@ -107,7 +107,7 @@ declare global {
 }
 
 // Hook para proteger componentes
-export function useLoopProtection(componentId: string, dependencies: any[] = []) {
+export function useLoopProtection(componentId: string, dependencies: unknown[] = []) {
   const executionCountRef = useRef(0)
   const lastExecutionRef = useRef(0)
   

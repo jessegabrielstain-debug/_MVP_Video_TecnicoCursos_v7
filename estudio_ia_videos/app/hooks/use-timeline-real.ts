@@ -6,8 +6,8 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { Timeline, Track, Clip, TimelineManipulation, TimelineConfig } from '@/lib/types/timeline';
-import { DEFAULT_TIMELINE_CONFIG } from '@/lib/types/timeline';
+import type { Timeline, Track, Clip, TimelineManipulation, TimelineConfig } from '@/lib/types/timeline-types';
+import { DEFAULT_TIMELINE_CONFIG } from '@/lib/types/timeline-types';
 
 interface UseTimelineRealProps {
   projectId: string;
@@ -57,7 +57,7 @@ export function useTimelineReal({
       ...trackData,
     };
     
-    setTimeline(prev => {
+    setTimeline((prev: Timeline) => {
       const updated = {
         ...prev,
         tracks: [...prev.tracks, newTrack],
@@ -71,10 +71,10 @@ export function useTimelineReal({
   }, [config.defaultTrackHeight, onUpdate]);
   
   const removeTrack = useCallback((trackId: string) => {
-    setTimeline(prev => {
+    setTimeline((prev: Timeline) => {
       const updated = {
         ...prev,
-        tracks: prev.tracks.filter(t => t.id !== trackId),
+        tracks: prev.tracks.filter((t: Track) => t.id !== trackId),
         updatedAt: new Date(),
       };
       onUpdate?.(updated);
@@ -83,10 +83,10 @@ export function useTimelineReal({
   }, [onUpdate]);
   
   const updateTrack = useCallback((trackId: string, data: Partial<Track>) => {
-    setTimeline(prev => {
+    setTimeline((prev: Timeline) => {
       const updated = {
         ...prev,
-        tracks: prev.tracks.map(t => 
+        tracks: prev.tracks.map((t: Track) => 
           t.id === trackId ? { ...t, ...data } : t
         ),
         updatedAt: new Date(),
@@ -97,8 +97,8 @@ export function useTimelineReal({
   }, [onUpdate]);
   
   const reorderTracks = useCallback((trackIds: string[]) => {
-    setTimeline(prev => {
-      const tracksMap = new Map(prev.tracks.map(t => [t.id, t]));
+    setTimeline((prev: Timeline) => {
+      const tracksMap = new Map(prev.tracks.map((t: Track) => [t.id, t]));
       const reordered = trackIds.map(id => tracksMap.get(id)!).filter(Boolean);
       
       const updated = {
@@ -114,7 +114,7 @@ export function useTimelineReal({
   // ============= CLIPS =============
   
   const addClip = useCallback((trackId: string, clipData: Omit<Clip, 'id' | 'trackId'>) => {
-    const newClip: Clip = {
+    const newClip = {
       id: uuidv4(),
       trackId,
       volume: 100,
@@ -122,12 +122,12 @@ export function useTimelineReal({
       locked: false,
       hidden: false,
       ...clipData,
-    };
+    } as Clip;
     
-    setTimeline(prev => {
+    setTimeline((prev: Timeline) => {
       const updated = {
         ...prev,
-        tracks: prev.tracks.map(t => 
+        tracks: prev.tracks.map((t: Track) => 
           t.id === trackId 
             ? { ...t, clips: [...t.clips, newClip] }
             : t
@@ -142,12 +142,12 @@ export function useTimelineReal({
   }, [onUpdate]);
   
   const removeClip = useCallback((clipId: string) => {
-    setTimeline(prev => {
+    setTimeline((prev: Timeline) => {
       const updated = {
         ...prev,
-        tracks: prev.tracks.map(t => ({
+        tracks: prev.tracks.map((t: Track) => ({
           ...t,
-          clips: t.clips.filter(c => c.id !== clipId),
+          clips: t.clips.filter((c: Clip) => c.id !== clipId),
         })),
         updatedAt: new Date(),
       };
@@ -157,12 +157,12 @@ export function useTimelineReal({
   }, [onUpdate]);
   
   const updateClip = useCallback((clipId: string, data: Partial<Clip>) => {
-    setTimeline(prev => {
+    setTimeline((prev: Timeline) => {
       const updated = {
         ...prev,
-        tracks: prev.tracks.map(t => ({
+        tracks: prev.tracks.map((t: Track) => ({
           ...t,
-          clips: t.clips.map(c => 
+          clips: t.clips.map((c: Clip) => 
             c.id === clipId ? { ...c, ...data } : c
           ),
         })),
@@ -174,13 +174,13 @@ export function useTimelineReal({
   }, [onUpdate]);
   
   const moveClip = useCallback((clipId: string, newTrackId: string, newStartTime: number) => {
-    setTimeline(prev => {
+    setTimeline((prev: Timeline) => {
       // Encontrar o clip
       let clipToMove: Clip | undefined;
       
-      const tracksWithoutClip = prev.tracks.map(t => ({
+      const tracksWithoutClip = prev.tracks.map((t: Track) => ({
         ...t,
-        clips: t.clips.filter(c => {
+        clips: t.clips.filter((c: Clip) => {
           if (c.id === clipId) {
             clipToMove = c;
             return false;
@@ -199,7 +199,7 @@ export function useTimelineReal({
       // Adicionar à nova track
       const updated = {
         ...prev,
-        tracks: tracksWithoutClip.map(t => 
+        tracks: tracksWithoutClip.map((t: Track) => 
           t.id === newTrackId
             ? {
                 ...t,
@@ -218,9 +218,9 @@ export function useTimelineReal({
   const splitClip = useCallback((clipId: string, splitTime: number): [Clip, Clip] | null => {
     let result: [Clip, Clip] | null = null;
     
-    setTimeline(prev => {
-      const track = prev.tracks.find(t => t.clips.some(c => c.id === clipId));
-      const clip = track?.clips.find(c => c.id === clipId);
+    setTimeline((prev: Timeline) => {
+      const track = prev.tracks.find((t: Track) => t.clips.some((c: Clip) => c.id === clipId));
+      const clip = track?.clips.find((c: Clip) => c.id === clipId);
       
       if (!clip || !track) return prev;
       
@@ -245,11 +245,11 @@ export function useTimelineReal({
       
       const updated = {
         ...prev,
-        tracks: prev.tracks.map(t => 
+        tracks: prev.tracks.map((t: Track) => 
           t.id === track.id
             ? {
                 ...t,
-                clips: t.clips.flatMap(c => 
+                clips: t.clips.flatMap((c: Clip) => 
                   c.id === clipId ? [clip1, clip2] : [c]
                 ),
               }
@@ -268,9 +268,9 @@ export function useTimelineReal({
   const duplicateClip = useCallback((clipId: string): Clip | null => {
     let result: Clip | null = null;
     
-    setTimeline(prev => {
-      const track = prev.tracks.find(t => t.clips.some(c => c.id === clipId));
-      const clip = track?.clips.find(c => c.id === clipId);
+    setTimeline((prev: Timeline) => {
+      const track = prev.tracks.find((t: Track) => t.clips.some((c: Clip) => c.id === clipId));
+      const clip = track?.clips.find((c: Clip) => c.id === clipId);
       
       if (!clip || !track) return prev;
       
@@ -284,7 +284,7 @@ export function useTimelineReal({
       
       const updated = {
         ...prev,
-        tracks: prev.tracks.map(t => 
+        tracks: prev.tracks.map((t: Track) => 
           t.id === track.id
             ? { ...t, clips: [...t.clips, newClip] }
             : t
@@ -302,14 +302,14 @@ export function useTimelineReal({
   // ============= PLAYBACK =============
   
   const play = useCallback(() => {
-    setTimeline(prev => ({ ...prev, playing: true }));
+    setTimeline((prev: Timeline) => ({ ...prev, playing: true }));
     
     const animate = () => {
       const now = performance.now();
       const delta = (now - lastUpdateTimeRef.current) / 1000;
       lastUpdateTimeRef.current = now;
       
-      setTimeline(prev => {
+      setTimeline((prev: Timeline) => {
         const newTime = prev.currentTime + delta;
         
         if (newTime >= prev.duration) {
@@ -331,21 +331,21 @@ export function useTimelineReal({
   }, []);
   
   const pause = useCallback(() => {
-    setTimeline(prev => ({ ...prev, playing: false }));
+    setTimeline((prev: Timeline) => ({ ...prev, playing: false }));
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
   }, []);
   
   const stop = useCallback(() => {
-    setTimeline(prev => ({ ...prev, playing: false, currentTime: 0 }));
+    setTimeline((prev: Timeline) => ({ ...prev, playing: false, currentTime: 0 }));
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
   }, []);
   
   const seek = useCallback((time: number) => {
-    setTimeline(prev => ({
+    setTimeline((prev: Timeline) => ({
       ...prev,
       currentTime: Math.max(0, Math.min(time, prev.duration)),
     }));
@@ -359,21 +359,21 @@ export function useTimelineReal({
   // ============= ZOOM =============
   
   const zoomIn = useCallback(() => {
-    setTimeline(prev => ({
+    setTimeline((prev: Timeline) => ({
       ...prev,
       zoom: Math.min(prev.zoom * 1.5, 10),
     }));
   }, []);
   
   const zoomOut = useCallback(() => {
-    setTimeline(prev => ({
+    setTimeline((prev: Timeline) => ({
       ...prev,
       zoom: Math.max(prev.zoom / 1.5, 0.1),
     }));
   }, []);
   
   const setZoom = useCallback((zoom: number) => {
-    setTimeline(prev => ({
+    setTimeline((prev: Timeline) => ({
       ...prev,
       zoom: Math.max(0.1, Math.min(zoom, 10)),
     }));

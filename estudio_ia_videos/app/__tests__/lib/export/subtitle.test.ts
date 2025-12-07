@@ -9,7 +9,6 @@
  * - Geração de legendas
  */
 
-import { describe, it, expect } from '@jest/globals'
 import { SubtitleParser } from '@/lib/export/subtitle-parser'
 import { SubtitleFormat, type SubtitleFile } from '@/types/subtitle.types'
 

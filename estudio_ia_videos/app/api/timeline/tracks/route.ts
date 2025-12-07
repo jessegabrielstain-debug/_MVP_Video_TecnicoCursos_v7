@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
+
+// Interfaces para tipagem de queries
+interface TrackOrderIndex {
+  order_index: number;
+}
+
+interface TrackCreated {
+  id: string;
+  name: string;
+  type: string;
+  project_id: string;
+  order_index: number;
+  color?: string | null;
+  height?: number;
+  visible?: boolean;
+  locked?: boolean;
+  muted?: boolean;
+  properties?: Prisma.JsonValue;
+}
+
+interface ExistingTrackWithProjectId {
+  id: string;
+  project_id: string;
+}
 
 // Schema de validação para criação de track
 const createTrackSchema = z.object({
@@ -13,11 +38,11 @@ const createTrackSchema = z.object({
   visible: z.boolean().optional(),
   locked: z.boolean().optional(),
   muted: z.boolean().optional(),
-  properties: z.record(z.any()).optional()
+  properties: z.record(z.unknown()).optional()
 })
 
 // Schema de validação para atualização de track
-const updateTrackSchema = createTrackSchema.partial().omit(['project_id'])
+const updateTrackSchema = createTrackSchema.omit({ project_id: true }).partial()
 
 // Schema de validação para reordenação de tracks
 const reorderTracksSchema = z.object({
@@ -30,7 +55,7 @@ const reorderTracksSchema = z.object({
 // GET - Listar tracks de um projeto
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -53,7 +78,7 @@ export async function GET(request: NextRequest) {
     // Verificar permissões no projeto
     const { data: project } = await supabase
       .from('projects')
-      .select('owner_id, collaborators, is_public')
+      .select('user_id, is_public')
       .eq('id', projectId)
       .single()
 
@@ -64,9 +89,18 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id) ||
-                         project.is_public
+    let hasPermission = project.user_id === user.id || project.is_public
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('user_id')
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .single()
+      
+      if (collaborator) hasPermission = true
+    }
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -107,7 +141,7 @@ export async function GET(request: NextRequest) {
 // POST - Criar nova track
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -123,7 +157,7 @@ export async function POST(request: NextRequest) {
     // Verificar permissões no projeto
     const { data: project } = await supabase
       .from('projects')
-      .select('owner_id, collaborators')
+      .select('user_id')
       .eq('id', validatedData.project_id)
       .single()
 
@@ -134,8 +168,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+    let hasPermission = project.user_id === user.id
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('permissions')
+        .eq('project_id', validatedData.project_id)
+        .eq('user_id', user.id)
+        .single()
+      
+      // Check if permissions array contains 'write' or 'edit'
+      if (collaborator && collaborator.permissions) {
+        const perms = collaborator.permissions as string[];
+        if (perms.includes('write') || perms.includes('edit')) {
+          hasPermission = true;
+        }
+      }
+    }
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -146,7 +196,7 @@ export async function POST(request: NextRequest) {
 
     // Se order_index não foi fornecido, usar o próximo disponível
     if (validatedData.order_index === undefined) {
-      const { data: lastTrack } = await supabase
+      const { data: lastTrackData } = await supabase
         .from('timeline_tracks')
         .select('order_index')
         .eq('project_id', validatedData.project_id)
@@ -154,12 +204,13 @@ export async function POST(request: NextRequest) {
         .limit(1)
         .single()
 
-      validatedData.order_index = (lastTrack?.order_index || -1) + 1
+      const lastTrack = lastTrackData as unknown as TrackOrderIndex | null;
+      validatedData.order_index = (lastTrack?.order_index ?? -1) + 1
     }
 
     // Definir cor padrão baseada no tipo
     if (!validatedData.color) {
-      const colorMap = {
+      const colorMap: Record<string, string> = {
         video: '#3b82f6',
         audio: '#10b981',
         text: '#f59e0b',
@@ -171,7 +222,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar track
-    const { data: track, error } = await supabase
+    const { data: trackData, error } = await supabase
       .from('timeline_tracks')
       .insert({
         ...validatedData,
@@ -179,8 +230,8 @@ export async function POST(request: NextRequest) {
         visible: validatedData.visible !== false,
         locked: validatedData.locked || false,
         muted: validatedData.muted || false,
-        properties: validatedData.properties || {}
-      })
+        properties: (validatedData.properties || {}) as Prisma.InputJsonValue
+      } as any)
       .select()
       .single()
 
@@ -192,8 +243,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const track = trackData as unknown as TrackCreated;
+
     // Registrar no histórico
-    await supabase
+    await (supabase
       .from('project_history')
       .insert({
         project_id: validatedData.project_id,
@@ -204,8 +257,8 @@ export async function POST(request: NextRequest) {
         description: `Track "${track.name}" criada`,
         changes: {
           created_track: track
-        }
-      })
+        } as any
+      }) as any)
 
     return NextResponse.json(track, { status: 201 })
 
@@ -228,7 +281,7 @@ export async function POST(request: NextRequest) {
 // PUT - Reordenar tracks
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -243,10 +296,12 @@ export async function PUT(request: NextRequest) {
 
     // Verificar se todas as tracks existem e obter o project_id
     const trackIds = tracks.map(t => t.id)
-    const { data: existingTracks, error: fetchError } = await supabase
+    const { data: existingTracksData, error: fetchError } = await supabase
       .from('timeline_tracks')
       .select('id, project_id')
       .in('id', trackIds)
+
+    const existingTracks = existingTracksData as unknown as ExistingTrackWithProjectId[] | null;
 
     if (fetchError || !existingTracks || existingTracks.length !== tracks.length) {
       return NextResponse.json(
@@ -269,7 +324,7 @@ export async function PUT(request: NextRequest) {
     // Verificar permissões no projeto
     const { data: project } = await supabase
       .from('projects')
-      .select('owner_id, collaborators')
+      .select('user_id')
       .eq('id', projectId)
       .single()
 
@@ -280,8 +335,24 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+    let hasPermission = project.user_id === user.id
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('permissions')
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .single()
+      
+      // Check if permissions array contains 'write' or 'edit'
+      if (collaborator && collaborator.permissions) {
+        const perms = collaborator.permissions as string[];
+        if (perms.includes('write') || perms.includes('edit')) {
+          hasPermission = true;
+        }
+      }
+    }
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -301,7 +372,7 @@ export async function PUT(request: NextRequest) {
     await Promise.all(updatePromises)
 
     // Registrar no histórico
-    await supabase
+    await (supabase
       .from('project_history')
       .insert({
         project_id: projectId,
@@ -311,8 +382,8 @@ export async function PUT(request: NextRequest) {
         description: 'Tracks reordenadas',
         changes: {
           reordered_tracks: tracks
-        }
-      })
+        } as any
+      }) as any)
 
     return NextResponse.json({ message: 'Tracks reordenadas com sucesso' })
 

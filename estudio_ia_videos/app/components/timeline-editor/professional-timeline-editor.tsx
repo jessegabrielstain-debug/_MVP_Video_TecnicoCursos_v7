@@ -18,7 +18,7 @@ interface Keyframe {
   id: string
   time: number
   property: string
-  value: any
+  value: number | string
   easing?: string
 }
 
@@ -274,7 +274,7 @@ const ProfessionalTimelineEditor: React.FC = () => {
   }
   
   // Add keyframe
-  const addKeyframe = (objectId: string, property: string, value: any) => {
+  const addKeyframe = (objectId: string, property: string, value: number | string) => {
     const newKeyframe: Keyframe = {
       id: `kf-${Date.now()}`,
       time: currentTime,

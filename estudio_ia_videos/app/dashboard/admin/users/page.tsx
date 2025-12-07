@@ -1,5 +1,7 @@
+export const dynamic = 'force-dynamic';
+
 import React from 'react';
-import { can, UserContext } from '../../../../lib/rbac';
+import { can, UserContext } from '@/lib/rbac';
 
 function getCurrentUser(): UserContext { return { id: 'u1', roles: ['admin'] }; }
 

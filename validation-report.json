@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-11-18T23:55:37.086Z",
+  "results": [
+    {
+      "name": "Validação Pós-Audit",
+      "command": "npm run validate:post-audit",
+      "success": true,
+      "score": 80,
+      "output": "\n> mvp-video-tecnico-cursos-v7@1.0.0 validate:post-audit\n> tsx scripts/validate-post-audit.ts\n\n\n═══════════════════════════════════════════════════\n🔍 VALIDAÇÃO PÓS-VARREDURA\n═══════════════════════════════════════════════════\n\n\nConfigurações de Ambiente:\n──────────────────────────────────────────────────\n✅ Credenciais Raiz\n   Credenciais válidas configuradas\n⚠️ Credenciais App\n   Alguns serviços opcionais não configurados\n\nConfiguração de Testes:\n──────────────────────────────────────────────────\n✅ Transform Ignore Patterns\n   Módulos ESM configurados para transformação\n\nConfiguração TypeScript:\n──────────────────────────────────────────────────\n⚠️ Deprecation Warnings\n   ignoreDeprecations não configurado (warnings do baseUrl)\n\nEstrutura de Arquivos:\n──────────────────────────────────────────────────\n✅ Database Schema\n   Arquivo presente\n✅ RLS Policies\n   Arquivo presente\n✅ PPTX Processor\n   Arquivo presente\n✅ PPTX Parser\n   Arquivo presente\n✅ Health Check Script\n   Arquivo presente\n✅ Supabase Setup Script\n   Arquivo presente\n\n═══════════════════════════════════════════════════\n📊 SUMÁRIO\n═══════════════════════════════════════════════════\n\n✅ Aprovado: 8\n⚠️  Avisos: 2\n❌ Falhas: 0\n\nScore: 80.0%\n\n⚠️  Sistema validado com avisos.\n\n",
+      "duration": 3588
+    },
+    {
+      "name": "Processador PPTX",
+      "command": "npm run test:pptx-processor",
+      "success": true,
+      "score": 100,
+      "output": "\n> mvp-video-tecnico-cursos-v7@1.0.0 test:pptx-processor\n> tsx scripts/test-pptx-processor.ts\n\n\n═══════════════════════════════════════════════════\n🧪 TESTE DO PROCESSADOR PPTX MELHORADO\n═══════════════════════════════════════════════════\n\n1. Verificando Arquivos do Processador\n\n✅ Processador Principal: OK\n✅ Parser Básico: OK\n✅ Text Parser: OK\n✅ Image Parser: OK\n✅ Notes Parser: OK\n✅ Processador Avançado: OK\n✅ Definições de Tipos: OK\n\n2. Verificando Imports e Tipos\n\n✅ Import PPTXTextParser: OK\n✅ Import PPTXImageParser: OK\n✅ Import PPTXNotesParser: OK\n✅ Função enrichSlidesWithAdvancedData: OK\n✅ Uso de zip.loadAsync: OK\n✅ ProcessingOptions.extractImages: OK\n✅ ProcessingOptions.extractNotes: OK\n✅ ProcessingOptions.extractFormatting: OK\n✅ ProcessingOptions.generateThumbnails: OK\n\n3. Verificando Testes\n\n✅ text-parser.test.ts: DISPONÍVEL\n✅ post-audit-validation.test.ts: DISPONÍVEL\n\n═══════════════════════════════════════════════════\n📊 SUMÁRIO\n═══════════════════════════════════════════════════\n\n✅ Aprovado: 18/18\n❌ Falhas: 0/18\n⚠️  Pulados: 0/18\n\nScore: 100.0%\n\n═══════════════════════════════════════════════════\n💡 PRÓXIMOS PASSOS\n═══════════════════════════════════════════════════\n\n✨ Tudo funcionando perfeitamente!\n\nPróximos passos:\n1. Testar com arquivo PPTX real\n2. Executar: npm run test:suite:pptx\n3. Validar extração avançada de dados\n\n✅ Processador PPTX validado com sucesso!\n\n",
+      "duration": 3829
+    },
+    {
+      "name": "Health Check",
+      "command": "npm run health",
+      "success": false,
+      "error": "C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\scripts\\health-check.ts:251\r\nmain().catch(console.error);\r\n^\r\n\r\n\r\nReferenceError: main is not defined\r\n    at <anonymous> (C:\\xampp\\htdocs\\_MVP_Video_TecnicoCursos_v7\\scripts\\health-check.ts:251:1)\r\n    at ModuleJob.run (node:internal/modules/esm/module_job:234:25)\r\n    at async ModuleLoader.import (node:internal/modules/esm/loader:473:24)\r\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:123:5)\r\n\r\nNode.js v20.18.0\r\n",
+      "output": "\n> mvp-video-tecnico-cursos-v7@1.0.0 health\n> tsx scripts/health-check.ts\n\n",
+      "duration": 5334
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "successful": 2,
+    "failed": 1,
+    "avgScore": 90
+  }
+}

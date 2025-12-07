@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * 🔍 Media Search API
  * Handles media search across different providers
@@ -22,9 +24,46 @@ const MediaSearchSchema = z.object({
   safe_search: z.boolean().default(true)
 })
 
+type MediaSearchParams = z.infer<typeof MediaSearchSchema>
+
+interface MediaProviderConfig {
+  api_key?: string
+  max_requests_per_hour?: number
+  [key: string]: unknown
+}
+
+interface MediaProvider {
+  provider_type: string
+  config: MediaProviderConfig
+  pricing?: {
+    per_search?: number
+  }
+  provider_id: string
+  provider_name: string
+}
+
+interface MediaResult {
+  id: string
+  title: string
+  description: string | null
+  url: string
+  thumbnail: string
+  width: number
+  height: number
+  author: {
+    name: string
+    username: string
+    profile_url: string
+  }
+  download_url: string
+  tags: string[]
+  license: string
+  provider: string
+}
+
 // Media provider implementations
 class MediaProviderFactory {
-  static async searchMedia(provider: any, params: any): Promise<{ results: any[]; total: number; page: number; per_page: number }> {
+  static async searchMedia(provider: MediaProvider, params: MediaSearchParams): Promise<{ results: MediaResult[]; total: number; page: number; per_page: number }> {
     switch (provider.provider_type) {
       case 'unsplash':
         return await this.searchUnsplash(provider, params)
@@ -39,7 +78,7 @@ class MediaProviderFactory {
     }
   }
 
-  private static async searchUnsplash(provider: any, params: any) {
+  private static async searchUnsplash(provider: MediaProvider, params: MediaSearchParams) {
     const { api_key } = provider.config
     
     if (!api_key) {
@@ -67,7 +106,7 @@ class MediaProviderFactory {
 
     const data = await response.json()
     
-    const results = data.results.map((photo: any) => ({
+    const results = data.results.map((photo: Record<string, any>) => ({
       id: photo.id,
       title: photo.description || photo.alt_description || 'Untitled',
       description: photo.description,
@@ -81,7 +120,7 @@ class MediaProviderFactory {
         profile_url: photo.user.links.html
       },
       download_url: photo.links.download,
-      tags: photo.tags?.map((tag: any) => tag.title) || [],
+      tags: photo.tags?.map((tag: { title: string }) => tag.title) || [],
       license: 'Unsplash License',
       provider: 'unsplash'
     }))
@@ -94,7 +133,7 @@ class MediaProviderFactory {
     }
   }
 
-  private static async searchPexels(provider: any, params: any) {
+  private static async searchPexels(provider: MediaProvider, params: MediaSearchParams) {
     const { api_key } = provider.config
     
     if (!api_key) {
@@ -121,7 +160,7 @@ class MediaProviderFactory {
 
     const data = await response.json()
     
-    const results = data.photos.map((photo: any) => ({
+    const results = data.photos.map((photo: Record<string, any>) => ({
       id: photo.id.toString(),
       title: photo.alt || 'Untitled',
       description: photo.alt,
@@ -148,7 +187,7 @@ class MediaProviderFactory {
     }
   }
 
-  private static async searchPixabay(provider: any, params: any) {
+  private static async searchPixabay(provider: MediaProvider, params: MediaSearchParams) {
     const { api_key } = provider.config
     
     if (!api_key) {
@@ -177,7 +216,7 @@ class MediaProviderFactory {
 
     const data = await response.json()
     
-    const results = data.hits.map((image: any) => ({
+    const results = data.hits.map((image: Record<string, any>) => ({
       id: image.id.toString(),
       title: image.tags,
       description: image.tags,
@@ -204,7 +243,7 @@ class MediaProviderFactory {
     }
   }
 
-  private static async searchShutterstock(provider: any, params: any) {
+  private static async searchShutterstock(provider: MediaProvider, params: MediaSearchParams) {
     const { api_key } = provider.config
     
     if (!api_key) {
@@ -232,7 +271,7 @@ class MediaProviderFactory {
 
     const data = await response.json()
     
-    const results = data.data.map((image: any) => ({
+    const results = data.data.map((image: Record<string, any>) => ({
       id: image.id,
       title: image.description,
       description: image.description,
@@ -286,7 +325,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Get provider configuration
-    const { data: provider, error: providerError } = await supabaseAdmin
+    const { data: providerData, error: providerError } = await (supabaseAdmin as any)
       .from('user_external_api_configs')
       .select('*')
       .eq('user_id', session.user.id)
@@ -294,6 +333,8 @@ export async function GET(request: NextRequest) {
       .eq('provider_id', params.provider_id)
       .eq('enabled', true)
       .single()
+
+    const provider = providerData as MediaProvider
 
     if (providerError || !provider) {
       return NextResponse.json(
@@ -303,7 +344,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check rate limits
-    const { data: usage, error: usageError } = await supabaseAdmin
+    const { data: usage, error: usageError } = await (supabaseAdmin as any)
       .from('external_api_usage')
       .select('*')
       .eq('user_id', session.user.id)
@@ -335,7 +376,7 @@ export async function GET(request: NextRequest) {
 
     // Record usage
     try {
-      await supabaseAdmin
+      await (supabaseAdmin as any)
         .from('external_api_usage')
         .insert({
           user_id: session.user.id,
@@ -348,8 +389,7 @@ export async function GET(request: NextRequest) {
             category: params.category,
             results_count: result.results.length,
             total_results: result.total
-          },
-          created_at: new Date().toISOString()
+          }
         })
     } catch (usageLogError) {
       console.warn('Failed to log media search usage:', usageLogError)
@@ -370,9 +410,9 @@ export async function GET(request: NextRequest) {
             results_count: result.results.length,
             cost: searchCost,
             timestamp: new Date().toISOString()
-          },
+          } as any,
           created_at: new Date().toISOString()
-        })
+        } as any)
     } catch (analyticsError) {
       console.warn('Failed to log media search:', analyticsError)
     }

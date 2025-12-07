@@ -13,8 +13,9 @@ import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import type * as Fabric from 'fabric';
 
-let fabric: any = null;
+let fabric: typeof Fabric | null = null;
 import {
   Type,
   Image as ImageIcon,
@@ -52,10 +53,10 @@ interface FabricTextObject {
 
 interface AdvancedCanvasEditorProps {
   slideId: string;
-  initialData?: any;
+  initialData?: Record<string, unknown>;
   width?: number;
   height?: number;
-  onSave?: (canvasData: any) => void;
+  onSave?: (canvasData: Record<string, unknown>) => void;
 }
 
 export default function AdvancedCanvasEditor({
@@ -66,8 +67,8 @@ export default function AdvancedCanvasEditor({
   onSave
 }: AdvancedCanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricRef = useRef<any>(null); // ✅ CORRIGIDO: Usa any para carregamento dinâmico
-  const [selectedObject, setSelectedObject] = useState<any>(null); // ✅ CORRIGIDO: Usa any para carregamento dinâmico
+  const fabricRef = useRef<Fabric.Canvas | null>(null);
+  const [selectedObject, setSelectedObject] = useState<Fabric.Object | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [historyStep, setHistoryStep] = useState<number>(-1);
   const [zoom, setZoom] = useState<number>(1);
@@ -81,8 +82,9 @@ export default function AdvancedCanvasEditor({
     const initCanvas = async () => {
       try {
         if (!fabric) {
-          const { default: FabricManager } = await import('@/lib/fabric-singleton')
-          fabric = await FabricManager.getInstance()
+          const { FabricManager } = await import('@/lib/fabric-singleton')
+          // @ts-ignore - FabricManager returns any currently
+          fabric = FabricManager.getInstance()
         }
 
         if (!fabric) return
@@ -129,8 +131,12 @@ export default function AdvancedCanvasEditor({
   }, []);
 
   // Handle object selection
-  const handleSelection = useCallback((e: any) => {
-    setSelectedObject(e.selected[0]);
+  const handleSelection = useCallback((e: Fabric.IEvent) => {
+    if (e.selected && e.selected.length > 0) {
+      setSelectedObject(e.selected[0]);
+    } else {
+      setSelectedObject(null);
+    }
   }, []);
 
   // Save canvas state for undo/redo
@@ -172,7 +178,7 @@ export default function AdvancedCanvasEditor({
 
   // Add text
   const addText = useCallback(() => {
-    if (!fabricRef.current) return;
+    if (!fabricRef.current || !fabric) return;
 
     const text = new fabric.IText('Digite seu texto aqui', {
       left: 100,
@@ -190,9 +196,9 @@ export default function AdvancedCanvasEditor({
 
   // Add shape
   const addShape = useCallback((type: 'rect' | 'circle' | 'triangle') => {
-    if (!fabricRef.current) return;
+    if (!fabricRef.current || !fabric) return;
 
-    let shape: any;
+    let shape: Fabric.Object;
 
     switch (type) {
       case 'rect':
@@ -231,11 +237,11 @@ export default function AdvancedCanvasEditor({
 
   // Add image
   const addImage = useCallback((file: File) => {
-    if (!fabricRef.current) return;
+    if (!fabricRef.current || !fabric) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      fabric.Image.fromURL(e.target?.result as string, (img: any) => {
+      fabric?.Image.fromURL(e.target?.result as string, (img: Fabric.Image) => {
         img.scaleToWidth(300);
         img.set({ left: 100, top: 100 });
         fabricRef.current?.add(img);
@@ -260,7 +266,7 @@ export default function AdvancedCanvasEditor({
   const duplicateSelected = useCallback(() => {
     if (!fabricRef.current || !selectedObject) return;
 
-    selectedObject.clone((cloned: any) => {
+    selectedObject.clone((cloned: Fabric.Object) => {
       cloned.set({
         left: (selectedObject.left || 0) + 20,
         top: (selectedObject.top || 0) + 20,

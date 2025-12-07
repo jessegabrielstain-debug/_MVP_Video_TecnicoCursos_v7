@@ -544,10 +544,14 @@ export default function PPTXTemplateLibrary({
                 
                 <div className="flex items-center space-x-1">
                   {template.audioIncluded && (
-                    <Mic className="w-3 h-3 text-green-500" title="Áudio incluído" />
+                    <div title="Áudio incluído">
+                      <Mic className="w-3 h-3 text-green-500" />
+                    </div>
                   )}
                   {template.avatarCompatible && (
-                    <Video className="w-3 h-3 text-blue-500" title="Compatível com avatar" />
+                    <div title="Compatível com avatar">
+                      <Video className="w-3 h-3 text-blue-500" />
+                    </div>
                   )}
                 </div>
               </div>
@@ -590,7 +594,7 @@ export default function PPTXTemplateLibrary({
         </div>
         
         <div className="flex items-center space-x-2">
-          <Select value={sortBy} onValueChange={(value: string) => setSortBy(value)}>
+          <Select value={sortBy} onValueChange={(value: string) => setSortBy(value as 'popular' | 'recent' | 'rating' | 'name')}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
@@ -668,7 +672,7 @@ export default function PPTXTemplateLibrary({
               
               <div>
                 <Label className="text-xs">Duração</Label>
-                <Select value={filters.duration} onValueChange={(value: string) => setFilters(prev => ({ ...prev, duration: value }))}>
+                <Select value={filters.duration} onValueChange={(value: string) => setFilters(prev => ({ ...prev, duration: value as 'any' | 'short' | 'medium' | 'long' }))}>
                   <SelectTrigger className="h-8">
                     <SelectValue />
                   </SelectTrigger>

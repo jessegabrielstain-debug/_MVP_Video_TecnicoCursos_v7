@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 
 interface FFmpegRenderStudioProps {
-  timelineData?: any
+  timelineData?: Record<string, unknown>
   onRenderComplete?: (outputUrl: string) => void
 }
 

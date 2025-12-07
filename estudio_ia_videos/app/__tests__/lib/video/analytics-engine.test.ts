@@ -13,7 +13,6 @@
  * @jest-environment node
  */
 
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { promises as fs } from 'fs';
 import path from 'path';
 import {
@@ -30,7 +29,7 @@ import {
 
 // Mock FFmpeg
 jest.mock('fluent-ffmpeg', () => {
-  return jest.fn().mockImplementation(() => ({
+  const mockFfmpeg = jest.fn().mockImplementation(() => ({
     input: jest.fn().mockReturnThis(),
     ffprobe: jest.fn((callback: Function) => {
       callback(null, {
@@ -76,6 +75,36 @@ jest.mock('fluent-ffmpeg', () => {
     }),
     run: jest.fn(),
   }));
+
+  // Add static ffprobe
+  (mockFfmpeg as any).ffprobe = jest.fn((path: string, callback: Function) => {
+    callback(null, {
+      format: {
+        duration: 120.5,
+        bit_rate: 5000000,
+        size: 75000000,
+      },
+      streams: [
+        {
+          codec_type: 'video',
+          codec_name: 'h264',
+          width: 1920,
+          height: 1080,
+          avg_frame_rate: '30/1',
+          bit_rate: 4500000,
+        },
+        {
+          codec_type: 'audio',
+          codec_name: 'aac',
+          sample_rate: 48000,
+          channels: 2,
+          bit_rate: 192000,
+        },
+      ],
+    });
+  });
+
+  return mockFfmpeg;
 });
 
 // Mock fs operations

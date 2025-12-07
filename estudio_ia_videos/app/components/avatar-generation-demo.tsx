@@ -144,7 +144,7 @@ export function AvatarGenerationDemo() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Select value={voiceProvider} onValueChange={(v: any) => setVoiceProvider(v)}>
+          <Select value={voiceProvider} onValueChange={(v) => setVoiceProvider(v as 'azure' | 'elevenlabs' | 'openai')}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>

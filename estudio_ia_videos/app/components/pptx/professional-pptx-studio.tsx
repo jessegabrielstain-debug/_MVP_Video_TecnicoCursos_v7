@@ -1,5 +1,3 @@
-
-
 'use client'
 
 /**
@@ -34,7 +32,7 @@ import {
 import { useSearchParams } from 'next/navigation'
 
 // Import components
-import { EnhancedPPTXUpload } from './enhanced-pptx-upload'
+import { EnhancedPPTXUpload, ProcessedResult } from './enhanced-pptx-upload'
 import { FabricCanvasEditor } from './fabric-canvas-editor'
 import ProfessionalTimelineEditor from '../timeline/professional-timeline-editor'
 import { ElevenLabsVoiceSelector } from '../tts/elevenlabs-voice-selector'
@@ -47,19 +45,19 @@ interface ProjectData {
   type?: string
   originalFileName?: string
   pptxUrl?: string
-  slidesData?: any // JSON completo dos slides processados
+  slidesData?: Record<string, unknown> // JSON completo dos slides processados
   totalSlides: number
-  slides?: any[] // Slides individuais do banco
+  slides?: Record<string, unknown>[] // Slides individuais do banco
   videoUrl?: string
   thumbnailUrl?: string
   duration: number
   audioUrl?: string
   ttsProvider?: string
   voiceId?: string
-  settings?: any
+  settings?: Record<string, unknown>
   views: number
   downloads: number
-  processingLog?: any
+  processingLog?: Record<string, unknown>
   errorMessage?: string
   createdAt: string
   updatedAt: string
@@ -69,10 +67,10 @@ interface ProjectState {
   step: 'upload' | 'edit' | 'timeline' | 'tts' | 'export'
   loading: boolean
   data: {
-    uploadResult?: any
-    canvasData?: any
-    timelineData?: any
-    ttsData?: any
+    uploadResult?: Record<string, unknown>
+    canvasData?: Record<string, unknown>
+    timelineData?: Record<string, unknown>
+    ttsData?: Record<string, unknown>
   }
   project?: ProjectData
 }
@@ -89,6 +87,9 @@ export function ProfessionalPPTXStudio() {
   
   const [activeTab, setActiveTab] = useState('upload')
   const [debugLogs, setDebugLogs] = useState<string[]>([])
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportJobId, setExportJobId] = useState<string | null>(null)
   
   const addLog = (message: string) => {
     console.log(`🎬 STUDIO LOG: ${message}`)
@@ -103,6 +104,23 @@ export function ProfessionalPPTXStudio() {
       addLog('Nenhum projectId fornecido - iniciando com upload')
     }
   }, [projectId])
+
+  // Polling for status updates
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    
+    if (projectState.project?.status === 'PROCESSING' || isExporting || exportJobId) {
+      interval = setInterval(() => {
+        if (projectState.project?.id) {
+          loadProjectData(projectState.project.id)
+        }
+      }, 5000) // Poll every 5 seconds
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [projectState.project?.status, isExporting, exportJobId])
 
   const loadProjectData = async (id: string) => {
     try {
@@ -147,8 +165,8 @@ export function ProfessionalPPTXStudio() {
           uploadResult: project.slidesData ? {
             slides: project.totalSlides,
             duration: project.duration,
-            assets: project.slidesData?.assets?.images?.length || 0,
-            timeline: project.slidesData?.timeline,
+            assets: ((project.slidesData['assets'] as Record<string, unknown>)?.images as unknown[])?.length || 0,
+            timeline: project.slidesData['timeline'],
             s3Key: project.pptxUrl,
             fileName: project.originalFileName,
             projectId: project.id
@@ -173,13 +191,13 @@ export function ProfessionalPPTXStudio() {
   }
   
   // Handle upload completion
-  const handleUploadComplete = (uploadResult: any) => {
+  const handleUploadComplete = (uploadResult: ProcessedResult) => {
     addLog(`✅ Upload concluído: Projeto ${uploadResult.projectId}`)
     
     setProjectState(prev => ({
       ...prev,
       step: 'edit',
-      data: { ...prev.data, uploadResult }
+      data: { ...prev.data, uploadResult: uploadResult as unknown as Record<string, unknown> }
     }))
     
     setActiveTab('edit')
@@ -192,7 +210,7 @@ export function ProfessionalPPTXStudio() {
   }
   
   // Handle canvas updates
-  const handleCanvasUpdate = (canvasData: any) => {
+  const handleCanvasUpdate = (canvasData: Record<string, unknown>) => {
     addLog('🎨 Canvas atualizado')
     setProjectState(prev => ({
       ...prev,
@@ -201,7 +219,7 @@ export function ProfessionalPPTXStudio() {
   }
   
   // Handle timeline updates
-  const handleTimelineUpdate = (timelineData: any) => {
+  const handleTimelineUpdate = (timelineData: Record<string, unknown>) => {
     addLog('🎬 Timeline atualizada')
     setProjectState(prev => ({
       ...prev,
@@ -210,12 +228,95 @@ export function ProfessionalPPTXStudio() {
   }
   
   // Handle TTS updates
-  const handleTTSUpdate = (ttsData: any) => {
+  const handleTTSUpdate = (ttsData: Record<string, unknown>) => {
     addLog('🎤 TTS configurado')
     setProjectState(prev => ({
       ...prev,
       data: { ...prev.data, ttsData }
     }))
+  }
+
+  const handleGenerateAllNarrations = async () => {
+    if (!projectState.project?.id) return
+
+    try {
+      setIsGeneratingAll(true)
+      addLog('🎙️ Iniciando geração de narração em massa...')
+      toast.loading('Gerando narrações para todos os slides...', { id: 'batch-tts' })
+
+      const response = await fetch('/api/v1/pptx/auto-narrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: projectState.project.id,
+          options: {
+            provider: 'elevenlabs',
+            // TODO: Pass selected voice from selector if possible
+            voice: '21m00Tcm4TlvDq8ikWAM' // Default Rachel
+          }
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro na geração em massa')
+      }
+
+      addLog(`✅ Narração concluída: ${result.narrations.length} slides processados`)
+      toast.success('Narrações geradas com sucesso!', { id: 'batch-tts' })
+      
+      // Reload project to get new audio URLs
+      loadProjectData(projectState.project.id)
+
+    } catch (error) {
+      console.error('Error generating narrations:', error)
+      addLog(`❌ Erro na narração: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+      toast.error('Erro ao gerar narrações', { id: 'batch-tts' })
+    } finally {
+      setIsGeneratingAll(false)
+    }
+  }
+
+  const handleExport = async () => {
+    if (!projectState.project?.id) return
+
+    try {
+      setIsExporting(true)
+      addLog('🎬 Iniciando exportação do vídeo...')
+      toast.loading('Iniciando renderização do vídeo...', { id: 'export-video' })
+
+      const response = await fetch('/api/v1/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: projectState.project.id,
+          settings: {
+            resolution: '1080p',
+            quality: 'high'
+          }
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao iniciar exportação')
+      }
+
+      setExportJobId(result.jobId)
+      addLog(`✅ Job de renderização criado: ${result.jobId}`)
+      toast.success('Renderização iniciada! O vídeo estará disponível em breve.', { id: 'export-video' })
+      
+      // TODO: Implement polling for job status
+
+    } catch (error) {
+      console.error('Error exporting video:', error)
+      addLog(`❌ Erro na exportação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+      toast.error('Erro ao iniciar exportação', { id: 'export-video' })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   if (projectState.loading) {
@@ -343,13 +444,13 @@ export function ProfessionalPPTXStudio() {
                           <strong>Status:</strong> {projectState.project.status}
                         </div>
                       </div>
-                      {projectState.project.slidesData?.slides && (
+                      {!!projectState.project.slidesData?.['slides'] && (
                         <details className="mt-3">
                           <summary className="cursor-pointer font-medium text-blue-700">
                             Ver dados dos slides (JSON)
                           </summary>
                           <pre className="mt-2 bg-gray-100 p-2 rounded text-xs overflow-auto max-h-40">
-                            {JSON.stringify(projectState.project.slidesData.slides.slice(0, 2), null, 2)}
+                            {JSON.stringify((projectState.project.slidesData['slides'] as unknown[]).slice(0, 2), null, 2)}
                           </pre>
                         </details>
                       )}
@@ -375,16 +476,16 @@ export function ProfessionalPPTXStudio() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {projectState.project?.slidesData?.timeline ? (
+                {projectState.project?.slidesData?.['timeline'] ? (
                   <div className="space-y-4">
                     <div className="bg-green-50 p-4 rounded border border-green-200">
                       <h3 className="font-medium text-green-800 mb-2">🎬 Timeline Carregada</h3>
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <strong>Cenas:</strong> {projectState.project.slidesData.timeline.scenes?.length || 0}
+                          <strong>Cenas:</strong> {(projectState.project.slidesData['timeline'] as { scenes: unknown[] })?.scenes?.length || 0}
                         </div>
                         <div>
-                          <strong>Duração Total:</strong> {Math.round(projectState.project.slidesData.timeline.totalDuration || 0)}s
+                          <strong>Duração Total:</strong> {Math.round((projectState.project.slidesData['timeline'] as { totalDuration: number })?.totalDuration || 0)}s
                         </div>
                       </div>
                     </div>
@@ -417,9 +518,9 @@ export function ProfessionalPPTXStudio() {
                         <strong>Slides disponíveis:</strong> {projectState.project.slides.length}
                       </div>
                       <div className="mt-2 space-y-1">
-                        {projectState.project.slides.slice(0, 3).map((slide: any, index: number) => (
+                        {projectState.project.slides.slice(0, 3).map((slide: Record<string, unknown>, index: number) => (
                           <div key={index} className="text-xs bg-white p-2 rounded">
-                            <strong>Slide {slide.slideNumber}:</strong> {slide.title}
+                            <strong>Slide {String(slide.slideNumber)}:</strong> {String(slide.title)}
                           </div>
                         ))}
                         {projectState.project.slides.length > 3 && (
@@ -430,6 +531,28 @@ export function ProfessionalPPTXStudio() {
                       </div>
                     </div>
                     <ElevenLabsVoiceSelector />
+                    
+                    <Separator className="my-4" />
+                    
+                    <div className="flex justify-end">
+                        <Button 
+                            onClick={handleGenerateAllNarrations}
+                            disabled={isGeneratingAll}
+                            className="bg-gradient-to-r from-purple-600 to-blue-600"
+                        >
+                            {isGeneratingAll ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Gerando Narrações...
+                                </>
+                            ) : (
+                                <>
+                                    <Zap className="mr-2 h-4 w-4" />
+                                    Gerar Narração para Todos os Slides
+                                </>
+                            )}
+                        </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-500">
@@ -451,17 +574,92 @@ export function ProfessionalPPTXStudio() {
               </CardHeader>
               <CardContent>
                 <div className="text-center py-12">
-                  <Download className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Exportação em Desenvolvimento
-                  </h3>
-                  <p className="text-gray-500 mb-6">
-                    Este módulo será implementado no próximo sprint
-                  </p>
-                  <Button disabled>
-                    <Download className="h-4 w-4 mr-2" />
-                    Exportar MP4
-                  </Button>
+                  {projectState.project?.videoUrl ? (
+                    <div className="space-y-6">
+                      <div className="flex justify-center">
+                        <div className="relative w-full max-w-2xl aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
+                          <video 
+                            src={projectState.project.videoUrl} 
+                            controls 
+                            className="w-full h-full"
+                            poster={projectState.project.thumbnailUrl}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-center gap-4">
+                        <Button 
+                          variant="outline"
+                          onClick={() => window.open(projectState.project!.videoUrl, '_blank')}
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          Abrir em Nova Aba
+                        </Button>
+                        <Button 
+                          onClick={() => {
+                            const a = document.createElement('a');
+                            a.href = projectState.project!.videoUrl!;
+                            a.download = `${projectState.project!.name || 'video'}.mp4`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                          }}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Baixar MP4
+                        </Button>
+                      </div>
+
+                      <div className="text-sm text-gray-500">
+                        Renderizado em: {new Date(projectState.project.updatedAt).toLocaleString()}
+                      </div>
+                    </div>
+                  ) : exportJobId ? (
+                    <div className="space-y-4">
+                      <div className="flex justify-center">
+                        <Loader2 className="h-16 w-16 animate-spin text-blue-500" />
+                      </div>
+                      <h3 className="text-xl font-medium text-gray-900">
+                        Renderizando seu vídeo...
+                      </h3>
+                      <p className="text-gray-500">
+                        Job ID: {exportJobId}
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        Isso pode levar alguns minutos. Você pode fechar esta janela e voltar mais tarde.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <Film className="h-16 w-16 text-blue-500 mx-auto mb-6" />
+                      <h3 className="text-xl font-medium text-gray-900 mb-3">
+                        Pronto para Renderizar
+                      </h3>
+                      <p className="text-gray-500 mb-8 max-w-md mx-auto">
+                        Seu projeto tem {projectState.project?.totalSlides} slides e duração estimada de {projectState.project?.duration}s.
+                        Clique abaixo para iniciar a renderização final em 1080p.
+                      </p>
+                      <Button 
+                        onClick={handleExport} 
+                        disabled={isExporting}
+                        size="lg"
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                      >
+                        {isExporting ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Iniciando Render...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-5 w-5 mr-2" />
+                            Renderizar Vídeo Final (MP4)
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>

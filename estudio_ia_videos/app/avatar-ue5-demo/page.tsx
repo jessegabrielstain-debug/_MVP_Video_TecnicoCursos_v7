@@ -27,6 +27,33 @@ interface MetaHuman {
   style: string
 }
 
+interface JobStatus {
+  status: string;
+  progress: number;
+  error?: string;
+  checkpoints?: {
+    audio2face_completed?: boolean;
+    ue5_scene_loaded?: boolean;
+    animation_applied?: boolean;
+    render_completed?: boolean;
+    encoding_completed?: boolean;
+  };
+  timings?: {
+    audio2face_seconds?: number;
+    ue5_render_seconds?: number;
+    encoding_seconds?: number;
+    total_seconds?: number;
+  };
+  output?: {
+    video_url?: string;
+    metadata?: {
+      duration_seconds?: number;
+      file_size_mb?: number;
+      resolution?: string;
+    };
+  };
+}
+
 export default function AvatarUE5DemoPage() {
   const [renderEngine, setRenderEngine] = useState<'vidnoz' | 'ue5'>('ue5')
   const [metahumans, setMetahumans] = useState<MetaHuman[]>([])
@@ -34,7 +61,7 @@ export default function AvatarUE5DemoPage() {
   const [text, setText] = useState('Olá! Bem-vindo ao Estúdio IA de Vídeos. Sou um avatar hiper-realista criado com Unreal Engine 5 e NVIDIA Audio2Face.')
   const [isGenerating, setIsGenerating] = useState(false)
   const [jobId, setJobId] = useState<string | null>(null)
-  const [jobStatus, setJobStatus] = useState<any>(null)
+  const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   
   // Carregar MetaHumans disponíveis
@@ -130,9 +157,10 @@ export default function AvatarUE5DemoPage() {
         throw new Error(data.error || 'Erro na geração')
       }
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro na geração:', error)
-      toast.error(`❌ ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
+      toast.error(`❌ ${errorMessage}`)
       setIsGenerating(false)
     }
   }

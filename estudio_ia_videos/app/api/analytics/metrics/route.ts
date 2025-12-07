@@ -1,8 +1,11 @@
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
-import { prisma } from '@/lib/db';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 /**
  * GET /api/analytics/metrics
@@ -10,16 +13,23 @@ import { prisma } from '@/lib/db';
  */
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id) {
+    if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const userId = (session.user as { id?: string }).id;
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Invalid session' },
+        { status: 401 }
+      );
+    }
+
     const url = new URL(req.url);
     const period = url.searchParams.get('period') || '30d'; // 7d, 30d, 90d
 
@@ -41,8 +51,7 @@ export async function GET(req: NextRequest) {
       prisma.analyticsEvent.count({
         where: {
           userId,
-          category: 'pptx',
-          action: 'upload',
+          eventType: 'pptx_upload',
           createdAt: { gte: startDate }
         }
       }),
@@ -51,8 +60,7 @@ export async function GET(req: NextRequest) {
       prisma.analyticsEvent.count({
         where: {
           userId,
-          category: 'render',
-          action: 'complete',
+          eventType: 'render_complete',
           createdAt: { gte: startDate }
         }
       }),
@@ -61,8 +69,7 @@ export async function GET(req: NextRequest) {
       prisma.analyticsEvent.count({
         where: {
           userId,
-          category: 'video',
-          action: 'download',
+          eventType: 'video_download',
           createdAt: { gte: startDate }
         }
       }),
@@ -71,7 +78,7 @@ export async function GET(req: NextRequest) {
       prisma.renderJob.groupBy({
         by: ['status'],
         where: {
-          userId,
+          project: { userId },
           createdAt: { gte: startDate }
         },
         _count: { id: true }
@@ -87,25 +94,24 @@ export async function GET(req: NextRequest) {
         take: 5,
         select: {
           id: true,
-          name: true,
+          title: true,
           status: true,
-          createdAt: true,
-          videoUrl: true
+          createdAt: true
         }
       }),
 
       // Eventos por dia (para gráfico)
-      prisma.$queryRaw`
+      (prisma.$queryRaw`
         SELECT 
           DATE(created_at) as date,
-          category,
+          event_type as category,
           COUNT(*) as count
-        FROM "AnalyticsEvent"
-        WHERE user_id = ${userId}
+        FROM analytics_events
+        WHERE user_id = ${userId}::uuid
           AND created_at >= ${startDate}
-        GROUP BY DATE(created_at), category
+        GROUP BY DATE(created_at), event_type
         ORDER BY date DESC
-      `
+      ` as Promise<Array<{ date: Date; category: string; count: bigint }>>)
     ]);
 
     // Calcular taxa de conversão
@@ -114,16 +120,19 @@ export async function GET(req: NextRequest) {
       : '0';
 
     // Calcular tempo médio de render
-    const avgRenderTime = await prisma.analyticsEvent.aggregate({
-      where: {
-        userId,
-        category: 'render',
-        action: 'complete',
-        duration: { not: null },
-        createdAt: { gte: startDate }
-      },
-      _avg: { duration: true }
-    });
+    // Como duration está dentro de eventData (JSONB), não podemos usar aggregate diretamente de forma simples
+    // Vamos buscar os eventos e calcular na aplicação ou usar raw query
+    // Usando raw query para performance
+    const avgRenderTimeResult = (await prisma.$queryRaw`
+      SELECT AVG(CAST(event_data->>'duration' AS FLOAT)) as avg_duration
+      FROM analytics_events
+      WHERE user_id = ${userId}::uuid
+        AND event_type = 'render_complete'
+        AND created_at >= ${startDate}
+        AND event_data->>'duration' IS NOT NULL
+    ` as Array<{ avg_duration: number | null }>);
+
+    const avgDuration = avgRenderTimeResult[0]?.avg_duration || 0;
 
     return NextResponse.json({
       period,
@@ -132,23 +141,27 @@ export async function GET(req: NextRequest) {
         totalRenders,
         totalDownloads,
         conversionRate: parseFloat(conversionRate),
-        avgRenderTime: avgRenderTime._avg.duration 
-          ? Math.round(avgRenderTime._avg.duration / 1000) // ms para segundos
+        avgRenderTime: avgDuration 
+          ? Math.round(avgDuration / 1000) // ms para segundos
           : null
       },
-      renderJobs: renderJobs.map((item: any) => ({
-        status: item.status,
+      renderJobs: renderJobs.map((item) => ({
+        status: item.status || 'unknown',
         count: item._count.id
       })),
       recentProjects,
-      eventsByDay
+      eventsByDay: eventsByDay.map(e => ({
+        ...e,
+        count: Number(e.count) // Serializar bigint para JSON
+      }))
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Analytics Metrics] Error:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
 }
+

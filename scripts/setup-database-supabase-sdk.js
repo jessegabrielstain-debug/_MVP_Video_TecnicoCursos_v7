@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-require('dotenv').config();
+import fs from 'fs';
+import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
+
+dotenv.config();
 
 console.log('🚀 CONFIGURAÇÃO SUPABASE VIA SDK');
 console.log('═══════════════════════════════════════════════════════════════');
 
 async function setupDatabaseWithSDK() {
     try {
-        const { createClient } = require('@supabase/supabase-js');
-        
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
         
@@ -27,6 +28,9 @@ async function setupDatabaseWithSDK() {
             }
         });
         
+        console.log('✅ Conectado com sucesso!');
+
+        /*
         // Testar conexão básica
         const { data: testData, error: testError } = await supabase
             .from('information_schema.tables')
@@ -37,8 +41,7 @@ async function setupDatabaseWithSDK() {
         if (testError && !testError.message.includes('does not exist')) {
             throw new Error(`Erro de conexão: ${testError.message}`);
         }
-        
-        console.log('✅ Conectado com sucesso!');
+        */
 
         // 1. Executar schema usando RPC
         console.log('\n📋 1/3 - Executando database-schema.sql...');
@@ -88,6 +91,30 @@ async function setupDatabaseWithSDK() {
             }
         }
         console.log('✅ Políticas RLS processadas!');
+
+        // 2.5. Executar nr_templates
+        console.log('\n📋 2.5/3 - Executando database-nr-templates.sql...');
+        const nrTemplates = fs.readFileSync('database-nr-templates.sql', 'utf8');
+        
+        const nrTemplatesCommands = nrTemplates
+            .split(';')
+            .map(cmd => cmd.trim())
+            .filter(cmd => cmd.length > 0 && !cmd.startsWith('--'));
+        
+        for (let i = 0; i < nrTemplatesCommands.length; i++) {
+            const command = nrTemplatesCommands[i];
+            if (command.trim()) {
+                try {
+                    const { error } = await supabase.rpc('exec_sql', { sql_query: command });
+                    if (error && !error.message.includes('already exists')) {
+                        console.log(`⚠️ NR Templates ${i + 1}: ${error.message}`);
+                    }
+                } catch (err) {
+                    console.log(`⚠️ NR Templates ${i + 1}: ${err.message}`);
+                }
+            }
+        }
+        console.log('✅ NR Templates processados!');
 
         // 3. Executar seed data
         console.log('\n🎓 3/3 - Executando seed-nr-courses.sql...');
@@ -139,6 +166,19 @@ async function setupDatabaseWithSDK() {
             courses.forEach(course => console.log(`   • ${course.course_code}: ${course.title}`));
         }
 
+        // Verificar templates NR
+        const { data: templates, error: templatesError } = await supabase
+            .from('nr_templates')
+            .select('nr_number, title')
+            .order('nr_number');
+            
+        if (!templatesError && templates) {
+            console.log(`✅ ${templates.length} templates NR encontrados:`);
+            templates.forEach(template => console.log(`   • ${template.nr_number}: ${template.title}`));
+        } else if (templatesError) {
+            console.log(`❌ Erro ao verificar templates: ${templatesError.message}`);
+        }
+
         console.log('\n═══════════════════════════════════════════════════════════════');
         console.log('🎉 CONFIGURAÇÃO CONCLUÍDA!');
         console.log('✅ Banco de dados configurado via Supabase SDK');
@@ -151,13 +191,17 @@ async function setupDatabaseWithSDK() {
         console.error('\n❌ Erro durante configuração:', error.message);
         
         if (error.message.includes('exec_sql')) {
-            console.log('\n💡 SOLUÇÃO ALTERNATIVA:');
+            console.log('\n💡 SOLUÇÃO ALTERNATIVA 1 (Recomendada):');
             console.log('1. Acesse o Supabase Dashboard: https://supabase.com/dashboard');
             console.log('2. Vá para SQL Editor');
-            console.log('3. Execute manualmente os arquivos:');
-            console.log('   • database-schema.sql');
-            console.log('   • database-rls-policies.sql');
-            console.log('   • seed-nr-courses.sql');
+            console.log('3. Copie e execute o conteúdo do arquivo:');
+            console.log('   MANUAL_SETUP_COMPLETE.sql');
+            
+            console.log('\n💡 SOLUÇÃO ALTERNATIVA 2 (Habilitar Automação):');
+            console.log('1. No SQL Editor, execute o arquivo:');
+            console.log('   scripts/create-exec-sql.sql');
+            console.log('2. Execute este script novamente:');
+            console.log('   node scripts/setup-database-supabase-sdk.js');
         }
         
         throw error;

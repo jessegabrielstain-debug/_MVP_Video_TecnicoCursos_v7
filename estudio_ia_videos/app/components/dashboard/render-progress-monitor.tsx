@@ -6,10 +6,19 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Activity, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import { useRenderProgressClient } from '../../hooks/useWebSocketClient';
+import { useRenderPipeline } from '../../hooks/use-render-pipeline';
 
 export function RenderProgressMonitor() {
-  const { progress, isRendering } = useRenderProgressClient();
+  const { renderQueue } = useRenderPipeline();
+  
+  const activeJob = renderQueue?.processing?.[0];
+  const isRendering = !!activeJob;
+  
+  const progress = activeJob ? {
+    jobId: activeJob.id,
+    progress: activeJob.progress,
+    status: activeJob.status
+  } : null;
 
   return (
     <Card>

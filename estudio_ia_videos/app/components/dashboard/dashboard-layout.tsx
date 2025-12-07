@@ -31,19 +31,23 @@ import {
   Moon,
   Sun,
   Monitor,
-  FileTemplate,
+  LayoutTemplate,
   Edit3,
-  Film
+  Film,
+  LayoutGrid
 } from 'lucide-react'
 import { ProjectManagement } from './project-management'
 import { AnalyticsDashboard } from './analytics-dashboard'
 import { NotificationCenter } from './notification-center'
 import { RenderPipeline } from './render-pipeline'
 import { ExternalAPIs } from './external-apis'
+import { BrowseView } from './browse-view'
+import { PPTXTimelineIntegration } from '@/components/timeline/PPTXTimelineIntegration'
+import MotionityIntegration from '@/components/timeline/MotionityIntegration'
 import { TemplateSystem } from '@/components/templates/template-system'
 import { WYSIWYGEditor } from '@/components/editor/wysiwyg-editor'
-import PPTXTimelineIntegration from '@/components/timeline/PPTXTimelineIntegration'
-import MotionityIntegration from '@/components/timeline/MotionityIntegration'
+import { useDashboardStats } from '@/hooks/use-dashboard-stats'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
 const navigationItems = [
@@ -54,12 +58,18 @@ const navigationItems = [
     description: 'Dashboard overview and quick stats'
   },
   {
+    id: 'browse',
+    label: 'Browse',
+    icon: LayoutGrid,
+    description: 'Explore courses and templates'
+  },
+  {
     id: 'projects',
     label: 'Projects',
     icon: FolderOpen,
     description: 'Manage your video projects'
   },
-  { id: 'templates', label: 'Templates', icon: FileTemplate, description: 'Browse and manage video templates' },
+  { id: 'templates', label: 'Templates', icon: LayoutTemplate, description: 'Browse and manage video templates' },
     { id: 'editor', label: 'Editor', icon: Edit3, description: 'WYSIWYG content editor with timeline and 3D preview' },
   {
     id: 'timeline',
@@ -108,6 +118,7 @@ export function DashboardLayout({ children, defaultTab = 'overview' }: Dashboard
   const [activeTab, setActiveTab] = useState(defaultTab)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [theme, setTheme] = useState('system')
+  const { stats, isLoading: statsLoading } = useDashboardStats()
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
@@ -256,47 +267,71 @@ export function DashboardLayout({ children, defaultTab = 'overview' }: Dashboard
           {activeTab === 'overview' && (
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
+                <Card data-testid="dashboard-card-total-projects">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
                     <FolderOpen className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">24</div>
-                    <p className="text-xs text-muted-foreground">+3 from last month</p>
+                    {statsLoading ? (
+                      <Skeleton className="h-8 w-20" />
+                    ) : (
+                      <>
+                        <div className="text-2xl font-bold">{stats?.totalProjects || 0}</div>
+                        <p className="text-xs text-muted-foreground">Active projects</p>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
                 
-                <Card>
+                <Card data-testid="dashboard-card-active-renders">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Active Renders</CardTitle>
                     <Play className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">7</div>
-                    <p className="text-xs text-muted-foreground">2 in queue</p>
+                    {statsLoading ? (
+                      <Skeleton className="h-8 w-20" />
+                    ) : (
+                      <>
+                        <div className="text-2xl font-bold">{stats?.activeRenders || 0}</div>
+                        <p className="text-xs text-muted-foreground">{stats?.completedToday || 0} completed today</p>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
                 
-                <Card>
+                <Card data-testid="dashboard-card-total-views">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">API Calls Today</CardTitle>
+                    <CardTitle className="text-sm font-medium">Total Views</CardTitle>
                     <Zap className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">1,234</div>
-                    <p className="text-xs text-muted-foreground">+12% from yesterday</p>
+                    {statsLoading ? (
+                      <Skeleton className="h-8 w-20" />
+                    ) : (
+                      <>
+                        <div className="text-2xl font-bold">{stats?.totalViews || 0}</div>
+                        <p className="text-xs text-muted-foreground">Across all projects</p>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
                 
-                <Card>
+                <Card data-testid="dashboard-card-avg-render-time">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Notifications</CardTitle>
+                    <CardTitle className="text-sm font-medium">Avg Render Time</CardTitle>
                     <Bell className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">5</div>
-                    <p className="text-xs text-muted-foreground">3 unread</p>
+                    {statsLoading ? (
+                      <Skeleton className="h-8 w-20" />
+                    ) : (
+                      <>
+                        <div className="text-2xl font-bold">{stats?.avgRenderTime || 0}m</div>
+                        <p className="text-xs text-muted-foreground">Last 10 jobs</p>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -309,18 +344,8 @@ export function DashboardLayout({ children, defaultTab = 'overview' }: Dashboard
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="flex items-center space-x-4">
-                          <div className="h-10 w-10 bg-muted rounded-lg flex items-center justify-center">
-                            <FolderOpen className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium">Project {i}</p>
-                            <p className="text-xs text-muted-foreground">Updated 2 hours ago</p>
-                          </div>
-                          <Badge variant="outline">Active</Badge>
-                        </div>
-                      ))}
+                      {/* We could fetch recent projects here too, but for now let's keep the placeholder or use a separate component */}
+                      <p className="text-sm text-muted-foreground">Check the Projects tab for full list.</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -333,8 +358,14 @@ export function DashboardLayout({ children, defaultTab = 'overview' }: Dashboard
                   <CardContent>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Render Queue</span>
-                        <Badge className="bg-green-500">Healthy</Badge>
+                        <span className="text-sm">Overall Health</span>
+                        {statsLoading ? (
+                          <Skeleton className="h-5 w-20" />
+                        ) : (
+                          <Badge className={stats?.systemHealth === 'healthy' ? "bg-green-500" : stats?.systemHealth === 'warning' ? "bg-yellow-500" : "bg-red-500"}>
+                            {stats?.systemHealth || 'Unknown'}
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">API Services</span>
@@ -344,10 +375,6 @@ export function DashboardLayout({ children, defaultTab = 'overview' }: Dashboard
                         <span className="text-sm">Database</span>
                         <Badge className="bg-green-500">Connected</Badge>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">Storage</span>
-                        <Badge className="bg-yellow-500">75% Used</Badge>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -355,6 +382,7 @@ export function DashboardLayout({ children, defaultTab = 'overview' }: Dashboard
             </div>
           )}
           
+          {activeTab === 'browse' && <BrowseView />}
           {activeTab === 'projects' && <ProjectManagement />}
           {activeTab === 'templates' && <TemplateSystem />}
           {activeTab === 'editor' && <WYSIWYGEditor />}

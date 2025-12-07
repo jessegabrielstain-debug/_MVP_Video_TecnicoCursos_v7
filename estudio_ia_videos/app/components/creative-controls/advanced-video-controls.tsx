@@ -92,7 +92,11 @@ export default function AdvancedVideoControls({
     }
   })
 
-  const [presets] = useState([
+  const [presets] = useState<{
+    name: string;
+    description: string;
+    controls: Partial<CreativeControls>;
+  }[]>([
     {
       name: 'Treinamento Corporativo',
       description: 'Profissional, claro e objetivo',
@@ -131,7 +135,7 @@ export default function AdvancedVideoControls({
     onControlsChange(newControls)
   }
 
-  const applyPreset = (preset: any) => {
+  const applyPreset = (preset: { name: string; controls: Partial<CreativeControls> }) => {
     const newControls = { 
       ...controls, 
       ...preset.controls,
@@ -280,7 +284,7 @@ export default function AdvancedVideoControls({
               <Select 
                 value={controls.camera_presets.shot_type}
                 onValueChange={(value: string) => updateControls({
-                  camera_presets: { ...controls.camera_presets, shot_type: value }
+                  camera_presets: { ...controls.camera_presets, shot_type: value as CreativeControls['camera_presets']['shot_type'] }
                 })}
               >
                 <SelectTrigger>
@@ -300,7 +304,7 @@ export default function AdvancedVideoControls({
               <Select 
                 value={controls.camera_presets.angle}
                 onValueChange={(value: string) => updateControls({
-                  camera_presets: { ...controls.camera_presets, angle: value }
+                  camera_presets: { ...controls.camera_presets, angle: value as CreativeControls['camera_presets']['angle'] }
                 })}
               >
                 <SelectTrigger>
@@ -320,7 +324,7 @@ export default function AdvancedVideoControls({
               <Select 
                 value={controls.camera_presets.movement}
                 onValueChange={(value: string) => updateControls({
-                  camera_presets: { ...controls.camera_presets, movement: value }
+                  camera_presets: { ...controls.camera_presets, movement: value as CreativeControls['camera_presets']['movement'] }
                 })}
               >
                 <SelectTrigger>
@@ -340,7 +344,7 @@ export default function AdvancedVideoControls({
               <Select 
                 value={controls.camera_presets.focus}
                 onValueChange={(value: string) => updateControls({
-                  camera_presets: { ...controls.camera_presets, focus: value }
+                  camera_presets: { ...controls.camera_presets, focus: value as CreativeControls['camera_presets']['focus'] }
                 })}
               >
                 <SelectTrigger>
@@ -373,7 +377,7 @@ export default function AdvancedVideoControls({
                 <Select 
                   value={controls.lighting_setup.mood}
                   onValueChange={(value: string) => updateControls({
-                    lighting_setup: { ...controls.lighting_setup, mood: value }
+                    lighting_setup: { ...controls.lighting_setup, mood: value as CreativeControls['lighting_setup']['mood'] }
                   })}
                 >
                   <SelectTrigger>
@@ -394,7 +398,7 @@ export default function AdvancedVideoControls({
                 <Select 
                   value={controls.lighting_setup.direction}
                   onValueChange={(value: string) => updateControls({
-                    lighting_setup: { ...controls.lighting_setup, direction: value }
+                    lighting_setup: { ...controls.lighting_setup, direction: value as CreativeControls['lighting_setup']['direction'] }
                   })}
                 >
                   <SelectTrigger>

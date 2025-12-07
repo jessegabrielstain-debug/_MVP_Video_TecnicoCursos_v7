@@ -58,14 +58,15 @@ export async function POST(req: NextRequest) {
       }
     })
     
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erro ao iniciar render UE5:', error)
     return NextResponse.json(
       { 
         error: 'Erro ao iniciar renderização',
-        details: error.message 
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     )
   }
 }
+

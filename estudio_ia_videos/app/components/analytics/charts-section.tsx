@@ -132,12 +132,11 @@ export default function ChartsSection({
   const renderStatusData = [
     { name: 'Completos', value: renderStats.completed, color: COLORS.success },
     { name: 'Falhos', value: renderStats.failed, color: COLORS.danger },
-    { name: 'Pendentes', value: renderStats.pending, color: COLORS.warning },
     { name: 'Processando', value: renderStats.processing, color: COLORS.primary },
   ].filter((item) => item.value > 0);
 
   // Preparar dados para gráfico de providers TTS
-  const ttsProvidersData = ttsStats.providerBreakdown.map((provider) => ({
+  const ttsProvidersData = ttsStats.providerBreakdown.map((provider: any) => ({
     name: provider.provider,
     Gerações: provider.count,
     Créditos: provider.credits,
@@ -145,7 +144,7 @@ export default function ChartsSection({
 
   // Preparar dados para gráfico de eventos
   const eventsData = eventBreakdown.map((event, index) => ({
-    name: event.eventType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+    name: event.eventType.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
     value: event.count,
     percentage: event.percentage,
   }));
@@ -210,9 +209,10 @@ export default function ChartsSection({
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, value, percent }) =>
-                    `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
-                  }
+                  label={(props) => {
+                    const { name, value, percent } = props as unknown as { name: string; value: number; percent: number };
+                    return `${name}: ${value} (${(percent * 100).toFixed(0)}%)`;
+                  }}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"

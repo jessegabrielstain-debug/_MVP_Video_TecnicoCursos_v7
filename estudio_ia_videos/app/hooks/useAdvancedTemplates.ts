@@ -31,6 +31,7 @@ interface AdvancedTemplateFeatures {
   // Analytics
   getTemplateAnalytics: (templateId: string) => Promise<TemplateAnalytics>;
   getUsagePatterns: () => Promise<UsagePattern[]>;
+  isProcessing: boolean;
 }
 
 interface ComplianceResult {
@@ -125,7 +126,7 @@ interface UsagePattern {
 
 export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<typeof useTemplates> => {
   const baseTemplates = useTemplates();
-  const { analyzeCompliance, generateSuggestions } = useComplianceAnalyzer();
+  const { analyzeProject, getComplianceRecommendations } = useComplianceAnalyzer();
   const { generateContent, analyzeContent, optimizeContent } = useAdvancedAI();
   
   const [analytics, setAnalytics] = useState<Record<string, TemplateAnalytics>>({});
@@ -267,25 +268,25 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
     }
 
     try {
-      const complianceAnalysis = await analyzeCompliance(template);
-      const suggestions = await generateSuggestions(template, complianceAnalysis);
+      const complianceAnalysis = await analyzeProject(template as any);
+      const suggestions = await getComplianceRecommendations(template as any);
       
       const issues: ComplianceIssue[] = complianceAnalysis.violations.map(violation => ({
         id: violation.id,
         severity: violation.severity,
-        category: violation.category,
-        description: violation.description,
-        location: violation.location,
+        category: 'compliance', // Default category since violation doesn't have it directly
+        description: violation.message,
+        location: JSON.stringify(violation.location),
         autoFixAvailable: violation.autoFixable || false,
       }));
       
       const complianceSuggestions: ComplianceSuggestion[] = suggestions.map(suggestion => ({
         id: suggestion.id,
-        type: suggestion.type,
+        type: suggestion.type as any,
         description: suggestion.description,
         impact: suggestion.impact,
-        effort: suggestion.effort,
-        autoApplyAvailable: suggestion.autoApplicable || false,
+        effort: suggestion.effort as any,
+        autoApplyAvailable: false, // Default
       }));
       
       const certificationStatus: CertificationStatus = {
@@ -296,8 +297,8 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
       };
       
       return {
-        isCompliant: complianceAnalysis.score >= 80,
-        score: complianceAnalysis.score,
+        isCompliant: complianceAnalysis.overallScore >= 80,
+        score: complianceAnalysis.overallScore,
         issues,
         suggestions: complianceSuggestions,
         certificationStatus,
@@ -306,7 +307,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
       console.error('Failed to validate compliance:', error);
       throw error;
     }
-  }, [baseTemplates, analyzeCompliance, generateSuggestions]);
+  }, [baseTemplates, analyzeProject, getComplianceRecommendations]);
 
   // Template Optimization
   const optimizeTemplate = useCallback(async (templateId: string): Promise<Template> => {
@@ -319,7 +320,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
       setIsProcessing(true);
       
       // Optimize content using AI
-      const optimizedContent = await optimizeContent(template.content, {
+      const optimizedContent = await optimizeContent(template.content as unknown as Record<string, unknown>, {
         type: 'template-optimization',
         goals: ['performance', 'accessibility', 'engagement'],
         constraints: {
@@ -571,7 +572,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
     };
   };
 
-  const isTemplateContent = (value: OptimizedContentResult | null): value is Template['content'] => {
+  const isTemplateContent = (value: any): value is Template['content'] => {
     if (!value || typeof value !== 'object') {
       return false;
     }

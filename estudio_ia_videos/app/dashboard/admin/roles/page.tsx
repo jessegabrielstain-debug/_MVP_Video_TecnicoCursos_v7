@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { AdminGate } from '@/lib/components/rbac'
-import { LoadingState } from '@/components/ui/feedback/loading'
-import { ErrorState } from '@/components/ui/feedback/error'
-import { SuccessInline } from '@/components/ui/feedback/success'
+import { LoadingState } from '@/components/ui/feedback'
+import { ErrorState } from '@/components/ui/feedback'
+import { SuccessInline } from '@/components/ui/feedback'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -114,7 +114,7 @@ function RolesContent() {
         <ErrorState
           title="Erro ao carregar dados"
           message={error}
-          retry={loadData}
+          onRetry={loadData}
         />
       </div>
     )
@@ -140,12 +140,10 @@ function RolesContent() {
         <ErrorState
           title="Erro"
           message={error}
-          variant="inline"
-          onDismiss={() => setError(null)}
         />
       )}
       {success && (
-        <SuccessInline message={success} onDismiss={() => setSuccess(null)} />
+        <SuccessInline message={success} />
       )}
 
       {/* Roles Overview */}
@@ -291,7 +289,7 @@ export default function RolesAdminPage() {
           </p>
         </div>
       }
-      loading={<LoadingState variant="spinner" size="lg" label="Verificando permissões..." />}
+      loading={<LoadingState label="Verificando permissões..." />}
     >
       <RolesContent />
     </AdminGate>

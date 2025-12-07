@@ -1,5 +1,7 @@
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
+import type { PPTXSlideData, PPTXTransition } from './types';
+import { ensureArray, getString, getNumber } from './types';
 
 export interface SlideTransition {
   type: string; // fade, push, wipe, etc
@@ -34,7 +36,6 @@ export class PPTXAnimationParser {
     this.xmlParser = new XMLParser({
       ignoreAttributes: false,
       attributeNamePrefix: '@_',
-      parseNodeValue: true,
       parseAttributeValue: true,
       trimValues: true,
     });
@@ -75,9 +76,9 @@ export class PPTXAnimationParser {
     }
   }
 
-  private extractTransition(slideData: any): SlideTransition | undefined {
+  private extractTransition(slideData: PPTXSlideData): SlideTransition | undefined {
     try {
-      const transition = slideData?.['p:sld']?.['p:transition'];
+      const transition: PPTXTransition | undefined = slideData?.['p:sld']?.['p:transition'];
       
       if (!transition) return undefined;
 
@@ -115,7 +116,7 @@ export class PPTXAnimationParser {
       }
 
       if (transition['@_advTm']) {
-        result.advanceAfterTime = parseInt(transition['@_advTm'], 10);
+        result.advanceAfterTime = parseInt(String(transition['@_advTm']), 10);
       }
 
       return result;
@@ -124,7 +125,7 @@ export class PPTXAnimationParser {
     }
   }
 
-  private extractAnimationEffects(slideData: any): AnimationEffect[] {
+  private extractAnimationEffects(slideData: PPTXSlideData): AnimationEffect[] {
     try {
       const animations: AnimationEffect[] = [];
       const timing = slideData?.['p:sld']?.['p:timing'];
@@ -137,7 +138,10 @@ export class PPTXAnimationParser {
       const par = tnLst['p:par'];
       if (!par) return [];
 
-      const cTn = par['p:cTn'];
+      const pars = ensureArray(par);
+      if (pars.length === 0) return [];
+
+      const cTn = pars[0]['p:cTn'];
       if (!cTn) return [];
 
       const childTnLst = cTn['p:childTnLst'];
@@ -168,7 +172,7 @@ export class PPTXAnimationParser {
     }
   }
 
-  private parseAnimationNode(parNode: any, index: number): AnimationEffect | null {
+  private parseAnimationNode(parNode: Record<string, any>, index: number): AnimationEffect | null {
     try {
       const animation: AnimationEffect = {
         id: `anim-${index}`,

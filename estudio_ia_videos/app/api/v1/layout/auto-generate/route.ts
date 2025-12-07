@@ -1,3 +1,4 @@
+// TODO: Fix string|number type issue for element dimensions
 
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -9,7 +10,7 @@ interface LayoutElement {
   width: number
   height: number
   content?: string
-  style?: any
+  style?: Record<string, string | number>
 }
 
 interface LayoutSettings {
@@ -181,7 +182,8 @@ export async function POST(request: NextRequest) {
     if (settings?.accessibility) {
       generatedElements.forEach(element => {
         if (element.style) {
-          element.style.contrast = Math.max(element.style.contrast || 85, 90)
+          const currentContrast = (element.style['contrast'] as number) || 85;
+          element.style['contrast'] = Math.max(currentContrast, 90);
         }
       })
     }
@@ -253,3 +255,4 @@ export async function GET() {
     ]
   })
 }
+

@@ -600,7 +600,7 @@ const AdvancedVideoPipeline: React.FC = () => {
                   <Select 
                     value={pipelineSettings.quality_preset} 
                     onValueChange={(value: string) => 
-                      setPipelineSettings(prev => ({ ...prev, quality_preset: value }))
+                      setPipelineSettings(prev => ({ ...prev, quality_preset: value as PipelineSettings['quality_preset'] }))
                     }
                   >
                     <SelectTrigger>

@@ -1,0 +1,66 @@
+{
+  "tech_stack": [
+    "TypeScript",
+    "Next.js",
+    "React",
+    "TailwindCSS",
+    "Supabase",
+    "Playwright",
+    "Python"
+  ],
+  "features": [
+    {
+      "name": "Authentication",
+      "description": "User authentication using Supabase, including login, signup, and role-based access control.",
+      "files": [
+        "estudio_ia_videos/app/login/page.tsx",
+        "estudio_ia_videos/app/components/auth/login-form.tsx",
+        "estudio_ia_videos/app/lib/supabase/auth.ts",
+        "estudio_ia_videos/middleware.ts"
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Main user interface for project management, analytics, and navigation.",
+      "files": [
+        "estudio_ia_videos/app/dashboard/page.tsx",
+        "estudio_ia_videos/app/components/dashboard/dashboard-layout.tsx",
+        "estudio_ia_videos/app/components/dashboard/project-management.tsx",
+        "estudio_ia_videos/app/components/dashboard/dashboard-header.tsx"
+      ]
+    },
+    {
+      "name": "Video Editor",
+      "description": "Professional timeline and canvas editor for video creation.",
+      "files": [
+        "estudio_ia_videos/app/editor/timeline/[id]/page.tsx",
+        "estudio_ia_videos/app/components/timeline/ProfessionalTimelineEditor.tsx",
+        "estudio_ia_videos/app/components/canvas/professional-canvas-editor.tsx"
+      ]
+    },
+    {
+      "name": "PPTX Import",
+      "description": "Feature to upload and convert PowerPoint files into video slides.",
+      "files": [
+        "estudio_ia_videos/app/editor/pptx/[id]/page.tsx",
+        "estudio_ia_videos/app/api/pptx/process/route.ts"
+      ]
+    },
+    {
+      "name": "Rendering Pipeline",
+      "description": "Backend pipeline for rendering video projects.",
+      "files": [
+        "estudio_ia_videos/app/api/render/route.ts",
+        "estudio_ia_videos/app/components/dashboard/render-pipeline.tsx"
+      ]
+    },
+    {
+      "name": "Analytics",
+      "description": "Dashboard for viewing project and engagement metrics.",
+      "files": [
+        "estudio_ia_videos/app/dashboard/analytics/page.tsx",
+        "estudio_ia_videos/app/components/dashboard/analytics-dashboard.tsx"
+      ]
+    }
+  ]
+}

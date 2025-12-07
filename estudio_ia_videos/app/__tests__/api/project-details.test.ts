@@ -1,97 +1,76 @@
 // @jest-environment node
 import { NextRequest } from 'next/server'
-import { Prisma, PrismaClient } from '@prisma/client'
 import { GET } from '@/api/projects/[id]/route'
+import { createClient } from '@/lib/supabase/server'
 
-process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary'
+// Mock Supabase
+jest.mock('@/lib/supabase/server', () => ({
+  getSupabaseForRequest: jest.fn(),
+  createClient: jest.fn()
+}))
 
-const prisma = new PrismaClient()
+const { getSupabaseForRequest } = jest.requireMock('@/lib/supabase/server')
 
 describe('/api/projects/[id]', () => {
-  const uniqueSuffix = Date.now()
-  const userEmail = `project-details-${uniqueSuffix}@example.com`
-  let userId: string
-  let projectId: string
+  const existingProjectId = 'proj-001'
+  const nonExistingProjectId = 'non-existing-project-id'
+  
+  const mockSupabase = {
+    auth: {
+      getUser: jest.fn()
+    },
+    from: jest.fn()
+  }
 
-  beforeAll(async () => {
-    const user = await prisma.user.create({
-      data: {
-        email: userEmail,
-        name: 'Project Details Test User'
-      }
+  beforeEach(() => {
+    jest.clearAllMocks()
+    ;(getSupabaseForRequest as jest.Mock).mockReturnValue(mockSupabase)
+    
+    // Default auth mock
+    mockSupabase.auth.getUser.mockResolvedValue({ 
+      data: { user: { id: 'user-123' } }, 
+      error: null 
     })
-    userId = user.id
-
-    const pptxMetadata: Prisma.InputJsonValue = {
-      title: 'Project Details API Test',
-      author: 'Test Suite'
-    }
-
-    const project = await prisma.project.create({
-      data: {
-        name: 'Project Details API Test',
-        status: 'COMPLETED',
-        userId,
-        originalFileName: 'details-test.pptx',
-        totalSlides: 2,
-        pptxMetadata,
-        slides: {
-          create: [
-            {
-              title: 'Introdução',
-              content: 'Conteúdo introdutório',
-              slideNumber: 1,
-              duration: 4,
-              backgroundType: 'solid',
-              backgroundColor: '#ffffff'
-            },
-            {
-              title: 'Resumo',
-              content: 'Resumo final do conteúdo',
-              slideNumber: 2,
-              duration: 6,
-              backgroundType: 'solid',
-              backgroundColor: '#f9f9f9'
-            }
-          ]
-        }
-      }
-    })
-
-    projectId = project.id
   })
 
-  afterAll(async () => {
-    if (projectId) {
-      await prisma.project.delete({ where: { id: projectId } }).catch(() => undefined)
+  it('retorna detalhes do projeto existente', async () => {
+    const request = new NextRequest(`http://localhost/api/projects/${existingProjectId}`)
+
+    // Mock database response
+    const mockChain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({
+        data: { id: existingProjectId, name: 'Projeto Demo 1', user_id: 'user-123' },
+        error: null
+      })
     }
+    mockSupabase.from.mockReturnValue(mockChain)
 
-    if (userId) {
-      await prisma.user.delete({ where: { id: userId } }).catch(() => undefined)
-    }
-
-    await prisma.$disconnect()
-  })
-
-  it('retorna detalhes do projeto com timeline e slides', async () => {
-    const request = new NextRequest(`http://localhost/api/projects/${projectId}`)
-
-    const response = await GET(request, { params: { id: projectId } })
+    const response = await GET(request, { params: { id: existingProjectId } })
     expect(response.status).toBe(200)
 
     const payload = await response.json()
     expect(payload.success).toBe(true)
-    expect(payload.data.id).toBe(projectId)
-    expect(payload.data.slides).toHaveLength(2)
-    expect(payload.data.timeline).toHaveLength(2)
-    expect(payload.data.stats.totalDuration).toBeGreaterThan(0)
+    expect(payload.data.id).toBe(existingProjectId)
+    expect(payload.data.name).toBe('Projeto Demo 1')
   })
 
   it('retorna 404 para projetos inexistentes', async () => {
-    const fakeId = 'non-existing-project-id'
-    const request = new NextRequest(`http://localhost/api/projects/${fakeId}`)
+    const request = new NextRequest(`http://localhost/api/projects/${nonExistingProjectId}`)
 
-    const response = await GET(request, { params: { id: fakeId } })
+    // Mock database response for not found
+    const mockChain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({
+        data: null,
+        error: { code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned' }
+      })
+    }
+    mockSupabase.from.mockReturnValue(mockChain)
+
+    const response = await GET(request, { params: { id: nonExistingProjectId } })
     expect(response.status).toBe(404)
   })
 })

@@ -25,7 +25,7 @@ interface GracefulProps {
 function useGracefulDegradation<T>(
   asyncFunction: () => Promise<T>,
   fallbackValue: T,
-  dependencies: any[] = []
+  dependencies: unknown[] = []
 ) {
   const [data, setData] = React.useState<T>(fallbackValue);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -72,7 +72,7 @@ function useGracefulDegradation<T>(
 // Componente para carregar imagens com fallback
 interface GracefulImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallbackSrc?: string;
-  fallbackIcon?: React.ComponentType<any>;
+  fallbackIcon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   showError?: boolean;
   retryOnError?: boolean;
   className?: string;
@@ -95,7 +95,7 @@ export function GracefulImage({
   const maxRetries = 2;
 
   const handleError = React.useCallback(() => {
-    errorLogger.logWarning(`Image failed to load: ${currentSrc}`, {
+    errorLogger.warn(`Image failed to load: ${currentSrc}`, {
       component: 'GracefulImage',
       src: currentSrc,
       retryCount,
@@ -186,7 +186,7 @@ export function GracefulVideo({
   const [retryCount, setRetryCount] = React.useState(0);
 
   const handleError = React.useCallback(() => {
-    errorLogger.logWarning(`Video failed to load: ${src}`, {
+    errorLogger.warn(`Video failed to load: ${src}`, {
       component: 'GracefulVideo',
       src,
       retryCount
@@ -257,7 +257,7 @@ interface GracefulDataLoaderProps<T> {
   loadingComponent?: React.ReactNode;
   errorComponent?: React.ReactNode;
   retryButton?: boolean;
-  dependencies?: any[];
+  dependencies?: unknown[];
 }
 
 export function GracefulDataLoader<T>({

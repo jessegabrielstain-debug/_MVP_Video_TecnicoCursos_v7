@@ -671,3 +671,40 @@ Sistema de Automação MVP v2.0
 ```bash
 npm run deploy
 ```
+
+---
+
+## 🐳 Docker Worker (Renderização de Vídeo)
+
+Para ambientes de produção que necessitam de dependências de sistema (FFmpeg, Python, Chrome), utilize o Dockerfile dedicado.
+
+### Build da Imagem
+
+```bash
+# Na raiz do projeto
+docker build -t estudio-ia-worker .
+```
+
+### Execução
+
+```bash
+docker run -d \
+  --name render-worker \
+  --env-file .env.local \
+  --restart unless-stopped \
+  estudio-ia-worker
+```
+
+### Variáveis Necessárias (.env.local)
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `UPSTASH_REDIS_REST_URL` (Opcional, se usar fila Redis)
+- `UPSTASH_REDIS_REST_TOKEN` (Opcional)
+
+### Logs do Worker
+
+```bash
+docker logs -f render-worker
+```
+

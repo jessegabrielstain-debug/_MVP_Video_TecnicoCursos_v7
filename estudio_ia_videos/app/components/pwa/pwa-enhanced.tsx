@@ -231,11 +231,12 @@ export default function PWAEnhanced() {
       if (!batteryManager || !isMounted) {
         return
       }
+      const bm = batteryManager
 
       setCapabilities(prev => ({
         ...prev,
-        batteryLevel: Math.floor(batteryManager.level * 100),
-        isCharging: batteryManager.charging
+        batteryLevel: Math.floor(bm.level * 100),
+        isCharging: bm.charging
       }))
     }
 

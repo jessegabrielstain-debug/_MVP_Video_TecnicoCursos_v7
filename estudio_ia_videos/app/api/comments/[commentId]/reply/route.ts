@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { commentsService } from '@/lib/collab/comments-service';
 
 export async function POST(
@@ -14,7 +14,7 @@ export async function POST(
   { params }: { params: { commentId: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
@@ -27,17 +27,16 @@ export async function POST(
     }
 
     const reply = await commentsService.replyToComment({
-      parentCommentId: params.commentId,
+      commentId: params.commentId,
       userId: session.user.id,
       content,
-      mentions,
     });
 
     return NextResponse.json({ reply }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erro ao responder comentário:', error);
     return NextResponse.json(
-      { error: error.message || 'Erro ao responder comentário' },
+      { error: error instanceof Error ? error.message : 'Erro ao responder comentário' },
       { status: 500 }
     );
   }

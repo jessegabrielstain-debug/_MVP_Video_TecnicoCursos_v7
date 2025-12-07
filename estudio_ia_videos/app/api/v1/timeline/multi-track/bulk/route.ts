@@ -6,7 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
 
 // Types for Timeline structures
 interface Clip {
@@ -59,7 +60,7 @@ interface BulkResult {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
@@ -274,7 +275,7 @@ export async function POST(request: NextRequest) {
     const updatedTimeline = await prisma.timeline.update({
       where: { projectId },
       data: {
-        tracks: updatedTracks,
+        tracks: updatedTracks as unknown as Prisma.InputJsonValue,
         version: { increment: 1 },
         updatedAt: new Date(),
       },
@@ -306,3 +307,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+

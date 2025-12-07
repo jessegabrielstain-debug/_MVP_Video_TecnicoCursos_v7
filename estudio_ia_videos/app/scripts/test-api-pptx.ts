@@ -1,3 +1,4 @@
+// TODO: Script - fix types
 // 🧪 Teste da API PPTX
 // Teste completo via HTTP da API de processamento PPTX
 
@@ -40,13 +41,13 @@ async function testPPTXAPI() {
       fontSize: 16
     })
     
-    const buffer = await pptx.write('nodebuffer') as Buffer
+    const buffer = await pptx.write({ outputType: 'nodebuffer' }) as Buffer
     console.log(`✅ PPTX criado: ${buffer.length} bytes`)
     
     // 2. Preparar FormData
     console.log('\n📤 Enviando para API...')
     const formData = new FormData()
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' })
+    const blob = new Blob([new Uint8Array(buffer)], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' })
     formData.append('file', blob, 'test-api.pptx')
     
     // 3. Fazer requisição

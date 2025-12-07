@@ -112,15 +112,15 @@ export function useDataExport(): UseDataExportReturn {
       const downloadUrl = new URL('/api/analytics/export', window.location.origin);
       downloadUrl.searchParams.set('format', defaultOptions.format);
       downloadUrl.searchParams.set('type', defaultOptions.dataType);
-      downloadUrl.searchParams.set('start', defaultOptions.dateRange.start);
-      downloadUrl.searchParams.set('end', defaultOptions.dateRange.end);
+      downloadUrl.searchParams.set('start', defaultOptions.dateRange!.start);
+      downloadUrl.searchParams.set('end', defaultOptions.dateRange!.end);
       
       if (defaultOptions.includeMetadata) {
         downloadUrl.searchParams.set('includeMetadata', 'true');
       }
       
       if (defaultOptions.maxRecords !== 10000) {
-        downloadUrl.searchParams.set('maxRecords', defaultOptions.maxRecords.toString());
+        downloadUrl.searchParams.set('maxRecords', defaultOptions.maxRecords!.toString());
       }
 
       // Adicionar filtros à URL

@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Gera frames de lip sync
-    const lipSyncFrames = avatarEngine.generateLipSyncFrames(text, audioUrl, duration / 1000);
+    const lipSyncFrames = await avatarEngine.generateLipSyncFrames(text, audioUrl, duration / 1000);
 
     // Simula renderização (em produção, usaria FFmpeg + Three.js headless)
     const renderJobId = `render_${Date.now()}`;
@@ -78,3 +78,4 @@ export async function GET(request: NextRequest) {
     videoUrl: progress >= 95 ? `/api/videos/cache/${jobId}.mp4` : null
   });
 }
+

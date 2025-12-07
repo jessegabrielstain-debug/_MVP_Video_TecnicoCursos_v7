@@ -21,7 +21,6 @@ import {
   RotateCcw,
   Download,
   Upload,
-  Waveform,
   Settings,
   Brain,
   Zap,

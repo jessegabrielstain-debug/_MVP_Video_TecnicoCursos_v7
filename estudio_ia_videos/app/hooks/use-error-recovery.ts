@@ -176,15 +176,10 @@ export function useApiRecovery<T>(
   const { autoExecute = false, recoveryOptions, ...requestOptions } = options;
 
   const apiCall = useCallback(async () => {
-    const response = await apiClient.request<T>(url, {
+    return await apiClient.request<T>(url, {
       ...requestOptions,
-      enableCache: requestOptions.cache,
       headers: requestOptions.headers as Record<string, string> | undefined
-    } as unknown);
-    if (!response.success) {
-      throw response.error || new Error('API request failed');
-    }
-    return response.data!;
+    });
   }, [url, requestOptions]);
 
   const recovery = useErrorRecovery(apiCall, recoveryOptions);

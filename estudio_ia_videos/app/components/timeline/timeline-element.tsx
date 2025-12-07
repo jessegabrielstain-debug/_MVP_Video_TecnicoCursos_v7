@@ -24,15 +24,15 @@ import {
   EyeOff,
   MoreHorizontal
 } from 'lucide-react';
-import { TimelineElement } from '@/lib/types/timeline-types';
+import type { TimelineElement as TimelineElementModel } from '@/lib/types/timeline-types';
 
 interface TimelineElementProps {
-  element: TimelineElement;
+  element: TimelineElementModel;
   pixelsPerMs: number;
   isSelected: boolean;
   isDragging: boolean;
   onSelect: () => void;
-  onUpdate: (updates: Partial<TimelineElement>) => void;
+  onUpdate: (updates: Partial<TimelineElementModel>) => void;
   onMove?: (newStartTime: number) => void;
   onResize?: (newDuration: number) => void;
 }
@@ -46,6 +46,7 @@ const ELEMENT_ICONS = {
   transition: MoreHorizontal,
   effect: Shapes,
   avatar: User,
+  'avatar-3d': User,
   'pptx-slide': FileText
 };
 
@@ -58,6 +59,7 @@ const ELEMENT_COLORS = {
   transition: 'bg-gray-600',
   effect: 'bg-pink-600',
   avatar: 'bg-indigo-600',
+  'avatar-3d': 'bg-indigo-700',
   'pptx-slide': 'bg-orange-600'
 };
 
@@ -111,7 +113,7 @@ export function TimelineElement({
     resizeStartRef.current = {
       startX: e.clientX,
       originalDuration: element.duration,
-      originalStartTime: element.startTime
+      originalStartTime: element.startTime ?? element.start
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -154,7 +156,8 @@ export function TimelineElement({
   };
 
   // Handle element properties toggle
-  const toggleProperty = useCallback((property: keyof TimelineElement['properties']) => {
+  const toggleProperty = useCallback((property: string) => {
+    if (!element.properties) return;
     onUpdate({
       properties: {
         ...element.properties,
@@ -171,8 +174,8 @@ export function TimelineElement({
       {...listeners}
       className={`timeline-element relative rounded-md overflow-hidden cursor-move select-none group
         ${colorClass} ${isSelected ? 'ring-2 ring-white ring-opacity-80' : ''}
-        ${element.properties.locked ? 'cursor-not-allowed' : ''}
-        ${!element.properties.visible ? 'opacity-50' : ''}
+        ${element.properties?.locked ? 'cursor-not-allowed' : ''}
+        ${!element.properties?.visible ? 'opacity-50' : ''}
         shadow-sm hover:shadow-md transition-all duration-200`}
       onClick={(e) => {
         e.stopPropagation();
@@ -204,13 +207,13 @@ export function TimelineElement({
         {/* Status indicators */}
         {(isHovered || isSelected) && width > 60 && (
           <div className="flex items-center space-x-1">
-            {!element.properties.visible && (
+            {!element.properties?.visible && (
               <EyeOff size={12} className="text-white/60" />
             )}
-            {element.properties.locked && (
+            {element.properties?.locked && (
               <Lock size={12} className="text-white/60" />
             )}
-            {element.type === 'audio' && element.data.volume === 0 && (
+            {element.type === 'audio' && element.data?.volume === 0 && (
               <VolumeX size={12} className="text-white/60" />
             )}
           </div>
@@ -227,7 +230,7 @@ export function TimelineElement({
       )}
 
       {/* Thumbnail for video/image elements */}
-      {(element.type === 'video' || element.type === 'image') && element.data.imageUrl && width > 80 && (
+      {(element.type === 'video' || element.type === 'image') && element.data?.imageUrl && width > 80 && (
         <div className="absolute top-1 right-1 w-8 h-6 rounded overflow-hidden opacity-60">
           <img 
             src={element.data.imageUrl} 
@@ -238,7 +241,7 @@ export function TimelineElement({
       )}
 
       {/* PPTX slide preview */}
-      {element.type === 'pptx-slide' && element.data.slideData?.backgroundImage && width > 100 && (
+      {element.type === 'pptx-slide' && element.data?.slideData?.backgroundImage && width > 100 && (
         <div className="absolute top-1 right-1 w-12 h-8 rounded overflow-hidden opacity-60 border border-white/20">
           <img 
             src={element.data.slideData.backgroundImage} 
@@ -249,12 +252,12 @@ export function TimelineElement({
       )}
 
       {/* Keyframe indicators */}
-      {element.keyframes.length > 0 && width > 60 && (
+      {(element.keyframes?.length ?? 0) > 0 && width > 60 && (
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-yellow-400 to-orange-400 opacity-60" />
       )}
 
       {/* Resize handles */}
-      {!element.properties.locked && (isHovered || isSelected || isResizing) && (
+      {!element.properties?.locked && (isHovered || isSelected || isResizing) && (
         <>
           {/* Left resize handle */}
           <div

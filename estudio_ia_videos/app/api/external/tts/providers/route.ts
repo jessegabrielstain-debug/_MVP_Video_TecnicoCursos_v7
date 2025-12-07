@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's TTS provider configurations
-    const { data: userProviders, error } = await supabaseAdmin
+    const { data: userProviders, error } = await (supabaseAdmin as any)
       .from('user_external_api_configs')
       .select('*')
       .eq('user_id', session.user.id)
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
         updated_at: new Date().toISOString()
       }))
 
-      const { data: createdConfigs, error: createError } = await supabaseAdmin
+      const { data: createdConfigs, error: createError } = await (supabaseAdmin as any)
         .from('user_external_api_configs')
         .insert(defaultConfigs)
         .select()
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
       if (createError) throw createError
 
       // Transform to expected format
-      const providers = createdConfigs.map(config => ({
+      const providers = createdConfigs.map((config: any) => ({
         id: config.provider_id,
         name: config.provider_name,
         type: config.provider_type,
@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform existing configurations to expected format
-    const providers = userProviders.map(config => ({
+    const providers = userProviders.map((config: any) => ({
       id: config.provider_id,
       name: config.provider_name,
       type: config.provider_type,
@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
     const providerId = `${providerData.type}-${Date.now()}`
 
     // Create new TTS provider configuration
-    const { data: newProvider, error } = await supabaseAdmin
+    const { data: newProvider, error } = await (supabaseAdmin as any)
       .from('user_external_api_configs')
       .insert({
         user_id: session.user.id,
@@ -243,9 +243,9 @@ export async function POST(request: NextRequest) {
             provider_id: providerId,
             provider_type: providerData.type,
             timestamp: new Date().toISOString()
-          },
+          } as any,
           created_at: new Date().toISOString()
-        })
+        } as any)
     } catch (analyticsError) {
       console.warn('Failed to log TTS provider creation:', analyticsError)
     }

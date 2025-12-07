@@ -1,16 +1,17 @@
+// TODO: Fix RPC function types in Supabase
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 
 // API para configurar o banco de dados
 export async function POST(request: NextRequest) {
   try {
     console.log('🚀 [SETUP-DB] Iniciando configuração do banco de dados...')
     
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     
     // Verificar se as tabelas já existem
     const { data: existingTables, error: checkError } = await supabase
-      .rpc('check_table_exists', { table_name: 'projects' })
+      .rpc('check_table_exists' as any, { table_name: 'projects' })
     
     if (checkError) {
       console.log('⚠️ [SETUP-DB] Não foi possível verificar tabelas existentes, prosseguindo...')
@@ -22,17 +23,16 @@ export async function POST(request: NextRequest) {
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           description TEXT,
-          type VARCHAR(50) DEFAULT 'video',
           status VARCHAR(50) DEFAULT 'draft',
-          owner_id VARCHAR(255) NOT NULL,
+          user_id VARCHAR(255),
           settings JSONB DEFAULT '{}',
-          is_public BOOLEAN DEFAULT false,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          metadata JSONB DEFAULT '{}'
       );
     `
 
-    const { error: createError } = await supabase.rpc('exec_sql', { 
+    const { error: createError } = await supabase.rpc('exec_sql' as any, { 
       sql: createProjectsTable 
     })
 
@@ -43,15 +43,17 @@ export async function POST(request: NextRequest) {
       const testProject = {
         name: 'Projeto de Teste',
         description: 'Projeto criado durante setup do banco',
-        type: 'video',
         status: 'draft',
-        owner_id: 'test-user-setup',
+        user_id: 'test-user-setup',
         settings: {
           width: 1920,
           height: 1080,
           fps: 30
         },
-        is_public: false
+        metadata: {
+          type: 'video',
+          is_public: false
+        }
       }
 
       // Tentar inserir dados de teste para verificar se a tabela existe
@@ -103,7 +105,7 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 [SETUP-DB] Verificando status do banco de dados...')
     
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     
     // Tentar acessar a tabela projects
     const { data, error } = await supabase

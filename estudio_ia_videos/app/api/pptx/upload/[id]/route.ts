@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { withRateLimit, RATE_LIMITS } from '@/lib/rate-limiter-real'
 import { S3StorageService } from '@/lib/s3-storage'
 import { videoCache } from '@/lib/video-cache'
@@ -7,16 +7,16 @@ import { notificationManager } from '@/lib/notifications/notification-manager'
 import { unlink } from 'fs/promises'
 
 // GET /api/pptx/upload/[id] - Buscar status e metadados de um upload específico
-export const GET = withRateLimit(RATE_LIMITS.AUTH_API, 'user')(async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export const GET = withRateLimit(RATE_LIMITS.AUTH_API, 'user')(async function GET(request: NextRequest, context?: { params: Record<string, string> }) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const uploadId = params.id
+    const uploadId = context?.params?.id
     if (!uploadId) {
       return NextResponse.json({ error: 'ID do upload é obrigatório' }, { status: 400 })
     }
@@ -40,11 +40,23 @@ export const GET = withRateLimit(RATE_LIMITS.AUTH_API, 'user')(async function GE
     // Verificar permissões no projeto
     const { data: project } = await supabase
       .from('projects')
-      .select('owner_id, collaborators, is_public')
+      .select('user_id, is_public')
       .eq('id', upload.project_id)
       .single()
 
-    const hasPermission = project && (project.owner_id === user.id || project.collaborators?.includes(user.id) || project.is_public)
+    let hasPermission = project && (project.user_id === user.id || project.is_public)
+
+    if (!hasPermission && project) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('user_id')
+        .eq('project_id', upload.project_id)
+        .eq('user_id', user.id)
+        .single()
+      
+      if (collaborator) hasPermission = true
+    }
+
     if (!hasPermission) {
       return NextResponse.json({ error: 'Sem permissão para acessar este upload' }, { status: 403 })
     }
@@ -64,15 +76,15 @@ export const GET = withRateLimit(RATE_LIMITS.AUTH_API, 'user')(async function GE
 })
 
 // DELETE /api/pptx/upload/[id] - Remover upload, slides e limpar assets de preview
-export const DELETE = withRateLimit(RATE_LIMITS.AUTH_STRICT, 'user')(async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export const DELETE = withRateLimit(RATE_LIMITS.AUTH_STRICT, 'user')(async function DELETE(request: NextRequest, context?: { params: Record<string, string> }) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const uploadId = params.id
+    const uploadId = context?.params?.id
     if (!uploadId) {
       return NextResponse.json({ error: 'ID do upload é obrigatório' }, { status: 400 })
     }
@@ -91,11 +103,25 @@ export const DELETE = withRateLimit(RATE_LIMITS.AUTH_STRICT, 'user')(async funct
     // Verificar permissões no projeto
     const { data: project } = await supabase
       .from('projects')
-      .select('owner_id, collaborators, is_public')
+      .select('user_id, is_public')
       .eq('id', upload.project_id)
       .single()
 
-    const hasPermission = project && (project.owner_id === user.id || project.collaborators?.includes(user.id) || project.is_public)
+    let hasPermission = project && (project.user_id === user.id || project.is_public)
+
+    if (!hasPermission && project) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('permissions')
+        .eq('project_id', upload.project_id)
+        .eq('user_id', user.id)
+        .single()
+      
+      if (collaborator && (collaborator.permissions as any)?.can_edit) {
+        hasPermission = true
+      }
+    }
+
     if (!hasPermission) {
       return NextResponse.json({ error: 'Sem permissão para excluir este upload' }, { status: 403 })
     }
@@ -107,14 +133,14 @@ export const DELETE = withRateLimit(RATE_LIMITS.AUTH_STRICT, 'user')(async funct
       .eq('upload_id', uploadId)
 
     // Limpar preview assets (S3 ou cache local)
-    if (upload.preview_url && typeof upload.preview_url === 'string') {
+    if ((upload as any).preview_url && typeof (upload as any).preview_url === 'string') {
       try {
-        if (upload.preview_url.startsWith('/api/s3/serve/')) {
-          const key = decodeURIComponent(upload.preview_url.replace('/api/s3/serve/', ''))
+        if ((upload as any).preview_url.startsWith('/api/s3/serve/')) {
+          const key = decodeURIComponent((upload as any).preview_url.replace('/api/s3/serve/', ''))
           await S3StorageService.deleteFile(key)
-        } else if (upload.preview_url.startsWith('/api/videos/cache/')) {
-          const filename = decodeURIComponent(upload.preview_url.replace('/api/videos/cache/', ''))
-          await videoCache.delete(filename)
+        } else if ((upload as any).preview_url.startsWith('/api/videos/cache/')) {
+          const filename = decodeURIComponent((upload as any).preview_url.replace('/api/videos/cache/', ''))
+          videoCache.delete(filename)
         }
       } catch (err) {
         console.warn('Falha ao limpar preview asset:', err)
@@ -122,9 +148,9 @@ export const DELETE = withRateLimit(RATE_LIMITS.AUTH_STRICT, 'user')(async funct
     }
 
     // Remover arquivo original do disco, se existir
-    if (upload.file_path && typeof upload.file_path === 'string') {
+    if ((upload as any).file_path && typeof (upload as any).file_path === 'string') {
       try {
-        await unlink(upload.file_path)
+        await unlink((upload as any).file_path)
       } catch (err) {
         // Ignorar erros de remoção do arquivo local
       }
@@ -142,7 +168,7 @@ export const DELETE = withRateLimit(RATE_LIMITS.AUTH_STRICT, 'user')(async funct
       id: `upload_${uploadId}_deleted_${Date.now()}`,
       type: 'system_alert',
       title: 'Upload removido',
-      message: `O upload ${upload.original_filename || upload.filename} foi removido do projeto`,
+      message: `O upload ${upload.original_filename || (upload as any).filename} foi removido do projeto`,
       priority: 'low',
       timestamp: Date.now(),
       roomId,

@@ -54,6 +54,11 @@ interface TimeSeriesData {
   count: number;
 }
 
+interface MetricData {
+  summary: MetricSummary;
+  [key: string]: unknown;
+}
+
 // ==========================================
 // COMPONENTE PRINCIPAL
 // ==========================================
@@ -88,7 +93,7 @@ export default function ObservabilityDashboard() {
       const data = await response.json();
 
       setHealth(data.health);
-      setMetrics(data.metrics.map((m: any) => m.summary));
+      setMetrics(data.metrics.map((m: MetricData) => m.summary));
 
       // Fetch séries temporais para métrica selecionada
       await fetchTimeSeries(selectedMetric);

@@ -10,36 +10,45 @@ export async function GET() {
   try {
     const metahumans = ue5AvatarEngine.getAvailableMetaHumans()
     
+    // Ensure metahumans is an array (defensive programming)
+    const metahumanList = Array.isArray(metahumans) ? metahumans : []
+    
     return NextResponse.json({
       success: true,
-      count: metahumans.length,
-      metahumans: metahumans.map(mh => ({
+      count: metahumanList.length,
+      metahumans: metahumanList.map(mh => ({
         id: mh.id,
         name: mh.name,
-        display_name: mh.display_name,
+        display_name: mh.display_name || mh.name,
         gender: mh.gender,
-        ethnicity: mh.ethnicity,
-        age_range: mh.age_range,
-        style: mh.style,
+        // Optional fields - use optional chaining
+        ethnicity: mh.ethnicity ?? null,
+        age_range: mh.age_range ?? null,
+        style: mh.style ?? null,
         capabilities: {
-          blendshapes: mh.blendshape_count,
-          expressions: mh.expression_presets.length,
-          clothing_options: mh.clothing_options.length,
-          hair_options: mh.hair_options.length
+          blendshapes: mh.blendshape_count ?? 0,
+          expressions: Array.isArray(mh.expression_presets) ? mh.expression_presets.length : 0,
+          clothing_options: Array.isArray(mh.clothing_options) ? mh.clothing_options.length : 0,
+          hair_options: Array.isArray(mh.hair_options) ? mh.hair_options.length : 0
         },
         quality: {
-          polygons: mh.polygon_count,
-          texture_resolution: mh.texture_resolution,
-          optimization: mh.optimization_level
+          polygons: mh.polygon_count ?? null,
+          texture_resolution: mh.texture_resolution ?? null,
+          optimization: mh.optimization_level ?? null
         }
       }))
     })
     
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erro ao listar MetaHumans:', error)
     return NextResponse.json(
-      { error: error.message },
+      { 
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        metahumans: []
+      },
       { status: 500 }
     )
   }
 }
+

@@ -23,8 +23,6 @@ import {
   Frown,
   Meh,
   Angry,
-  Surprised,
-  Wink,
   Coffee,
   Briefcase,
   GraduationCap,
@@ -463,7 +461,7 @@ export default function PersonalityPresets({
   };
 
   // Atualizar configuração de voz
-  const updateVoice = (setting: keyof PersonalityPreset['voice'], value: any) => {
+  const updateVoice = (setting: keyof PersonalityPreset['voice'], value: string | number) => {
     setCustomPersonality(prev => ({
       ...prev,
       voice: {

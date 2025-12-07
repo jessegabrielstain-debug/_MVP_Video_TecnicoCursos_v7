@@ -1,219 +1,172 @@
 /**
  * 🎭 Playwright E2E Tests - PPTX Upload UI
  * 
- * Testa o fluxo completo de upload PPTX através da interface:
- * 1. Navegação até a página de upload
- * 2. Seleção de arquivo PPTX
- * 3. Upload e processamento
- * 4. Visualização de resultado
- * 5. Feedback visual ao usuário
+ * Testa o fluxo completo de criação de projeto PPTX e upload:
+ * 1. Login
+ * 2. Criação de projeto via Dashboard
+ * 3. Redirecionamento para Editor PPTX
+ * 4. Upload de arquivo
+ * 5. Processamento e Sucesso
  */
 
-import { test, expect } from '@playwright/test'
-import path from 'path'
+import { test, expect } from '@playwright/test';
+import path from 'path';
+import { loginAsAdmin } from '../e2e/helpers';
 
-test.describe('PPTX Upload - Interface de Usuário', () => {
+test.describe('PPTX Upload - Fluxo Completo', () => {
   test.beforeEach(async ({ page }) => {
-    // Navegar para a página de upload
-    await page.goto('http://localhost:3000/dashboard')
+    // Login como admin usando injeção de sessão (mais rápido e confiável)
+    await loginAsAdmin(page);
     
-    // Aguardar carregamento da página
-    await page.waitForLoadState('networkidle')
-  })
+    // Garantir que estamos no dashboard
+    await page.goto('/dashboard');
+    
+    // Force prevent tour (just in case)
+    await page.evaluate(() => {
+      localStorage.setItem('hasSeenTour', 'true');
+    });
+    
+    // Reload to apply the localStorage change
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+  });
 
-  test('deve exibir página de upload corretamente', async ({ page }) => {
-    // Verificar título da página
-    await expect(page).toHaveTitle(/Dashboard/)
-    
-    // Verificar elementos principais
-    const uploadButton = page.locator('[data-testid="upload-pptx"]').or(page.locator('text=Upload PPTX')).or(page.locator('button:has-text("Upload")'))
-    await expect(uploadButton.first()).toBeVisible()
-    
-    console.log('✅ Página de upload exibida corretamente')
-  })
+  test('deve criar projeto PPTX e fazer upload com sucesso', async ({ page }) => {
+    // Listen to console logs
+    page.on('console', msg => console.log(`Browser Console: ${msg.text()}`));
 
-  test('deve permitir selecionar arquivo PPTX', async ({ page }) => {
-    // Localizar input de arquivo
-    const fileInput = page.locator('input[type="file"]').first()
-    
-    // Preparar arquivo de teste
-    const testFile = path.join(__dirname, '../__tests__/pptx/fixtures/with-metadata.pptx')
-    
-    // Selecionar arquivo
-    await fileInput.setInputFiles(testFile)
-    
-    // Verificar que arquivo foi selecionado
-    const fileName = await page.locator('text=/with-metadata\\.pptx/i').count()
-    expect(fileName).toBeGreaterThan(0)
-    
-    console.log('✅ Arquivo PPTX selecionado com sucesso')
-  })
+    // Verify localStorage
+    const hasSeenTour = await page.evaluate(() => localStorage.getItem('hasSeenTour'));
+    console.log('🔍 localStorage.hasSeenTour:', hasSeenTour);
 
-  test('deve fazer upload e processar PPTX', async ({ page }) => {
-    // Localizar input de arquivo
-    const fileInput = page.locator('input[type="file"]').first()
-    const testFile = path.join(__dirname, '../__tests__/pptx/fixtures/with-metadata.pptx')
-    
-    // Selecionar arquivo
-    await fileInput.setInputFiles(testFile)
-    
-    // Clicar no botão de upload/processar
-    const processButton = page.locator('button:has-text("Process")').or(page.locator('button:has-text("Upload")'))
-    await processButton.first().click()
-    
-    // Aguardar processamento (com timeout de 30s)
-    await page.waitForSelector('[data-testid="processing-complete"]', { timeout: 30000 }).catch(() => {
-      console.log('⚠️ Timeout ao aguardar processamento - pode ser esperado em ambiente de teste')
-    })
-    
-    console.log('✅ Upload e processamento iniciados')
-  })
-
-  test('deve exibir feedback visual durante processamento', async ({ page }) => {
-    const fileInput = page.locator('input[type="file"]').first()
-    const testFile = path.join(__dirname, '../__tests__/pptx/fixtures/with-metadata.pptx')
-    
-    await fileInput.setInputFiles(testFile)
-    
-    const processButton = page.locator('button:has-text("Process")').or(page.locator('button:has-text("Upload")'))
-    await processButton.first().click()
-    
-    // Verificar loading/spinner
-    const loadingIndicator = page.locator('[data-testid="loading"]').or(page.locator('.spinner')).or(page.locator('text=Processing'))
-    const isVisible = await loadingIndicator.count()
-    
-    if (isVisible > 0) {
-      console.log('✅ Indicador de loading exibido')
-    } else {
-      console.log('⚠️ Indicador de loading não encontrado (pode ser processamento muito rápido)')
+    // Debug: Verificar se há overlays ou dialogs abertos
+    const dialogs = page.locator('div[role="dialog"], div[data-state="open"]');
+    if (await dialogs.count() > 0) {
+      console.log('⚠️ Detectados dialogs/overlays abertos:', await dialogs.count());
     }
-  })
 
-  test('deve exibir slides extraídos após processamento', async ({ page }) => {
-    // Este teste assume que já existe um projeto processado
-    await page.goto('http://localhost:3000/projects')
-    await page.waitForLoadState('networkidle')
-    
-    // Verificar lista de projetos
-    const projects = page.locator('[data-testid="project-item"]').or(page.locator('.project-card'))
-    const count = await projects.count()
-    
-    if (count > 0) {
-      // Clicar no primeiro projeto
-      await projects.first().click()
+    // Handle Welcome Modal specifically
+    const welcomeHeading = page.locator('text=Bem-vindo ao Estúdio IA! 👋');
+    if (await welcomeHeading.isVisible()) {
+      console.log('👋 Welcome modal detected, closing...');
       
-      // Verificar slides
-      await page.waitForSelector('[data-testid="slide"]', { timeout: 5000 }).catch(() => {
-        console.log('⚠️ Slides não encontrados - pode não haver projetos processados')
-      })
-      
-      console.log('✅ Slides exibidos corretamente')
-    } else {
-      console.log('⚠️ Nenhum projeto encontrado para visualizar slides')
-    }
-  })
-
-  test('deve permitir navegar entre slides', async ({ page }) => {
-    await page.goto('http://localhost:3000/projects')
-    await page.waitForLoadState('networkidle')
-    
-    const projects = page.locator('[data-testid="project-item"]').or(page.locator('.project-card'))
-    const count = await projects.count()
-    
-    if (count > 0) {
-      await projects.first().click()
-      await page.waitForTimeout(1000)
-      
-      // Botões de navegação
-      const nextButton = page.locator('[data-testid="next-slide"]').or(page.locator('button:has-text("Next")')
-)
-      const prevButton = page.locator('[data-testid="prev-slide"]').or(page.locator('button:has-text("Previous")'))
-      
-      // Tentar navegar para próximo slide
-      const hasNext = await nextButton.count()
-      if (hasNext > 0) {
-        await nextButton.first().click()
-        await page.waitForTimeout(500)
-        console.log('✅ Navegação entre slides funcionando')
-      } else {
-        console.log('⚠️ Botões de navegação não encontrados')
-      }
-    }
-  })
-
-  test('deve exibir mensagem de erro para arquivo inválido', async ({ page }) => {
-    const fileInput = page.locator('input[type="file"]').first()
-    
-    // Criar arquivo de texto simples (não é PPTX)
-    const invalidFile = path.join(__dirname, '../__tests__/setup.ts')
-    
-    await fileInput.setInputFiles(invalidFile)
-    
-    const processButton = page.locator('button:has-text("Process")').or(page.locator('button:has-text("Upload")'))
-    await processButton.first().click()
-    
-    // Aguardar mensagem de erro
-    const errorMessage = page.locator('[data-testid="error-message"]').or(page.locator('.error')).or(page.locator('text=/invalid|erro|error/i'))
-    
-    await page.waitForTimeout(2000)
-    const hasError = await errorMessage.count()
-    
-    if (hasError > 0) {
-      console.log('✅ Mensagem de erro exibida para arquivo inválido')
-    } else {
-      console.log('⚠️ Validação de arquivo pode não estar implementada na UI')
-    }
-  })
-
-  test('deve exibir thumbnail do PPTX processado', async ({ page }) => {
-    await page.goto('http://localhost:3000/projects')
-    await page.waitForLoadState('networkidle')
-    
-    // Verificar thumbnails na lista de projetos
-    const thumbnails = page.locator('img[alt*="thumbnail"]').or(page.locator('[data-testid="project-thumbnail"]'))
-    const count = await thumbnails.count()
-    
-    if (count > 0) {
-      // Verificar que thumbnail está carregado
-      const firstThumbnail = thumbnails.first()
-      await expect(firstThumbnail).toBeVisible()
-      console.log('✅ Thumbnails exibidos corretamente')
-    } else {
-      console.log('⚠️ Thumbnails não encontrados - pode não haver projetos')
-    }
-  })
-
-  test('deve permitir deletar projeto', async ({ page }) => {
-    await page.goto('http://localhost:3000/projects')
-    await page.waitForLoadState('networkidle')
-    
-    const projects = page.locator('[data-testid="project-item"]').or(page.locator('.project-card'))
-    const initialCount = await projects.count()
-    
-    if (initialCount > 0) {
-      // Localizar botão de delete
-      const deleteButton = page.locator('[data-testid="delete-project"]').or(page.locator('button:has-text("Delete")'))
-      const hasDelete = await deleteButton.count()
-      
-      if (hasDelete > 0) {
-        await deleteButton.first().click()
-        
-        // Confirmar deleção (se houver modal)
-        const confirmButton = page.locator('button:has-text("Confirm")').or(page.locator('button:has-text("Yes")'))
-        const hasConfirm = await confirmButton.count()
-        
-        if (hasConfirm > 0) {
-          await confirmButton.first().click()
+      // Force remove via DOM manipulation
+      await page.evaluate(() => {
+        const headings = Array.from(document.querySelectorAll('h2'));
+        const welcome = headings.find(h => h.textContent?.includes('Bem-vindo ao Estúdio IA!'));
+        if (welcome) {
+            // Find the dialog overlay/content and remove it
+            const dialog = welcome.closest('[role="dialog"]') || welcome.closest('.fixed');
+            if (dialog) dialog.remove();
         }
-        
-        await page.waitForTimeout(1000)
-        console.log('✅ Projeto deletado com sucesso')
-      } else {
-        console.log('⚠️ Botão de delete não encontrado')
-      }
-    } else {
-      console.log('⚠️ Nenhum projeto para deletar')
-    }
-  })
-})
+      });
+      
+      // Short wait
+      await page.waitForTimeout(500);
 
+      // Fallback: Try "Pular Tour" if still there
+      const skipButton = page.locator('button:has-text("Pular Tour")');
+      if (await skipButton.isVisible()) {
+        await skipButton.click();
+      } else {
+        await page.keyboard.press('Escape');
+      }
+      await expect(welcomeHeading).toBeHidden({ timeout: 5000 });
+      console.log('👋 Welcome modal closed');
+    }
+
+    // Verificar se há algum modal de boas-vindas ou erro e fechar se necessário
+    const closeDialog = page.locator('button[aria-label="Close"], button:has-text("Fechar"), button:has-text("Close")');
+    if (await closeDialog.isVisible()) {
+      await closeDialog.first().click();
+    }
+
+    // 1. Identificar e clicar no botão de criar projeto (Dashboard ou Empty State)
+    console.log('📍 Título da página:', await page.title());
+    console.log('📍 Headings:', await page.locator('h1, h2').allInnerTexts());
+
+    const createButton = page.locator('button:has-text("Create Project")')
+      .or(page.locator('button:has-text("Criar Primeiro Projeto Agora")'))
+      .or(page.locator('button:has-text("Criar Projeto")')); // Fallback
+    
+    await expect(createButton.first()).toBeVisible({ timeout: 10000 });
+    console.log('✅ Botão "Create Project" encontrado, tentando clicar...');
+    
+    await createButton.first().click({ force: true });
+    console.log('✅ Clique realizado (forçado)');
+
+    // 2. Preencher modal de criação
+    console.log('⏳ Aguardando modal "Novo Projeto"...');
+    await expect(page.locator('text=Novo Projeto')).toBeVisible();
+    console.log('✅ Modal aberto');
+    
+    const projectName = `Projeto PPTX Teste ${Date.now()}`;
+    await page.fill('input[id="name"]', projectName);
+    console.log('✅ Nome preenchido');
+    
+    // Selecionar tipo PPTX
+    await page.click('text=Importar PPTX');
+    console.log('✅ Tipo PPTX selecionado');
+    
+    // Confirmar criação
+    const submitButton = page.locator('button:has-text("Criar Projeto")').last();
+    await submitButton.click();
+    console.log('✅ Botão Criar clicado');
+
+    // Verificar estado de loading
+    await expect(page.locator('text=Criando...')).toBeVisible({ timeout: 5000 }).catch(() => {
+      console.log('⚠️ Aviso: Estado "Criando..." não detectado (pode ter sido muito rápido)');
+    });
+
+    // 3. Aguardar redirecionamento para editor PPTX
+    console.log('⏳ Aguardando redirecionamento...');
+    // Aumentar timeout para 30s
+    await page.waitForURL(/\/editor\/pptx\/.*/, { timeout: 30000 });
+    console.log('✅ Redirecionamento concluído para:', page.url());
+    
+    // Verificar que estamos na página correta
+    await expect(page.locator('text=Upload')).toBeVisible();
+
+    // 4. Fazer upload do arquivo
+    console.log('📂 Iniciando upload do arquivo...');
+    
+    // Verificar se estamos na página correta antes do upload
+    await expect(page.locator('text=PPTX Studio')).toBeVisible();
+    await expect(page.locator('text=Faça upload do seu PPTX')).toBeVisible();
+
+    const testFile = path.join(__dirname, '../__tests__/pptx/fixtures/with-metadata.pptx');
+    const fileInput = page.locator('input[type="file"]');
+    
+    // React-dropzone cria um input hidden. setInputFiles funciona mesmo assim.
+    // Garantir que o input existe no DOM
+    await expect(fileInput).toBeAttached();
+    
+    await fileInput.setInputFiles(testFile);
+    console.log('✅ Arquivo definido via setInputFiles');
+
+    // 5. Verificar estados de progresso
+    // O componente PPTXUploader simula o progresso visualmente
+    console.log('⏳ Aguardando estado de upload...');
+    await expect(page.locator('text=Fazendo Upload...')).toBeVisible({ timeout: 10000 });
+    console.log('✅ Estado "Fazendo Upload..." detectado');
+    
+    await expect(page.locator('text=Processando PPTX...')).toBeVisible({ timeout: 15000 });
+    console.log('✅ Estado "Processando PPTX..." detectado');
+    
+    // 6. Verificar conclusão e transição para o editor
+    // Nota: O componente Uploader é desmontado quando o upload termina, 
+    // então verificamos se a interface do editor foi carregada.
+    console.log('⏳ Aguardando transição para o editor...');
+    
+    // Verificar título do projeto mockado
+    const projectTitle = page.locator('text=Treinamento NR-35 - Trabalho em Altura');
+    await expect(projectTitle).toBeVisible({ timeout: 30000 });
+    console.log('✅ Projeto carregado e editor exibido!');
+    
+    // Verificar elementos do editor
+    await expect(page.getByRole('heading', { name: 'Slides' })).toBeVisible();
+    await expect(page.locator('button:has-text("Exportar para Timeline")')).toBeVisible();
+    
+    console.log('✅ Teste finalizado com sucesso!');
+  });
+});

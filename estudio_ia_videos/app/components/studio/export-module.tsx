@@ -485,7 +485,7 @@ export default function ExportModule({
             <Label>Visibilidade</Label>
             <Select 
               value={shareSettings.visibility} 
-              onValueChange={(value: string) => setShareSettings(prev => ({ ...prev, visibility: value }))}
+              onValueChange={(value: string) => setShareSettings(prev => ({ ...prev, visibility: value as ShareSettings['visibility'] }))}
             >
               <SelectTrigger className="mt-2">
                 <SelectValue />
@@ -601,19 +601,19 @@ export default function ExportModule({
                     </div>
                   )}
 
-                  {job.metadata?.embedCode && (
+                  {typeof job.metadata?.embedCode === 'string' && (
                     <div className="mt-2">
                       <Label className="text-xs">Código de Incorporação:</Label>
                       <div className="flex items-center space-x-2 mt-1">
                         <Input
-                          value={job.metadata.embedCode}
+                          value={job.metadata.embedCode as string}
                           readOnly
                           className="text-xs font-mono"
                         />
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard(job.metadata.embedCode)}
+                          onClick={() => copyToClipboard(job.metadata!.embedCode as string)}
                         >
                           <Copy className="w-4 h-4" />
                         </Button>

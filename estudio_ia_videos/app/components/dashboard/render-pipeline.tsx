@@ -73,7 +73,7 @@ const statusColors = {
 
 const priorityColors = {
   low: 'bg-green-500',
-  medium: 'bg-yellow-500',
+  normal: 'bg-yellow-500',
   high: 'bg-red-500',
   urgent: 'bg-purple-500'
 }
@@ -82,7 +82,7 @@ interface RenderJobFormData {
   project_id: string
   render_type: string
   quality_preset: string
-  priority: string
+  priority: "low" | "normal" | "high" | "urgent"
   settings: any
 }
 
@@ -117,13 +117,13 @@ export function RenderPipeline() {
     project_id: '',
     render_type: 'video',
     quality_preset: 'high',
-    priority: 'medium',
+    priority: 'normal',
     settings: {}
   })
 
   // Filter render jobs
   const filteredJobs = renderJobs?.filter(job => {
-    const matchesSearch = job.project_title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = job.project_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          job.id.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = selectedStatus === 'all' || job.status === selectedStatus
     const matchesPriority = selectedPriority === 'all' || job.priority === selectedPriority
@@ -139,7 +139,7 @@ export function RenderPipeline() {
         project_id: '',
         render_type: 'video',
         quality_preset: 'high',
-        priority: 'medium',
+        priority: 'normal',
         settings: {}
       })
       toast.success('Render job created successfully')
@@ -319,33 +319,19 @@ export function RenderPipeline() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="quality">Quality</Label>
-                    <Select value={formData.quality_preset} onValueChange={(value) => setFormData({ ...formData, quality_preset: value })}>
+                    <Label htmlFor="priority">Priority</Label>
+                    <Select value={formData.priority} onValueChange={(value: "low" | "normal" | "high" | "urgent") => setFormData({ ...formData, priority: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="normal">Normal</SelectItem>
                         <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="ultra">Ultra</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
               <DialogFooter>
@@ -504,7 +490,7 @@ export function RenderPipeline() {
                     <SelectContent>
                       <SelectItem value="all">All Priority</SelectItem>
                       <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="normal">Normal</SelectItem>
                       <SelectItem value="high">High</SelectItem>
                       <SelectItem value="urgent">Urgent</SelectItem>
                     </SelectContent>
@@ -569,10 +555,10 @@ export function RenderPipeline() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <div>
-                                <h4 className="text-sm font-medium">{job.project_title || job.id}</h4>
+                                <h4 className="text-sm font-medium">{job.project_id || job.id}</h4>
                                 <div className="flex items-center space-x-2 mt-1">
-                                  <Badge variant="outline">{job.render_type}</Badge>
-                                  <Badge variant="outline">{job.quality_preset}</Badge>
+                                  <Badge variant="outline">{job.type || 'video'}</Badge>
+                                  <Badge variant="outline">{job.metadata?.quality || 'standard'}</Badge>
                                   <Badge className={`${priorityColors[job.priority as keyof typeof priorityColors]} text-white`}>
                                     {job.priority}
                                   </Badge>

@@ -109,7 +109,7 @@ export default function ReviewPanel({
       setCurrentReview(data.status.currentReviewRequest)
       setApprovalHistory(data.status.approvalHistory || [])
       setCanEdit(data.status.canEdit)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao carregar status:', error)
       toast.error('Erro ao carregar status de revisão')
     } finally {
@@ -157,7 +157,7 @@ export default function ReviewPanel({
       setReviewMessage('')
       setReviewDueDate('')
       await loadReviewStatus()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao solicitar revisão:', error)
       toast.error('Erro ao solicitar revisão')
     }
@@ -188,7 +188,7 @@ export default function ReviewPanel({
       setReviewFeedback('')
       setSelectedDecision(null)
       await loadReviewStatus()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao submeter revisão:', error)
       toast.error('Erro ao submeter revisão')
     }
@@ -211,7 +211,7 @@ export default function ReviewPanel({
 
       toast.success('Projeto reaberto para edição')
       await loadReviewStatus()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao reabrir:', error)
       toast.error('Erro ao reabrir projeto')
     }
@@ -231,7 +231,7 @@ export default function ReviewPanel({
 
       toast.success('Projeto publicado com sucesso!')
       await loadReviewStatus()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao publicar:', error)
       toast.error('Erro ao publicar projeto')
     }

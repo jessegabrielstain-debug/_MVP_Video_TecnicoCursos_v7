@@ -194,37 +194,37 @@ export default function AvatarExportSystem({
   // Presets de plataforma
   const platformPresets = {
     youtube: {
-      video: { format: 'mp4' as const, resolution: '1080p' as const, fps: 30, bitrate: 8000, codec: 'h264' as const },
+      video: { format: 'mp4' as const, resolution: '1080p' as const, fps: 30 as 30, bitrate: 8000, codec: 'h264' as const },
       audio: { enabled: true, format: 'aac' as const, bitrate: 128 },
       rendering: { quality: 'high' as const },
       platform: { optimizeFor: 'web' as const }
     },
     instagram: {
-      video: { format: 'mp4' as const, resolution: '1080p' as const, fps: 30, bitrate: 3500, codec: 'h264' as const },
+      video: { format: 'mp4' as const, resolution: '1080p' as const, fps: 30 as 30, bitrate: 3500, codec: 'h264' as const },
       audio: { enabled: true, format: 'aac' as const, bitrate: 128 },
       rendering: { quality: 'standard' as const },
       platform: { optimizeFor: 'mobile' as const }
     },
     tiktok: {
-      video: { format: 'mp4' as const, resolution: '1080p' as const, fps: 30, bitrate: 2500, codec: 'h264' as const },
+      video: { format: 'mp4' as const, resolution: '1080p' as const, fps: 30 as 30, bitrate: 2500, codec: 'h264' as const },
       audio: { enabled: true, format: 'aac' as const, bitrate: 96 },
       rendering: { quality: 'standard' as const },
       platform: { optimizeFor: 'mobile' as const }
     },
     linkedin: {
-      video: { format: 'mp4' as const, resolution: '720p' as const, fps: 30, bitrate: 2000, codec: 'h264' as const },
+      video: { format: 'mp4' as const, resolution: '720p' as const, fps: 30 as 30, bitrate: 2000, codec: 'h264' as const },
       audio: { enabled: true, format: 'aac' as const, bitrate: 128 },
       rendering: { quality: 'standard' as const },
       platform: { optimizeFor: 'web' as const }
     },
     twitter: {
-      video: { format: 'mp4' as const, resolution: '720p' as const, fps: 30, bitrate: 2000, codec: 'h264' as const },
+      video: { format: 'mp4' as const, resolution: '720p' as const, fps: 30 as 30, bitrate: 2000, codec: 'h264' as const },
       audio: { enabled: true, format: 'aac' as const, bitrate: 96 },
       rendering: { quality: 'standard' as const },
       platform: { optimizeFor: 'web' as const }
     },
     facebook: {
-      video: { format: 'mp4' as const, resolution: '1080p' as const, fps: 30, bitrate: 4000, codec: 'h264' as const },
+      video: { format: 'mp4' as const, resolution: '1080p' as const, fps: 30 as 30, bitrate: 4000, codec: 'h264' as const },
       audio: { enabled: true, format: 'aac' as const, bitrate: 128 },
       rendering: { quality: 'high' as const },
       platform: { optimizeFor: 'web' as const }
@@ -383,7 +383,7 @@ export default function AvatarExportSystem({
       updateJobStatus(currentJob.id, 'cancelled');
       setCurrentJob(null);
       setIsExporting(false);
-      toast.info('Exportação cancelada');
+      toast('Exportação cancelada', { icon: 'ℹ️' });
     }
   };
 

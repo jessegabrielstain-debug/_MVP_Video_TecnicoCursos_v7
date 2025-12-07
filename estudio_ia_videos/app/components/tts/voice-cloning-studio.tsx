@@ -208,14 +208,14 @@ export default function VoiceCloningStudio() {
               project.name,
               project.description,
               validFiles.map(f => f.file)
-            ).then(result => {
+            ).then((result: any) => {
               setCloningProject(prev => prev ? {
                 ...prev,
                 status: 'complete',
                 progress: 100,
                 voice_id: result.voice_id
               } : null)
-            }).catch(error => {
+            }).catch((error: any) => {
               setCloningProject(prev => prev ? {
                 ...prev,
                 status: 'error',

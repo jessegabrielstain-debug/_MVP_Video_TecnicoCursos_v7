@@ -1,21 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+export const dynamic = 'force-dynamic';
 
-const prisma = new PrismaClient()
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth/auth-options'
+import { supabaseAdmin } from '@/lib/supabase/server'
 
 async function isAdmin(userId: string | undefined): Promise<boolean> {
   if (!userId) {
     return false
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true },
-  })
+  const { data } = await supabaseAdmin
+    .from('users')
+    .select('role')
+    .eq('id', userId)
+    .single()
 
-  return user?.role === 'admin'
+  return data?.role === 'admin'
 }
 
 export async function GET(_request: NextRequest) {
@@ -35,30 +36,25 @@ export async function GET(_request: NextRequest) {
 
     const [
       totalUsers,
-      activeSessions,
       totalProjects,
       projectsLast24h,
-      storageAggregate,
       renderSummary,
     ] = await Promise.all([
-      prisma.user.count(),
-      prisma.session.count({ where: { expires: { gte: now } } }),
-      prisma.project.count(),
-      prisma.project.count({ where: { updatedAt: { gte: last24h } } }),
-      prisma.fileUpload.aggregate({ _sum: { fileSize: true } }),
+      supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).then(r => r.count || 0),
+      supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).then(r => r.count || 0),
+      supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).gte('updated_at', last24h.toISOString()).then(r => r.count || 0),
       getRenderJobSummary(last24h),
     ])
 
-    const usedStorage = storageAggregate._sum.fileSize ?? BigInt(0)
+    // Placeholder for storage stats as we don't have a file_uploads table
+    const usedStorage = 0
     const totalStorageBytes = BigInt(500) * BigInt(1024) * BigInt(1024) * BigInt(1024) // 500GB default quota
 
-    const usedStorageNumber = usedStorage > BigInt(Number.MAX_SAFE_INTEGER)
-      ? Number.MAX_SAFE_INTEGER
-      : Number(usedStorage)
+    const usedStorageNumber = 0
+    const storageUtilization = 0
 
-    const storageUtilization = totalStorageBytes > 0
-      ? Number(((Number(usedStorage) / Number(totalStorageBytes)) * 100).toFixed(2))
-      : 0
+    // Placeholder for active sessions
+    const activeSessions = 0
 
     return NextResponse.json({
       totalUsers,
@@ -80,10 +76,10 @@ export async function GET(_request: NextRequest) {
 
 async function getRenderJobSummary(since: Date) {
   const [total, processing, failed, completed] = await Promise.all([
-    prisma.renderJob.count(),
-    prisma.renderJob.count({ where: { status: { in: ['pending', 'processing', 'queued'] } } }),
-    prisma.renderJob.count({ where: { status: 'failed', updatedAt: { gte: since } } }),
-    prisma.renderJob.count({ where: { status: 'completed', updatedAt: { gte: since } } }),
+    supabaseAdmin.from('render_jobs').select('*', { count: 'exact', head: true }).then(r => r.count || 0),
+    supabaseAdmin.from('render_jobs').select('*', { count: 'exact', head: true }).in('status', ['pending', 'processing', 'queued']).then(r => r.count || 0),
+    supabaseAdmin.from('render_jobs').select('*', { count: 'exact', head: true }).eq('status', 'failed').gte('updated_at', since.toISOString()).then(r => r.count || 0),
+    supabaseAdmin.from('render_jobs').select('*', { count: 'exact', head: true }).eq('status', 'completed').gte('updated_at', since.toISOString()).then(r => r.count || 0),
   ])
 
   return {
@@ -93,3 +89,4 @@ async function getRenderJobSummary(since: Date) {
     completedLast24h: completed,
   }
 }
+

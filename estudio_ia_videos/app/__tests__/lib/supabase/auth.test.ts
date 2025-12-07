@@ -3,7 +3,6 @@
  * Suite completa de testes para auth functions
  */
 
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals'
 import {
   signIn,
   signUp,
@@ -17,8 +16,8 @@ import {
 } from '@/lib/supabase/auth'
 
 // Mock do Supabase client
-jest.mock('@supabase/auth-helpers-nextjs', () => ({
-  createClientComponentClient: jest.fn(() => ({
+jest.mock('@/lib/supabase/browser', () => ({
+  getBrowserClient: jest.fn(() => ({
     auth: {
       signInWithPassword: jest.fn(),
       signUp: jest.fn(),
@@ -52,7 +51,6 @@ jest.mock('@supabase/auth-helpers-nextjs', () => ({
       })),
     })),
   })),
-  createServerComponentClient: jest.fn(),
 }))
 
 describe('Sistema de Autenticação', () => {
@@ -70,8 +68,8 @@ describe('Sistema de Autenticação', () => {
         error: null,
       }
 
-      const { createClientComponentClient } = require('@supabase/auth-helpers-nextjs')
-      createClientComponentClient.mockReturnValue({
+      const { getBrowserClient } = require('@/lib/supabase/browser')
+      getBrowserClient.mockReturnValue({
         auth: {
           signInWithPassword: jest.fn().mockResolvedValue(mockResponse),
         },
@@ -83,8 +81,8 @@ describe('Sistema de Autenticação', () => {
     })
 
     it('deve lançar erro com credenciais inválidas', async () => {
-      const { createClientComponentClient } = require('@supabase/auth-helpers-nextjs')
-      createClientComponentClient.mockReturnValue({
+      const { getBrowserClient } = require('@/lib/supabase/browser')
+      getBrowserClient.mockReturnValue({
         auth: {
           signInWithPassword: jest.fn().mockResolvedValue({
             data: null,
@@ -107,8 +105,8 @@ describe('Sistema de Autenticação', () => {
         error: null,
       }
 
-      const { createClientComponentClient } = require('@supabase/auth-helpers-nextjs')
-      createClientComponentClient.mockReturnValue({
+      const { getBrowserClient } = require('@/lib/supabase/browser')
+      getBrowserClient.mockReturnValue({
         auth: {
           signUp: jest.fn().mockResolvedValue(mockResponse),
         },
@@ -120,8 +118,8 @@ describe('Sistema de Autenticação', () => {
     })
 
     it('deve lançar erro ao tentar registrar email duplicado', async () => {
-      const { createClientComponentClient } = require('@supabase/auth-helpers-nextjs')
-      createClientComponentClient.mockReturnValue({
+      const { getBrowserClient } = require('@/lib/supabase/browser')
+      getBrowserClient.mockReturnValue({
         auth: {
           signUp: jest.fn().mockResolvedValue({
             data: null,
@@ -149,8 +147,8 @@ describe('Sistema de Autenticação', () => {
         updated_at: new Date().toISOString(),
       }
 
-      const { createClientComponentClient } = require('@supabase/auth-helpers-nextjs')
-      createClientComponentClient.mockReturnValue({
+      const { getBrowserClient } = require('@/lib/supabase/browser')
+      getBrowserClient.mockReturnValue({
         from: jest.fn(() => ({
           select: jest.fn(() => ({
             eq: jest.fn(() => ({
@@ -167,8 +165,8 @@ describe('Sistema de Autenticação', () => {
     })
 
     it('deve retornar null se perfil não existir', async () => {
-      const { createClientComponentClient } = require('@supabase/auth-helpers-nextjs')
-      createClientComponentClient.mockReturnValue({
+      const { getBrowserClient } = require('@/lib/supabase/browser')
+      getBrowserClient.mockReturnValue({
         from: jest.fn(() => ({
           select: jest.fn(() => ({
             eq: jest.fn(() => ({
@@ -199,8 +197,8 @@ describe('Sistema de Autenticação', () => {
         updated_at: new Date().toISOString(),
       }
 
-      const { createClientComponentClient } = require('@supabase/auth-helpers-nextjs')
-      createClientComponentClient.mockReturnValue({
+      const { getBrowserClient } = require('@/lib/supabase/browser')
+      getBrowserClient.mockReturnValue({
         from: jest.fn(() => ({
           update: jest.fn(() => ({
             eq: jest.fn(() => ({
@@ -236,8 +234,8 @@ describe('Sistema de Autenticação', () => {
         updated_at: new Date().toISOString(),
       }
 
-      const { createClientComponentClient } = require('@supabase/auth-helpers-nextjs')
-      createClientComponentClient.mockReturnValue({
+      const { getBrowserClient } = require('@/lib/supabase/browser')
+      getBrowserClient.mockReturnValue({
         from: jest.fn(() => ({
           select: jest.fn(() => ({
             eq: jest.fn(() => ({
@@ -263,7 +261,7 @@ describe('Sistema de Autenticação', () => {
         updated_at: new Date().toISOString(),
       }
 
-      const { createClientComponentClient } = require('@supabase/auth-helpers-nextjs')
+      const { getBrowserClient } = require('@/lib/supabase/browser')
       const mockFrom = jest.fn()
         .mockReturnValueOnce({
           // Primeira chamada - select (não encontra)
@@ -282,7 +280,7 @@ describe('Sistema de Autenticação', () => {
           })),
         })
 
-      createClientComponentClient.mockReturnValue({
+      getBrowserClient.mockReturnValue({
         from: mockFrom,
       })
 

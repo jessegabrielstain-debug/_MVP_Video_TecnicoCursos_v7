@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { commentsService } from '@/lib/collab/comments-service';
 
 export async function DELETE(
@@ -14,21 +14,18 @@ export async function DELETE(
   { params }: { params: { commentId: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    await commentsService.deleteComment({
-      commentId: params.commentId,
-      userId: session.user.id,
-    });
+    await commentsService.delete(params.commentId);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erro ao deletar comentário:', error);
     return NextResponse.json(
-      { error: error.message || 'Erro ao deletar comentário' },
+      { error: error instanceof Error ? error.message : 'Erro ao deletar comentário' },
       { status: 500 }
     );
   }

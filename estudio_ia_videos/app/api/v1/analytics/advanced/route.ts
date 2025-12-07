@@ -1,3 +1,4 @@
+// TODO: Fix funnel type and error handling
 
 /**
  * 📊 Advanced Analytics API - REAL DATA
@@ -9,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { log } from '@/lib/monitoring/logger'
 import { AnalyticsTracker } from '@/lib/analytics/analytics-tracker'
 import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth/auth-config'
+import { authOptions } from '@/lib/auth'
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 
 interface AnalyticsData {
@@ -48,13 +49,18 @@ interface AnalyticsData {
   }[]
 }
 
+interface ProviderPerformance {
+  provider: string
+  errorRate: number
+}
+
 /**
  * GET /api/v1/analytics/advanced
  * Retorna analytics avançado COM DADOS REAIS
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json(
         { success: false, error: 'Não autorizado' },
@@ -69,7 +75,7 @@ export async function GET(request: NextRequest) {
     const startDate = new Date()
     startDate.setDate(endDate.getDate() - days)
     
-    const orgId = getOrgId(session.user) || session.user.currentOrgId || undefined
+    const orgId = getOrgId(session.user) || (session.user as unknown as { currentOrgId?: string }).currentOrgId || undefined
     
     // Get funnel analysis with REAL DATA
     const funnelData = await AnalyticsTracker.getFunnelAnalysis({
@@ -84,22 +90,22 @@ export async function GET(request: NextRequest) {
       organizationId: orgId,
       startDate,
       endDate,
-    })
+    }) as unknown as ProviderPerformance[]
     
     const renderPerformance = await AnalyticsTracker.getProviderPerformance({
       category: 'render',
       organizationId: orgId,
       startDate,
       endDate,
-    })
+    }) as unknown as ProviderPerformance[]
     
     // Calculate error rates by provider
     const errorRates = {
       tts: {
         elevenlabs:
-          ttsPerformance.find((p: any) => p.provider === 'elevenlabs')?.errorRate || 0,
-        azure: ttsPerformance.find((p: any) => p.provider === 'azure')?.errorRate || 0,
-        google: ttsPerformance.find((p: any) => p.provider === 'google')?.errorRate || 0,
+          ttsPerformance.find((p) => p.provider === 'elevenlabs')?.errorRate || 0,
+        azure: ttsPerformance.find((p) => p.provider === 'azure')?.errorRate || 0,
+        google: ttsPerformance.find((p) => p.provider === 'google')?.errorRate || 0,
       },
       render: renderPerformance[0]?.errorRate || 0,
     }
@@ -111,9 +117,23 @@ export async function GET(request: NextRequest) {
       endDate,
     })
     
+    // Transform funnel data array to object
+    const funnelMap = (funnelData.funnel as any[]).reduce((acc: any, item: any) => {
+      acc[item.stage] = item.count;
+      return acc;
+    }, {});
+
+    const funnel = {
+      pptx_uploads: funnelMap['pptx_uploads'] || 0,
+      editing_sessions: funnelMap['editing_sessions'] || 0,
+      tts_generations: funnelMap['tts_generations'] || 0,
+      render_jobs: funnelMap['render_jobs'] || 0,
+      downloads: funnelMap['downloads'] || 0
+    };
+
     // Build complete analytics data
     const data: AnalyticsData = {
-      funnel: funnelData.funnel,
+      funnel: funnel,
       avgTimePerStage: {
         upload_to_edit: summary.avgDuration * 0.3, // Estimated distribution
         edit_to_tts: summary.avgDuration * 0.4,
@@ -154,13 +174,13 @@ export async function GET(request: NextRequest) {
       },
     })
     
-  } catch (error: any) {
-    log.error('Advanced analytics error', error)
+  } catch (error: unknown) {
+    log.error('Advanced analytics error', error instanceof Error ? error : new Error(String(error)))
     
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Failed to fetch analytics',
+        error: error instanceof Error ? error.message : String(error) || 'Failed to fetch analytics',
       },
       {
         status: 500,
@@ -255,13 +275,13 @@ export async function POST(request: NextRequest) {
       exportedAt: new Date().toISOString(),
     })
     
-  } catch (error: any) {
-    log.error('Analytics export error', error)
+  } catch (error: unknown) {
+    log.error('Analytics export error', error instanceof Error ? error : new Error(String(error)))
     
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Failed to export analytics',
+        error: error instanceof Error ? error.message : String(error) || 'Failed to export analytics',
       },
       {
         status: 500,
@@ -319,3 +339,5 @@ function convertToCSV(data: AnalyticsData): string {
   
   return csv
 }
+
+

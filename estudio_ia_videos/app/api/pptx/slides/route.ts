@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 // Schema de validação para criação/atualização de slide
@@ -12,15 +12,15 @@ const slideSchema = z.object({
   transition_type: z.enum(['fade', 'slide', 'zoom', 'flip', 'none']).default('fade'),
   thumbnail_url: z.string().url().optional(),
   notes: z.string().max(2000, 'Notas muito longas').optional(),
-  properties: z.record(z.any()).optional()
+  properties: z.record(z.unknown()).optional()
 })
 
-const updateSlideSchema = slideSchema.partial().omit(['upload_id'])
+const updateSlideSchema = slideSchema.partial().omit({ upload_id: true })
 
 // GET - Listar slides de um upload
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let query = supabase
+    let query = (supabase as any)
       .from('pptx_slides')
       .select(`
         *,
@@ -79,14 +79,23 @@ export async function GET(request: NextRequest) {
       // Buscar projeto para verificar permissões
       const { data: project } = await supabase
         .from('projects')
-        .select('owner_id, collaborators, is_public')
+        .select('user_id, is_public')
         .eq('id', String(upload.project_id))
         .single()
 
       if (project) {
-        const hasPermission = project.owner_id === user.id || 
-                             project.collaborators?.includes(user.id) ||
-                             project.is_public
+        let hasPermission = project.user_id === user.id || project.is_public
+
+        if (!hasPermission) {
+          const { data: collaborator } = await supabase
+            .from('project_collaborators')
+            .select('user_id')
+            .eq('project_id', String(upload.project_id))
+            .eq('user_id', user.id)
+            .single()
+          
+          if (collaborator) hasPermission = true
+        }
 
         if (hasPermission) {
           authorizedSlides.push(slide)
@@ -108,7 +117,7 @@ export async function GET(request: NextRequest) {
 // POST - Criar novo slide
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -122,13 +131,12 @@ export async function POST(request: NextRequest) {
     const validatedData = slideSchema.parse(body)
 
     // Verificar se upload existe e permissões
-    const { data: upload } = await supabase
+    const { data: upload } = await (supabase as any)
       .from('pptx_uploads')
       .select(`
         *,
         projects:project_id (
-          owner_id,
-          collaborators
+          user_id
         )
       `)
       .eq('id', validatedData.upload_id)
@@ -142,8 +150,20 @@ export async function POST(request: NextRequest) {
     }
 
     const project = upload.projects as Record<string, unknown>
-    const hasPermission = project.owner_id === user.id || 
-               Array.isArray(project.collaborators) && (project.collaborators as unknown[]).includes(user.id)
+    let hasPermission = project.user_id === user.id
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('permissions')
+        .eq('project_id', upload.project_id)
+        .eq('user_id', user.id)
+        .single()
+      
+      if (collaborator && (collaborator.permissions as any)?.can_edit) {
+        hasPermission = true
+      }
+    }
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -168,12 +188,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar slide
-    const { data: slide, error } = await supabase
+    const { data: slide, error } = await (supabase as any)
       .from('pptx_slides')
-      .insert({
-        ...validatedData,
-        project_id: upload.project_id
-      })
+      .insert(validatedData)
       .select()
       .single()
 
@@ -197,7 +214,7 @@ export async function POST(request: NextRequest) {
       .eq('id', validatedData.upload_id)
 
     // Registrar no histórico
-    await supabase
+    await (supabase as any)
       .from('project_history')
       .insert({
         project_id: upload.project_id,
@@ -205,8 +222,7 @@ export async function POST(request: NextRequest) {
         action: 'create',
         entity_type: 'pptx_slide',
         entity_id: slide.id,
-        description: `Slide ${validatedData.slide_number} "${validatedData.title}" criado`,
-        changes: validatedData
+        description: `Slide ${validatedData.slide_number} "${validatedData.title}" criado`
       })
 
     return NextResponse.json({ slide }, { status: 201 })
@@ -230,7 +246,7 @@ export async function POST(request: NextRequest) {
 // PUT - Reordenar slides
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -251,13 +267,12 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verificar permissões
-    const { data: upload } = await supabase
+    const { data: upload } = await (supabase as any)
       .from('pptx_uploads')
       .select(`
         project_id,
         projects:project_id (
-          owner_id,
-          collaborators
+          user_id
         )
       `)
       .eq('id', upload_id)
@@ -271,8 +286,20 @@ export async function PUT(request: NextRequest) {
     }
 
     const project = upload.projects as Record<string, unknown>
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+    let hasPermission = project.user_id === user.id
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('permissions')
+        .eq('project_id', upload.project_id)
+        .eq('user_id', user.id)
+        .single()
+      
+      if (collaborator && (collaborator.permissions as any)?.can_edit) {
+        hasPermission = true
+      }
+    }
 
     if (!hasPermission) {
       return NextResponse.json(

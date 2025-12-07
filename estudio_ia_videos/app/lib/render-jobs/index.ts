@@ -1,8 +1,10 @@
-import { createServerClientInstance } from '../supabase/server'
-import type { RenderJob } from '../supabase'
+import { createClient } from '../supabase/server'
+import { Database } from '../supabase'
+
+type RenderJob = Database['public']['Tables']['render_jobs']['Row']
 
 export async function listRenderJobs(projectId: string): Promise<RenderJob[]> {
-  const supabase = createServerClientInstance()
+  const supabase = createClient()
   const { data, error } = await supabase
     .from('render_jobs')
     .select('*')
@@ -17,7 +19,7 @@ export async function listRenderJobs(projectId: string): Promise<RenderJob[]> {
 }
 
 export async function getRenderJob(jobId: string): Promise<RenderJob | null> {
-  const supabase = createServerClientInstance()
+  const supabase = createClient()
   const { data, error } = await supabase
     .from('render_jobs')
     .select('*')
@@ -32,7 +34,7 @@ export async function getRenderJob(jobId: string): Promise<RenderJob | null> {
 }
 
 export async function updateRenderJob(jobId: string, patch: Partial<RenderJob>): Promise<void> {
-  const supabase = createServerClientInstance()
+  const supabase = createClient()
   const { error } = await supabase
     .from('render_jobs')
     .update(patch)
@@ -43,4 +45,4 @@ export async function updateRenderJob(jobId: string, patch: Partial<RenderJob>):
   }
 }
 
-export { type RenderJob } from '../supabase'
+export type { RenderJob }

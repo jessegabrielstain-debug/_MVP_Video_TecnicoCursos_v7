@@ -33,11 +33,38 @@ import {
   Italic,
   Underline
 } from 'lucide-react'
-import { EditorElement } from '@/types/editor'
+import { HeyGenVoiceSelector } from './heygen-voice-selector'
+
+// Flexible element interface for the properties panel
+// This accepts both the strict EditorElement and the looser TimelineElement
+interface FlexibleElement {
+  id: string
+  name: string
+  type: string
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  rotation?: number
+  opacity?: number
+  visible?: boolean
+  locked?: boolean
+  content?: string
+  src?: string
+  style?: Record<string, any>
+  metadata?: Record<string, any>
+  animation?: {
+    type?: string
+    duration?: number
+    delay?: number
+    easing?: string
+  }
+  [key: string]: any
+}
 
 interface PropertiesPanelProps {
-  selectedElement: EditorElement | null
-  onUpdateElement: (elementId: string, updates: Partial<EditorElement>) => void
+  selectedElement: FlexibleElement | null
+  onUpdateElement: (elementId: string, updates: Partial<FlexibleElement>) => void
   onDeleteElement: (elementId: string) => void
   onDuplicateElement: (elementId: string) => void
 }
@@ -252,6 +279,29 @@ export function PropertiesPanel({
                   placeholder="Enter text content"
                   rows={3}
                 />
+              </div>
+            )}
+
+            {selectedElement.type === 'avatar' && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Avatar Settings</Label>
+                  <div className="text-xs text-muted-foreground">
+                    {selectedElement.metadata?.avatarName || 'Unknown Avatar'}
+                  </div>
+                </div>
+                
+                {selectedElement.metadata?.engine === 'heygen' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="heygen-voice">HeyGen Voice</Label>
+                    <HeyGenVoiceSelector 
+                      value={selectedElement.metadata?.voiceId as string}
+                      onChange={(voiceId) => onUpdateElement(selectedElement.id, {
+                        metadata: { ...selectedElement.metadata, voiceId }
+                      })}
+                    />
+                  </div>
+                )}
               </div>
             )}
 

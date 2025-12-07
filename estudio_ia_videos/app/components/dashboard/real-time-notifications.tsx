@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
-import { useSystemNotificationsClient } from '../../hooks/useWebSocketClient';
+import { useNotifications } from '../../hooks/use-notifications';
 
 export function RealTimeNotifications() {
-  const { notifications } = useSystemNotificationsClient();
+  const { realTimeNotifications: notifications } = useNotifications();
 
   const getNotificationIcon = (type: string) => {
     switch (type) {

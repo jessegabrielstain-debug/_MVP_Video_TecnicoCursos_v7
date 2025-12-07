@@ -3,27 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { withAnalytics } from '@/lib/analytics/middleware';
 import { DataExporter, ExportFormat, ExportDataType } from '@/lib/analytics/data-exporter';
+import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 
-// Type-safe helper extraindo organizationId
-const getOrgId = (user: unknown): string | undefined => {
-  const u = user as { currentOrgId?: string; organizationId?: string };
-  return u.currentOrgId || u.organizationId || undefined;
-};
-
-// Type-safe helper verificando admin
-const isAdmin = (user: unknown): boolean => {
-  return ((user as { isAdmin?: boolean }).isAdmin) === true;
-};
-// Type-safe helper extraindo organizationId
-const getOrgId = (user: unknown): string | undefined => {
-  const u = user as { currentOrgId?: string; organizationId?: string };
-  return u.currentOrgId || u.organizationId || undefined;
-};
-
-// Type-safe helper verificando admin
-const isAdmin = (user: unknown): boolean => {
-  return ((user as { isAdmin?: boolean }).isAdmin) === true;
-};
 export async function GET(request: NextRequest) {
   return withAnalytics(async (req: NextRequest) => {
     const session = await getServerSession(authOptions);
@@ -111,7 +92,7 @@ export async function GET(request: NextRequest) {
           contentType = 'application/json';
       }
 
-      return new NextResponse(result.content, {
+      return new NextResponse(result.content as BodyInit, {
         headers: {
           'Content-Type': contentType,
           'Content-Disposition': `attachment; filename="${result.filename}"`,
@@ -124,10 +105,10 @@ export async function GET(request: NextRequest) {
         }
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('[Export API] Error:', error);
       return NextResponse.json(
-        { error: 'Export failed', details: error.message },
+        { error: 'Export failed', details: error instanceof Error ? error.message : 'Unknown error' },
         { status: 500 }
       );
     }
@@ -247,10 +228,10 @@ export async function POST(request: NextRequest) {
         downloadUrl: `/api/analytics/export?format=${format}&type=${dataType}&start=${startDate.toISOString()}&end=${endDate.toISOString()}`
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('[Export API] POST Error:', error);
       return NextResponse.json(
-        { error: 'Export failed', details: error.message },
+        { error: 'Export failed', details: error instanceof Error ? error.message : 'Unknown error' },
         { status: 500 }
       );
     }
@@ -277,10 +258,10 @@ export async function PUT(request: NextRequest) {
         exports: history
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('[Export API] History Error:', error);
       return NextResponse.json(
-        { error: 'Failed to get export history', details: error.message },
+        { error: 'Failed to get export history', details: error instanceof Error ? error.message : 'Unknown error' },
         { status: 500 }
       );
     }

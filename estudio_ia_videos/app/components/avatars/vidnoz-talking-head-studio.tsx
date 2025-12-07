@@ -103,6 +103,39 @@ interface ProjectSettings {
   quality: 'draft' | 'standard' | 'high' | 'ultra'
 }
 
+interface SavedProject {
+  id: string
+  name: string
+  text: string
+  selectedAvatar: string | undefined
+  selectedVoice: string | undefined
+  settings: ProjectSettings
+  voiceSettings: {
+    speed: number
+    pitch: number
+    emphasis: number
+  }
+  visualSettings: {
+    emotion: string
+    gesture: string
+    clothing: string
+    background: string
+    lighting: 'soft' | 'natural' | 'professional' | 'dramatic'
+    cameraAngle: string
+  }
+  customization: {
+    enableSubtitles: boolean
+    subtitleStyle: string
+    brandColors: string
+    logoUrl: string
+    backgroundMusic: string | null
+    musicVolume: number
+  }
+  createdAt: string
+  updatedAt: string
+  isAutoSave: boolean
+}
+
 const FPS_OPTIONS = ['24', '30', '60'] as const
 type FpsOptionValue = (typeof FPS_OPTIONS)[number]
 
@@ -167,7 +200,7 @@ export default function VidnozTalkingHeadStudio({
   const [previewMode, setPreviewMode] = useState<'avatar' | 'script' | 'voice'>('avatar')
 
   // Estados de produtividade
-  const [savedProjects, setSavedProjects] = useState<any[]>([])
+  const [savedProjects, setSavedProjects] = useState<SavedProject[]>([])
   const [projectName, setProjectName] = useState('Novo Projeto')
   const [isAutoSave, setIsAutoSave] = useState(true)
   const [exportFormat, setExportFormat] = useState('mp4')
@@ -370,7 +403,7 @@ export default function VidnozTalkingHeadStudio({
     }
   }
 
-  const loadProject = (project: any) => {
+  const loadProject = (project: SavedProject) => {
     setProjectName(project.name)
     setText(project.text)
     setSelectedVoice(voiceProfiles.find(v => v.id === project.selectedVoice) || null)
@@ -465,9 +498,10 @@ export default function VidnozTalkingHeadStudio({
         throw new Error(data.error || 'Erro na geração')
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro na geração:', error)
-      toast.error(`❌ ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
+      toast.error(`❌ ${errorMessage}`)
       setIsGenerating(false)
     }
   }
@@ -1063,7 +1097,7 @@ export default function VidnozTalkingHeadStudio({
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <Label className="text-sm font-medium mb-2 block">Qualidade</Label>
-                        <Select value={projectSettings.quality} onValueChange={(value: string) => setProjectSettings({...projectSettings, quality: value})}>
+                        <Select value={projectSettings.quality} onValueChange={(value) => setProjectSettings({...projectSettings, quality: value as ProjectSettings['quality']})}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -1078,7 +1112,7 @@ export default function VidnozTalkingHeadStudio({
 
                       <div>
                         <Label className="text-sm font-medium mb-2 block">Proporção</Label>
-                        <Select value={projectSettings.aspectRatio} onValueChange={(value: string) => setProjectSettings({...projectSettings, aspectRatio: value})}>
+                        <Select value={projectSettings.aspectRatio} onValueChange={(value) => setProjectSettings({...projectSettings, aspectRatio: value as ProjectSettings['aspectRatio']})}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -1093,7 +1127,7 @@ export default function VidnozTalkingHeadStudio({
 
                       <div>
                         <Label className="text-sm font-medium mb-2 block">Resolução</Label>
-                        <Select value={projectSettings.resolution} onValueChange={(value: string) => setProjectSettings({...projectSettings, resolution: value})}>
+                        <Select value={projectSettings.resolution} onValueChange={(value) => setProjectSettings({...projectSettings, resolution: value as ProjectSettings['resolution']})}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -1232,7 +1266,7 @@ export default function VidnozTalkingHeadStudio({
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                           <SelectContent>
-                            {selectedAvatar?.clothing.map((item) => (
+                            {selectedAvatar?.clothing.map((item: any) => (
                               <SelectItem key={item.id} value={item.id}>
                                 {item.style} {item.color}
                               </SelectItem>

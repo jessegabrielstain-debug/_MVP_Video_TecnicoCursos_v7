@@ -7,7 +7,9 @@ import { supabaseAdmin } from '../../../lib/supabase/server';
 async function buildUserContext(userId: string): Promise<UserContext> {
   const admin = supabaseAdmin;
   const { data: rolesData } = await admin.from('user_roles').select('role').eq('user_id', userId);
-  const roles = (rolesData || []).map(r => r.role) as any as UserContext['roles'];
+  
+  // Cast to any to avoid type errors if the schema is not perfectly synced
+  const roles = ((rolesData as any[]) || []).map((r: any) => r.role) as unknown as UserContext['roles'];
   return { id: userId, roles: roles.length ? roles : ['viewer'] };
 }
 
@@ -17,7 +19,7 @@ export async function GET(req: NextRequest) {
   const ctx = await buildUserContext(session.user.id);
   assertCan(ctx, 'roles.read');
   const admin = supabaseAdmin;
-  const { data, error } = await admin.from('roles').select('role:role, description');
+  const { data, error } = await (admin.from('roles' as any) as any).select('role:role, description');
   if (error) return NextResponse.json({ error: 'Falha ao listar roles' }, { status: 500 });
   return NextResponse.json({ roles: data });
 }
@@ -31,7 +33,8 @@ export async function POST(req: NextRequest) {
   const { role, description } = body || {};
   if (!role) return NextResponse.json({ error: 'role obrigatório' }, { status: 400 });
   const admin = supabaseAdmin;
-  const { error: insErr } = await admin.from('roles').upsert({ role, description: description || '' });
+  const { error: insErr } = await (admin.from('roles' as any) as any).upsert({ role, description: description || '' });
   if (insErr) return NextResponse.json({ error: 'Falha ao criar/atualizar role' }, { status: 500 });
   return NextResponse.json({ created: role });
 }
+

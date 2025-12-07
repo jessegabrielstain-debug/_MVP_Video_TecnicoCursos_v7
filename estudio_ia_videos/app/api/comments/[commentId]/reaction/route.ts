@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { commentsService } from '@/lib/collab/comments-service';
 
 export async function POST(
@@ -14,7 +14,7 @@ export async function POST(
   { params }: { params: { commentId: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
@@ -33,10 +33,10 @@ export async function POST(
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Erro ao adicionar reação:', error);
     return NextResponse.json(
-      { error: error.message || 'Erro ao adicionar reação' },
+      { error: error instanceof Error ? error.message : 'Erro ao adicionar reação' },
       { status: 500 }
     );
   }

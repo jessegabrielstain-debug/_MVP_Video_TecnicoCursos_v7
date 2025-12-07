@@ -355,7 +355,14 @@ export function parseFFmpegProgress(output: string): {
   size?: string;
   speed?: number;
 } {
-  const result: any = {};
+  const result: {
+    frame?: number;
+    fps?: number;
+    time?: number;
+    bitrate?: string;
+    size?: string;
+    speed?: number;
+  } = {};
 
   const frameMatch = output.match(/frame=\s*(\d+)/);
   if (frameMatch) result.frame = parseInt(frameMatch[1]);

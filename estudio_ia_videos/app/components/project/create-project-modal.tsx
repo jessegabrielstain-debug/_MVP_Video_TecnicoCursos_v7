@@ -106,7 +106,7 @@ export default function CreateProjectModal({ open, onOpenChange }: CreateProject
 
       const project = await createProject({
         name: projectName,
-        type: 'video',
+        type: 'custom',
         description: projectDescription || undefined
       })
 

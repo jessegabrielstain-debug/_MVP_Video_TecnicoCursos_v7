@@ -8,9 +8,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import useSWR from 'swr'
-import { supabase } from '@/lib/services'
-import { useWebSocket } from './useWebSocket'
+import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import type { Json } from '@/lib/supabase/database.types'
 
 // Enhanced Project Types
 export interface ProjectVersion {
@@ -103,6 +103,7 @@ export interface ProjectFilters {
   }
   sortBy?: 'name' | 'created_at' | 'updated_at' | 'last_accessed_at'
   sortOrder?: 'asc' | 'desc'
+  limit?: number
 }
 
 export interface CreateProjectData {
@@ -134,7 +135,9 @@ export function useProjects(filters?: ProjectFilters, options?: {
   limit?: number
   realtime?: boolean
 }) {
-  const { page = 1, limit = 20, realtime = true } = options || {}
+  const { page = 1, limit: optionsLimit = 20, realtime = true } = options || {}
+  // Allow limit from filters or options, with filters taking precedence
+  const limit = filters?.limit ?? optionsLimit
   const [isCreating, setIsCreating] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -150,19 +153,12 @@ export function useProjects(filters?: ProjectFilters, options?: {
 
     let query = supabase
       .from('projects')
-      .select(`
-        *,
-        versions:project_versions(*),
-        collaborators:project_collaborators(
-          *,
-          user:users(id, email, name)
-        )
-      `)
+      .select('*')
       .eq('user_id', user.id)
 
     // Apply filters
     if (filters?.type) {
-      query = query.eq('type', filters.type)
+      query = query.eq('type', filters.type as Project['type'])
     }
     if (filters?.status) {
       query = query.eq('status', filters.status)
@@ -197,7 +193,7 @@ export function useProjects(filters?: ProjectFilters, options?: {
     if (error) throw error
 
     // Filter by tags if specified (client-side filtering for JSON arrays)
-    let filteredData = data || []
+    let filteredData = (Array.isArray(data) ? data : []) as unknown as Project[]
     if (filters?.tags && filters.tags.length > 0) {
       filteredData = filteredData.filter(project => {
         const projectTags = project.metadata?.tags || []
@@ -282,13 +278,14 @@ export function useProjects(filters?: ProjectFilters, options?: {
           type: projectData.type,
           description: projectData.description,
           user_id: user.id,
+          owner_id: user.id, // Ensure owner_id is set for RLS
           status: 'draft',
-          metadata: defaultMetadata,
+          metadata: defaultMetadata as unknown as Json,
           current_version: '1.0.0',
           is_template: projectData.is_template || false,
           is_public: projectData.is_public || false,
           collaboration_enabled: projectData.collaboration_enabled || false,
-          render_settings: projectData.render_settings || {},
+          render_settings: (projectData.render_settings || {}) as unknown as Json,
           last_accessed_at: new Date().toISOString()
         })
         .select()
@@ -296,22 +293,12 @@ export function useProjects(filters?: ProjectFilters, options?: {
 
       if (error) throw error
 
-      // Create initial version
-      await supabase
-        .from('project_versions')
-        .insert({
-          project_id: data.id,
-          version_number: '1.0.0',
-          name: projectData.name,
-          description: 'Initial version',
-          changes_summary: 'Project created',
-          created_by: user.id,
-          metadata: defaultMetadata
-        })
+      // Versioning simplificado - armazena na metadata do projeto
+      // (sem tabela project_versions separada)
 
       await mutate()
       toast.success('Project created successfully')
-      return data
+      return data as unknown as Project
     } catch (error) {
       console.error('Error creating project:', error)
       toast.error('Failed to create project')
@@ -339,7 +326,7 @@ export function useProjects(filters?: ProjectFilters, options?: {
 
       // Merge metadata
       const updatedMetadata = {
-        ...currentProject.metadata,
+        ...(currentProject.metadata as object),
         ...updates.metadata
       }
 
@@ -347,7 +334,8 @@ export function useProjects(filters?: ProjectFilters, options?: {
         .from('projects')
         .update({
           ...updates,
-          metadata: updatedMetadata,
+          metadata: updatedMetadata as unknown as Json,
+          render_settings: updates.render_settings as unknown as Json,
           updated_at: new Date().toISOString(),
           last_accessed_at: new Date().toISOString()
         })
@@ -357,22 +345,11 @@ export function useProjects(filters?: ProjectFilters, options?: {
 
       if (error) throw error
 
-      // Create new version if significant changes
+      // Versioning simplificado - atualiza version na metadata se houve mudanças significativas
       if (updates.name || updates.description || updates.metadata) {
         const versionNumber = await generateNextVersion(projectId)
-        await supabase
-          .from('project_versions')
-          .insert({
-            project_id: projectId,
-            version_number: versionNumber,
-            name: updates.name || currentProject.name,
-            description: updates.description || currentProject.description,
-            changes_summary: generateChangesSummary(currentProject, updates),
-            created_by: user.id,
-            metadata: updatedMetadata
-          })
-
-        // Update current version
+        
+        // Update current version no projeto
         await supabase
           .from('projects')
           .update({ current_version: versionNumber })
@@ -381,7 +358,7 @@ export function useProjects(filters?: ProjectFilters, options?: {
 
       await mutate()
       toast.success('Project updated successfully')
-      return data
+      return data as unknown as Project
     } catch (error) {
       console.error('Error updating project:', error)
       toast.error('Failed to update project')
@@ -429,13 +406,13 @@ export function useProjects(filters?: ProjectFilters, options?: {
 
       return await createProject({
         name: newName || `${originalProject.name} (Copy)`,
-        type: originalProject.type,
-        description: originalProject.description,
-        metadata: originalProject.metadata,
+        type: originalProject.type as Project['type'],
+        description: originalProject.description || undefined,
+        metadata: originalProject.metadata as Partial<ProjectMetadata>,
         is_template: originalProject.is_template,
         is_public: false, // Duplicated projects are private by default
         collaboration_enabled: originalProject.collaboration_enabled,
-        render_settings: originalProject.render_settings
+        render_settings: (originalProject.render_settings || {}) as ProjectRenderSettings
       })
     } catch (error) {
       console.error('Error duplicating project:', error)
@@ -473,15 +450,36 @@ export function useProjects(filters?: ProjectFilters, options?: {
 
       if (!targetUser) throw new Error('User not found')
 
+      // Colaboração simplificada - armazena na metadata do projeto
+      // (sem tabela project_collaborators separada)
+      const { data: project } = await supabase
+        .from('projects')
+        .select('metadata')
+        .eq('id', projectId)
+        .single()
+
+      const currentMetadata = (project?.metadata || {}) as Record<string, unknown>
+      const collaborators = (currentMetadata.collaborators || []) as Array<{
+        user_id: string
+        role: string
+        invited_by: string
+        joined_at: string
+      }>
+
+      // Add collaborator to metadata
+      collaborators.push({
+        user_id: targetUser.id,
+        role,
+        invited_by: user.id,
+        joined_at: new Date().toISOString()
+      })
+
       const { error } = await supabase
-        .from('project_collaborators')
-        .insert({
-          project_id: projectId,
-          user_id: targetUser.id,
-          role,
-          permissions: getDefaultPermissions(role),
-          invited_by: user.id
+        .from('projects')
+        .update({
+          metadata: { ...currentMetadata, collaborators } as unknown as Json
         })
+        .eq('id', projectId)
 
       if (error) throw error
 
@@ -510,7 +508,7 @@ export function useProjects(filters?: ProjectFilters, options?: {
 
   return {
     // Data
-    projects: data?.projects || [],
+    projects: Array.isArray(data?.projects) ? data.projects : [],
     total: data?.total || 0,
     hasMore: data?.hasMore || false,
     
@@ -544,14 +542,7 @@ export function useProject(id: string) {
     async () => {
       const { data, error } = await supabase
         .from('projects')
-        .select(`
-          *,
-          versions:project_versions(*),
-          collaborators:project_collaborators(
-            *,
-            user:users(id, email, name)
-          )
-        `)
+        .select('*')
         .eq('id', id)
         .single()
 
@@ -588,18 +579,11 @@ export async function processProjectPPTX(file: File, projectName?: string) {
 
 // Helper functions
 async function generateNextVersion(projectId: string): Promise<string> {
-  const { data } = await supabase
-    .from('project_versions')
-    .select('version_number')
-    .eq('project_id', projectId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-
-  if (!data) return '1.0.1'
-
-  const [major, minor, patch] = data.version_number.split('.').map(Number)
-  return `${major}.${minor}.${patch + 1}`
+  // Versioning simplificado - sem tabela project_versions
+  // Usa timestamp como identificador de versão
+  const timestamp = Date.now()
+  const version = `1.0.${timestamp % 1000}`
+  return version
 }
 
 function generateChangesSummary(original: Project, updates: UpdateProjectData): string {

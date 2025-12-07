@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { recommendationSystem } from '@/app/lib/intelligent-recommendation-system';
+import { recommendationSystem } from '@/lib/intelligent-recommendation-system';
 
 /**
  * POST /api/recommendations/track
@@ -36,11 +36,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // trackInteraction usa (userId, itemId, interactionType)
+    // recommendationId é para contexto futuro
     await recommendationSystem.trackInteraction(
       userId,
-      recommendationId,
       itemId,
-      action
+      action === 'click' || action === 'apply' ? 'use' : action === 'dismiss' ? 'skip' : 'view'
     );
 
     return NextResponse.json({
@@ -55,3 +56,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

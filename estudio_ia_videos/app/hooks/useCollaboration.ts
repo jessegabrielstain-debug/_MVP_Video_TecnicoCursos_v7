@@ -43,6 +43,33 @@ export function useCollaboration({
 
   const wsRef = useRef<WebSocketService | null>(null);
 
+  // Notification management
+  const addNotification = useCallback((notification: Omit<ActivityNotification, 'id' | 'createdAt' | 'read'>) => {
+    const newNotification: ActivityNotification = {
+      ...notification,
+      id: `notification-${Date.now()}`,
+      createdAt: new Date(),
+      read: false,
+    };
+
+    setNotifications(prev => [newNotification, ...prev]);
+    setUnreadCount(prev => prev + 1);
+  }, []);
+
+  const markNotificationRead = useCallback((notificationId: string) => {
+    setNotifications(prev => prev.map(notification =>
+      notification.id === notificationId
+        ? { ...notification, read: true }
+        : notification
+    ));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  }, []);
+
+  const markAllNotificationsRead = useCallback(() => {
+    setNotifications(prev => prev.map(notification => ({ ...notification, read: true })));
+    setUnreadCount(0);
+  }, []);
+
   // Initialize collaboration session
   const initializeSession = useCallback(async () => {
     try {
@@ -252,6 +279,7 @@ export function useCollaboration({
       elementId,
       user: currentUser,
       replies: [],
+      mentions: [],
       resolved: false,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -337,33 +365,6 @@ export function useCollaboration({
       conflicts: [],
     };
   }, [versions]);
-
-  // Notification management
-  const addNotification = useCallback((notification: Omit<ActivityNotification, 'id' | 'createdAt' | 'read'>) => {
-    const newNotification: ActivityNotification = {
-      ...notification,
-      id: `notification-${Date.now()}`,
-      createdAt: new Date(),
-      read: false,
-    };
-
-    setNotifications(prev => [newNotification, ...prev]);
-    setUnreadCount(prev => prev + 1);
-  }, []);
-
-  const markNotificationRead = useCallback((notificationId: string) => {
-    setNotifications(prev => prev.map(notification =>
-      notification.id === notificationId
-        ? { ...notification, read: true }
-        : notification
-    ));
-    setUnreadCount(prev => Math.max(0, prev - 1));
-  }, []);
-
-  const markAllNotificationsRead = useCallback(() => {
-    setNotifications(prev => prev.map(notification => ({ ...notification, read: true })));
-    setUnreadCount(0);
-  }, []);
 
   // Initialize on mount
   useEffect(() => {

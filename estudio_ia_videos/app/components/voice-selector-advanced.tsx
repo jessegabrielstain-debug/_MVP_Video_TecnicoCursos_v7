@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -23,6 +22,12 @@ import {
 } from 'lucide-react'
 import { VoiceRegional } from '../lib/voice-library-advanced'
 import { toast } from 'react-hot-toast'
+
+interface VoiceStats {
+  total: number;
+  premium: number;
+  byRegion: Record<string, number>;
+}
 
 interface AdvancedVoiceSelectorProps {
   selectedVoiceId: string
@@ -51,7 +56,7 @@ export default function AdvancedVoiceSelector({
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('all')
   const [showPremiumOnly, setShowPremiumOnly] = useState(false)
 
-  const [stats, setStats] = useState<unknown>(null)
+  const [stats, setStats] = useState<VoiceStats | null>(null)
 
   useEffect(() => {
     loadVoices()

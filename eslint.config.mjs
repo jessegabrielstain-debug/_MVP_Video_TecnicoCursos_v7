@@ -45,7 +45,7 @@ export default tseslint.config(
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
-        project: true,
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
       globals: {
@@ -60,7 +60,7 @@ export default tseslint.config(
       'import/resolver': {
         typescript: {
           alwaysTryTypes: true,
-          project: ['tsconfig.json'],
+          project: ['tsconfig.json', 'estudio_ia_videos/tsconfig.json', 'estudio_ia_videos/app/tsconfig.json'],
         },
       },
     },

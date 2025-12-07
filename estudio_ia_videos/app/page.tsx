@@ -9,14 +9,34 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container mx-auto px-4 py-16">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            🎬 Estúdio IA de Vídeos
+        {/* Hero Section */}
+        <div className="text-center mb-20 pt-10">
+          <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-blue-100 text-blue-800 mb-6">
+            ✨ Nova Versão 2.4 Disponível
+          </div>
+          <h1 className="text-6xl font-extrabold mb-6 tracking-tight">
+            Transforme PPTX em <br />
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Vídeos Profissionais com IA
+            </span>
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Crie vídeos profissionais com IA para treinamentos em segurança do trabalho
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
+            A plataforma mais avançada para automação de vídeos corporativos.
+            Crie avatares, narrações e animações em minutos, não semanas.
           </p>
+          <div className="flex justify-center gap-4">
+            <Link href="/dashboard">
+              <Button size="lg" className="text-lg px-8 h-12 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all">
+                <Play className="w-5 h-5 mr-2" />
+                Começar Agora
+              </Button>
+            </Link>
+            <Link href="/pptx">
+              <Button variant="outline" size="lg" className="text-lg px-8 h-12">
+                Ver Demonstração
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Quick Actions */}
@@ -87,7 +107,7 @@ export default function HomePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/render-dashboard">
+              <Link href="/dashboard/render">
                 <Button className="w-full">
                   <Video className="w-4 h-4 mr-2" style={{ width: '1rem', height: '1rem' }} />
                   Render Dashboard
@@ -105,7 +125,7 @@ export default function HomePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/templates">
+              <Link href="/dashboard/templates">
                 <Button className="w-full">
                   <Play className="w-4 h-4 mr-2" style={{ width: '1rem', height: '1rem' }} />
                   Biblioteca Templates
@@ -209,7 +229,7 @@ export default function HomePage() {
 
         {/* CTA */}
         <div className="mt-12 text-center">
-          <Link href="/pptx-upload-production-test">
+          <Link href="/pptx">
             <Button size="lg" className="text-lg px-8">
               <Play className="w-5 h-5 mr-2" />
               Começar Agora

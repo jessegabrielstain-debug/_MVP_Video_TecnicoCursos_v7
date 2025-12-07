@@ -1,4 +1,3 @@
-
 /**
  * 🎬 API de Exportação Real de Vídeo
  */
@@ -12,6 +11,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    console.log('DEBUG: Body received:', JSON.stringify(body))
     const { projectId, options } = body
 
     if (!projectId) {
@@ -24,10 +24,11 @@ export async function POST(request: NextRequest) {
     // Opções padrão de exportação + normalização/validação
     const normalized = normalizeAndValidateOptions(options)
     // Se houver erro de validação, a função retorna um NextResponse diretamente
-    if (normalized instanceof NextResponse) {
-      return normalized
+    // Verificação robusta (duck typing) para evitar problemas com instanceof em testes
+    if (normalized instanceof NextResponse || ('status' in (normalized as any) && typeof (normalized as any).json === 'function')) {
+      return normalized as NextResponse
     }
-    const exportOptions = normalized
+    const exportOptions = normalized as ExportOptions
 
     console.log('🎬 Iniciando exportação de vídeo para projeto:', projectId)
 
@@ -227,15 +228,15 @@ type ExportOptions = {
 }
 
 function normalizeAndValidateOptions(input: unknown): ExportOptions | NextResponse {
-  const src = input as Record<string, unknown> | null;
+  const src = (input as Record<string, unknown>) || {};
   const opts: ExportOptions = {
-    format: (input?.format || DEFAULTS.format) as Format,
-    quality: (input?.quality || DEFAULTS.quality) as Quality,
-    fps: ([24, 30, 60].includes((src?.fps as number) ?? NaN) ? (src?.fps as 24 | 30 | 60) : DEFAULTS.fps),
-    codec: (input?.codec || DEFAULTS.codec) as Codec,
-    includeAudio: typeof src?.includeAudio === 'boolean' ? (src?.includeAudio as boolean) : DEFAULTS.includeAudio,
-    bitrate: normalizeBitrate(src?.bitrate),
-    preset: src?.preset as Preset | undefined
+    format: (src.format || DEFAULTS.format) as Format,
+    quality: (src.quality || DEFAULTS.quality) as Quality,
+    fps: ([24, 30, 60].includes(src.fps as number) ? (src.fps as 24 | 30 | 60) : DEFAULTS.fps),
+    codec: (src.codec || DEFAULTS.codec) as Codec,
+    includeAudio: typeof src.includeAudio === 'boolean' ? src.includeAudio : DEFAULTS.includeAudio,
+    bitrate: normalizeBitrate(src.bitrate),
+    preset: src.preset as Preset | undefined
   }
 
   // Regras de compatibilidade simples:
@@ -291,3 +292,4 @@ function normalizeBitrate(bitrate: unknown): string | undefined {
   }
   return undefined
 }
+

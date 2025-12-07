@@ -20,7 +20,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Mark all unread notifications as read
-    const { data: updatedNotifications, error } = await supabaseAdmin
+    const { data: updatedNotifications, error } = await (supabaseAdmin as any)
       .from('notifications')
       .update({
         status: 'read',
@@ -36,13 +36,12 @@ export async function PATCH(request: NextRequest) {
 
     // Log the action for analytics
     try {
-      await supabaseAdmin
+      await (supabaseAdmin as any)
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
-          category: 'notifications',
-          action: 'mark_all_read',
-          metadata: {
+          event_type: 'mark_all_read',
+          event_data: {
             count: updatedCount,
             timestamp: new Date().toISOString()
           },
@@ -50,25 +49,6 @@ export async function PATCH(request: NextRequest) {
         })
     } catch (analyticsError) {
       console.warn('Failed to log mark all read action:', analyticsError)
-    }
-
-    // Send WebSocket update
-    try {
-      await fetch(`${process.env.NEXTAUTH_URL}/api/websocket/broadcast`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.WEBSOCKET_SECRET}`
-        },
-        body: JSON.stringify({
-          type: 'bulk_update',
-          channel: 'notifications',
-          userId: session.user.id,
-          data: { action: 'mark_all_read', count: updatedCount }
-        })
-      })
-    } catch (wsError) {
-      console.warn('Failed to send WebSocket update:', wsError)
     }
 
     return NextResponse.json({

@@ -1,4 +1,3 @@
-
 /**
  * API para iniciar render de vídeo - FASE 2 REAL
  * POST /api/render/start
@@ -7,11 +6,38 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-// import { getServerSession } from 'next-auth/next';
-// import { authConfig } from '@/lib/auth/auth-config';
+import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { addVideoJob } from '@/lib/queue/render-queue';
-import { prisma } from '@/lib/db';
-import { RenderSlide, RenderConfig } from '@/lib/render/ffmpeg-render-service';
+import { jobManager } from '@/lib/render/job-manager';
+import { logger } from '@/lib/logger';
+import { globalRateLimiter } from '@/lib/rate-limit';
+import crypto from 'crypto';
+
+// Define interfaces locally to match API expectations
+interface RenderConfig {
+  width: number;
+  height: number;
+  fps: number;
+  quality: string;
+  format: string;
+  codec: string;
+  bitrate: string;
+  audioCodec: string;
+  audioBitrate: string;
+  test?: boolean; // Added test flag
+}
+
+interface RenderSlide {
+  id: string;
+  imageUrl: string;
+  audioUrl?: string;
+  duration: number;
+  transition: 'fade' | 'none';
+  transitionDuration: number;
+  title?: string;
+  content?: string;
+  avatar_config?: Record<string, unknown>;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -90,14 +116,26 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    // TODO: Re-enable auth when NextAuth is properly configured
-    // const session = await getServerSession(authConfig);
-    // if (!session?.user?.id) {
-    //   return NextResponse.json(
-    //     { error: 'Não autenticado' },
-    //     { status: 401 }
-    //   );
-    // }
+    const supabase = getSupabaseForRequest(req);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Não autenticado' },
+        { status: 401 }
+      );
+    }
+
+    // Rate Limiting Check
+    // Limit: 5 requests per minute per user
+    const isRateLimited = await globalRateLimiter.check(5, user.id);
+    if (isRateLimited) {
+      logger.warn('Rate limit exceeded', { userId: user.id, endpoint: '/api/render/start' });
+      return NextResponse.json(
+        { error: 'Muitas requisições. Tente novamente em 1 minuto.' },
+        { status: 429 }
+      );
+    }
 
     const body = await req.json();
     const { projectId, slides, config } = body;
@@ -116,18 +154,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verifica se projeto existe e pertence ao usuário
-    const project = await prisma.project.findUnique({
-      where: {
-        id: projectId,
-        userId: session.user.id
-      }
-    });
+    // Verifica se projeto existe e permissões
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('user_id')
+      .eq('id', projectId)
+      .single();
 
-    if (!project) {
+    if (projectError || !project) {
       return NextResponse.json(
         { error: 'Projeto não encontrado' },
         { status: 404 }
+      );
+    }
+
+    let hasPermission = project.user_id === user.id;
+
+    if (!hasPermission) {
+        // Check collaborators
+        const { data: collaborator } = await supabase
+            .from('project_collaborators')
+            .select('user_id')
+            .eq('project_id', projectId)
+            .eq('user_id', user.id)
+            .single();
+        
+        if (collaborator) {
+            hasPermission = true;
+        }
+    }
+
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Sem permissão para renderizar este projeto' },
+        { status: 403 }
       );
     }
 
@@ -141,43 +201,64 @@ export async function POST(req: NextRequest) {
       codec: config?.codec || 'h264',
       bitrate: config?.bitrate || '5000k',
       audioCodec: config?.audioCodec || 'aac',
-      audioBitrate: config?.audioBitrate || '128k'
+      audioBitrate: config?.audioBitrate || '128k',
+      test: config?.test // Pass test flag
     };
 
     // Validar slides
-    const validatedSlides: RenderSlide[] = slides.map((slide: any, index: number) => ({
-      id: slide.id || `slide_${index}`,
-      imageUrl: slide.imageUrl || '',
-      audioUrl: slide.audioUrl,
-      duration: slide.duration || 5,
-      transition: slide.transition || 'fade',
-      transitionDuration: slide.transitionDuration || 0.5,
-      title: slide.title,
-      content: slide.content
+    const validatedSlides: RenderSlide[] = slides.map((slide: Record<string, unknown>, index: number) => ({
+      id: (slide.id as string) || `slide_${index}`,
+      imageUrl: (slide.imageUrl as string) || '',
+      audioUrl: slide.audioUrl as string | undefined,
+      duration: (slide.duration as number) || 5,
+      transition: (slide.transition as 'fade' | 'none') || 'fade',
+      transitionDuration: (slide.transitionDuration as number) || 0.5,
+      title: slide.title as string | undefined,
+      content: slide.content as string | undefined,
+      avatar_config: slide.avatar_config as Record<string, unknown> | undefined
     }));
 
-    console.log(`🚀 [API] Iniciando renderização real - Projeto: ${projectId}, Slides: ${validatedSlides.length}`);
+    const traceId = crypto.randomUUID();
+    const logContext = {
+      traceId,
+      projectId,
+      userId: user.id,
+      slideCount: validatedSlides.length,
+      config: renderConfig
+    };
 
-    // Adiciona job na fila de vídeo
-    const jobId = await addVideoJob({
+    logger.info('Iniciando renderização real', logContext);
+
+    // 1. Create Job in Supabase (Critical for Worker Polling)
+    const dbJobId = await jobManager.createJob(user.id, projectId);
+    logger.info('Job criado no Supabase', { ...logContext, jobId: dbJobId });
+
+    // 2. Add to Queue (Redis/BullMQ) - Optional but good for scalability
+    // We pass the DB Job ID so the worker can correlate if it uses the queue
+    await addVideoJob({
+      jobId: dbJobId,
       projectId,
       slides: validatedSlides,
       config: renderConfig,
-      userId: session.user.id
+      userId: user.id
     });
 
     return NextResponse.json({
       success: true,
-      jobId,
+      jobId: dbJobId,
+      traceId,
       projectId,
       slidesCount: validatedSlides.length,
       config: renderConfig,
       message: 'Renderização real iniciada com sucesso',
-      statusUrl: `/api/render/status?jobId=${jobId}`
+      statusUrl: `/api/render/status?jobId=${dbJobId}`
     });
 
   } catch (error) {
-    console.error('[API] Erro ao iniciar render:', error);
+    logger.error('Erro ao iniciar render', error as Error, { 
+      projectId: (req as any).body?.projectId 
+    });
+    
     return NextResponse.json(
       { 
         error: 'Erro ao iniciar render',
@@ -187,3 +268,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+

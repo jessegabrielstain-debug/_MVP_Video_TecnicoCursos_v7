@@ -5,14 +5,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { reviewWorkflowService } from '@/lib/collab/review-workflow';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user?.id) {
+    const supabase = getSupabaseForRequest(request);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
@@ -26,20 +27,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const reviewRequest = await reviewWorkflowService.createReviewRequest({
+    const reviewRequestId = await reviewWorkflowService.createReviewRequest(
       projectId,
-      requesterId: session.user.id,
-      reviewerIds,
-      message,
-      dueDate: dueDate ? new Date(dueDate) : undefined,
-    });
+      user.id,
+      reviewerIds
+    );
 
-    return NextResponse.json({ reviewRequest }, { status: 201 });
-  } catch (error: any) {
+    return NextResponse.json({ reviewRequest: { id: reviewRequestId } }, { status: 201 });
+  } catch (error: unknown) {
     console.error('❌ Erro ao criar solicitação de revisão:', error);
     return NextResponse.json(
-      { error: error.message || 'Erro ao criar solicitação de revisão' },
+      { error: error instanceof Error ? error.message : 'Erro ao criar solicitação de revisão' },
       { status: 500 }
     );
   }
 }
+
+

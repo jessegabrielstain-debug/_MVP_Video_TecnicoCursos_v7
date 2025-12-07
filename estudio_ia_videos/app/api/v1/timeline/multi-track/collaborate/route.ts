@@ -1,3 +1,4 @@
+// TODO: Fix timeline multi-track types
 /**
  * 🤝 Timeline Collaboration API - Real-time Collaboration
  * Sprint 44 - Multi-user timeline editing
@@ -6,14 +7,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 
 /**
  * POST - Lock/Unlock track for editing
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
@@ -132,10 +133,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao gerenciar lock:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, message: 'Erro ao processar lock', error: error.message },
+      { success: false, message: 'Erro ao processar lock', error: message },
       { status: 500 }
     );
   }
@@ -146,7 +148,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
@@ -173,7 +175,7 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             email: true,
-            image: true,
+            avatarUrl: true,
           },
         },
       },
@@ -193,7 +195,7 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             email: true,
-            image: true,
+            avatarUrl: true,
           },
         },
       },
@@ -202,28 +204,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        locks: locks.map(lock => ({
+        locks: locks.map((lock: any) => ({
           id: lock.id,
           trackId: lock.trackId,
           userId: lock.userId,
           userName: lock.user.name,
-          userImage: lock.user.image,
+          userImage: lock.user.avatarUrl,
           lockedAt: lock.createdAt.toISOString(),
         })),
-        activeUsers: activeUsers.map(presence => ({
+        activeUsers: activeUsers.map((presence: any) => ({
           userId: presence.userId,
           userName: presence.user.name,
-          userImage: presence.user.image,
+          userImage: presence.user.avatarUrl,
           lastSeenAt: presence.lastSeenAt.toISOString(),
           currentTrackId: presence.currentTrackId,
         })),
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao buscar locks:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, message: 'Erro ao buscar informações de colaboração', error: error.message },
+      { success: false, message: 'Erro ao buscar informações de colaboração', error: message },
       { status: 500 }
     );
   }
@@ -234,7 +237,7 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
@@ -281,11 +284,14 @@ export async function PUT(request: NextRequest) {
       message: 'Presença atualizada',
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao atualizar presença:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, message: 'Erro ao atualizar presença', error: error.message },
+      { success: false, message: 'Erro ao atualizar presença', error: message },
       { status: 500 }
     );
   }
 }
+
+

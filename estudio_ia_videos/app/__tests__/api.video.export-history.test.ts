@@ -1,5 +1,4 @@
 // @jest-environment node
-import { NextRequest } from 'next/server'
 import * as exportRoute from '@/api/v1/video/export-real/route'
 
 jest.mock('@/lib/prisma', () => ({
@@ -13,6 +12,15 @@ jest.mock('@/lib/prisma', () => ({
     }
   }
 }))
+
+class NextRequest {
+  url: string;
+  method: string;
+  constructor(url: string, init?: any) {
+    this.url = url;
+    this.method = init?.method || 'GET';
+  }
+}
 
 function makeRequest(url: string): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost').toString(), { method: 'GET' });

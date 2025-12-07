@@ -1,8 +1,27 @@
 {
-  "coverage_core": 0,
-  "any_remaining": 4734,
-  "mttr_minutes": null,
+  "coverage_core": 91.25,
+  "any_remaining": 50,
+  "mttr_minutes": 25,
   "deploy_frequency_weekly": 0,
   "change_failure_rate": null,
-  "history": []
+  "history": [
+    {
+      "ts": "2025-11-21T16:45:03.342Z",
+      "coverage_core": 91.25,
+      "any_remaining": 50,
+      "diff": {
+        "coverage_core": 0,
+        "any_remaining": 0
+      }
+    },
+    {
+      "ts": "2025-11-21T16:46:07.158Z",
+      "coverage_core": 91.25,
+      "any_remaining": 50,
+      "diff": {
+        "coverage_core": 0,
+        "any_remaining": 0
+      }
+    }
+  ]
 }

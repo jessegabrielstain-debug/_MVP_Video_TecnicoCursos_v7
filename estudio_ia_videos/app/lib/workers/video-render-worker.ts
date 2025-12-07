@@ -3,17 +3,14 @@
  * Worker completo para renderização de vídeos com FFmpeg
  */
 
-import { exec, spawn } from 'child_process';
+import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs/promises';
-import { createWriteStream, existsSync } from 'fs';
 import { EventEmitter } from 'events';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { parseCompletePPTX } from '@/lib/pptx/parsers';
-import { generateFramesFromSlides } from '@/lib/render/frame-generator';
-import { FFmpegExecutor } from '@/lib/render/ffmpeg-executor';
+import { FFmpegExecutor, FFmpegOptions } from '@/lib/render/ffmpeg-executor';
 import { VideoUploader } from '@/lib/storage/video-uploader';
+import type { PPTXSlideData } from '@/lib/render/frame-generator';
 
 const execAsync = promisify(exec);
 
@@ -21,7 +18,7 @@ export interface RenderJobData {
   id: string;
   projectId: string;
   userId: string;
-  slides: any[];
+  slides: PPTXSlideData[];
   config: {
     resolution: { width: number; height: number };
     fps: number;
@@ -289,23 +286,27 @@ export class VideoRenderWorker extends EventEmitter {
     outputPath: string,
     totalFrames: number
   ): Promise<void> {
-    await this.ffmpegExecutor.renderVideo({
-      framesDir,
-      audioPath,
+    await this.ffmpegExecutor.renderFromFrames({
+      inputFramesDir: framesDir,
+      inputFramesPattern: 'frame_%06d.png', // FrameGenerator (function) uses 6 digits
+      audioPath: audioPath || undefined,
       outputPath,
-      config: jobData.config,
-      totalFrames,
-      onProgress: (progress) => {
-        this.emitProgress({
-          jobId: jobData.id,
-          stage: 'encoding',
-          progress: 60 + (progress * 0.3), // 60-90%
-          currentFrame: progress * totalFrames / 100,
-          totalFrames,
-          fps: jobData.config.fps,
-          message: `Encodando vídeo... ${Math.round(progress)}%`
-        });
-      }
+      fps: jobData.config.fps,
+      width: jobData.config.resolution.width,
+      height: jobData.config.resolution.height,
+      codec: jobData.config.codec === 'h264' ? 'h264' : jobData.config.codec === 'h265' ? 'h265' : 'vp9',
+      quality: jobData.config.quality,
+      format: jobData.config.format
+    } as FFmpegOptions, (progress) => {
+      this.emitProgress({
+        jobId: jobData.id,
+        stage: 'encoding',
+        progress: 60 + (progress.progress * 0.3), // 60-90%
+        currentFrame: progress.frame,
+        totalFrames,
+        fps: progress.fps,
+        message: `Encodando vídeo... ${Math.round(progress.progress)}%`
+      });
     });
   }
 
@@ -370,7 +371,7 @@ export class VideoRenderWorker extends EventEmitter {
     console.log(`⏹️ Cancelling job: ${this.currentJobId}`);
     
     // Kill processos FFmpeg se estiverem rodando
-    await this.ffmpegExecutor.killAllProcesses();
+    await (this.ffmpegExecutor as unknown as { killAllProcesses: () => Promise<void> }).killAllProcesses();
 
     // Cleanup
     const jobDir = path.join(this.tempDir, this.currentJobId);

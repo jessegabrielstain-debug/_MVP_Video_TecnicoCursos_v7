@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { RenderNotifications } from '@/src/components/RenderNotifications'
 import { createBrowserSupabaseClient } from '@/lib/services'
-import type { User } from '@supabase/supabase-js'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +30,7 @@ import {
   Search,
   Bell,
   Settings,
-  User,
+  User as UserIcon,
   LogOut,
   Sun,
   Moon,
@@ -62,42 +62,34 @@ export default function Header({
   const { theme, setTheme } = useTheme()
   const supabase = useMemo(() => createBrowserSupabaseClient(), [])
 
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [subscription, setSubscription] = useState<'free' | 'pro' | 'enterprise'>('free')
   const [signingOut, setSigningOut] = useState(false)
 
-  const loadProfile = useCallback(
-    async (userId: string, fallbackName?: string | null, fallbackAvatar?: string | null) => {
-      try {
-        const { data: profile, error } = await supabase
-          .from('user_profiles')
-          .select('full_name, avatar_url, subscription_tier')
-          .eq('id', userId)
-          .maybeSingle()
+  const loadProfile = useCallback((authUser: SupabaseUser | null) => {
+    if (!authUser) {
+      setDisplayName(null)
+      setAvatarUrl(null)
+      setSubscription('free')
+      return
+    }
 
-        if (error) {
-          console.warn('Não foi possível carregar perfil do usuário:', error)
-        }
+    const metadata = authUser.user_metadata ?? {}
+    const fallbackName = metadata.full_name ?? metadata.name ?? authUser.email ?? null
+    const fallbackAvatar = metadata.avatar_url ?? null
+    const subscriptionTier = metadata.subscription_tier
 
-        setDisplayName(profile?.full_name ?? fallbackName ?? null)
-        setAvatarUrl(profile?.avatar_url ?? fallbackAvatar ?? null)
+    setDisplayName(fallbackName)
+    setAvatarUrl(fallbackAvatar)
 
-        if (profile?.subscription_tier === 'enterprise' || profile?.subscription_tier === 'pro') {
-          setSubscription(profile.subscription_tier)
-        } else {
-          setSubscription('free')
-        }
-      } catch (error) {
-        console.error('Erro ao carregar perfil do usuário:', error)
-        setDisplayName(fallbackName ?? null)
-        setAvatarUrl(fallbackAvatar ?? null)
-        setSubscription('free')
-      }
-    },
-    [supabase]
-  )
+    if (subscriptionTier === 'enterprise' || subscriptionTier === 'pro') {
+      setSubscription(subscriptionTier)
+    } else {
+      setSubscription('free')
+    }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -108,17 +100,7 @@ export default function Header({
         if (!isMounted) return
         setUser(data.user ?? null)
 
-        if (data.user) {
-          await loadProfile(
-            data.user.id,
-            data.user.user_metadata?.name ?? data.user.email ?? null,
-            data.user.user_metadata?.avatar_url ?? null
-          )
-        } else {
-          setDisplayName(null)
-          setAvatarUrl(null)
-          setSubscription('free')
-        }
+        loadProfile(data.user ?? null)
       } catch (error) {
         console.error('Erro ao carregar sessão do usuário:', error)
       }
@@ -131,17 +113,7 @@ export default function Header({
       const authUser = session?.user ?? null
       setUser(authUser)
 
-      if (authUser) {
-        void loadProfile(
-          authUser.id,
-          authUser.user_metadata?.name ?? authUser.email ?? null,
-          authUser.user_metadata?.avatar_url ?? null
-        )
-      } else {
-        setDisplayName(null)
-        setAvatarUrl(null)
-        setSubscription('free')
-      }
+      loadProfile(authUser)
     })
 
     return () => {
@@ -169,8 +141,6 @@ export default function Header({
       setSigningOut(false)
     }
   }
-
-  const { theme, setTheme } = useTheme()
 
   // Handlers reais para navegação e ações
 
@@ -331,7 +301,7 @@ export default function Header({
               
               <DropdownMenuItem asChild>
                 <Link href="/profile" className="flex items-center">
-                  <User className="h-4 w-4 mr-2" />
+                  <UserIcon className="h-4 w-4 mr-2" />
                   Perfil
                 </Link>
               </DropdownMenuItem>

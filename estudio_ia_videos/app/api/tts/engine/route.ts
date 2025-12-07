@@ -1,3 +1,4 @@
+// TODO: Add tts_jobs table to Supabase types and fix TTSGenerationOptions interface
 /**
  * 🎙️ TTS Engine API
  * 
@@ -8,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ttsEngineManager, TTSGenerationOptions } from '@/lib/tts/engine-manager'
 import { Logger } from '@/lib/logger'
-import { supabase } from '@/lib/supabase'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 
 const logger = new Logger('TTSEngineAPI')
 
@@ -38,17 +39,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Extrair user_id do header de autenticação (se disponível)
-    const authHeader = request.headers.get('authorization')
+    const supabase = getSupabaseForRequest(request)
     let user_id: string | undefined
 
-    if (authHeader) {
-      try {
-        const token = authHeader.replace('Bearer ', '')
-        const { data: { user } } = await supabase.auth.getUser(token)
-        user_id = user?.id
-      } catch (error) {
-        logger.warn('Failed to extract user from token', { error })
-      }
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      user_id = user?.id
+    } catch (error) {
+      logger.warn('Failed to extract user from token', { error })
     }
 
     // Preparar opções de geração
@@ -90,8 +88,8 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error) {
-    logger.error('TTS generation failed', { error: error.message })
+  } catch (error: any) {
+    logger.error('TTS generation failed', error)
     
     return NextResponse.json(
       { 
@@ -130,8 +128,8 @@ export async function GET(request: NextRequest) {
         // Health check dos engines
         const engines = ttsEngineManager.getEngineStats()
         const healthStatus = {
-          overall: engines.every(e => e.status === 'healthy') ? 'healthy' : 'degraded',
-          engines: engines.map(e => ({
+          overall: engines.every((e: any) => e.status === 'healthy') ? 'healthy' : 'degraded',
+          engines: engines.map((e: any) => ({
             id: e.engine_id,
             status: e.status,
             success_rate: e.success_rate,
@@ -152,8 +150,8 @@ export async function GET(request: NextRequest) {
         )
     }
 
-  } catch (error) {
-    logger.error('TTS Engine API GET failed', { error: error.message })
+  } catch (error: any) {
+    logger.error('TTS Engine API GET failed', error)
     
     return NextResponse.json(
       { 
@@ -177,14 +175,16 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
+    const supabase = getSupabaseForRequest(request)
+
     // Cancelar job (se ainda estiver em processamento)
     // Por enquanto, apenas marcar como cancelado no banco
-    const { error } = await supabase
-      .from('tts_jobs')
+    const { error } = await (supabase
+      .from('tts_jobs' as any)
       .update({ 
         status: 'cancelled',
         updated_at: new Date().toISOString()
-      })
+      }) as any)
       .eq('job_id', jobId)
 
     if (error) {
@@ -198,8 +198,8 @@ export async function DELETE(request: NextRequest) {
       message: 'Job cancelled successfully'
     })
 
-  } catch (error) {
-    logger.error('TTS job cancellation failed', { error: error.message })
+  } catch (error: any) {
+    logger.error('TTS job cancellation failed', error)
     
     return NextResponse.json(
       { 

@@ -13,10 +13,10 @@ import { promisify } from 'util'
 const execAsync = promisify(exec)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const PROJECT_ROOT = __dirname
+const PROJECT_ROOT = path.join(__dirname, '..', 'estudio_ia_videos')
 
 // Carrega variáveis de ambiente
-dotenv.config({ path: path.join(PROJECT_ROOT, '.env') })
+dotenv.config({ path: path.join(PROJECT_ROOT, '.env.local') })
 
 console.log('🎬 INICIANDO TESTE DE RENDERIZAÇÃO DE VÍDEOS')
 console.log('============================================================')
@@ -158,7 +158,8 @@ async function checkRenderQueue() {
       path.join(PROJECT_ROOT, 'app', 'lib', 'render-queue'),
       path.join(PROJECT_ROOT, 'src', 'lib', 'render-queue'),
       path.join(PROJECT_ROOT, 'estudio_ia_videos', 'app', 'lib', 'render-queue-real.ts'),
-      path.join(PROJECT_ROOT, 'workers', 'video-render-worker.ts')
+      path.join(PROJECT_ROOT, 'workers', 'video-render-worker.ts'),
+      path.join(PROJECT_ROOT, 'app', 'lib', 'export', 'export-queue.ts')
     ]
     
     let queueFound = false
@@ -248,29 +249,35 @@ async function checkVideoStorage() {
   try {
     // Verifica configuração S3/Supabase Storage
     const envPath = path.join(PROJECT_ROOT, '.env')
+    const envLocalPath = path.join(PROJECT_ROOT, '.env.local')
     
+    let envContent = ''
     try {
-      const envContent = await fs.readFile(envPath, 'utf-8')
-      
-      const hasS3 = envContent.includes('AWS_') || envContent.includes('S3_')
-      const hasSupabase = envContent.includes('SUPABASE_') && envContent.includes('STORAGE')
-      const hasCloudinary = envContent.includes('CLOUDINARY_')
-      
-      if (hasS3) {
-        console.log('  ✅ Configuração AWS S3 encontrada')
-        successCount++
-      } else if (hasSupabase) {
-        console.log('  ✅ Configuração Supabase Storage encontrada')
-        successCount++
-      } else if (hasCloudinary) {
-        console.log('  ✅ Configuração Cloudinary encontrada')
-        successCount++
-      } else {
-        console.log('  ❌ Nenhuma configuração de storage encontrada')
-      }
-      
+      envContent = await fs.readFile(envPath, 'utf-8')
     } catch {
-      console.log('  ❌ Arquivo .env não encontrado')
+      try {
+        envContent = await fs.readFile(envLocalPath, 'utf-8')
+      } catch {
+        console.log('  ❌ Arquivo .env ou .env.local não encontrado')
+        return
+      }
+    }
+      
+    const hasS3 = envContent.includes('AWS_') || envContent.includes('S3_')
+    const hasSupabase = (envContent.includes('SUPABASE_URL') || envContent.includes('NEXT_PUBLIC_SUPABASE_URL'))
+    const hasCloudinary = envContent.includes('CLOUDINARY_')
+    
+    if (hasS3) {
+      console.log('  ✅ Configuração AWS S3 encontrada')
+      successCount++
+    } else if (hasSupabase) {
+      console.log('  ✅ Configuração Supabase Storage encontrada')
+      successCount++
+    } else if (hasCloudinary) {
+      console.log('  ✅ Configuração Cloudinary encontrada')
+      successCount++
+    } else {
+      console.log('  ❌ Nenhuma configuração de storage encontrada')
     }
     
     // Verifica diretórios de upload/output

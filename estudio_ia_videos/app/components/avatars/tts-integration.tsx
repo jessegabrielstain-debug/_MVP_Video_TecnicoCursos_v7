@@ -27,9 +27,17 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+interface AudioData {
+  success: boolean;
+  audioUrl?: string;
+  duration?: number;
+  visemes?: unknown[];
+  [key: string]: unknown;
+}
+
 interface TTSIntegrationProps {
-  selectedAvatar: any;
-  onTTSGenerated: (audioData: any) => void;
+  selectedAvatar: Record<string, unknown> | null;
+  onTTSGenerated: (audioData: AudioData) => void;
 }
 
 export default function TTSIntegration({ selectedAvatar, onTTSGenerated }: TTSIntegrationProps) {

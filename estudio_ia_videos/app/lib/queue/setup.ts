@@ -21,15 +21,16 @@ export interface RenderJobSettings {
 export interface RenderSlide {
   id: string;
   orderIndex: number;
-    slideNumber: number;
-    title: string;
-    content: string;
-    duration: number;
-    transition: { type: string; duration: number };
+  slideNumber: number;
+  title: string;
+  content: string;
+  duration: number;
+  transition: { type: string; duration: number };
   durationMs?: number;
   assets?: Record<string, unknown>;
   notes?: string;
   metadata?: Record<string, unknown>;
+  avatar_config?: Record<string, unknown>;
 }
 
 export interface JobProgress {
@@ -51,4 +52,4 @@ export const videoRenderQueue = new Queue<VideoRenderJobData>(queueName, { conne
 export const videoRenderWorker = (
   processor: (job: Job<VideoRenderJobData>) => Promise<unknown>,
 ) => new Worker<VideoRenderJobData>(queueName, processor, { connection });
-export const videoRenderQueueEvents = new QueueEvents<VideoRenderJobData>(queueName, { connection });
+export const videoRenderQueueEvents = new QueueEvents(queueName, { connection });

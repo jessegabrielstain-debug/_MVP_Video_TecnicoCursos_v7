@@ -76,8 +76,16 @@ export const useTemplates = (): UseTemplatesReturn => {
       const response = await fetch('/api/templates');
       if (response.ok) {
         const data = await response.json();
-        setTemplates(data);
-        localStorage.setItem('templates', JSON.stringify(data));
+        
+        let templatesToSet: Template[] = [];
+        if (Array.isArray(data)) {
+            templatesToSet = data;
+        } else if (data.templates && Array.isArray(data.templates)) {
+            templatesToSet = data.templates;
+        }
+        
+        setTemplates(templatesToSet);
+        localStorage.setItem('templates', JSON.stringify(templatesToSet));
       } else if (!cachedTemplates) {
         // If no cache and API fails, load default templates
         setTemplates(getDefaultTemplates());
@@ -493,6 +501,12 @@ const getDefaultTemplates = (): Template[] => {
           checkpoints: [],
           certifications: [],
         },
+        settings: {
+          duration: 300,
+          resolution: { width: 1920, height: 1080 },
+          frameRate: 30,
+          renderSettings: { quality: 'high', format: 'mp4' }
+        }
       },
       metadata: {
         difficulty: 'beginner',
@@ -514,7 +528,14 @@ const getDefaultTemplates = (): Template[] => {
           lastAudit: new Date(),
           auditScore: 95,
           certifications: ['ISO 45001'],
+          status: 'compliant',
+          requirements: []
         },
+        performance: {
+          renderTime: 0,
+          fileSize: 0,
+          complexity: 'low'
+        }
       },
     },
     {
@@ -544,6 +565,12 @@ const getDefaultTemplates = (): Template[] => {
           checkpoints: [],
           certifications: [],
         },
+        settings: {
+          duration: 300,
+          resolution: { width: 1920, height: 1080 },
+          frameRate: 30,
+          renderSettings: { quality: 'high', format: 'mp4' }
+        }
       },
       metadata: {
         difficulty: 'advanced',
@@ -565,7 +592,14 @@ const getDefaultTemplates = (): Template[] => {
           lastAudit: new Date(),
           auditScore: 98,
           certifications: ['ISO 45001', 'ANSI Z359'],
+          status: 'compliant',
+          requirements: []
         },
+        performance: {
+          renderTime: 0,
+          fileSize: 0,
+          complexity: 'medium'
+        }
       },
     },
     {
@@ -595,6 +629,12 @@ const getDefaultTemplates = (): Template[] => {
           checkpoints: [],
           certifications: [],
         },
+        settings: {
+          duration: 300,
+          resolution: { width: 1920, height: 1080 },
+          frameRate: 30,
+          renderSettings: { quality: 'high', format: 'mp4' }
+        }
       },
       metadata: {
         difficulty: 'intermediate',
@@ -616,7 +656,14 @@ const getDefaultTemplates = (): Template[] => {
           lastAudit: new Date(),
           auditScore: 92,
           certifications: ['ISO 45001'],
+          status: 'compliant',
+          requirements: []
         },
+        performance: {
+          renderTime: 0,
+          fileSize: 0,
+          complexity: 'medium'
+        }
       },
     },
   ];

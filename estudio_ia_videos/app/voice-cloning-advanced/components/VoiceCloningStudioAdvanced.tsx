@@ -31,7 +31,6 @@ import {
   AlertCircle,
   Music,
   Radio,
-  Mic,
   Headphones,
   Users,
   Star,

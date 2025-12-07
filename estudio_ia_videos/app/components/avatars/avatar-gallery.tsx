@@ -1,5 +1,3 @@
-
-
 /**
  * 🎭 Avatar Gallery Component v2 - Hiper-Realista
  * Galeria de avatares 3D com qualidade cinematográfica UE5 + Audio2Face
@@ -17,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   User,
+  Video,
   Crown,
   Star,
   Download,
@@ -43,13 +42,14 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 
-interface HyperRealisticAvatar {
+export interface HyperRealisticAvatar {
   id: string;
   name: string;
   category: string;
   gender: string;
   ethnicity: string;
   quality: 'standard' | 'premium' | 'cinematic' | 'hyperreal';
+  engine?: 'ue5' | 'heygen';
   features: {
     lipSyncAccuracy: number;
     facialDetails: string;
@@ -88,6 +88,56 @@ interface HyperRealisticAvatar {
     version: string;
     tags: string[];
   };
+  personality?: any;
+  voice?: any;
+}
+
+interface ApiAvatar {
+  id: string;
+  displayName?: string;
+  name: string;
+  category: string;
+  gender?: string;
+  ethnicity?: string;
+  quality: 'standard' | 'premium' | 'cinematic' | 'hyperreal';
+  features: {
+    lipSyncAccuracy: number;
+    audio2FaceCompatible: boolean;
+    realTimeLipSync: boolean;
+    rayTracing: boolean;
+  };
+  preview: {
+    thumbnail: string;
+  };
+  supportedLanguages: string[];
+  usageCount: number;
+  rating: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PipelineStats {
+  audio2FaceStatus: 'active' | 'inactive';
+  activeJobs: number;
+  activePreviews: number;
+  totalPreviews: number;
+}
+
+interface PreviewData {
+  avatarId: string;
+  previewUrl: string;
+  audio2FaceData: {
+    lipSyncAccuracy: number;
+  };
+  lipSyncCurves: {
+    jawOpen?: number;
+    mouthClose?: number;
+    mouthFunnel?: number;
+    mouthPucker?: number;
+    mouthLeft?: number;
+    mouthRight?: number;
+  };
+  estimatedTime: string;
 }
 
 interface AvatarGalleryProps {
@@ -115,10 +165,10 @@ export default function AvatarGallery({
   const [viewMode, setViewMode] = useState(initialViewMode);
   const [sortBy, setSortBy] = useState('popularity');
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [pipelineStats, setPipelineStats] = useState<any>(null);
+  const [pipelineStats, setPipelineStats] = useState<PipelineStats | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
 
   useEffect(() => {
     if (propAvatars) {
@@ -147,7 +197,7 @@ export default function AvatarGallery({
       
       if (data.success) {
         // Mapear dados da API v2 para o formato do componente
-        const mappedAvatars = data.data.avatars.map((avatar: any) => ({
+        const mappedAvatars = data.data.avatars.map((avatar: ApiAvatar) => ({
           id: avatar.id,
           name: avatar.displayName || avatar.name,
           category: avatar.category,
@@ -213,6 +263,100 @@ export default function AvatarGallery({
   // Função para gerar avatares mock para demonstração
   const generateMockAvatars = (): HyperRealisticAvatar[] => {
     return [
+      {
+        id: 'heygen_anna_news',
+        name: 'Anna (News Anchor)',
+        category: 'business',
+        gender: 'female',
+        ethnicity: 'caucasian',
+        quality: 'hyperreal',
+        engine: 'heygen',
+        features: {
+          lipSyncAccuracy: 99,
+          facialDetails: 'Video Real',
+          skinTexture: 'Real Video',
+          hairSystem: 'Real Video',
+          audio2FaceCompatible: true,
+          arkitBlendShapes: 0,
+          realTimeLipSync: true
+        },
+        rendering: {
+          rayTracing: false,
+          resolution: '4K',
+          maxFPS: 60,
+          globalIllumination: false
+        },
+        premium: true,
+        price: 100,
+        preview: 'https://files.heygen.ai/avatar/v3/3f2583200c854a0397f129e60b811467/full/preview_target.webp',
+        clothing: 'Professional Suit',
+        languages: ['en-US', 'pt-BR', 'es-ES', 'fr-FR', 'de-DE'],
+        expressions: ['neutral', 'happy', 'serious'],
+        voiceCloning: {
+          supported: true,
+          samples: 50,
+          quality: 'ultra'
+        },
+        stats: {
+          downloads: 5000,
+          rating: 5.0,
+          reviews: 450,
+          renderTime: 60
+        },
+        metadata: {
+          created: '2024-01-20',
+          updated: '2024-01-25',
+          version: '3.0.0',
+          tags: ['news', 'hyperreal', 'heygen', 'anchor']
+        }
+      },
+      {
+        id: 'heygen_abigail_expressive',
+        name: 'Abigail (Expressive)',
+        category: 'business',
+        gender: 'female',
+        ethnicity: 'caucasian',
+        quality: 'hyperreal',
+        engine: 'heygen',
+        features: {
+          lipSyncAccuracy: 99,
+          facialDetails: 'Video Real',
+          skinTexture: 'Real Video',
+          hairSystem: 'Real Video',
+          audio2FaceCompatible: true,
+          arkitBlendShapes: 0,
+          realTimeLipSync: true
+        },
+        rendering: {
+          rayTracing: false,
+          resolution: '4K',
+          maxFPS: 60,
+          globalIllumination: false
+        },
+        premium: true,
+        price: 100,
+        preview: 'https://files2.heygen.ai/avatar/v3/1ad51ab9fee24ae88af067206e14a1d8_44250/preview_target.webp',
+        clothing: 'Casual',
+        languages: ['en-US', 'pt-BR'],
+        expressions: ['neutral', 'happy'],
+        voiceCloning: {
+          supported: true,
+          samples: 50,
+          quality: 'ultra'
+        },
+        stats: {
+          downloads: 3000,
+          rating: 4.8,
+          reviews: 200,
+          renderTime: 60
+        },
+        metadata: {
+          created: '2024-11-25',
+          updated: '2024-11-25',
+          version: '3.0.0',
+          tags: ['expressive', 'hyperreal', 'heygen']
+        }
+      },
       {
         id: 'avatar-hyperreal-1',
         name: 'Sofia Executiva',
@@ -459,11 +603,19 @@ export default function AvatarGallery({
         setShowPreview(true);
         
         // Atualizar estatísticas do pipeline
-        setPipelineStats(prev => ({
-          ...prev,
-          activePreviews: prev.activePreviews + 1,
-          totalPreviews: prev.totalPreviews + 1
-        }));
+        setPipelineStats(prev => {
+          if (!prev) return {
+            audio2FaceStatus: 'active',
+            activeJobs: 0,
+            activePreviews: 1,
+            totalPreviews: 1
+          };
+          return {
+            ...prev,
+            activePreviews: prev.activePreviews + 1,
+            totalPreviews: prev.totalPreviews + 1
+          };
+        });
 
         console.log(`Preview iniciado para ${avatar.name}`);
       } else {
@@ -486,10 +638,13 @@ export default function AvatarGallery({
         });
         
         // Atualizar estatísticas
-        setPipelineStats(prev => ({
-          ...prev,
-          activePreviews: Math.max(0, prev.activePreviews - 1)
-        }));
+        setPipelineStats(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            activePreviews: Math.max(0, prev.activePreviews - 1)
+          };
+        });
       } catch (error) {
         console.error('Erro ao limpar preview:', error);
       }
@@ -697,6 +852,12 @@ export default function AvatarGallery({
                       <Badge className="bg-green-100 text-green-800 flex items-center space-x-1">
                         <Mic className="h-3 w-3" />
                         <span>A2F</span>
+                      </Badge>
+                    )}
+                    {avatar.engine === 'heygen' && (
+                      <Badge className="bg-purple-100 text-purple-800 flex items-center space-x-1">
+                        <Video className="h-3 w-3" />
+                        <span>HeyGen</span>
                       </Badge>
                     )}
                   </div>

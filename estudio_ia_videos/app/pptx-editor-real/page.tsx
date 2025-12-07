@@ -1,4 +1,5 @@
 
+export const dynamic = 'force-dynamic';
 
 import { Metadata } from 'next'
 import { ProfessionalPPTXStudio } from '@/components/pptx/professional-pptx-studio'

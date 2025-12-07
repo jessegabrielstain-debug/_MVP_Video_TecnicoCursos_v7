@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * 🔌 API: User Metrics
  * 
@@ -49,3 +51,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

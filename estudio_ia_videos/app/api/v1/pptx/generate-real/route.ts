@@ -1,3 +1,4 @@
+// TODO: Fix GeneratorSlide type and buffer property
 
 /**
  * 🎨 API de Geração PPTX Real - Sistema Completo
@@ -72,10 +73,10 @@ export async function GET(request: NextRequest) {
       where: { id: projectId },
       select: {
         id: true,
-        name: true,
+        title: true,
         pptxUrl: true,
         status: true,
-        processingLog: true
+        metadata: true
       }
     })
 
@@ -86,18 +87,18 @@ export async function GET(request: NextRequest) {
       )
     }
 
-  const processingLog = project.processingLog as Record<string, unknown> | null
+  const projectMetadata = project.metadata as Record<string, unknown> | null
 
     return NextResponse.json({
       success: true,
       project: {
         id: project.id,
-        name: project.name,
+        name: project.title,
         hasPptx: !!project.pptxUrl,
         pptxUrl: project.pptxUrl,
         status: project.status,
-        pptxGenerated: processingLog?.pptxGenerated || false,
-        generatedAt: processingLog?.generatedAt
+        pptxGenerated: projectMetadata?.pptxGenerated || false,
+        generatedAt: projectMetadata?.generatedAt
       }
     })
 
@@ -117,7 +118,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     const { slides, options } = body as { 
-      slides: any[], 
+      slides: Record<string, unknown>[], 
       options: PptxGenerationOptions 
     }
 
@@ -133,7 +134,7 @@ export async function PUT(request: NextRequest) {
     const generator = new RealPptxGenerator()
     const result = await generator.generateRealPptx({
       title: options.title || 'Apresentação Customizada',
-      slides: slides,
+      slides: slides as any,
       template: options.template || 'corporate',
       branding: options.branding,
       metadata: options.metadata || {
@@ -147,7 +148,7 @@ export async function PUT(request: NextRequest) {
       success: true,
       filename: result.filename,
       slideCount: result.slideCount,
-      fileSize: result.buffer.length,
+      fileSize: result.buffer?.length || 0,
       message: 'PPTX customizado gerado com sucesso!'
     })
 
@@ -162,3 +163,4 @@ export async function PUT(request: NextRequest) {
     )
   }
 }
+

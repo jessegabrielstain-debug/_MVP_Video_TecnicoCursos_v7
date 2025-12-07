@@ -18,7 +18,6 @@ export class PPTXParser {
       ignoreAttributes: false,
       attributeNamePrefix: '@_',
       allowBooleanAttributes: true,
-      parseNodeValue: true,
       parseAttributeValue: true,
       trimValues: true,
       cdataPropName: '__cdata',
@@ -44,12 +43,15 @@ export class PPTXParser {
     const coreXmlFile = zip.file('docProps/core.xml');
     let title = DEFAULT_METADATA.title;
     let author = DEFAULT_METADATA.author;
+    let subject: string | undefined;
+
     if (coreXmlFile) {
       const coreXml = await coreXmlFile.async('string');
       const coreProps = this.xmlParser.parse(coreXml)['cp:coreProperties'];
       if (coreProps) {
         title = coreProps['dc:title'] || title;
         author = coreProps['dc:creator'] || author;
+        subject = coreProps['dc:subject'];
       }
     }
 
@@ -73,14 +75,19 @@ export class PPTXParser {
         const slideXmlFile = zip.file(slidePath);
 
         if (slideXmlFile) {
-          const slideXml = await slideXmlFile.async('string');
-          const slideContent = this.xmlParser.parse(slideXml);
-          const textElements = this.extractText(slideContent);
-          slides.push({
-            title: textElements[0] || `Slide ${slideNumber}`,
-            content: textElements.slice(1).join('\n'),
-            notes: '',
-          });
+          try {
+            const slideXml = await slideXmlFile.async('string');
+            const slideContent = this.xmlParser.parse(slideXml);
+            const textElements = this.extractText(slideContent);
+            slides.push({
+              title: textElements[0] || `Slide ${slideNumber}`,
+              content: textElements.slice(1).join('\n'),
+              notes: '',
+            });
+          } catch (e) {
+            console.warn(`Failed to parse slide ${slideNumber}:`, e);
+            // Continue to next slide
+          }
         }
       }
     }
@@ -90,9 +97,51 @@ export class PPTXParser {
       metadata: {
         title,
         author,
+        subject,
         slideCount: slides.length,
       },
       slides,
+    };
+  }
+
+  async parseFile(file: File): Promise<any> {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const parsed = await this.parsePPTX(buffer);
+    
+    return {
+      title: parsed.metadata.title,
+      author: parsed.metadata.author,
+      slideCount: parsed.metadata.slideCount,
+      totalDuration: parsed.metadata.slideCount * 5, // Mock duration
+      createdDate: new Date(),
+      theme: 'default',
+      slides: parsed.slides.map((s, i) => ({
+        id: `slide-${i+1}`,
+        slideNumber: i+1,
+        title: s.title,
+        content: s.content ? [s.content] : [],
+        duration: 5,
+        images: [],
+        shapes: [],
+        animations: []
+      }))
+    };
+  }
+
+  convertToTimelineData(pptxDocument: Record<string, unknown>): Record<string, unknown> {
+    return {
+      tracks: [
+        {
+          id: 'track-1',
+          type: 'video',
+          clips: (pptxDocument.slides as Record<string, unknown>[]).map((s, i: number) => ({
+            id: `clip-${s.id}`,
+            start: i * 5,
+            duration: 5,
+            content: s
+          }))
+        }
+      ]
     };
   }
 

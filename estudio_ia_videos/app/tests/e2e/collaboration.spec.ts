@@ -1,4 +1,3 @@
-
 /**
  * E2E Tests: Real-Time Collaboration
  * Sprint 44

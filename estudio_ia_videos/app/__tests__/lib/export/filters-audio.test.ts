@@ -8,7 +8,6 @@
  * - Enums e interfaces
  */
 
-import { describe, it, expect } from '@jest/globals'
 import { 
   VideoFilters,
   VideoFilterType,

@@ -1,3 +1,4 @@
+// TODO: Fix ProcessedImage type property names
 
 /**
  * 🖼️ API de Processamento Real de Imagens
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
       if (!projectResult.success) {
         throw new Error(projectResult.error)
       }
-      results = projectResult.processedImages
+      results = projectResult.processedImages || []
     } else {
       // Processamento individual
       results = await imageProcessor.processBatchImages(files, options)
@@ -113,3 +114,4 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+

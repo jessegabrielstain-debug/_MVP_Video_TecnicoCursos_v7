@@ -1,10 +1,18 @@
 /**
- * Teste da rota /api/v1/video/export-real (DELETE cancel)
+ * Teste DELETE /api/v1/video/export-real?jobId=...
  */
 // @jest-environment node
 /// <reference types="jest" />
-import { NextRequest } from 'next/server'
 import * as exportRoute from '@/api/v1/video/export-real/route'
+
+class NextRequest {
+  url: string;
+  method: string;
+  constructor(url: string, init?: any) {
+    this.url = url;
+    this.method = init?.method || 'GET';
+  }
+}
 
 function makeRequest(method: string, url: string): NextRequest {
   const init: RequestInit = { method }

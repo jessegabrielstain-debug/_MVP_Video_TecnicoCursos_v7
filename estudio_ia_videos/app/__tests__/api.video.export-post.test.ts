@@ -32,6 +32,9 @@ describe('API video export-real (POST)', () => {
     const req = makeRequest('POST', '/api/v1/video/export-real', { projectId: 'p1', options: { format: 'mp4', fps: 30 } })
     const res = await exportRoute.POST(req)
     const json = await res.json()
+    if (res.status !== 200) {
+      console.error('Erro retornado:', json)
+    }
     expect(res.status).toBe(200)
     expect(json.success).toBe(true)
     expect(json.jobId).toBe('job-post-1')

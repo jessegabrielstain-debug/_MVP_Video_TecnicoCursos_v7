@@ -10,6 +10,42 @@ import { TTSManager } from '@/lib/tts/manager'
 // Mock do fetch global
 global.fetch = jest.fn()
 
+// Mock do SDK do Azure
+const mockSpeakSsmlAsync = jest.fn((ssml, success) => {
+  success({
+    reason: 0, // ResultReason.SynthesizingAudioCompleted
+    audioData: new Uint8Array([1, 2, 3]),
+  })
+})
+const mockSpeakTextAsync = jest.fn((text, success) => {
+  success({
+    reason: 0, // ResultReason.SynthesizingAudioCompleted
+    audioData: new Uint8Array([1, 2, 3]),
+  })
+})
+const mockClose = jest.fn()
+
+jest.mock('microsoft-cognitiveservices-speech-sdk', () => ({
+  SpeechConfig: {
+    fromSubscription: jest.fn(() => ({
+      speechSynthesisOutputFormat: null,
+    })),
+  },
+  SpeechSynthesizer: jest.fn(() => ({
+    speakSsmlAsync: mockSpeakSsmlAsync,
+    speakTextAsync: mockSpeakTextAsync,
+    close: mockClose,
+  })),
+  ResultReason: {
+    SynthesizingAudioCompleted: 0,
+  },
+  SpeechSynthesisOutputFormat: {
+    Audio16Khz128KBitRateMonoMp3: 'audio-16khz-128kbitrate-mono-mp3',
+  },
+}))
+
+import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
+
 describe('ElevenLabs Provider', () => {
   let provider: ElevenLabsProvider
 
@@ -187,32 +223,6 @@ describe('TTS Manager', () => {
   })
 
   it('deve fazer fallback para Azure quando ElevenLabs falha', async () => {
-    // Mock do SDK do Azure
-    const mockSynthesizer = {
-      speakSsmlAsync: jest.fn((ssml, success) => {
-        success({
-          reason: 0, // ResultReason.SynthesizingAudioCompleted
-          audioData: new Uint8Array([1, 2, 3]),
-        })
-      }),
-      close: jest.fn(),
-    }
-
-    jest.mock('microsoft-cognitiveservices-speech-sdk', () => ({
-      SpeechConfig: {
-        fromSubscription: jest.fn(() => ({
-          speechSynthesisOutputFormat: null,
-        })),
-      },
-      SpeechSynthesizer: jest.fn(() => mockSynthesizer),
-      ResultReason: {
-        SynthesizingAudioCompleted: 0,
-      },
-      SpeechSynthesisOutputFormat: {
-        Audio16Khz128KBitRateMonoMp3: 'audio-16khz-128kbitrate-mono-mp3',
-      },
-    }))
-
     // Falhar ElevenLabs
     ;(global.fetch as jest.Mock).mockRejectedValueOnce(new Error('ElevenLabs API error'))
 
@@ -224,6 +234,7 @@ describe('TTS Manager', () => {
 
     expect(result.audio).toBeDefined()
     expect(result.fromCache).toBe(false)
+    expect(mockSpeakTextAsync).toHaveBeenCalled()
   })
 
   it('deve listar vozes do provider especificado', async () => {

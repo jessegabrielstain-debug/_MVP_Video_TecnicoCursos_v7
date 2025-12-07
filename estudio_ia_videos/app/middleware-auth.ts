@@ -6,7 +6,7 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { Database } from '@/types/supabase'
+import { Database } from '@/lib/supabase/types'
 
 // Rotas públicas que não requerem autenticação
 const PUBLIC_ROUTES = [
@@ -23,6 +23,10 @@ const ADMIN_ROUTES = [
   '/admin',
   '/api/admin',
 ]
+
+interface UserProfile {
+  role: string;
+}
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
@@ -48,13 +52,16 @@ export async function middleware(req: NextRequest) {
 
   // Verificar acesso a rotas admin
   if (ADMIN_ROUTES.some(route => path.startsWith(route))) {
+    // Usando 'users' conforme schema atual, com cast para any pois não está nos tipos gerados
     const { data: profile } = await supabase
-      .from('user_profiles')
+      .from('users' as any)
       .select('role')
       .eq('id', session.user.id)
       .single()
 
-    if (profile?.role !== 'admin') {
+    const userProfile = profile as unknown as UserProfile;
+
+    if (userProfile?.role !== 'admin') {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
   }

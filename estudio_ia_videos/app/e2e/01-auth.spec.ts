@@ -98,7 +98,7 @@ test.describe('Authentication Flow', () => {
     
     // Senha fraca
     await page.fill('input[type="password"]', '123');
-    await page.blur('input[type="password"]');
+    await page.locator('input[type="password"]').blur();
     
     // Verificar erro
     await expect(page.locator('text=Senha muito fraca')).toBeVisible();

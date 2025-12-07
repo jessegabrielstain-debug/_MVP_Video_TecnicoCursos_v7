@@ -12,8 +12,9 @@ const client = new Client({
 });
 
 async function inspect() {
+  const tableName = process.argv[2] || 'render_jobs';
   await client.connect();
-  const res = await client.query(`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'render_jobs' ORDER BY ordinal_position`);
+  const res = await client.query(`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1 ORDER BY ordinal_position`, [tableName]);
   console.log(res.rows);
   await client.end();
 }

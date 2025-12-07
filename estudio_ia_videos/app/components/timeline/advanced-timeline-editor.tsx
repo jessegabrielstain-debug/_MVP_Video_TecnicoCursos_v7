@@ -154,7 +154,8 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
     if (!isPlaying || !project) return
 
     const interval = setInterval(() => {
-      const newTime = currentTime + (1 / project.framerate)
+      const framerate = project.framerate || 30
+      const newTime = currentTime + (1 / framerate)
       if (newTime >= project.duration) {
         pause()
         seekTo(0)
@@ -162,7 +163,7 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
         seekTo(newTime)
         onTimeChange?.(newTime)
       }
-    }, 1000 / project.framerate)
+    }, 1000 / (project.framerate || 30))
 
     return () => clearInterval(interval)
   }, [isPlaying, currentTime, project, pause, seekTo, onTimeChange])
@@ -225,15 +226,19 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
     const elementId = active.id as string
     
     // Find the element being dragged
-    let draggedElement: TimelineElement | null = null
-    project?.tracks.forEach(track => {
-      track.layers.forEach(layer => {
+    let draggedElement: TimelineElement | undefined;
+    const tracks = project?.tracks || []
+    
+    for (const track of tracks) {
+      for (const layer of track.layers) {
         const element = layer.elements.find(el => el.id === elementId)
         if (element) {
           draggedElement = element
+          break
         }
-      })
-    })
+      }
+      if (draggedElement) break
+    }
 
     if (draggedElement) {
       const dragData: DragData = {
@@ -278,7 +283,8 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
       
       // Find current layer
       let currentLayerId = ''
-      project?.tracks.forEach(track => {
+      const tracks = project?.tracks || []
+      tracks.forEach(track => {
         track.layers.forEach(layer => {
           if (layer.elements.find(el => el.id === elementId)) {
             currentLayerId = layer.id
@@ -306,7 +312,7 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
           break
         case 'Delete':
         case 'Backspace':
-          selection.elements.forEach(elementId => {
+          selection.elementIds.forEach(elementId => {
             // Delete selected elements
           })
           break
@@ -419,9 +425,9 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
         <div className="flex flex-1 overflow-hidden">
           {/* Track List */}
           <TimelineTrackList 
-            tracks={project.tracks}
+            tracks={project.tracks || []}
             onLayerClick={handleLayerClick}
-            selectedLayers={selection.layers}
+            selectedLayers={selection.layerIds}
             readOnly={readOnly}
           />
 

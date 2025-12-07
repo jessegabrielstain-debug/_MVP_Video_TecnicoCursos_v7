@@ -14,10 +14,27 @@ import {
   TimelineSelection, 
   TimelineElement,
   TimelineLayer,
-  TimelineTrack
+  TimelineTrack,
+  TimelineMarker
 } from '@/lib/types/timeline-types'
 import { TimelineElementCard } from './timeline-element-card'
 import { TimelineElement as TimelineElementComponent } from './timeline-element'
+
+// Placeholder components
+const TimelineMarkers: React.FC<{
+  markers?: TimelineMarker[];
+  pixelsPerSecond: number;
+  scrollX: number;
+  height: number;
+}> = () => null;
+
+const TimelineWaveform: React.FC<{
+  audioUrl: string;
+  startTime?: number;
+  duration: number;
+  pixelsPerSecond: number;
+  height: number;
+}> = () => null;
 
 interface TimelineCanvasProps {
   project: TimelineProject
@@ -61,16 +78,30 @@ export const TimelineCanvas: React.FC<TimelineCanvasProps> = ({
     return { startTime, endTime }
   }, [scrollX, pixelsPerSecond])
 
+  // Normalize tracks/layers
+  const tracks = useMemo(() => {
+    if (project.tracks && project.tracks.length > 0) return project.tracks;
+    return [{
+      id: 'default-track',
+      name: 'Default Track',
+      type: 'default',
+      layers: project.layers
+    }];
+  }, [project.tracks, project.layers]);
+
   // Filter visible elements for performance
   const visibleElements = useMemo(() => {
     const elements: Array<{ element: TimelineElement; layerId: string; trackId: string }> = []
     
-    project.tracks.forEach(track => {
+    tracks.forEach(track => {
       track.layers.forEach(layer => {
         layer.elements.forEach(element => {
+          const startTime = element.startTime ?? element.start;
+          const endTime = element.endTime ?? (startTime + element.duration);
+          
           // Only include elements that intersect with visible time range
-          if (element.endTime >= visibleTimeRange.startTime && 
-              element.startTime <= visibleTimeRange.endTime) {
+          if (endTime >= visibleTimeRange.startTime && 
+              startTime <= visibleTimeRange.endTime) {
             elements.push({ element, layerId: layer.id, trackId: track.id })
           }
         })
@@ -78,25 +109,25 @@ export const TimelineCanvas: React.FC<TimelineCanvasProps> = ({
     })
     
     return elements
-  }, [project.tracks, visibleTimeRange])
+  }, [tracks, visibleTimeRange])
 
   // Calculate layer positions
   const layerPositions = useMemo(() => {
     const positions = new Map<string, { top: number; height: number }>()
     let currentTop = 0
     
-    project.tracks.forEach(track => {
+    tracks.forEach(track => {
       track.layers.forEach(layer => {
         positions.set(layer.id, {
           top: currentTop,
-          height: layer.height
+          height: layer.height || 100 // Default height if undefined
         })
-        currentTop += layer.height
+        currentTop += (layer.height || 100)
       })
     })
     
     return positions
-  }, [project.tracks])
+  }, [tracks])
 
   const handleElementClick = useCallback((elementId: string, event: React.MouseEvent) => {
     event.stopPropagation()
@@ -104,10 +135,11 @@ export const TimelineCanvas: React.FC<TimelineCanvasProps> = ({
   }, [onElementClick])
 
   const getElementStyle = useCallback((element: TimelineElement) => {
-    const layerPos = layerPositions.get(element.layerId)
+    const layerPos = layerPositions.get(element.layerId || '')
     if (!layerPos) return {}
 
-    const left = element.startTime * pixelsPerSecond - scrollX
+    const startTime = element.startTime ?? element.start;
+    const left = startTime * pixelsPerSecond - scrollX
     const width = element.duration * pixelsPerSecond
     
     return {
@@ -141,7 +173,7 @@ export const TimelineCanvas: React.FC<TimelineCanvasProps> = ({
     }
     
     // Minor grid lines (frames)
-    if (zoom > 0.5) {
+    if (zoom > 0.5 && project.framerate) {
       const frameInterval = 1 / project.framerate
       for (let time = startTime; time <= endTime; time += frameInterval) {
         const x = time * pixelsPerSecond - scrollX
@@ -163,8 +195,8 @@ export const TimelineCanvas: React.FC<TimelineCanvasProps> = ({
   // Render track backgrounds
   const renderTrackBackgrounds = () => {
     let currentTop = 0
-    return project.tracks.map((track, index) => {
-      const trackHeight = track.layers.reduce((sum, layer) => sum + layer.height, 0)
+    return tracks.map((track, index) => {
+      const trackHeight = track.layers.reduce((sum, layer) => sum + (layer.height || 100), 0)
       const bg = (
         <div
           key={track.id}
@@ -186,10 +218,10 @@ export const TimelineCanvas: React.FC<TimelineCanvasProps> = ({
 
   // Render layer separators
   const renderLayerSeparators = () => {
-    const separators = []
+    const separators: React.ReactNode[] = []
     let currentTop = 0
     
-    project.tracks.forEach(track => {
+    tracks.forEach(track => {
       track.layers.forEach((layer, index) => {
         if (index > 0) { // Don't add separator before first layer
           separators.push(
@@ -200,7 +232,7 @@ export const TimelineCanvas: React.FC<TimelineCanvasProps> = ({
             />
           )
         }
-        currentTop += layer.height
+        currentTop += (layer.height || 100)
       })
     })
     
@@ -208,10 +240,10 @@ export const TimelineCanvas: React.FC<TimelineCanvasProps> = ({
   }
 
   const totalHeight = useMemo(() => {
-    return project.tracks.reduce((sum, track) => 
-      sum + track.layers.reduce((layerSum, layer) => layerSum + layer.height, 0), 0
-    )
-  }, [project.tracks])
+    return tracks.reduce((sum, track) => 
+      sum + track.layers.reduce((layerSum, layer) => layerSum + (layer.height || 100), 0), 0
+    ) || 0
+  }, [tracks])
 
   return (
     <div
@@ -241,7 +273,7 @@ export const TimelineCanvas: React.FC<TimelineCanvasProps> = ({
 
       {/* Timeline Elements */}
       {visibleElements.map(({ element, layerId }) => {
-        const isSelected = selection.elements.includes(element.id)
+        const isSelected = selection.elementIds.includes(element.id)
         
         return (
           <motion.div

@@ -1,4 +1,4 @@
-
+// TODO: Verificar módulo azure-speech-service e tipos
 
 'use client'
 
@@ -39,7 +39,7 @@ interface ProfessionalVoiceStudioProps {
   contentType?: 'treinamento' | 'apresentacao' | 'marketing' | 'educacional'
 }
 
-interface VoiceConfiguration {
+export interface VoiceConfiguration {
   provider: 'azure' | 'elevenlabs' | 'regional'
   voiceId: string
   displayName: string
@@ -54,9 +54,20 @@ interface VoiceConfiguration {
 interface VoiceTestResult {
   audioUrl: string
   duration: number
-  quality: any
+  quality: {
+    pronunciation_score: number
+    clarity_score: number
+    naturalness_score: number
+  }
   cost: number
   processingTime: number
+}
+
+interface TextAnalysis {
+  complexity: string
+  readability: number
+  technicalTerms: string[]
+  recommendedAdjustments: string[]
 }
 
 export default function ProfessionalVoiceStudio({
@@ -90,13 +101,13 @@ export default function ProfessionalVoiceStudio({
   // Estados de dados
   const [azureVoices] = useState<AzureVoice[]>(azureSpeechService.getAvailableVoices())
   const [regionalVoices] = useState<BrazilianVoiceRegional[]>(BrazilianRegionalTTS.REGIONAL_VOICES)
-  const [textAnalysis, setTextAnalysis] = useState<unknown>(null)
+  const [textAnalysis, setTextAnalysis] = useState<TextAnalysis | null>(null)
 
   // Analisar texto quando muda
   useEffect(() => {
     if (testText.length > 10) {
       const analysis = azureSpeechService.analyzeTextQuality(testText)
-      setTextAnalysis(analysis)
+      setTextAnalysis(analysis as TextAnalysis)
     }
   }, [testText])
 

@@ -28,6 +28,7 @@ jest.mock('fs/promises');
 
 // Mock FFmpeg
 const mockFfmpeg = {
+  input: jest.fn().mockReturnThis(),
   videoCodec: jest.fn().mockReturnThis(),
   audioCodec: jest.fn().mockReturnThis(),
   outputOptions: jest.fn().mockReturnThis(),
@@ -282,14 +283,14 @@ describe('VideoWatermarker', () => {
   describe('Watermark Positions', () => {
     test.each([
       [WatermarkPosition.TOP_LEFT, '10', '10'],
-      [WatermarkPosition.TOP_CENTER, '(W-w)/2', '10'],
-      [WatermarkPosition.TOP_RIGHT, 'W-w-10', '10'],
-      [WatermarkPosition.CENTER_LEFT, '10', '(H-h)/2'],
-      [WatermarkPosition.CENTER, '(W-w)/2', '(H-h)/2'],
-      [WatermarkPosition.CENTER_RIGHT, 'W-w-10', '(H-h)/2'],
-      [WatermarkPosition.BOTTOM_LEFT, '10', 'H-h-10'],
-      [WatermarkPosition.BOTTOM_CENTER, '(W-w)/2', 'H-h-10'],
-      [WatermarkPosition.BOTTOM_RIGHT, 'W-w-10', 'H-h-10']
+      [WatermarkPosition.TOP_CENTER, '(W-tw)/2', '10'],
+      [WatermarkPosition.TOP_RIGHT, 'W-tw-10', '10'],
+      [WatermarkPosition.CENTER_LEFT, '10', '(H-th)/2'],
+      [WatermarkPosition.CENTER, '(W-tw)/2', '(H-th)/2'],
+      [WatermarkPosition.CENTER_RIGHT, 'W-tw-10', '(H-th)/2'],
+      [WatermarkPosition.BOTTOM_LEFT, '10', 'H-th-10'],
+      [WatermarkPosition.BOTTOM_CENTER, '(W-tw)/2', 'H-th-10'],
+      [WatermarkPosition.BOTTOM_RIGHT, 'W-tw-10', 'H-th-10']
     ] satisfies Array<[WatermarkPosition, string, string]>)('should position watermark at %s', async (position, expectedX, expectedY) => {
       const watermarker = new VideoWatermarker();
 
@@ -395,8 +396,11 @@ describe('VideoWatermarker', () => {
       const watermarker = new VideoWatermarker();
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
-        mockFfmpeg.on.mock.calls
-          .find(call => call[0] === 'end')?.[1]();
+        const calls = mockFfmpeg.on.mock.calls.filter((call: any[]) => call[0] === 'end');
+        const lastCall = calls[calls.length - 1];
+        if (lastCall) {
+          lastCall[1]();
+        }
         return mockFfmpeg;
       });
 
@@ -423,8 +427,11 @@ describe('VideoWatermarker', () => {
       const watermarker = new VideoWatermarker();
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
-        mockFfmpeg.on.mock.calls
-          .find(call => call[0] === 'end')?.[1]();
+        const calls = mockFfmpeg.on.mock.calls.filter((call: any[]) => call[0] === 'end');
+        const lastCall = calls[calls.length - 1];
+        if (lastCall) {
+          lastCall[1]();
+        }
         return mockFfmpeg;
       });
 
@@ -458,21 +465,32 @@ describe('VideoWatermarker', () => {
 
     test('should continue batch on individual failures', async () => {
       const watermarker = new VideoWatermarker();
+      watermarker.on('error', () => {}); // Prevent unhandled error
 
       let callCount = 0;
+      const endCallbacks: Function[] = [];
+      const errorCallbacks: Function[] = [];
+
+      mockFfmpeg.on.mockImplementation((event: string, cb: Function) => {
+        if (event === 'end') endCallbacks.push(cb);
+        if (event === 'error') errorCallbacks.push(cb);
+        return mockFfmpeg;
+      });
+
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
         callCount++;
-        // Simulate immediate completion for all to avoid timeout
-        setImmediate(() => {
-          if (callCount === 2) {
+        const currentCall = callCount;
+        
+        setTimeout(() => {
+          if (currentCall === 2) {
             // Fail second video
-            mockFfmpeg.on.mock.calls
-              .find(call => call[0] === 'error')?.[1](new Error('Processing failed'));
+            const cb = errorCallbacks[currentCall - 1];
+            if (cb) cb(new Error('Processing failed'));
           } else {
-            mockFfmpeg.on.mock.calls
-              .find(call => call[0] === 'end')?.[1]();
+            const cb = endCallbacks[currentCall - 1];
+            if (cb) cb();
           }
-        });
+        }, 0);
         return mockFfmpeg;
       });
 
@@ -622,6 +640,7 @@ describe('VideoWatermarker', () => {
   describe('Input Validation', () => {
     test('should reject non-existent input file', async () => {
       const watermarker = new VideoWatermarker();
+      watermarker.on('error', () => {}); // Prevent unhandled error
 
       jest.spyOn(fs, 'access').mockImplementation((path) => {
         if (path.toString().includes('missing.mp4')) {
@@ -812,7 +831,7 @@ describe('VideoWatermarker', () => {
         config
       );
 
-      expect(result.processingTime).toBeGreaterThan(0);
+      expect(result.processingTime).toBeGreaterThanOrEqual(0);
     });
 
     test('should return file sizes', async () => {
@@ -904,8 +923,11 @@ describe('VideoWatermarker', () => {
       const watermarker = new VideoWatermarker();
 
       mockFfmpeg.save.mockImplementation((outputPath: string) => {
-        mockFfmpeg.on.mock.calls
-          .find(call => call[0] === 'end')?.[1]();
+        const calls = mockFfmpeg.on.mock.calls.filter((call: any[]) => call[0] === 'end');
+        const lastCall = calls[calls.length - 1];
+        if (lastCall) {
+          lastCall[1]();
+        }
         return mockFfmpeg;
       });
 

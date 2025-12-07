@@ -62,6 +62,22 @@ interface ExportJob {
   error?: string
 }
 
+interface PptxStatus {
+  pptxGenerated: boolean
+  hasPptx: boolean
+}
+
+interface TtsStatus {
+  slides: {
+    percentage: number
+    withTTS: number
+    total: number
+  }
+  project: {
+    hasProjectAudio: boolean
+  }
+}
+
 export default function UnifiedControlPanel({ projectId }: { projectId?: string }) {
   // Estados principais
   const [currentProject, setCurrentProject] = useState<Project | null>(null)
@@ -69,8 +85,8 @@ export default function UnifiedControlPanel({ projectId }: { projectId?: string 
   const [activeTab, setActiveTab] = useState('overview')
 
   // Estados específicos
-  const [pptxStatus, setPptxStatus] = useState<unknown>(null)
-  const [ttsStatus, setTtsStatus] = useState<unknown>(null)
+  const [pptxStatus, setPptxStatus] = useState<PptxStatus | null>(null)
+  const [ttsStatus, setTtsStatus] = useState<TtsStatus | null>(null)
   const [exportJob, setExportJob] = useState<ExportJob | null>(null)
   const [availableVoices, setAvailableVoices] = useState<TTSVoice[]>([])
 

@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { getOrgId } from '@/lib/auth/session-helpers';
 import { prisma } from '@/lib/db';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
+import { Prisma } from '@prisma/client';
+
 /**
  * GET /api/analytics/performance
  * Retorna métricas detalhadas de performance do sistema
- * 
- * Query params:
- * - period: '1h' | '24h' | '7d' | '30d' (default: '24h')
- * - metric: 'response_time' | 'throughput' | 'errors' | 'all' (default: 'all')
- * - endpoint?: string (filtrar por endpoint específico)
  */
 async function getHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -49,47 +46,40 @@ async function getHandler(req: NextRequest) {
         startDate.setHours(startDate.getHours() - 24);
     }
 
-    const whereClause = {
-      createdAt: { gte: startDate },
-      duration: { not: null },
-      ...(organizationId && { organizationId }),
-      ...(endpoint && { 
-        metadata: {
-          // Prisma JSON filter: path to 'path' and string_contains endpoint
-          path: ['path'],
-          string_contains: endpoint
-        }
-      })
-    };
-
     const performanceData: Record<string, unknown> = {};
 
     // Métricas de tempo de resposta
     if (metric === 'response_time' || metric === 'all') {
-      const responseTimeStats = await prisma.analyticsEvent.aggregate({
-        where: whereClause,
-        _avg: { duration: true },
-        _max: { duration: true },
-        _min: { duration: true },
-        _count: { duration: true }
-      });
+      const responseTimeStats = await prisma.$queryRaw<Array<{ avg: number, max: number, min: number, count: bigint }>>`
+        SELECT 
+          AVG(CAST(event_data->>'duration' AS FLOAT)) as avg,
+          MAX(CAST(event_data->>'duration' AS FLOAT)) as max,
+          MIN(CAST(event_data->>'duration' AS FLOAT)) as min,
+          COUNT(*) as count
+        FROM "AnalyticsEvent"
+        WHERE created_at >= ${startDate}
+        AND event_data->>'duration' IS NOT NULL
+        ${endpoint ? Prisma.sql`AND event_data->'metadata'->>'endpoint' LIKE ${'%' + endpoint + '%'}` : Prisma.sql``}
+      `;
+
+      const stats = responseTimeStats[0] || { avg: 0, max: 0, min: 0, count: 0 };
 
       // Distribuição de tempos de resposta
-      const responseTimeDistribution = await prisma.$queryRaw`
+      const responseTimeDistribution = await prisma.$queryRaw<Array<{ range: string, count: bigint }>>`
         SELECT 
           CASE 
-            WHEN duration < 100 THEN '0-100ms'
-            WHEN duration < 500 THEN '100-500ms'
-            WHEN duration < 1000 THEN '500ms-1s'
-            WHEN duration < 2000 THEN '1-2s'
-            WHEN duration < 5000 THEN '2-5s'
+            WHEN CAST(event_data->>'duration' AS FLOAT) < 100 THEN '0-100ms'
+            WHEN CAST(event_data->>'duration' AS FLOAT) < 500 THEN '100-500ms'
+            WHEN CAST(event_data->>'duration' AS FLOAT) < 1000 THEN '500ms-1s'
+            WHEN CAST(event_data->>'duration' AS FLOAT) < 2000 THEN '1-2s'
+            WHEN CAST(event_data->>'duration' AS FLOAT) < 5000 THEN '2-5s'
             ELSE '5s+'
           END as range,
           COUNT(*) as count
-        FROM analytics_event 
+        FROM "AnalyticsEvent" 
         WHERE created_at >= ${startDate} 
-        AND duration IS NOT NULL
-        ${organizationId ? prisma.$queryRaw`AND organization_id = ${organizationId}` : prisma.$queryRaw``}
+        AND event_data->>'duration' IS NOT NULL
+        ${endpoint ? Prisma.sql`AND event_data->'metadata'->>'endpoint' LIKE ${'%' + endpoint + '%'}` : Prisma.sql``}
         GROUP BY range
         ORDER BY 
           CASE range
@@ -103,160 +93,154 @@ async function getHandler(req: NextRequest) {
       `;
 
       // Tempos de resposta por endpoint
-      const endpointPerformance = await prisma.analyticsEvent.groupBy({
-        by: ['category', 'action'],
-        where: whereClause,
-        _avg: { duration: true },
-        _count: { duration: true },
-        orderBy: { _avg: { duration: 'desc' } },
-        take: 10
-      });
+      const endpointPerformance = await prisma.$queryRaw<Array<{ endpoint: string, avg_time: number, requests: bigint }>>`
+        SELECT 
+          event_data->'metadata'->>'endpoint' as endpoint,
+          AVG(CAST(event_data->>'duration' AS FLOAT)) as avg_time,
+          COUNT(*) as requests
+        FROM "AnalyticsEvent"
+        WHERE created_at >= ${startDate}
+        AND event_data->'metadata'->>'endpoint' IS NOT NULL
+        AND event_data->>'duration' IS NOT NULL
+        GROUP BY event_data->'metadata'->>'endpoint'
+        ORDER BY avg_time DESC
+        LIMIT 10
+      `;
 
       performanceData.responseTime = {
         stats: {
-          avg: Math.round(responseTimeStats._avg.duration || 0),
-          max: responseTimeStats._max.duration || 0,
-          min: responseTimeStats._min.duration || 0,
-          count: responseTimeStats._count.duration || 0
+          avg: Math.round(Number(stats.avg || 0)),
+          max: Number(stats.max || 0),
+          min: Number(stats.min || 0),
+          count: Number(stats.count || 0)
         },
-        distribution: responseTimeDistribution,
+        distribution: responseTimeDistribution.map(item => ({ range: item.range, count: Number(item.count) })),
         byEndpoint: endpointPerformance.map((item) => ({
-          endpoint: `${item.category}/${item.action}`,
-          avgTime: Math.round(item._avg.duration || 0),
-          requests: item._count.duration
+          endpoint: item.endpoint || 'Unknown',
+          avgTime: Math.round(Number(item.avg_time || 0)),
+          requests: Number(item.requests)
         }))
       };
     }
 
     // Métricas de throughput (requisições por minuto)
     if (metric === 'throughput' || metric === 'all') {
-      const throughputData = await prisma.$queryRaw`
+      const throughputData = await prisma.$queryRaw<Array<{ minute: string, requests: bigint }>>`
         SELECT 
-          DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:00') as minute,
+          TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:00') as minute,
           COUNT(*) as requests
-        FROM analytics_event 
+        FROM "AnalyticsEvent" 
         WHERE created_at >= ${startDate}
-        ${organizationId ? prisma.$queryRaw`AND organization_id = ${organizationId}` : prisma.$queryRaw``}
         GROUP BY minute
         ORDER BY minute DESC
         LIMIT 60
       `;
 
       const avgThroughput = await prisma.analyticsEvent.count({
-        where: whereClause
+        where: { createdAt: { gte: startDate } }
       });
 
       const minutesInPeriod = Math.max(1, (Date.now() - startDate.getTime()) / (1000 * 60));
 
       performanceData.throughput = {
         avgRequestsPerMinute: Math.round(avgThroughput / minutesInPeriod),
-        timeline: throughputData,
+        timeline: throughputData.map(item => ({ minute: item.minute, requests: Number(item.requests) })),
         totalRequests: avgThroughput
       };
     }
 
     // Métricas de erro
     if (metric === 'errors' || metric === 'all') {
-      const errorStats = await prisma.analyticsEvent.groupBy({
-        by: ['status'],
-        where: {
-          ...whereClause,
-          status: { in: ['error', 'warning'] }
-        },
-        _count: { id: true }
-      });
+      const errorStats = await prisma.$queryRaw<Array<{ status: string, count: bigint }>>`
+        SELECT 
+          event_data->>'status' as status,
+          COUNT(*) as count
+        FROM "AnalyticsEvent"
+        WHERE created_at >= ${startDate}
+        AND event_data->>'status' IN ('error', 'warning')
+        GROUP BY event_data->>'status'
+      `;
 
-      const errorsByCategory = await prisma.analyticsEvent.groupBy({
-        by: ['category', 'errorCode'],
-        where: {
-          ...whereClause,
-          status: 'error',
-          errorCode: { not: null }
-        },
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-        take: 10
-      });
+      const errorsByCategory = await prisma.$queryRaw<Array<{ category: string, error_code: string, count: bigint }>>`
+        SELECT 
+          event_type as category,
+          event_data->>'errorCode' as error_code,
+          COUNT(*) as count
+        FROM "AnalyticsEvent"
+        WHERE created_at >= ${startDate}
+        AND event_data->>'status' = 'error'
+        GROUP BY event_type, event_data->>'errorCode'
+        ORDER BY count DESC
+        LIMIT 10
+      `;
 
       const totalRequests = await prisma.analyticsEvent.count({
         where: {
-          createdAt: { gte: startDate },
-          ...(organizationId && { organizationId })
+          createdAt: { gte: startDate }
         }
       });
 
-      const totalErrors = errorStats.reduce((sum, item) => sum + item._count.id, 0);
+      const totalErrors = errorStats.reduce((sum, item) => sum + Number(item.count), 0);
 
       performanceData.errors = {
         errorRate: totalRequests > 0 ? ((totalErrors / totalRequests) * 100).toFixed(2) : '0',
         totalErrors,
         byStatus: errorStats.map((item) => ({
-          status: item.status,
-          count: item._count.id
+          status: item.status || 'Unknown',
+          count: Number(item.count)
         })),
         byCategory: errorsByCategory.map((item) => ({
-          category: item.category,
-          errorCode: item.errorCode,
-          count: item._count.id
+          category: item.category || 'Unknown',
+          errorCode: item.error_code || 'Unknown',
+          count: Number(item.count)
         }))
       };
     }
 
-    // ✅ REAL - System metrics (from SystemMetrics table)
+    // ✅ REAL - System metrics (from RenderJob table as proxy)
     if (metric === 'all') {
-      const latestSystemMetrics = await prisma.systemMetrics.findFirst({
-        orderBy: { date: 'desc' }
-      });
-
       // Queue size from render jobs
       const queueSize = await prisma.renderJob.count({
-        where: { status: 'pending' }
+        where: { status: 'queued' }
+      });
+      
+      const processingCount = await prisma.renderJob.count({
+        where: { status: 'processing' }
       });
 
-      // Map available fields and provide sensible defaults (cpu/memory/disk/network are not stored in SystemMetrics schema)
+      // Map available fields and provide sensible defaults
       performanceData.system = {
-        cpu: 0,
+        cpu: 0, // Not available without system monitoring agent
         memory: 0,
-        disk: Number(latestSystemMetrics?.totalStorage || 0) > 0
-          ? Math.min(100, Math.round(Number(latestSystemMetrics.videoStorage || 0) / Number(latestSystemMetrics.totalStorage || 1) * 100))
-          : 0,
+        disk: 0,
         network: {
           inbound: 0,
           outbound: 0
         },
-        activeConnections: latestSystemMetrics?.activeUsers || 0,
-        queueSize: latestSystemMetrics?.processingQueue ?? queueSize
+        activeConnections: 0,
+        queueSize: queueSize + processingCount
       };
     }
 
     // ✅ REAL - Métricas de cache (from analytics_event metadata)
     if (metric === 'all') {
-      const cacheEvents = await prisma.analyticsEvent.findMany({
-        where: {
-          createdAt: { gte: startDate },
-          category: 'cache',
-          ...(organizationId && { organizationId })
-        },
-        select: {
-          action: true,
-          metadata: true
-        }
-      });
+      const cacheStats = await prisma.$queryRaw<Array<{ action: string, count: bigint }>>`
+        SELECT 
+          event_data->>'action' as action,
+          COUNT(*) as count
+        FROM "AnalyticsEvent"
+        WHERE created_at >= ${startDate}
+        AND event_type = 'cache_event'
+        GROUP BY event_data->>'action'
+      `;
 
-      const totalHits = cacheEvents.filter(e => e.action === 'hit').length;
-      const totalMisses = cacheEvents.filter(e => e.action === 'miss').length;
-      const evictions = cacheEvents.filter(e => e.action === 'eviction').length;
+      const totalHits = Number(cacheStats.find(s => s.action === 'hit')?.count || 0);
+      const totalMisses = Number(cacheStats.find(s => s.action === 'miss')?.count || 0);
+      const evictions = Number(cacheStats.find(s => s.action === 'eviction')?.count || 0);
       const total = totalHits + totalMisses;
 
       const hitRate = total > 0 ? ((totalHits / total) * 100).toFixed(1) : '0';
       const missRate = total > 0 ? ((totalMisses / total) * 100).toFixed(1) : '0';
-
-      // Get cache size from latest cache event metadata
-      const latestCacheEvent = cacheEvents.find(e => {
-        const meta = e.metadata as unknown as Record<string, unknown> | null;
-        return !!(meta && 'cacheSize' in meta);
-      });
-      const cacheSize = latestCacheEvent ? Number((latestCacheEvent.metadata as unknown as Record<string, unknown>).cacheSize ?? 0) : 0;
 
       performanceData.cache = {
         hitRate,
@@ -264,7 +248,7 @@ async function getHandler(req: NextRequest) {
         totalHits,
         totalMisses,
         evictions,
-        size: Math.round(cacheSize / (1024 * 1024)) // Convert to MB
+        size: 0 // Cannot easily aggregate cache size from events without more complex query
       };
     }
 
@@ -295,7 +279,7 @@ async function getHandler(req: NextRequest) {
  */
 async function postHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -331,24 +315,26 @@ async function postHandler(req: NextRequest) {
     // Registrar métrica de performance
     await prisma.analyticsEvent.create({
       data: {
-        organizationId,
         userId,
-        category: 'performance',
-        action: 'api_call',
-        label: endpoint,
-        duration: responseTime,
-        fileSize: requestSize,
-        status: statusCode >= 400 ? 'error' : 'success',
-        errorCode: statusCode >= 400 ? statusCode.toString() : null,
-        metadata: {
-          endpoint,
-          method,
-          statusCode,
-          requestSize,
-          responseSize,
-          userAgent,
-          ipAddress,
-          ...metadata
+        eventType: 'performance_metric',
+        eventData: {
+          organizationId,
+          action: 'api_call',
+          label: endpoint,
+          duration: responseTime,
+          fileSize: requestSize,
+          status: statusCode >= 400 ? 'error' : 'success',
+          errorCode: statusCode >= 400 ? statusCode.toString() : null,
+          metadata: {
+            endpoint,
+            method,
+            statusCode,
+            requestSize,
+            responseSize,
+            userAgent,
+            ipAddress,
+            ...metadata
+          }
         }
       }
     });
@@ -374,3 +360,5 @@ async function postHandler(req: NextRequest) {
 // Aplicar middleware de performance
 export const GET = withAnalytics(getHandler);
 export const POST = withAnalytics(postHandler);
+
+

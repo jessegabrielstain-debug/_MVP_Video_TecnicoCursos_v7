@@ -1,4 +1,3 @@
-import { describe, it, expect } from '@jest/globals'
 // Importa diretamente para evitar carregar bullmq-service (Esm export de dependência msgpackr)
 import { logger, createLogger, getLogger } from '@/lib/services/logger-service'
 import { existsSync, readFileSync } from 'fs'

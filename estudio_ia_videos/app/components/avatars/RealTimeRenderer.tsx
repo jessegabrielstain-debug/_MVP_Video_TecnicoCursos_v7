@@ -502,10 +502,10 @@ export default function RealTimeRenderer({
   const pauseRendering = () => {
     setIsPaused(!isPaused);
     if (!isPaused) {
-      toast.info('Renderização pausada');
+      toast('Renderização pausada', { icon: 'ℹ️' });
     } else {
       renderLoop();
-      toast.info('Renderização retomada');
+      toast('Renderização retomada', { icon: 'ℹ️' });
     }
   };
 
@@ -515,7 +515,7 @@ export default function RealTimeRenderer({
     if (animationFrameRef.current) {
       clearTimeout(animationFrameRef.current);
     }
-    toast.info('Renderização parada');
+    toast('Renderização parada', { icon: 'ℹ️' });
   };
 
   // Aplicar preset de qualidade

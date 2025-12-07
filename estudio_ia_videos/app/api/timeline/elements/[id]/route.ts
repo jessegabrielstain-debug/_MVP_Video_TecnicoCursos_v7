@@ -1,6 +1,35 @@
+// TODO: Add timeline_elements and timeline_tracks tables to Supabase types
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+
+// Type for timeline element with track and project info
+interface TimelineElementWithTrack {
+  id: string;
+  track_id: string;
+  start_time: number;
+  duration: number;
+  content?: string;
+  type?: string;
+  source_url?: string;
+  properties?: Record<string, unknown>;
+  effects?: Record<string, unknown>[];
+  transitions?: Record<string, unknown>;
+  locked?: boolean;
+  project_id?: string;
+  track: {
+    id: string;
+    name: string;
+    type: string;
+    locked?: boolean;
+    project_id?: string;
+    project: {
+      owner_id: string;
+      collaborators?: string[];
+      is_public?: boolean;
+    };
+  };
+}
 
 // Schema de validação para atualização de elemento
 const updateElementSchema = z.object({
@@ -18,8 +47,8 @@ const updateElementSchema = z.object({
     rotation: z.number().optional(),
     scale: z.number().min(0.1).max(10).optional()
   }).optional(),
-  effects: z.array(z.record(z.any())).optional(),
-  transitions: z.record(z.any()).optional(),
+  effects: z.array(z.record(z.unknown())).optional(),
+  transitions: z.record(z.unknown()).optional(),
   thumbnail_url: z.string().url().optional(),
   file_size: z.number().int().min(0).optional(),
   mime_type: z.string().optional()
@@ -37,7 +66,7 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -50,7 +79,7 @@ export async function GET(
     const elementId = params.id
 
     // Buscar elemento com dados da track e projeto
-    const { data: element, error } = await supabase
+    const { data: elementData, error } = await (supabase
       .from('timeline_elements')
       .select(`
         *,
@@ -58,7 +87,7 @@ export async function GET(
           *,
           project:projects(owner_id, collaborators, is_public)
         )
-      `)
+      `) as any)
       .eq('id', elementId)
       .single()
 
@@ -76,10 +105,12 @@ export async function GET(
       )
     }
 
+    const element = elementData as unknown as TimelineElementWithTrack;
+    
     // Verificar permissões
     const project = element.track.project
     const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id) ||
+                         (Array.isArray(project.collaborators) && (project.collaborators as string[]).includes(user.id)) ||
                          project.is_public
 
     if (!hasPermission) {
@@ -90,10 +121,10 @@ export async function GET(
     }
 
     // Remover dados aninhados da resposta
-    const { track, ...elementData } = element
+    const { track, ...restData } = element
 
     return NextResponse.json({
-      ...elementData,
+      ...restData,
       track_name: track.name,
       track_type: track.type
     })
@@ -113,7 +144,7 @@ export async function PUT(
   { params }: RouteParams
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -128,7 +159,7 @@ export async function PUT(
     const validatedData = updateElementSchema.parse(body)
 
     // Verificar se o elemento existe e obter dados do projeto
-    const { data: existingElement } = await supabase
+    const { data: existingElementData } = await (supabase
       .from('timeline_elements')
       .select(`
         *,
@@ -136,21 +167,23 @@ export async function PUT(
           locked,
           project:projects(owner_id, collaborators)
         )
-      `)
+      `) as any)
       .eq('id', elementId)
       .single()
 
-    if (!existingElement) {
+    if (!existingElementData) {
       return NextResponse.json(
         { error: 'Elemento não encontrado' },
         { status: 404 }
       )
     }
 
+    const existingElement = existingElementData as unknown as TimelineElementWithTrack;
+    
     // Verificar permissões
     const project = existingElement.track.project
     const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+                         (Array.isArray(project.collaborators) && (project.collaborators as string[]).includes(user.id))
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -182,9 +215,9 @@ export async function PUT(
       const newDuration = validatedData.duration ?? existingElement.duration
       const newEndTime = newStartTime + newDuration
 
-      const { data: overlappingElements } = await supabase
+      const { data: overlappingElements } = await (supabase
         .from('timeline_elements')
-        .select('id, start_time, duration')
+        .select('id, start_time, duration') as any)
         .eq('track_id', existingElement.track_id)
         .neq('id', elementId)
         .or(`and(start_time.lte.${newStartTime},end_time.gt.${newStartTime}),and(start_time.lt.${newEndTime},end_time.gte.${newEndTime})`)
@@ -201,9 +234,9 @@ export async function PUT(
     }
 
     // Atualizar elemento
-    const { data: element, error } = await supabase
+    const { data: updatedElement, error } = await (supabase
       .from('timeline_elements')
-      .update(updateData)
+      .update(updateData) as any)
       .eq('id', elementId)
       .select()
       .single()
@@ -216,28 +249,33 @@ export async function PUT(
       )
     }
 
-    // Registrar no histórico
-    await supabase
-      .from('project_history')
-      .insert({
-        project_id: existingElement.project_id,
-        user_id: user.id,
-        action: 'update',
-        entity_type: 'element',
-        entity_id: elementId,
-        description: `Elemento ${element.type} atualizado`,
-        changes: {
-          previous_data: {
-            start_time: existingElement.start_time,
-            duration: existingElement.duration,
-            content: existingElement.content,
-            properties: existingElement.properties,
-            effects: existingElement.effects,
-            transitions: existingElement.transitions
-          },
-          new_data: validatedData
-        }
-      })
+    const element = updatedElement as unknown as TimelineElementWithTrack;
+    const projectId = existingElement.track?.project_id || existingElement.project_id;
+    
+    if (projectId) {
+      // Registrar no histórico
+      await (supabase
+        .from('project_history')
+        .insert({
+          project_id: projectId,
+          user_id: user.id,
+          action: 'update',
+          entity_type: 'element',
+          entity_id: elementId,
+          description: `Elemento ${element.type || 'desconhecido'} atualizado`,
+          changes: {
+            previous_data: {
+              start_time: existingElement.start_time,
+              duration: existingElement.duration,
+              content: existingElement.content,
+              properties: existingElement.properties,
+              effects: existingElement.effects,
+              transitions: existingElement.transitions
+            },
+            new_data: validatedData
+          } as any
+        }) as any)
+    }
 
     return NextResponse.json(element)
 
@@ -263,7 +301,7 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -276,7 +314,7 @@ export async function DELETE(
     const elementId = params.id
 
     // Verificar se o elemento existe e obter dados do projeto
-    const { data: existingElement } = await supabase
+    const { data: existingElementData } = await (supabase
       .from('timeline_elements')
       .select(`
         *,
@@ -284,21 +322,23 @@ export async function DELETE(
           locked,
           project:projects(owner_id, collaborators)
         )
-      `)
+      `) as any)
       .eq('id', elementId)
       .single()
 
-    if (!existingElement) {
+    if (!existingElementData) {
       return NextResponse.json(
         { error: 'Elemento não encontrado' },
         { status: 404 }
       )
     }
 
+    const existingElement = existingElementData as unknown as TimelineElementWithTrack;
+    
     // Verificar permissões
     const project = existingElement.track.project
     const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+                         (Array.isArray(project.collaborators) && (project.collaborators as string[]).includes(user.id))
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -316,9 +356,9 @@ export async function DELETE(
     }
 
     // Excluir elemento
-    const { error } = await supabase
+    const { error } = await (supabase
       .from('timeline_elements')
-      .delete()
+      .delete() as any)
       .eq('id', elementId)
 
     if (error) {
@@ -330,25 +370,27 @@ export async function DELETE(
     }
 
     // Registrar no histórico
-    await supabase
-      .from('project_history')
-      .insert({
-        project_id: existingElement.project_id,
-        user_id: user.id,
-        action: 'delete',
-        entity_type: 'element',
-        entity_id: elementId,
-        description: `Elemento ${existingElement.type} excluído`,
-        changes: {
-          deleted_element: {
-            id: existingElement.id,
-            type: existingElement.type,
-            content: existingElement.content,
-            start_time: existingElement.start_time,
-            duration: existingElement.duration
-          }
-        }
-      })
+    if (existingElement.project_id) {
+      await (supabase
+        .from('project_history')
+        .insert({
+          project_id: existingElement.project_id,
+          user_id: user.id,
+          action: 'delete',
+          entity_type: 'element',
+          entity_id: elementId,
+          description: `Elemento ${existingElement.type} excluído`,
+          changes: {
+            deleted_element: {
+              id: existingElement.id,
+              type: existingElement.type,
+              content: existingElement.content,
+              start_time: existingElement.start_time,
+              duration: existingElement.duration
+            }
+          } as any
+        }) as any)
+    }
 
     return NextResponse.json({ message: 'Elemento excluído com sucesso' })
 

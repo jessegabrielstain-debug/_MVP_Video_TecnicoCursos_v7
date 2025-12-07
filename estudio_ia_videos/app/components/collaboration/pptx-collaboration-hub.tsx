@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
+import { Label } from '@/components/ui/label'
 import {
   Users,
   MessageCircle,
@@ -38,7 +39,7 @@ import {
   Settings,
   Bell,
   BellOff,
-  Cursor,
+  MousePointer2 as Cursor,
   MousePointer,
   Palette,
   Lock,

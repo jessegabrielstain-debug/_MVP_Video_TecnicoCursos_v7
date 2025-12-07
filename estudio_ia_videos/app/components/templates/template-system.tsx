@@ -32,6 +32,9 @@ import { TemplatePreview } from './template-preview';
 import { TemplateEditor } from './template-editor';
 import { TemplateFilters } from './template-filters';
 import { TemplateImportExport } from './template-import-export';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface TemplateSystemProps {
   className?: string;
@@ -42,33 +45,92 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
     templates,
     filteredTemplates,
     favorites,
-    customTemplates,
-    loading,
+    isLoading,
     error,
     filter,
-    selectedTemplate,
+    sort,
     setFilter,
-    clearFilter,
+    setSort,
+    clearFilters,
     searchTemplates,
     toggleFavorite,
     createTemplate,
     updateTemplate,
     deleteTemplate,
     duplicateTemplate,
-    selectTemplate,
-    getCategoryStats,
     exportTemplate,
     importTemplate,
+    getTemplateStats,
   } = useTemplates();
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showPreview, setShowPreview] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [showImportExport, setShowImportExport] = useState(false);
+  const [importExportMode, setImportExportMode] = useState<'import' | 'export' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  
+  const router = useRouter();
+  const supabase = createClient();
+  const { toast } = useToast();
 
-  const categoryStats = getCategoryStats();
+  // Derive customTemplates from templates
+  const customTemplates = templates.filter(t => t.isCustom);
+  const categoryStats = getTemplateStats();
+
+  const handleUseTemplate = async (template: Template) => {
+    try {
+      setIsCreatingProject(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+            title: "Authentication required",
+            description: "Please login to create a project",
+            variant: "destructive"
+        });
+        return;
+      }
+
+      const { data: project, error } = await supabase
+        .from('projects')
+        .insert({
+          name: `${template.name}`,
+          type: 'template-nr',
+          user_id: user.id,
+          status: 'draft',
+          thumbnail_url: template.thumbnail,
+          render_settings: {
+            template_id: template.id,
+            template_data: template
+          }
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Project created",
+        description: "Redirecting to editor...",
+      });
+
+      router.push(`/editor/timeline/${project.id}`);
+      
+    } catch (error) {
+      console.error('Failed to create project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create project from template",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingProject(false);
+    }
+  };
+
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -76,17 +138,17 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
   };
 
   const handleTemplateSelect = (template: Template) => {
-    selectTemplate(template);
+    setSelectedTemplate(template);
     setShowPreview(true);
   };
 
   const handleCreateNew = () => {
-    selectTemplate(null);
+    setSelectedTemplate(null);
     setShowEditor(true);
   };
 
   const handleEdit = (template: Template) => {
-    selectTemplate(template);
+    setSelectedTemplate(template);
     setShowEditor(true);
   };
 
@@ -108,28 +170,12 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
     }
   };
 
-  const handleExport = async (template: Template) => {
-    try {
-      const blob = await exportTemplate(template.id, {
-        format: 'json',
-        includeAssets: true,
-        compression: true,
-      });
-      
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${template.name}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Failed to export template:', error);
-    }
+  const handleExport = (template: Template) => {
+    setSelectedTemplate(template);
+    setImportExportMode('export');
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -163,7 +209,7 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
           </Button>
           <Button 
             variant="outline" 
-            onClick={() => setShowImportExport(true)}
+            onClick={() => setImportExportMode('import')}
           >
             <Upload className="w-4 h-4 mr-2" />
             Importar/Exportar
@@ -215,8 +261,8 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
         <TemplateFilters
           filter={filter}
           onFilterChange={setFilter}
-          onClearFilters={clearFilter}
-          categoryStats={categoryStats}
+          onClearFilters={clearFilters}
+          categoryStats={categoryStats.byCategory}
           sort={sort}
           onSortChange={setSort}
         />
@@ -354,10 +400,7 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
             setShowPreview(false);
             setShowEditor(true);
           }}
-          onUse={() => {
-            // Handle template usage
-            console.log('Using template:', selectedTemplate);
-          }}
+          onUse={() => handleUseTemplate(selectedTemplate)}
         />
       )}
 
@@ -370,7 +413,7 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
               if (selectedTemplate) {
                 await updateTemplate(selectedTemplate.id, template);
               } else {
-                await createTemplate(template);
+                await createTemplate(template as Omit<Template, 'id' | 'createdAt' | 'updatedAt'>);
               }
               setShowEditor(false);
             } catch (error) {
@@ -380,11 +423,20 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
         />
       )}
 
-      {showImportExport && (
+      {importExportMode && (
         <TemplateImportExport
-          onClose={() => setShowImportExport(false)}
-          onImport={importTemplate}
-          onExport={exportTemplate}
+          mode={importExportMode}
+          template={importExportMode === 'export' ? selectedTemplate || undefined : undefined}
+          onClose={() => setImportExportMode(null)}
+          onImport={async (templates) => {
+            for (const template of templates) {
+              await createTemplate(template as Omit<Template, 'id' | 'createdAt' | 'updatedAt'>);
+            }
+            setImportExportMode(null);
+          }}
+          onExport={(format, data) => {
+            console.log('Exporting', format, data);
+          }}
         />
       )}
     </div>
@@ -440,7 +492,7 @@ const TemplateGrid: React.FC<TemplateGridProps> = ({
           onDuplicate={() => onDuplicate(template)}
           onDelete={() => onDelete(template)}
           onExport={() => onExport(template)}
-          onToggleFavorite={() => onToggleFavorite(template.id)}
+          onFavorite={() => onToggleFavorite(template.id)}
         />
       ))}
     </div>

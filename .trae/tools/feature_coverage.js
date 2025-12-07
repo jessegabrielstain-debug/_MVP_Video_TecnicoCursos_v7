@@ -8,7 +8,6 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const APP_DIR = path.join(ROOT, 'estudio_ia_videos', 'app');
 const OUTPUT_DIR = path.join(ROOT, '_Fases_REAL');
 
 function ensureOutputDir() {

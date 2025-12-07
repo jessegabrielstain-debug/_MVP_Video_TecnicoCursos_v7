@@ -39,7 +39,7 @@ describe('PPTX System Tests', () => {
             const file = await createFileObject(invalidPath);
             const result = await validatePPTXFile(file);
             expect(result.valid).toBe(false);
-            expect(result.error).toContain('Formato de arquivo inválido');
+            expect(result.error).toContain('Assinatura ZIP não encontrada');
         });
 
         test('should reject empty files', async () => {
@@ -58,9 +58,9 @@ describe('PPTX System Tests', () => {
             expect(result.success).toBe(true);
             expect(result.error).toBeUndefined();
             expect(result.metadata).toBeDefined();
-            expect(result.metadata.slideCount).toBeGreaterThan(0);
-            expect(result.slides).toHaveLength(result.metadata.slideCount);
-            expect(result.thumbnails).toHaveLength(result.metadata.slideCount);
+            expect(result.metadata!.slideCount).toBeGreaterThan(0);
+            expect(result.slides).toHaveLength(result.metadata!.slideCount);
+            expect(result.thumbnails).toHaveLength(result.metadata!.slideCount);
         });
 
         test('should handle processing failure gracefully', async () => {

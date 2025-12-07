@@ -78,7 +78,7 @@ import {
   Italic,
   Underline
 } from 'lucide-react';
-import { useWYSIWYGEditor, EditorElement, Layer, Animation } from '@/hooks/useWYSIWYGEditor';
+import { useWYSIWYGEditor, EditorElement, Layer, Animation, Keyframe, Timeline } from '@/hooks/useWYSIWYGEditor';
 import { useToast } from '@/hooks/use-toast';
 
 interface ToolbarProps {
@@ -782,7 +782,7 @@ const LayersPanel: React.FC<LayersPanelProps> = ({
 };
 
 interface TimelinePanelProps {
-  timeline: any;
+  timeline: Timeline;
   elements: EditorElement[];
   onPlay: () => void;
   onPause: () => void;

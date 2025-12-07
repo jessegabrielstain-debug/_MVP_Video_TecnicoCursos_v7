@@ -14,9 +14,19 @@ class MonitoringService {
     return this.instance;
   }
   
-  logEvent(event: string, data: any) {
+  logEvent(event: string, data: Record<string, unknown>) {
     console.log(`📊 [${event}]`, data);
   }
+}
+
+interface TTSConfig {
+  voice: string
+  language: string
+  speed?: number
+  pitch?: number
+  stability?: number
+  clarity?: number
+  userId?: string
 }
 
 class TTSEngineManager {
@@ -29,15 +39,19 @@ class TTSEngineManager {
     return this.instance;
   }
   
-  async synthesize(text: string, engine: string, config: any) {
+  async synthesize(text: string, engine: string, config: TTSConfig) {
     // Simulate TTS processing
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     const jobId = `tts_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
+    // Simular um buffer de áudio (em produção, seria gerado pelo engine TTS)
+    const audioBuffer = new ArrayBuffer(text.length * 100);
+    
     return {
       jobId,
       audioUrl: `/api/audio/generated/${jobId}.mp3`,
+      audioBuffer,
       duration: Math.floor(text.length * 50), // Estimate based on text length
       engine,
       voice: config.voice,
@@ -141,7 +155,7 @@ export async function POST(request: NextRequest) {
       engine,
       duration: result.duration,
       processingTime: Date.now() - startTime,
-      audioSize: result.audioBuffer?.length || 0
+      audioSize: result.audioBuffer?.byteLength || 0
     });
 
     // Retornar resultado
@@ -167,11 +181,11 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Log do erro
     monitoring.logEvent('tts_generate_error', {
-      error: error.message,
-      stack: error.stack,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       processingTime: Date.now() - startTime
     });
 
@@ -180,7 +194,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Erro interno do servidor',
-        message: error.message,
+        message: error instanceof Error ? error.message : String(error),
         code: 'TTS_GENERATION_ERROR'
       },
       { status: 500 }
@@ -203,13 +217,13 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao obter estatísticas TTS:', error);
     
     return NextResponse.json(
       { 
         error: 'Erro ao obter estatísticas',
-        message: error.message 
+        message: error instanceof Error ? error.message : String(error) 
       },
       { status: 500 }
     );

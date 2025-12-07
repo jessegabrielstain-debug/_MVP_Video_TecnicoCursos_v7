@@ -6,10 +6,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { getOrgContext, hasPermission } from '@/lib/multi-tenancy/org-context';
 import { getAuditLogs } from '@/lib/billing/audit-logger';
-// @ts-ignore - json2csv será instalado em produção
+// @ts-expect-error - json2csv não tem tipos disponíveis
 import { Parser } from 'json2csv';
 
 export async function GET(
@@ -17,7 +17,7 @@ export async function GET(
   { params }: { params: { orgId: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
@@ -47,7 +47,7 @@ export async function GET(
     });
 
     // Formata dados para CSV
-    const csvData = result.logs.map((log: any) => ({
+    const csvData = result.logs.map((log: Record<string, any>) => ({
       timestamp: log.timestamp.toISOString(),
       user: log.userEmail || log.userName || 'Sistema',
       action: log.action,

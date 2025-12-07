@@ -58,7 +58,7 @@ interface SystemResource {
   usage: number;
   limit: number;
   status: 'optimal' | 'high' | 'critical';
-  details: { [key: string]: any };
+  details: { [key: string]: unknown };
 }
 
 interface UserMetric {
@@ -414,7 +414,7 @@ export default function PerformanceDashboard() {
                       {Object.entries(resource.details).map(([key, value]) => (
                         <div key={key} className="flex justify-between text-xs">
                           <span className="text-gray-600 capitalize">{key}:</span>
-                          <span className="font-medium">{value}</span>
+                          <span className="font-medium">{String(value)}</span>
                         </div>
                       ))}
                     </div>
@@ -449,7 +449,7 @@ export default function PerformanceDashboard() {
                       {Object.entries(resource.details).map(([key, value]) => (
                         <div key={key} className="space-y-1">
                           <div className="text-sm text-gray-600 capitalize">{key}</div>
-                          <div className="font-bold">{value}</div>
+                          <div className="font-bold">{String(value)}</div>
                         </div>
                       ))}
                     </div>

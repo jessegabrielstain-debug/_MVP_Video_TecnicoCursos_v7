@@ -132,7 +132,7 @@ export function AnalyticsDashboard() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button variant="outline" onClick={exportData}>
+          <Button variant="outline" onClick={() => exportData('all')} disabled={isLoading}>
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
@@ -175,7 +175,7 @@ export function AnalyticsDashboard() {
                 <Video className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatNumber(systemMetrics?.active_projects || 0)}</div>
+                <div className="text-2xl font-bold">{formatNumber(userMetrics?.active_projects || 0)}</div>
                 <div className="flex items-center text-xs text-muted-foreground">
                   <Activity className="mr-1 h-3 w-3" />
                   {systemMetrics?.projects_created_today || 0} created today
@@ -429,7 +429,7 @@ export function AnalyticsDashboard() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatDuration(userMetrics?.avg_session_duration || 0)}</div>
+                <div className="text-2xl font-bold">{formatDuration(userMetrics?.usage_patterns?.avg_session_duration || 0)}</div>
                 <div className="text-xs text-muted-foreground">
                   Per user session
                 </div>
@@ -482,12 +482,12 @@ export function AnalyticsDashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={(props: { name: string; percent: number }) => `${props.name} ${(props.percent * 100).toFixed(0)}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
                     >
-                      {(userMetrics?.user_distribution || []).map((entry: any, index: number) => (
+                      {(userMetrics?.user_distribution || []).map((entry: { name: string; value: number }, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -585,12 +585,12 @@ export function AnalyticsDashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={(props: { name: string; percent: number }) => `${props.name} ${(props.percent * 100).toFixed(0)}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
                     >
-                      {(renderStats?.status_distribution || []).map((entry: any, index: number) => (
+                      {(renderStats?.status_distribution || []).map((entry: { name: string; value: number }, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>

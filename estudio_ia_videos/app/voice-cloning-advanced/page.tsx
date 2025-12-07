@@ -24,8 +24,7 @@ import {
   Clock,
   Headphones,
   Music,
-  Radio,
-  Mic
+  Radio
 } from 'lucide-react'
 import VoiceCloningStudioAdvanced from './components/VoiceCloningStudioAdvanced'
 

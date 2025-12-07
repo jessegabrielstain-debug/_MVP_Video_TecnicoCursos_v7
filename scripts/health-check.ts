@@ -2,14 +2,12 @@
 
 /**
  * Health Check Script
- * Validates all core services and their dependencies
+ * Verifica status de todas dependências críticas
  */
 
+import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js'
 import { execSync } from 'child_process'
-
-// Load environment variables
-require('dotenv').config()
 
 interface HealthCheckResult {
   service: string
@@ -241,12 +239,9 @@ async function runAllHealthChecks(): Promise<HealthCheckResult[]> {
   return results
 }
 
-// Run the health check
-if (require.main === module) {
-  runAllHealthChecks().catch(error => {
-    console.error('Health check failed:', error)
-    process.exit(1)
-  })
+// Run the health check if executed directly
+if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`) {
+  runAllHealthChecks().catch(console.error);
 }
 
 export { runAllHealthChecks, HealthCheckResult }

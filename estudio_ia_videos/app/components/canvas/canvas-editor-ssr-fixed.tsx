@@ -42,14 +42,15 @@ import {
   Smartphone
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import type * as Fabric from 'fabric'
 
 // Fabric.js - dynamic import for SSR safety
-let fabric: any = null
+let fabric: typeof Fabric | null = null
 
 interface Layer {
   id: string
   name: string
-  object: any
+  object: Fabric.Object
   visible: boolean
   locked: boolean
   order: number
@@ -58,8 +59,8 @@ interface Layer {
 interface CanvasEditorProps {
   width?: number
   height?: number
-  initialData?: any
-  onSave?: (data: any) => void
+  initialData?: Record<string, unknown>
+  onSave?: (data: Record<string, unknown>) => void
   enableMobileGestures?: boolean
 }
 
@@ -72,7 +73,7 @@ export default function CanvasEditorSSRFixed({
 }: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [canvas, setCanvas] = useState<unknown>(null)
+  const [canvas, setCanvas] = useState<Fabric.Canvas | null>(null)
   const [isClient, setIsClient] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
@@ -124,8 +125,8 @@ export default function CanvasEditorSSRFixed({
       try {
         if (!fabric) {
           // ✅ CORRIGIDO: Usa FabricManager singleton
-          const { default: FabricManager } = await import('@/lib/fabric-singleton')
-          fabric = await FabricManager.getInstance()
+          const { FabricManager } = await import('@/lib/fabric-singleton')
+          fabric = FabricManager.getInstance()
         }
         initializeCanvas()
       } catch (error) {
@@ -160,12 +161,12 @@ export default function CanvasEditorSSRFixed({
       })
 
       // Enable snap to grid
-      newCanvas.on('object:moving', (e: any) => {
-        if (snapToGrid) {
+      newCanvas.on('object:moving', (e: Fabric.IEvent) => {
+        if (snapToGrid && e.target) {
           const obj = e.target
           obj.set({
-            left: Math.round(obj.left / gridSize) * gridSize,
-            top: Math.round(obj.top / gridSize) * gridSize
+            left: Math.round((obj.left || 0) / gridSize) * gridSize,
+            top: Math.round((obj.top || 0) / gridSize) * gridSize
           })
         }
       })
@@ -186,14 +187,16 @@ export default function CanvasEditorSSRFixed({
         saveHistory(newCanvas)
       })
 
-      newCanvas.on('selection:created', (e: any) => {
+      newCanvas.on('selection:created', (e: Fabric.IEvent) => {
         if (e.selected && e.selected[0]) {
+          // @ts-ignore
           setSelectedLayer(e.selected[0].id || null)
         }
       })
 
-      newCanvas.on('selection:updated', (e: any) => {
+      newCanvas.on('selection:updated', (e: Fabric.IEvent) => {
         if (e.selected && e.selected[0]) {
+          // @ts-ignore
           setSelectedLayer(e.selected[0].id || null)
         }
       })
@@ -230,7 +233,7 @@ export default function CanvasEditorSSRFixed({
   /**
    * Setup mobile gestures (pinch zoom, pan, rotate)
    */
-  const setupMobileGestures = (canvas: any) => {
+  const setupMobileGestures = (canvas: Fabric.Canvas) => {
     const canvasEl = canvas.upperCanvasEl
 
     // Touch start
@@ -284,10 +287,10 @@ export default function CanvasEditorSSRFixed({
   /**
    * Draw grid on canvas
    */
-  const drawGrid = (canvas: any) => {
+  const drawGrid = (canvas: Fabric.Canvas) => {
     if (!fabric) return
 
-    const gridLines: any[] = []
+    const gridLines: Fabric.Object[] = []
 
     // Vertical lines
     for (let i = 0; i < width / gridSize; i++) {
@@ -295,6 +298,7 @@ export default function CanvasEditorSSRFixed({
         stroke: '#e0e0e0',
         selectable: false,
         evented: false,
+        // @ts-ignore
         excludeFromExport: true
       })
       gridLines.push(line)
@@ -306,6 +310,7 @@ export default function CanvasEditorSSRFixed({
         stroke: '#e0e0e0',
         selectable: false,
         evented: false,
+        // @ts-ignore
         excludeFromExport: true
       })
       gridLines.push(line)
@@ -318,7 +323,7 @@ export default function CanvasEditorSSRFixed({
   /**
    * Save history state
    */
-  const saveHistory = (canvas: any) => {
+  const saveHistory = (canvas: Fabric.Canvas) => {
     if (!canvas) return
 
     const json = JSON.stringify(canvas.toJSON())
@@ -337,12 +342,14 @@ export default function CanvasEditorSSRFixed({
   /**
    * Update layers list
    */
-  const updateLayers = (canvas: any) => {
+  const updateLayers = (canvas: Fabric.Canvas) => {
     if (!canvas) return
 
-    const objects = canvas.getObjects().filter((obj: any) => !obj.excludeFromExport)
-    const newLayers: Layer[] = objects.map((obj: any, index: number) => ({
-      id: obj.id || `layer-${index}`,
+    // @ts-ignore
+    const objects = canvas.getObjects().filter((obj: Fabric.Object) => !(obj as any).excludeFromExport)
+    const newLayers: Layer[] = objects.map((obj: Fabric.Object, index: number) => ({
+      // @ts-ignore
+      id: (obj as any).id || `layer-${index}`,
       name: obj.type || 'Object',
       object: obj,
       visible: obj.visible !== false,
@@ -356,7 +363,7 @@ export default function CanvasEditorSSRFixed({
   /**
    * Load canvas data
    */
-  const loadCanvasData = (canvas: any, data: any) => {
+  const loadCanvasData = (canvas: Fabric.Canvas, data: Record<string, unknown>) => {
     if (!canvas) return
 
     try {
@@ -488,8 +495,9 @@ export default function CanvasEditorSSRFixed({
     if (!canvas) return
     
     const objects = canvas.getObjects()
-    objects.forEach((obj: any) => {
-      if (obj.excludeFromExport) {
+    objects.forEach((obj: Fabric.Object) => {
+      // @ts-ignore
+      if ((obj as any).excludeFromExport) {
         canvas.remove(obj)
       }
     })

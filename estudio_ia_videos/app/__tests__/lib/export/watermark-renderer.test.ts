@@ -9,7 +9,6 @@
  * - Geração de comandos FFmpeg
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 import { watermarkRenderer } from '@/lib/export/watermark-renderer'
 import { 
   WatermarkType, 

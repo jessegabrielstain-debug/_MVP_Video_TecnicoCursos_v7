@@ -5,7 +5,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { recommendationSystem, RecommendationType } from '@/app/lib/intelligent-recommendation-system';
+import { recommendationSystem, RecommendationItem } from '@/lib/intelligent-recommendation-system';
+
+type RecommendationType = 'template' | 'asset' | 'course' | 'feature';
 
 /**
  * POST /api/recommendations/generate
@@ -14,9 +16,10 @@ import { recommendationSystem, RecommendationType } from '@/app/lib/intelligent-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, types } = body as {
+    const { userId, types, limit } = body as {
       userId: string;
       types?: RecommendationType[];
+      limit?: number;
     };
 
     if (!userId) {
@@ -26,21 +29,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const recommendations = await recommendationSystem.generateRecommendations(
+    const allRecommendations = await recommendationSystem.getRecommendations(
       userId,
-      types
+      types ? { filterTypes: types } : undefined,
+      limit || 10
     );
+
+    // Filtrar por tipos se especificado
+    const recommendations = types 
+      ? allRecommendations.filter((rec: RecommendationItem) => types.includes(rec.type as RecommendationType))
+      : allRecommendations;
 
     return NextResponse.json({
       success: true,
-      recommendations: recommendations.map(rec => ({
+      recommendations: recommendations.map((rec: RecommendationItem) => ({
         id: rec.id,
         type: rec.type,
-        items: rec.items,
-        reason: rec.reason,
-        confidence: rec.confidence,
-        createdAt: rec.createdAt,
-        expiresAt: rec.expiresAt,
+        title: rec.title,
+        description: rec.description,
+        relevanceScore: rec.relevanceScore,
+        metadata: rec.metadata,
       })),
     });
   } catch (error) {
@@ -60,6 +68,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
+    const limit = searchParams.get('limit');
 
     if (!userId) {
       return NextResponse.json(
@@ -68,17 +77,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const recommendations = recommendationSystem.getUserRecommendations(userId);
+    const recommendations = await recommendationSystem.getRecommendations(
+      userId,
+      undefined,
+      limit ? parseInt(limit, 10) : 10
+    );
 
     return NextResponse.json({
       success: true,
-      recommendations: recommendations.map(rec => ({
+      recommendations: recommendations.map((rec: RecommendationItem) => ({
         id: rec.id,
         type: rec.type,
-        items: rec.items,
-        reason: rec.reason,
-        confidence: rec.confidence,
-        createdAt: rec.createdAt,
+        title: rec.title,
+        description: rec.description,
+        relevanceScore: rec.relevanceScore,
+        metadata: rec.metadata,
       })),
     });
   } catch (error) {
@@ -89,3 +102,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

@@ -57,7 +57,7 @@ const createInitialProject = (): TimelineProject => ({
   },
   history: {
     past: [],
-    present: {} as TimelineProject,
+    present: null,
     future: []
   }
 });
@@ -83,7 +83,7 @@ function timelineReducer(state: TimelineProject, action: TimelineAction): Timeli
         ...layer,
         elements: layer.elements.filter(el => el.id !== action.elementId)
       }));
-      newState.selectedElementIds = newState.selectedElementIds.filter(id => id !== action.elementId);
+      newState.selectedElementIds = (newState.selectedElementIds || []).filter(id => id !== action.elementId);
       return newState;
     }
 
@@ -119,7 +119,7 @@ function timelineReducer(state: TimelineProject, action: TimelineAction): Timeli
 
       if (elementToMove) {
         const targetLayerId = action.newLayerId || sourceLayerId;
-        const updatedElement = { ...elementToMove, startTime: action.newStartTime };
+        const updatedElement = { ...(elementToMove as TimelineElement), start: action.newStartTime };
 
         // Add element to target layer
         newState.layers = newState.layers.map(layer =>
@@ -212,11 +212,11 @@ function timelineReducer(state: TimelineProject, action: TimelineAction): Timeli
       const newState = { ...state };
       const targetLayer = newState.layers.find(l => l.id === action.targetLayerId);
 
-      if (targetLayer && state.clipboardElements.length > 0) {
-        const pastedElements = state.clipboardElements.map((element, index) => ({
+      if (targetLayer && (state.clipboardElements?.length || 0) > 0) {
+        const pastedElements = (state.clipboardElements || []).map((element, index) => ({
           ...element,
           id: crypto.randomUUID(),
-          startTime: action.targetTime + (index * 100), // slight offset for multiple elements
+          start: action.targetTime + (index * 100), // slight offset for multiple elements
           keyframes: (element.keyframes || []).map(kf => ({ ...kf, id: crypto.randomUUID() }))
         }));
 
@@ -360,7 +360,7 @@ export function useTimeline() {
     const elements: TimelineElement[] = [];
     project.layers.forEach(layer => {
       layer.elements.forEach(element => {
-        if (element.startTime <= time && time <= element.startTime + element.duration) {
+        if (element.start <= time && time <= element.start + element.duration) {
           elements.push(element);
         }
       });
@@ -372,7 +372,7 @@ export function useTimeline() {
     const selectedElements: TimelineElement[] = [];
     project.layers.forEach(layer => {
       layer.elements.forEach(element => {
-        if (project.selectedElementIds.includes(element.id)) {
+        if ((project.selectedElementIds || []).includes(element.id)) {
           selectedElements.push(element);
         }
       });

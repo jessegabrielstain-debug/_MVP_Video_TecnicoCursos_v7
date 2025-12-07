@@ -1,3 +1,6 @@
+// TODO: Fix timeline multi-track types
+export const dynamic = 'force-dynamic';
+
 /**
  * 🎬 Timeline History API - Version Management
  * Sprint 43 - Timeline version history and rollback
@@ -6,14 +9,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 
 /**
  * GET - Retrieve timeline history (all versions)
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
@@ -80,7 +83,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         currentVersion: currentTimeline.version,
-        history: snapshots.map(snapshot => ({
+        history: snapshots.map((snapshot: any) => ({
           id: snapshot.id,
           version: snapshot.version,
           createdAt: snapshot.createdAt.toISOString(),
@@ -99,11 +102,14 @@ export async function GET(request: NextRequest) {
       message: 'Histórico de timeline recuperado',
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Erro ao buscar histórico:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, message: 'Erro ao buscar histórico', error: error.message },
+      { success: false, message: 'Erro ao buscar histórico', error: message },
       { status: 500 }
     );
   }
 }
+
+

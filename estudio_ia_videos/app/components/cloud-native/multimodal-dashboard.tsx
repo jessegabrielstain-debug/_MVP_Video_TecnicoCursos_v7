@@ -1,6 +1,4 @@
 
-// @ts-nocheck
-
 /**
  * 🧠 Estúdio IA de Vídeos - Sprint 9
  * Dashboard de IA Multimodal
@@ -45,13 +43,67 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+interface AnalysisResult {
+  id: string;
+  type: string;
+  timestamp: Date;
+  file: string;
+  status: string;
+  results?: {
+    safetyScore?: number;
+    engagementScore?: number;
+    qualityScore?: number;
+    clarityScore?: number;
+    sentimentScore?: number;
+    complianceScore?: number;
+    objectsDetected?: number;
+    violationsFound?: number;
+    modalityScores?: {
+      visual?: number;
+      audio?: number;
+      content?: number;
+    };
+  };
+  insights?: string[];
+}
+
+interface SystemMetrics {
+  services: {
+    total: number;
+    healthy: number;
+    degraded: number;
+    unavailable: number;
+  };
+  resources: {
+    cpuUsage: number;
+    memoryUsage: number;
+    storageUsage: number;
+    networkIO: string;
+  };
+  ml: {
+    modelsDeployed: number;
+    predictions: number;
+    accuracy: number;
+    latency: number;
+  };
+}
+
+interface MLModel {
+  id: string;
+  name: string;
+  version: string;
+  accuracy: number;
+  status: string;
+  latency: number;
+}
+
 export default function MultimodalDashboard() {
-  const [analysisHistory, setAnalysisHistory] = useState([]);
-  const [currentAnalysis, setCurrentAnalysis] = useState(null);
-  const [uploadedFile, setUploadedFile] = useState(null);
+  const [analysisHistory, setAnalysisHistory] = useState<AnalysisResult[]>([]);
+  const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisResult | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [systemMetrics, setSystemMetrics] = useState(null);
-  const [mlModels, setMLModels] = useState([]);
+  const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
+  const [mlModels, setMLModels] = useState<MLModel[]>([]);
   const [activeTab, setActiveTab] = useState('analysis');
 
   useEffect(() => {
@@ -266,12 +318,12 @@ export default function MultimodalDashboard() {
     }
   };
 
-  const handleCloudNativeAction = (action) => {
+  const handleCloudNativeAction = (action: string) => {
     console.log(`Executando ação cloud native: ${action}`);
     toast.success(`Ação ${action} executada com sucesso!`);
   };
 
-  const handleMultimodalAction = (action) => {
+  const handleMultimodalAction = (action: string) => {
     console.log(`Executando ação multimodal: ${action}`);
     if (action === 'start_analysis') {
       analyzeFile();
@@ -280,7 +332,7 @@ export default function MultimodalDashboard() {
     }
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'processing': return <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />;
@@ -289,7 +341,7 @@ export default function MultimodalDashboard() {
     }
   };
 
-  const getFileTypeIcon = (filename) => {
+  const getFileTypeIcon = (filename: string) => {
     if (filename.includes('.mp4') || filename.includes('.avi')) return <FileVideo className="h-4 w-4" />;
     if (filename.includes('.wav') || filename.includes('.mp3')) return <FileAudio className="h-4 w-4" />;
     return <FileText className="h-4 w-4" />;
@@ -518,13 +570,13 @@ export default function MultimodalDashboard() {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="text-center p-3 bg-green-50 rounded-lg">
                           <div className="text-lg font-semibold text-green-600">
-                            {(currentAnalysis.safetyScore * 100).toFixed(1)}%
+                            {((currentAnalysis.results?.safetyScore || 0) * 100).toFixed(1)}%
                           </div>
                           <div className="text-xs text-gray-600">Segurança</div>
                         </div>
                         <div className="text-center p-3 bg-blue-50 rounded-lg">
                           <div className="text-lg font-semibold text-blue-600">
-                            {(currentAnalysis.engagementScore * 100).toFixed(1)}%
+                            {((currentAnalysis.results?.engagementScore || 0) * 100).toFixed(1)}%
                           </div>
                           <div className="text-xs text-gray-600">Engajamento</div>
                         </div>

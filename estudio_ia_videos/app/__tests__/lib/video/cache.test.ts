@@ -3,7 +3,6 @@
  * Suite completa de testes para sistema de cache
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { RenderingCache } from '../../../lib/video/cache';
 import type { CacheOptions, CacheEntry } from '../../../lib/video/cache';
 import path from 'path';

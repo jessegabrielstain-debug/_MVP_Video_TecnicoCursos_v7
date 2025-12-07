@@ -1,3 +1,4 @@
+// TODO: Test file - fix types
 /**
  * 🧪 Testes Básicos Audio2Face
  * FASE 2: Sprint 1 - Validação básica de configuração
@@ -44,7 +45,7 @@ describe('Audio2Face Basic Tests', () => {
     test('deve poder criar instâncias mock', () => {
       const mockFile = new global.File(['test'], 'test.txt', { type: 'text/plain' })
       const mockBlob = new global.Blob(['test'], { type: 'text/plain' })
-      const mockWs = new global.WebSocket()
+      const mockWs = new global.WebSocket('ws://localhost')
 
       expect(mockFile.name).toBe('test.txt')
       expect(mockFile.type).toBe('text/plain')

@@ -9,7 +9,6 @@
  * 5. Atualização de status
  */
 
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals'
 import { PrismaClient } from '@prisma/client'
 import Redis from 'ioredis'
 

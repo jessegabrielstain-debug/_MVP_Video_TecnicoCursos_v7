@@ -18,15 +18,16 @@ export async function GET(req: NextRequest) {
     const quota = await storageSystem.getQuota(session.user.id);
 
     return NextResponse.json(quota);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
 export async function PUT(req: NextRequest) {
   try {
     const session = await getServerSession();
-    if (!session?.user?.id || session.user.role !== 'admin') {
+    const userRole = (session?.user as { role?: string } | undefined)?.role;
+    if (!session?.user?.id || userRole !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -39,7 +40,8 @@ export async function PUT(req: NextRequest) {
     await storageSystem.setQuota(userId, newLimit);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
+

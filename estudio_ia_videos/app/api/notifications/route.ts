@@ -18,7 +18,7 @@ const NotificationCreateSchema = z.object({
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
   expires_at: z.string().datetime().optional(),
   project_id: z.string().uuid().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.unknown()).optional(),
   actions: z.array(z.object({
     id: z.string(),
     label: z.string(),
@@ -55,9 +55,9 @@ function getTimeRangeFilter(timeRange?: string) {
 }
 
 // Get notification statistics
-async function getNotificationStats(userId: string, filters: any) {
+async function getNotificationStats(userId: string, filters: z.infer<typeof NotificationQuerySchema>) {
   try {
-    let query = supabaseAdmin
+    let query = (supabaseAdmin as any)
       .from('notifications')
       .select('id, type, priority, status')
       .eq('user_id', userId)
@@ -74,28 +74,30 @@ async function getNotificationStats(userId: string, filters: any) {
       query = query.eq('project_id', filters.projectId)
     }
 
-    const { data: notifications, error } = await query
+    const { data: notificationsData, error } = await query
 
     if (error) throw error
 
+    const notifications = notificationsData as any[]
+
     const total = notifications?.length || 0
-    const unread = notifications?.filter(n => n.status === 'unread').length || 0
+    const unread = notifications?.filter((n: any) => n.status === 'unread').length || 0
 
     // Group by type
-    const byType = notifications?.reduce((acc, notification) => {
+    const byType = notifications?.reduce((acc: any, notification: any) => {
       acc[notification.type] = (acc[notification.type] || 0) + 1
       return acc
     }, {} as Record<string, number>) || {}
 
     // Group by priority
-    const byPriority = notifications?.reduce((acc, notification) => {
+    const byPriority = notifications?.reduce((acc: any, notification: any) => {
       acc[notification.priority] = (acc[notification.priority] || 0) + 1
       return acc
     }, {} as Record<string, number>) || {}
 
     // Recent activity (last 24 hours)
     const recentFilter = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    const recentActivity = notifications?.filter(n => 
+    const recentActivity = notifications?.filter((n: any) => 
       new Date(n.created_at) > recentFilter
     ).length || 0
 
@@ -145,7 +147,7 @@ export async function GET(request: NextRequest) {
     const validatedParams = NotificationQuerySchema.parse(queryParams)
 
     // Build query
-    let query = supabaseAdmin
+    let query = (supabaseAdmin as any)
       .from('notifications')
       .select('*')
       .eq('user_id', session.user.id)
@@ -244,7 +246,7 @@ export async function POST(request: NextRequest) {
     const validatedData = NotificationCreateSchema.parse(body)
 
     // Create notification
-    const { data: notification, error } = await supabaseAdmin
+    const { data: notification, error } = await (supabaseAdmin as any)
       .from('notifications')
       .insert({
         ...validatedData,
@@ -257,25 +259,6 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) throw error
-
-    // Send real-time notification via WebSocket
-    try {
-      await fetch(`${process.env.NEXTAUTH_URL}/api/websocket/broadcast`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.WEBSOCKET_SECRET}`
-        },
-        body: JSON.stringify({
-          type: 'new_notification',
-          channel: 'notifications',
-          userId: session.user.id,
-          data: notification
-        })
-      })
-    } catch (wsError) {
-      console.warn('Failed to send WebSocket notification:', wsError)
-    }
 
     return NextResponse.json({
       success: true,

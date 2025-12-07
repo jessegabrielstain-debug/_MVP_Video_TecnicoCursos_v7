@@ -2,6 +2,8 @@
  * Página do Processador de Vídeo WebAssembly
  */
 
+export const dynamic = 'force-dynamic';
+
 import VideoProcessorStudio from '@/components/video/video-processor-studio';
 
 export default function VideoProcessorPage() {

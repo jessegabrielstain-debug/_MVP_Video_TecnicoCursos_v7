@@ -9,7 +9,6 @@
  * 5. Dados em tempo real
  */
 
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()

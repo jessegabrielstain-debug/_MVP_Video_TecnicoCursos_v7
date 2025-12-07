@@ -5,7 +5,7 @@
 
 import { renderHook, act } from '@testing-library/react';
 import { useTimeline } from '@/hooks/use-timeline';
-import { TimelineElement } from '@/lib/types/timeline-types';
+import { TimelineElement, TimelineLayer } from '@/lib/types/timeline-types';
 
 describe('Advanced Timeline System', () => {
   describe('Timeline Hook', () => {
@@ -86,7 +86,7 @@ describe('Advanced Timeline System', () => {
       
       expect(videoLayer?.elements).toHaveLength(0);
       expect(overlayLayer?.elements).toHaveLength(1);
-      expect(overlayLayer?.elements[0].start).toBe(3000);
+      expect(overlayLayer?.elements?.[0]?.start).toBe(3000);
     });
 
     it('should handle playback controls correctly', () => {
@@ -155,7 +155,7 @@ describe('Advanced Timeline System', () => {
       const audioLayer = result.current.project.layers.find(l => l.id === 'audio-layer');
       expect(audioLayer?.elements).toHaveLength(2);
       
-      const pastedElement = audioLayer?.elements.find(e => e.start === 8000);
+      const pastedElement = audioLayer?.elements?.find(e => e.start === 8000);
       expect(pastedElement).toBeDefined();
       expect(pastedElement?.id).not.toBe('copy-element'); // Should have new ID
     });
@@ -187,11 +187,11 @@ describe('Advanced Timeline System', () => {
       });
 
       const overlayLayer = result.current.project.layers.find(l => l.id === 'overlay-layer');
-      const element = overlayLayer?.elements.find(e => e.id === 'keyframe-element');
+      const element = overlayLayer?.elements?.find(e => e.id === 'keyframe-element');
       
-      expect(element?.properties?.keyframes).toHaveLength(1);
-      expect(element?.properties?.keyframes[0].property).toBe('opacity');
-      expect(element?.properties?.keyframes[0].value).toBe(0.5);
+      expect(element?.keyframes).toHaveLength(1);
+      expect(element?.keyframes?.[0]?.property).toBe('opacity');
+      expect(element?.keyframes?.[0]?.value).toBe(0.5);
     });
 
     it('should manage layer operations correctly', () => {
@@ -199,10 +199,13 @@ describe('Advanced Timeline System', () => {
       
       const initialLayerCount = result.current.project.layers.length;
       
-      const newLayer = {
+      const newLayer: TimelineLayer = {
         id: 'custom-layer',
         name: 'Custom Layer',
+        type: 'overlay',
         elements: [],
+        visible: true,
+        locked: false,
         isVisible: true,
         isLocked: false,
       };
@@ -312,10 +315,12 @@ describe('Advanced Timeline System', () => {
 
       const addedElement = result.current.project.layers
         .find(l => l.id === 'overlay-layer')
-        ?.elements.find(e => e.id === 'validation-test');
+        ?.elements?.find(e => e.id === 'validation-test');
 
-      expect(addedElement?.data.slideData?.slideIndex).toBe(0);
-      expect(addedElement?.data.slideData?.content).toBe('Slide content');
+      const slideData = addedElement?.data as { slideData?: { slideIndex: number; content: string } } | undefined;
+
+      expect(slideData?.slideData?.slideIndex).toBe(0);
+      expect(slideData?.slideData?.content).toBe('Slide content');
     });
   });
 

@@ -298,3 +298,4 @@ export async function GET() {
     languages: ['pt-BR', 'en-US', 'es-ES', 'fr-FR', 'de-DE']
   });
 }
+

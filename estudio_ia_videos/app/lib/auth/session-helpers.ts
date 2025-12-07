@@ -1,26 +1,57 @@
 /**
- * Type-safe helpers for extracting session user properties
- * Centraliza lógica evitando `as any` em routes
+ * Session Helpers
+ * Utilitários para validação de sessões
  */
 
-/**
- * Extrai organizationId do user object (currentOrgId ou organizationId)
- */
-export const getOrgId = (user: unknown): string | undefined => {
-  const u = user as { currentOrgId?: string; organizationId?: string };
-  return u.currentOrgId || u.organizationId || undefined;
-};
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { NextResponse } from 'next/server';
+
+export interface SessionUser {
+  id: string;
+  email?: string;
+  name?: string;
+  role?: string;
+}
+
+export async function validateSession(): Promise<{ user: SessionUser } | { error: NextResponse }> {
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user) {
+    return {
+      error: NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    };
+  }
+
+  const userId = (session.user as { id?: string }).id;
+  if (!userId) {
+    return {
+      error: NextResponse.json(
+        { error: 'Invalid session' },
+        { status: 401 }
+      )
+    };
+  }
+
+  return {
+    user: {
+      id: userId,
+      email: (session.user as { email?: string }).email,
+      name: (session.user as { name?: string }).name,
+      role: (session.user as { role?: string }).role
+    }
+  };
+}
+
+export function isErrorResponse(result: { user: SessionUser } | { error: NextResponse }): result is { error: NextResponse } {
+  return 'error' in result;
+}
 
 /**
- * Verifica se user é admin
+ * Re-export from centralized utils to maintain backward compatibility
  */
-export const isAdmin = (user: unknown): boolean => {
-  return ((user as { isAdmin?: boolean }).isAdmin) === true;
-};
+export { getOrgId, isAdmin, getUserId } from './utils';
 
-/**
- * Extrai user ID (já existe getUserId em alguns routes, consolidar aqui)
- */
-export const getUserId = (user: unknown): string => {
-  return ((user as { id?: string }).id) || '';
-};

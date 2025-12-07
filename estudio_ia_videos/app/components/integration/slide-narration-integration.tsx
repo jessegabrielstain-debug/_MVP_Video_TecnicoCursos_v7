@@ -26,22 +26,43 @@ import {
 } from 'lucide-react'
 import SlideNarrationStudio from '../narration/slide-narration-studio'
 import TimelinePlayer from '../synchronization/timeline-player'
-import ProfessionalVoiceStudio from '../tts/professional-voice-studio'
+import ProfessionalVoiceStudio, { type VoiceConfiguration } from '../tts/professional-voice-studio'
 import { SlideNarrationResult } from '../../lib/tts/slide-narration-service'
-import { SyncTimeline } from '../../lib/synchronization/slide-avatar-sync'
+import { SyncTimeline, AvatarSyncAction, NarrationSyncSegment } from '../../lib/synchronization/slide-avatar-sync'
 import { toast } from 'react-hot-toast'
 
+interface Slide {
+  id?: string
+  slideNumber?: number
+  title: string
+  duration: number
+  original_duration?: number
+  adjusted_by_narration?: boolean
+  content?: unknown[]
+  [key: string]: unknown
+}
+
+interface ExportData {
+  projectId: string
+  slides: Slide[]
+  narrationResults: SlideNarrationResult[]
+  syncTimeline: SyncTimeline[]
+  voiceConfig: VoiceConfiguration | null
+  exportedAt: string
+  version: string
+}
+
 interface SlideNarrationIntegrationProps {
-  slides: any[]
-  onSlidesUpdate?: (slides: any[]) => void
-  onExport?: (data: any) => void
+  slides: Slide[]
+  onSlidesUpdate?: (slides: Slide[]) => void
+  onExport?: (data: ExportData) => void
   projectId?: string
   className?: string
 }
 
 interface IntegrationState {
   step: 'config' | 'narration' | 'sync' | 'preview' | 'complete'
-  voiceConfig: any
+  voiceConfig: VoiceConfiguration | null
   narrationResults: SlideNarrationResult[]
   syncTimeline: SyncTimeline[]
   isProcessing: boolean
@@ -226,11 +247,11 @@ export default function SlideNarrationIntegration({
     console.log(`🎬 Player: mudança para slide ${slideIndex + 1}`)
   }
 
-  const handleAvatarAction = (action: any) => {
+  const handleAvatarAction = (action: AvatarSyncAction) => {
     console.log('🤖 Player: ação de avatar:', action.type)
   }
 
-  const handleNarrationSegment = (segment: any) => {
+  const handleNarrationSegment = (segment: NarrationSyncSegment) => {
     console.log('🎤 Player: narração:', segment.text.substring(0, 50) + '...')
   }
 
@@ -464,7 +485,7 @@ export default function SlideNarrationIntegration({
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {adjustedSlides.map((slide: any, index: number) => (
+                  {adjustedSlides.map((slide: Slide, index: number) => (
                     <div key={slide.id || index} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium">Slide {slide.slideNumber || index + 1}</p>
@@ -546,7 +567,7 @@ export default function SlideNarrationIntegration({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {adjustedSlides.map((slide: any, index: number) => {
+            {adjustedSlides.map((slide: Slide, index: number) => {
               const hasNarration = state.narrationResults[index]?.segments.length > 0
               const narrationDuration = state.narrationResults[index]?.totalDuration
               

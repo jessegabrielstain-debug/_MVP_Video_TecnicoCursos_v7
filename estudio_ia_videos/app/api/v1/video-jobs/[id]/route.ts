@@ -2,6 +2,18 @@ import { NextResponse } from 'next/server'
 import { getSupabaseForRequest, logger } from '@/lib/services'
 import { parseUuidParam } from '~lib/handlers/route-params'
 
+type RenderJobRow = {
+  id: string;
+  status: string;
+  project_id?: string | null;
+  created_at?: string | null;
+  progress?: number | null;
+  user_id: string;
+  render_settings?: unknown;
+  attempts?: number | null;
+  duration_ms?: number | null;
+};
+
 export async function GET(req: Request, ctx: { params: { id: string } }) {
   try {
     const supabase = getSupabaseForRequest(req)
@@ -24,7 +36,7 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
       .single()
 
   if (error || !data) return NextResponse.json({ code: 'NOT_FOUND', message: 'Job não encontrado' }, { status: 404 })
-  type RenderJobRow = { id: string; status: string; project_id?: string | null; created_at?: string | null; progress?: number | null; user_id: string; render_settings?: unknown; attempts?: number | null; duration_ms?: number | null };
+  
   const row = data as unknown as RenderJobRow
   if (row.user_id !== userData.user.id) return NextResponse.json({ code: 'FORBIDDEN', message: 'Sem permissão' }, { status: 403 })
 

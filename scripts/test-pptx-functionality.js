@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const PROJECT_ROOT = path.join(__dirname, '..')
 
 console.log('🧪 INICIANDO TESTE DE FUNCIONALIDADE PPTX')
 console.log('=' .repeat(60))
@@ -58,7 +59,7 @@ async function testPPTXFunctionality() {
   console.log('\n1️⃣ VERIFICANDO API ENDPOINTS DE PPTX...')
   
   // Verificar API de upload PPTX
-  const uploadApiPath = path.join(__dirname, 'estudio_ia_videos', 'app', 'api', 'v1', 'pptx', 'upload', 'route.ts')
+  const uploadApiPath = path.join(PROJECT_ROOT, 'estudio_ia_videos', 'app', 'api', 'v1', 'pptx', 'upload', 'route.ts')
   if (fileExists(uploadApiPath)) {
     const content = readFileContent(uploadApiPath)
     if (containsKeywords(content, ['POST', 'FormData', 'pptx', 'upload'])) {
@@ -72,7 +73,7 @@ async function testPPTXFunctionality() {
   }
 
   // Verificar API de conversão para vídeo
-  const videoApiPath = path.join(__dirname, 'estudio_ia_videos', 'app', 'api', 'v1', 'pptx', 'to-video', 'route.ts')
+  const videoApiPath = path.join(PROJECT_ROOT, 'estudio_ia_videos', 'app', 'api', 'v1', 'pptx', 'to-video', 'route.ts')
   if (fileExists(videoApiPath)) {
     results.apiEndpoints.details.push('✅ API de conversão para vídeo encontrada')
     if (results.apiEndpoints.status === '✅') {
@@ -85,7 +86,7 @@ async function testPPTXFunctionality() {
   console.log('\n2️⃣ VERIFICANDO PROCESSADOR PPTX...')
   
   // Verificar processador PPTX real
-  const processorPath = path.join(__dirname, 'estudio_ia_videos', 'app', 'lib', 'pptx', 'pptx-processor-real.ts')
+  const processorPath = path.join(PROJECT_ROOT, 'estudio_ia_videos', 'app', 'lib', 'pptx', 'pptx-processor-real.ts')
   if (fileExists(processorPath)) {
     const content = readFileContent(processorPath)
     if (containsKeywords(content, ['PPTXProcessorReal', 'extract', 'JSZip', 'parseStringPromise'])) {
@@ -113,7 +114,7 @@ async function testPPTXFunctionality() {
   }
 
   // Verificar worker de processamento
-  const workerPath = path.join(__dirname, 'estudio_ia_videos', 'src', 'workers', 'pptx-processor.ts')
+  const workerPath = path.join(PROJECT_ROOT, 'estudio_ia_videos', 'src', 'workers', 'pptx-processor.ts')
   if (fileExists(workerPath)) {
     results.pptxProcessor.details.push('✅ Worker de processamento encontrado')
   }
@@ -122,9 +123,11 @@ async function testPPTXFunctionality() {
   
   // Verificar componente de upload
   const uploadComponentPaths = [
-    path.join(__dirname, 'estudio_ia_videos', 'app', 'components', 'pptx', 'pptx-upload.tsx'),
-    path.join(__dirname, 'estudio_ia_videos', 'app', 'components', 'pptx', 'production-pptx-processor.tsx'),
-    path.join(__dirname, 'estudio_ia_videos', 'app', 'components', 'upload', 'pptx-upload-zone.tsx')
+    path.join(PROJECT_ROOT, 'estudio_ia_videos', 'app', 'components', 'pptx', 'pptx-upload.tsx'),
+    path.join(PROJECT_ROOT, 'estudio_ia_videos', 'app', 'components', 'pptx', 'production-pptx-processor.tsx'),
+    path.join(PROJECT_ROOT, 'estudio_ia_videos', 'app', 'components', 'upload', 'pptx-upload-zone.tsx'),
+    path.join(PROJECT_ROOT, 'estudio_ia_videos', 'app', 'components', 'pptx', 'production-pptx-upload.tsx'),
+    path.join(PROJECT_ROOT, 'estudio_ia_videos', 'app', 'components', 'pptx', 'enhanced-pptx-uploader.tsx')
   ]
 
   let uploadComponentFound = false
@@ -147,7 +150,7 @@ async function testPPTXFunctionality() {
   console.log('\n4️⃣ VERIFICANDO INTEGRAÇÃO COM STORAGE...')
   
   // Verificar serviço S3
-  const s3ServicePath = path.join(__dirname, 'estudio_ia_videos', 'app', 'lib', 's3-storage.ts')
+  const s3ServicePath = path.join(PROJECT_ROOT, 'estudio_ia_videos', 'app', 'lib', 's3-storage.ts')
   if (fileExists(s3ServicePath)) {
     const content = readFileContent(s3ServicePath)
     if (containsKeywords(content, ['S3Client', 'PutObjectCommand', 'upload'])) {
@@ -161,20 +164,20 @@ async function testPPTXFunctionality() {
   }
 
   // Verificar configuração de buckets
-  const envPath = path.join(__dirname, '.env')
+  const envPath = path.join(PROJECT_ROOT, 'estudio_ia_videos', '.env.local')
   if (fileExists(envPath)) {
     const content = readFileContent(envPath)
-    if (containsKeywords(content, ['AWS_', 'S3_BUCKET'])) {
-      results.storageIntegration.details.push('✅ Configuração AWS encontrada no .env')
+    if (containsKeywords(content, ['AWS_', 'S3_BUCKET']) || containsKeywords(content, ['SUPABASE_'])) {
+      results.storageIntegration.details.push('✅ Configuração AWS/Supabase encontrada no .env.local')
     } else {
-      results.storageIntegration.details.push('⚠️ Configuração AWS pode estar incompleta')
+      results.storageIntegration.details.push('⚠️ Configuração AWS/Supabase pode estar incompleta')
     }
   }
 
   console.log('\n5️⃣ VERIFICANDO DEPENDÊNCIAS...')
   
   // Verificar package.json
-  const packageJsonPath = path.join(__dirname, 'estudio_ia_videos', 'package.json')
+  const packageJsonPath = path.join(PROJECT_ROOT, 'estudio_ia_videos', 'package.json')
   if (fileExists(packageJsonPath)) {
     const content = readFileContent(packageJsonPath)
     const requiredDeps = ['jszip', 'xml2js', 'sharp', '@aws-sdk/client-s3', 'pptxgenjs']

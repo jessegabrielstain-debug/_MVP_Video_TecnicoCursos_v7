@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+// TODO: Script - fix types
 
 /**
  * Script de debug para analisar a estrutura XML do PPTX

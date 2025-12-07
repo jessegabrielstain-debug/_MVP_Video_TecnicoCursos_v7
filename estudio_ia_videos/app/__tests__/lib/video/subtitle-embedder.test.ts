@@ -18,6 +18,11 @@ jest.mock('fluent-ffmpeg', () => {
     videoFilters: jest.fn().mockReturnThis(),
     videoCodec: jest.fn().mockReturnThis(),
     audioCodec: jest.fn().mockReturnThis(),
+    noVideo: jest.fn().mockReturnThis(),
+    save: jest.fn(function(output: string) {
+      this.output(output);
+      return this;
+    }),
     addOption: jest.fn().mockReturnThis(),
     input: jest.fn().mockReturnThis(),
     outputOptions: jest.fn().mockReturnThis(),
@@ -476,8 +481,18 @@ describe('SubtitleEmbedder', () => {
   });
 
   describe('Error Handling', () => {
+    let originalOn: any;
+    const ffmpeg = require('fluent-ffmpeg');
+
+    beforeEach(() => {
+      originalOn = ffmpeg().on;
+    });
+
+    afterEach(() => {
+      ffmpeg().on = originalOn;
+    });
+
     it('should handle ffmpeg errors', async () => {
-      const ffmpeg = require('fluent-ffmpeg');
       ffmpeg().on = jest.fn((event: string, callback: Function) => {
         if (event === 'error') {
           setTimeout(() => callback(new Error('Embedding failed')), 10);
@@ -498,7 +513,6 @@ describe('SubtitleEmbedder', () => {
       const errorSpy = jest.fn();
       embedder.on('error', errorSpy);
 
-      const ffmpeg = require('fluent-ffmpeg');
       ffmpeg().on = jest.fn((event: string, callback: Function) => {
         if (event === 'error') {
           setTimeout(() => callback(new Error('Test error')), 10);

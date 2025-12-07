@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useTimeline } from '@/app/hooks/useTimeline';
+import { useTimeline, PPTXSlide } from '@/hooks/useTimeline';
 // import PPTXUploader from '@/app/components/PPTXUploader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,15 +14,22 @@ import {
   Upload, 
   Clock, 
   Image, 
-  Type,
-  Volume2,
-  Eye,
-  Settings,
-  Download
+  Type, 
+  Volume2, 
+  Eye, 
+  Settings, 
+  Download 
 } from 'lucide-react';
 
+interface PPTXData {
+  fileName?: string;
+  slides: PPTXSlide[];
+  textElements?: number;
+  audioElements?: number;
+}
+
 interface PPTXTimelineIntegrationProps {
-  pptxData?: unknown;
+  pptxData?: PPTXData;
   onTimelineCreated?: (projectId: string) => void;
 }
 
@@ -32,7 +39,7 @@ export function PPTXTimelineIntegration({
 }: PPTXTimelineIntegrationProps) {
   const timeline = useTimeline();
   const [processingStep, setProcessingStep] = useState<'idle' | 'analyzing' | 'creating' | 'complete'>('idle');
-  const [uploadedPPTX, setUploadedPPTX] = useState<unknown>(null);
+  const [uploadedPPTX, setUploadedPPTX] = useState<PPTXData | null>(null);
 
   const handleCreateTimeline = useCallback(async () => {
     const dataToUse = pptxData || uploadedPPTX;
@@ -69,8 +76,9 @@ export function PPTXTimelineIntegration({
   }, [pptxData, uploadedPPTX, timeline, onTimelineCreated]);
 
   const handlePPTXUpload = useCallback((data: unknown) => {
-    setUploadedPPTX(data);
-    toast.success(`PPTX carregado: ${(data as { fileName?: string }).fileName}`);
+    const pptxData = data as PPTXData;
+    setUploadedPPTX(pptxData);
+    toast.success(`PPTX carregado: ${pptxData.fileName}`);
   }, []);
 
   const handleOpenTimelineEditor = useCallback(() => {
@@ -245,7 +253,7 @@ export function PPTXTimelineIntegration({
                     {timeline.project.tracks.length} tracks • {timeline.project.duration}s duração
                   </p>
                 </div>
-                <Badge variant="success">
+                <Badge className="bg-green-600 hover:bg-green-700">
                   <Eye className="mr-1 h-3 w-3" />
                   Pronto
                 </Badge>
@@ -332,3 +340,5 @@ export function PPTXTimelineIntegration({
     </div>
   );
 }
+
+export default PPTXTimelineIntegration;

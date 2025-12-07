@@ -5,17 +5,8 @@
 
 import type { SubtitleStyle } from './subtitle.types'
 import type { WatermarkConfig } from './watermark.types'
-type VideoFilterConfig = {
-  id: string
-  name: string
-  options?: Record<string, unknown>
-}
-
-type AudioEnhancementConfig = {
-  id: string
-  type: string
-  options?: Record<string, unknown>
-}
+import type { VideoFilterConfig } from '@/lib/export/video-filters-types'
+import type { AudioEnhancementConfig } from '@/lib/export/audio-processor'
 
 export enum ExportStatus {
   PENDING = 'pending',

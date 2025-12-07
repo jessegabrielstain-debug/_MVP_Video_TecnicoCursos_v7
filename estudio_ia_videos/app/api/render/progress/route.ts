@@ -4,7 +4,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { renderJobManager } from '../../../../lib/render/job-manager';
+import { getSupabaseForRequest } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,54 +14,70 @@ export async function GET(request: NextRequest) {
     return new Response('Job ID é obrigatório', { status: 400 });
   }
 
-  // Verificar se job existe
-  const job = renderJobManager.getJob(jobId);
-  if (!job) {
-    return new Response('Job não encontrado', { status: 404 });
+  const supabase = getSupabaseForRequest(request);
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return new Response('Authentication required', { status: 401 });
   }
 
-  // Configurar Server-Sent Events
+  // Verify access to the job
+  const { data: job, error } = await supabase
+    .from('render_jobs')
+    .select('id')
+    .eq('id', jobId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (error || !job) {
+    return new Response('Job não encontrado ou acesso negado', { status: 404 });
+  }
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
-    start(controller) {
-      // Função para enviar dados
-      const sendUpdate = () => {
-        const currentJob = renderJobManager.getJob(jobId);
-        
-        if (!currentJob) {
+    async start(controller) {
+      const sendUpdate = async () => {
+        try {
+          const { data: currentJob, error: jobError } = await supabase
+            .from('render_jobs')
+            .select('*')
+            .eq('id', jobId)
+            .single();
+
+          if (jobError || !currentJob) {
+            controller.close();
+            return;
+          }
+
+          const data = {
+            id: currentJob.id,
+            status: currentJob.status,
+            progress: currentJob.progress,
+            error: currentJob.error_message,
+            outputUrl: currentJob.output_url,
+            updatedAt: (currentJob as any).updated_at
+          };
+
+          const sseData = `data: ${JSON.stringify(data)}\n\n`;
+          controller.enqueue(encoder.encode(sseData));
+
+          if (currentJob.status === 'completed' || currentJob.status === 'failed' || currentJob.status === 'cancelled') {
+            controller.close();
+            return;
+          }
+
+          setTimeout(sendUpdate, 1000);
+        } catch (e) {
+          console.error('Error in progress stream:', e);
           controller.close();
-          return;
         }
-
-        const data = {
-          id: currentJob.id,
-          status: currentJob.status,
-          progress: currentJob.progress,
-          error: currentJob.error,
-          outputUrl: currentJob.outputUrl,
-          updatedAt: currentJob.updatedAt
-        };
-
-        const sseData = `data: ${JSON.stringify(data)}\n\n`;
-        controller.enqueue(encoder.encode(sseData));
-
-        // Parar se job terminou
-        if (currentJob.status === 'completed' || currentJob.status === 'failed') {
-          setTimeout(() => controller.close(), 1000);
-          return;
-        }
-
-        // Próxima atualização
-        setTimeout(sendUpdate, 1000);
       };
 
-      // Iniciar streaming
       sendUpdate();
     },
-
     cancel() {
-      console.log('Progress stream cancelado para job:', jobId);
+      console.log('Progress stream cancelled by client');
     }
   });
 
@@ -71,8 +87,6 @@ export async function GET(request: NextRequest) {
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET',
-      'Access-Control-Allow-Headers': 'Cache-Control'
     }
   });
 }

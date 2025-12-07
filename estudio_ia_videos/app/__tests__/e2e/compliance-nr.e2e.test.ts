@@ -9,7 +9,6 @@
  * 5. Geração de relatório
  */
 
-import { describe, it, expect, beforeAll } from '@jest/globals'
 import { SmartComplianceValidator } from '@/lib/compliance/smart-validator'
 import { getNRTemplate, getAllNRs } from '@/lib/compliance/templates'
 import { PrismaClient } from '@prisma/client'

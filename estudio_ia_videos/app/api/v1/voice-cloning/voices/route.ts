@@ -30,3 +30,4 @@ export async function GET() {
     premium_count: voices.filter(v => v.is_premium).length
   })
 }
+

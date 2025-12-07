@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * API Route - WebSocket Notifications
  * 
@@ -8,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createRateLimiter, rateLimitPresets } from '@/lib/utils/rate-limit-middleware';
 import { 
   NotificationSystem, 
   createProductionNotificationSystem,
@@ -42,7 +42,9 @@ function getNotificationSystem(): NotificationSystem {
  *   "recipients": ["user123"]
  * }
  */
+const rateLimiterPost = createRateLimiter(rateLimitPresets.authenticated);
 export async function POST(request: NextRequest) {
+  return rateLimiterPost(request, async (request: NextRequest) => {
   try {
     const system = getNotificationSystem();
     const body = await request.json();
@@ -81,6 +83,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }
 
 /**
@@ -93,7 +96,9 @@ export async function POST(request: NextRequest) {
  * - limit: Limite de resultados
  * - offset: Offset para paginação
  */
+const rateLimiterGet = createRateLimiter(rateLimitPresets.authenticated);
 export async function GET(request: NextRequest) {
+  return rateLimiterGet(request, async (request: NextRequest) => {
   try {
     const system = getNotificationSystem();
     const { searchParams } = new URL(request.url);
@@ -137,6 +142,7 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }
 
 /**
@@ -148,7 +154,9 @@ export async function GET(request: NextRequest) {
  *   "userId": "user123"
  * }
  */
+const rateLimiterPatch = createRateLimiter(rateLimitPresets.authenticated);
 export async function PATCH(request: NextRequest) {
+  return rateLimiterPatch(request, async (request: NextRequest) => {
   try {
     const system = getNotificationSystem();
     const body = await request.json();
@@ -176,6 +184,7 @@ export async function PATCH(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }
 
 /**
@@ -185,7 +194,9 @@ export async function PATCH(request: NextRequest) {
  * - action: 'cleanup' (limpa expiradas) | 'clear' (limpa todas do usuário)
  * - userId: ID do usuário (para action=clear)
  */
+const rateLimiterDelete = createRateLimiter(rateLimitPresets.authenticated);
 export async function DELETE(request: NextRequest) {
+  return rateLimiterDelete(request, async (request: NextRequest) => {
   try {
     const system = getNotificationSystem();
     const { searchParams } = new URL(request.url);
@@ -214,6 +225,7 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }
 
 /**
@@ -227,7 +239,9 @@ export async function DELETE(request: NextRequest) {
  *   "channels": ["channel1", "channel2"]
  * }
  */
+const rateLimiterPut = createRateLimiter(rateLimitPresets.authenticated);
 export async function PUT(request: NextRequest) {
+  return rateLimiterPut(request, async (request: NextRequest) => {
   try {
     const system = getNotificationSystem();
     const body = await request.json();
@@ -307,6 +321,7 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }
 
 /**

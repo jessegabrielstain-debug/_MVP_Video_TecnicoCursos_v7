@@ -91,7 +91,7 @@ interface DeviceData {
   users: number
   percentage: number
   color: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 interface GeographicData {

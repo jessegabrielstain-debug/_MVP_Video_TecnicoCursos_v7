@@ -2,6 +2,8 @@
  * API de Profile - Gerenciamento de perfil do usuário
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth/auth-service';
 
@@ -76,7 +78,7 @@ export async function PUT(request: NextRequest) {
 
     // Atualizar apenas campos permitidos
     const allowedUpdates = ['name', 'avatar', 'preferences'];
-    const filteredUpdates: any = {};
+    const filteredUpdates: Record<string, unknown> = {};
 
     for (const key of allowedUpdates) {
       if (updates[key] !== undefined) {
@@ -85,7 +87,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Validações específicas
-    if (filteredUpdates.name && filteredUpdates.name.length < 2) {
+    if (filteredUpdates.name && (filteredUpdates.name as string).length < 2) {
       return NextResponse.json(
         { error: 'Nome deve ter pelo menos 2 caracteres' },
         { status: 400 }

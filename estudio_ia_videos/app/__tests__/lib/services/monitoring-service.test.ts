@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeAll } from '@jest/globals'
 import { captureError, captureException, addBreadcrumb, recordMetric } from '@/lib/services/monitoring-service'
 
 describe('Monitoring Service (Sentry Stub)', () => {

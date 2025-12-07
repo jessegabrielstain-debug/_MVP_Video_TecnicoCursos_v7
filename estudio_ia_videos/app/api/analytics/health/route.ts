@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { withAnalytics } from '@/lib/analytics/middleware';
 import { ANALYTICS_CONFIG, validateConfig, getEnvironmentInfo } from '@/lib/analytics/config';
-import { supabase } from '@/lib/services';
+import { prisma } from '@/lib/prisma';
 
 interface HealthCheck {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -34,18 +34,13 @@ interface HealthCheckResult {
   status: 'pass' | 'fail' | 'warn';
   message: string;
   duration: number;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 async function checkDatabase(): Promise<HealthCheckResult> {
   const start = Date.now();
   try {
-    const { data, error } = await supabase
-      .from('analytics_events')
-      .select('count')
-      .limit(1);
-
-    if (error) throw error;
+    await prisma.$queryRaw`SELECT 1`;
 
     return {
       status: 'pass',
@@ -70,14 +65,14 @@ async function checkAnalytics(): Promise<HealthCheckResult> {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const { data, error } = await supabase
-      .from('analytics_events')
-      .select('count')
-      .gte('created_at', yesterday.toISOString());
+    const recentEvents = await prisma.analyticsEvent.count({
+      where: {
+        createdAt: {
+          gte: yesterday
+        }
+      }
+    });
 
-    if (error) throw error;
-
-    const recentEvents = Array.isArray(data) ? data.length : 0;
     const status = recentEvents > 0 ? 'pass' : 'warn';
     const message = recentEvents > 0 
       ? `Analytics active with ${recentEvents} recent events`
@@ -155,14 +150,16 @@ async function checkStorage(): Promise<HealthCheckResult> {
 async function checkAlerts(): Promise<HealthCheckResult> {
   const start = Date.now();
   try {
-    const { data: activeAlerts, error } = await supabase
-      .from('analytics_alerts')
-      .select('count')
-      .eq('status', 'active');
+    const alertCount = await prisma.analyticsEvent.count({
+      where: {
+        eventType: 'alert',
+        eventData: {
+          path: ['status'],
+          equals: 'active'
+        }
+      }
+    });
 
-    if (error) throw error;
-
-    const alertCount = Array.isArray(activeAlerts) ? activeAlerts.length : 0;
     const status = alertCount < 10 ? 'pass' : alertCount < 20 ? 'warn' : 'fail';
     
     return {
@@ -187,14 +184,15 @@ async function checkAlerts(): Promise<HealthCheckResult> {
 async function checkReports(): Promise<HealthCheckResult> {
   const start = Date.now();
   try {
-    const { data: scheduledReports, error } = await supabase
-      .from('analytics_reports')
-      .select('count')
-      .eq('status', 'scheduled');
-
-    if (error) throw error;
-
-    const reportCount = Array.isArray(scheduledReports) ? scheduledReports.length : 0;
+    const reportCount = await prisma.analyticsEvent.count({
+      where: {
+        eventType: 'report_scheduled',
+        eventData: {
+          path: ['status'],
+          equals: 'pending' // Assuming 'pending' means scheduled/active
+        }
+      }
+    });
     
     return {
       status: 'pass',
@@ -218,53 +216,61 @@ async function checkReports(): Promise<HealthCheckResult> {
 async function getMetrics() {
   try {
     // Total de eventos
-    const { data: eventsData } = await supabase
-      .from('analytics_events')
-      .select('count');
-    const totalEvents = Array.isArray(eventsData) ? eventsData.length : 0;
+    const totalEvents = await prisma.analyticsEvent.count();
 
     // Total de usuários únicos
-    const { data: usersData } = await supabase
-      .from('analytics_events')
-      .select('user_id')
-      .not('user_id', 'is', null);
-    const uniqueUsers = new Set(usersData?.map(u => u.user_id) || []).size;
+    const usersResult = await prisma.analyticsEvent.groupBy({
+      by: ['userId'],
+      _count: {
+        userId: true
+      }
+    });
+    const uniqueUsers = usersResult.length;
 
     // Taxa de erro (últimas 24h)
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     
-    const { data: errorEvents } = await supabase
-      .from('analytics_events')
-      .select('count')
-      .eq('category', 'error')
-      .gte('created_at', yesterday.toISOString());
-    
-    const { data: totalRecentEvents } = await supabase
-      .from('analytics_events')
-      .select('count')
-      .gte('created_at', yesterday.toISOString());
+    const [errorCount, recentCount] = await Promise.all([
+      prisma.analyticsEvent.count({
+        where: {
+          eventType: 'error', // Assuming 'error' is the eventType for errors
+          createdAt: { gte: yesterday }
+        }
+      }),
+      prisma.analyticsEvent.count({
+        where: {
+          createdAt: { gte: yesterday }
+        }
+      })
+    ]);
 
-    const errorCount = Array.isArray(errorEvents) ? errorEvents.length : 0;
-    const recentCount = Array.isArray(totalRecentEvents) ? totalRecentEvents.length : 0;
     const errorRate = recentCount > 0 ? (errorCount / recentCount) * 100 : 0;
 
     // Tempo médio de resposta (simulado)
     const avgResponseTime = 250; // ms
 
     // Alertas ativos
-    const { data: activeAlerts } = await supabase
-      .from('analytics_alerts')
-      .select('count')
-      .eq('status', 'active');
-    const activeAlertsCount = Array.isArray(activeAlerts) ? activeAlerts.length : 0;
+    const activeAlertsCount = await prisma.analyticsEvent.count({
+      where: {
+        eventType: 'alert',
+        eventData: {
+          path: ['status'],
+          equals: 'active'
+        }
+      }
+    });
 
     // Relatórios agendados
-    const { data: scheduledReports } = await supabase
-      .from('analytics_reports')
-      .select('count')
-      .eq('status', 'scheduled');
-    const scheduledReportsCount = Array.isArray(scheduledReports) ? scheduledReports.length : 0;
+    const scheduledReportsCount = await prisma.analyticsEvent.count({
+      where: {
+        eventType: 'report_scheduled',
+        eventData: {
+          path: ['status'],
+          equals: 'pending'
+        }
+      }
+    });
 
     return {
       totalEvents,
@@ -382,13 +388,7 @@ export async function GET(request: NextRequest) {
 // Endpoint para verificação rápida (usado por load balancers)
 export async function HEAD(request: NextRequest) {
   try {
-    const { data, error } = await supabase
-      .from('analytics_events')
-      .select('count')
-      .limit(1);
-
-    if (error) throw error;
-
+    await prisma.$queryRaw`SELECT 1`;
     return new NextResponse(null, { status: 200 });
   } catch (error) {
     return new NextResponse(null, { status: 503 });

@@ -1,5 +1,10 @@
+/**
+ * 🚀 Database Initialization Script
+ * 
+ * Initializes the database with default data and configurations.
+ */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Prisma } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -8,6 +13,7 @@ async function main() {
 
   try {
     // Create default system configurations
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const configs = [
       {
         key: 'max_file_size',
@@ -90,6 +96,7 @@ async function main() {
     console.log('✅ Demo user created:', demoUser.email)
 
     // Create sample templates
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const templates = [
       {
         name: 'NR-10: Segurança em Instalações Elétricas',
@@ -158,50 +165,53 @@ async function main() {
     console.log('✅ Sample templates skipped (model not available)')
 
     // Create sample project for demo user
+    const slidesData: Prisma.InputJsonValue = [
+      {
+        id: 1,
+        title: 'Introdução à NR-12',
+        content: 'Norma Regulamentadora sobre segurança em máquinas e equipamentos de trabalho',
+        duration: 15,
+        image: '/images/nr12-intro.jpg'
+      },
+      {
+        id: 2,
+        title: 'Principais Riscos',
+        content: 'Identificação dos principais riscos em máquinas industriais',
+        duration: 20,
+        image: '/images/nr12-risks.jpg'
+      },
+      {
+        id: 3,
+        title: 'Medidas de Proteção',
+        content: 'Implementação de sistemas de proteção e segurança',
+        duration: 18,
+        image: '/images/nr12-protection.jpg'
+      }
+    ];
+
+    const settings: Prisma.InputJsonValue = {
+      avatar: 'avatar-carlos-engineer',
+      voice: 'br-carlos-adult',
+      background: 'industrial-1',
+      resolution: '1080p'
+    };
+
     const sampleProject = await prisma.project.upsert({
       where: { id: 'demo-project-nr12' },
       update: {},
       create: {
         id: 'demo-project-nr12',
-        name: 'NR-12: Segurança em Máquinas - Demo',
+        title: 'NR-12: Segurança em Máquinas - Demo', // Changed name to title as per schema
         description: 'Projeto de demonstração sobre segurança em máquinas e equipamentos',
         userId: demoUser.id,
-        type: 'pptx',
-        status: 'COMPLETED',
-        slidesData: [
-            {
-              id: 1,
-              title: 'Introdução à NR-12',
-              content: 'Norma Regulamentadora sobre segurança em máquinas e equipamentos de trabalho',
-              duration: 15,
-              image: '/images/nr12-intro.jpg'
-            },
-            {
-              id: 2,
-              title: 'Principais Riscos',
-              content: 'Identificação dos principais riscos em máquinas industriais',
-              duration: 20,
-              image: '/images/nr12-risks.jpg'
-            },
-            {
-              id: 3,
-              title: 'Medidas de Proteção',
-              content: 'Implementação de sistemas de proteção e segurança',
-              duration: 18,
-              image: '/images/nr12-protection.jpg'
-            }
-        ],
+        status: 'completed', // Uppercase COMPLETED might be invalid if not enum, schema says String? default "draft"
+        slidesData: slidesData,
         duration: 53,
-        settings: {
-          avatar: 'avatar-carlos-engineer',
-          voice: 'br-carlos-adult',
-          background: 'industrial-1',
-          resolution: '1080p'
-        }
+        settings: settings
       }
     })
 
-    console.log('✅ Sample project created:', sampleProject.name)
+    console.log('✅ Sample project created:', sampleProject.title)
 
     console.log('🎉 Database initialization completed successfully!')
 

@@ -4,7 +4,6 @@
  * Testa a integração completa entre VideoTemplateLibrary e VideoTemplateEngine
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
 import { VideoTemplateLibrary } from '../../../lib/video/template-library';
 import { VideoTemplateEngine } from '../../../lib/video/template-engine';
 import {

@@ -176,7 +176,7 @@ export interface UseComplianceAnalyzerReturn {
   getTrends: (timeframe: 'week' | 'month' | 'quarter') => Promise<ComplianceTrendOverview>;
   
   // Recomendações
-  getRecommendations: (projectData: ComplianceProjectData) => Promise<ComplianceRecommendation[]>;
+  getComplianceRecommendations: (projectData: ComplianceProjectData) => Promise<ComplianceRecommendation[]>;
   implementRecommendation: (recommendationId: string) => Promise<boolean>;
   
   // Integração
@@ -297,7 +297,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
       const safetyScore = calculateSafetyScore(violations);
 
       // Gerar recomendações
-      const recommendations = await getRecommendations(projectData);
+      const recommendations = await getComplianceRecommendations(projectData);
 
       // Calcular compliance por NR
       const nrStandardsCompliance = calculateNRCompliance(violations);
@@ -388,6 +388,18 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     return violations;
   }, [rules, monitoring.realTimeAnalysis]);
 
+  const applyFix = useCallback(async (violationId: string): Promise<boolean> => {
+    // Implementar lógica de correção específica
+    try {
+      // Simular correção
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return true;
+    } catch (error) {
+      console.error(`Erro ao aplicar correção:`, error);
+      return false;
+    }
+  }, []);
+
   const autoFixViolations = useCallback(async (
     violations: ComplianceViolation[]
   ): Promise<Record<string, boolean>> => {
@@ -410,28 +422,23 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     return fixes;
   }, [applyFix]);
 
-  const applyFix = useCallback(async (violationId: string): Promise<boolean> => {
-    // Implementar lógica de correção específica
-    try {
-      // Simular correção
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return true;
-    } catch (error) {
-      console.error(`Erro ao aplicar correção:`, error);
-      return false;
-    }
-  }, []);
-
   const getSuggestedFixes = useCallback(async (violation: ComplianceViolation): Promise<string[]> => {
     try {
-      const aiSuggestions = await generateContent(
-        `Gere sugestões de correção para a violação de compliance: ${violation.message}`,
-        { type: 'compliance-fix', context: violation }
-      );
+      const result = await generateContent({
+        type: 'text',
+        prompt: `Gere sugestões de correção para a violação de compliance: ${violation.message}`,
+        model: 'gpt-4',
+        parameters: {},
+        context: {
+             previousContent: JSON.stringify(violation)
+        }
+      });
+
+      const suggestionsText = result?.content && typeof result.content === 'string' ? result.content : '';
 
       return [
         violation.suggestedFix,
-        ...aiSuggestions.split('\n').filter(s => s.trim()),
+        ...suggestionsText.split('\n').filter(s => s.trim()),
       ];
     } catch (error) {
       console.error('Erro ao gerar sugestões:', error);
@@ -553,7 +560,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     }, 0);
   }, []);
 
-  const getRecommendations = useCallback(async (
+  const getComplianceRecommendations = useCallback(async (
     projectData: ComplianceProjectData
   ): Promise<ComplianceRecommendation[]> => {
     const recommendations: ComplianceRecommendation[] = [
@@ -781,7 +788,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
     getTrends,
     
     // Recomendações
-    getRecommendations,
+    getComplianceRecommendations,
     implementRecommendation,
     
     // Integração

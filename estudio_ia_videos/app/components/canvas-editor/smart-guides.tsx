@@ -11,7 +11,7 @@ interface Guide {
 }
 
 interface SmartGuidesProps {
-  canvas: unknown;
+  canvas: any;
   enabled: boolean;
   snapDistance: number;
 }
@@ -23,15 +23,15 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
   useEffect(() => {
     if (!canvas || !enabled) return
     
-    const handleObjectMoving = (e: { target: unknown }) => {
+    const handleObjectMoving = (e: { target: any }) => {
       const movingObject = e.target
       if (!movingObject) return
       
       const guides: Guide[] = []
-      const objects = (canvas as { getObjects: () => unknown[] }).getObjects().filter((obj: unknown) => obj !== movingObject)
+      const objects = canvas.getObjects().filter((obj: any) => obj !== movingObject)
       
       // Calcular guides horizontais e verticais
-      objects.forEach((obj: unknown) => {
+      objects.forEach((obj: any) => {
         const objBounds = obj.getBoundingRect()
         const movingBounds = movingObject.getBoundingRect()
         
@@ -151,11 +151,11 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
     
     const clearGuides = () => {
       try {
-        if ((canvas as { getObjects?: () => unknown[] }).getObjects) {
-          const guides = (canvas as { getObjects: () => unknown[] }).getObjects().filter((obj: unknown) => (obj as { name?: string }).name === 'smart-guide')
-          guides.forEach((guide: unknown) => {
-            if ((canvas as { remove?: (obj: unknown) => void }).remove) {
-              (canvas as { remove: (obj: unknown) => void }).remove(guide)
+        if (canvas.getObjects) {
+          const guides = canvas.getObjects().filter((obj: any) => obj.name === 'smart-guide')
+          guides.forEach((guide: any) => {
+            if (canvas.remove) {
+              canvas.remove(guide)
             }
           })
         }
@@ -182,7 +182,7 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
 }
 
 // Hook para usar smart guides
-export function useSmartGuides(canvas: unknown) {
+export function useSmartGuides(canvas: any) {
   const [enabled, setEnabled] = useState(true)
   const [snapDistance, setSnapDistance] = useState(5)
   

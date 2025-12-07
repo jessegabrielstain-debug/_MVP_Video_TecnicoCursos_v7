@@ -378,4 +378,15 @@ class Logger {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const logger = Logger.getInstance();
+export const getLogger = () => Logger.getInstance();
+export const createLogger = (component: string) => {
+  const instance = Logger.getInstance();
+  return {
+    debug: (message: string, data?: unknown) => instance.debug(message, component, data),
+    info: (message: string, data?: unknown) => instance.info(message, component, data),
+    warn: (message: string, data?: unknown) => instance.warn(message, component, data),
+    error: (message: string, error?: Error, data?: unknown) => instance.error(message, component, error, data),
+    fatal: (message: string, error?: Error, data?: unknown) => instance.fatal(message, component, error, data),
+  };
+};
 export type { LogEntry, LogAnalysis, LogLevel };

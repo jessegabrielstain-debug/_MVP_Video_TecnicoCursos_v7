@@ -14,6 +14,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
@@ -397,16 +398,32 @@ class SupabaseIntegrationTests {
 
   async testCreateRecord() {
     return this.runTest('Criar registro (INSERT)', 'CRUD', async () => {
+      // Buscar um usuário existente para associar
+      const { data: users } = await this.supabase.from('users').select('id').limit(1);
+      const userId = users && users.length > 0 ? users[0].id : null;
+
+      if (!userId) {
+        console.error('Create Error: No user found to associate project');
+        return false;
+      }
+
       const testProject = {
-        title: 'Test Project',
+        id: crypto.randomUUID(),
+        name: 'Test Project',
         description: 'Integration test',
-        status: 'draft'
+        status: 'draft',
+        user_id: userId
       };
       
       const { data, error } = await this.supabase
         .from('projects')
         .insert(testProject)
         .select();
+      
+      if (error) {
+        console.error('Create Error:', error);
+        return false;
+      }
       
       // Limpar
       if (data && data[0]?.id) {
@@ -430,11 +447,18 @@ class SupabaseIntegrationTests {
 
   async testUpdateRecord() {
     return this.runTest('Atualizar registro (UPDATE)', 'CRUD', async () => {
+      const { data: users } = await this.supabase.from('users').select('id').limit(1);
+      const userId = users && users.length > 0 ? users[0].id : null;
+
+      if (!userId) return false;
+
       // Criar registro temporário
       const { data: created } = await this.supabase
         .from('projects')
         .insert({
-          title: 'Test Update'
+          id: crypto.randomUUID(),
+          name: 'Test Update',
+          user_id: userId
         })
         .select();
       
@@ -443,7 +467,7 @@ class SupabaseIntegrationTests {
       // Atualizar
       const { error } = await this.supabase
         .from('projects')
-        .update({ title: 'Updated Title' })
+        .update({ name: 'Updated Title' })
         .eq('id', created[0].id);
       
       // Limpar
@@ -455,11 +479,18 @@ class SupabaseIntegrationTests {
 
   async testDeleteRecord() {
     return this.runTest('Deletar registro (DELETE)', 'CRUD', async () => {
+      const { data: users } = await this.supabase.from('users').select('id').limit(1);
+      const userId = users && users.length > 0 ? users[0].id : null;
+
+      if (!userId) return false;
+
       // Criar registro temporário
       const { data: created } = await this.supabase
         .from('projects')
         .insert({
-          title: 'Test Delete'
+          id: crypto.randomUUID(),
+          name: 'Test Delete',
+          user_id: userId
         })
         .select();
       

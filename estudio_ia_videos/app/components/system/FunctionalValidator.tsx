@@ -457,7 +457,11 @@ export default function FunctionalValidator() {
                   {categoryTests.map(test => {
                     const Icon = test.icon;
                     return (
-                      <div key={test.id} className="flex items-center justify-between p-2 border rounded">
+                      <div
+                        key={test.id}
+                        data-testid={`functional-test-${test.id}`}
+                        className="flex items-center justify-between p-2 border rounded"
+                      >
                         <div className="flex items-center space-x-2">
                           <Icon className="h-4 w-4 text-gray-500" />
                           <span className="text-sm font-medium">{test.name}</span>

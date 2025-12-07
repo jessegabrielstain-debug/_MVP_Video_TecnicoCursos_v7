@@ -330,7 +330,7 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
                     <div>
                       <h4 className="text-sm font-medium text-gray-900 mb-2">Requisitos</h4>
                       <ul className="text-sm text-gray-600 space-y-1">
-                        {template.metadata.compliance.requirements.map((req, index) => (
+                        {template.metadata.compliance.requirements.map((req: string, index: number) => (
                           <li key={index} className="flex items-start">
                             <CheckCircle className="w-3 h-3 mr-2 mt-0.5 text-green-600 flex-shrink-0" />
                             {req}

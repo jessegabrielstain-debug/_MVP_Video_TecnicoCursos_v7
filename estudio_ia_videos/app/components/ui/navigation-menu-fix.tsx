@@ -7,7 +7,7 @@
 'use client'
 
 import React from 'react'
-import { Button } from './button'
+import { Button, ButtonProps } from './button'
 import { toast } from 'react-hot-toast'
 
 interface NavigationFixProps {
@@ -43,7 +43,7 @@ export function SafeButton({
   onClick, 
   fallbackAction = "Ação",
   ...props 
-}: any) {
+}: ButtonProps & { fallbackAction?: string }) {
   return (
     <Button
       onClick={onClick || (() => toast.success(`${fallbackAction} - Em desenvolvimento!`))}

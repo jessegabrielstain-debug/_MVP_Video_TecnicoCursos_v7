@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth/auth-config'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { generateComplianceReport } from '@/lib/compliance/report-generator'
 
@@ -14,7 +14,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -28,7 +28,7 @@ export async function GET(
         project: {
           include: {
             slides: {
-              orderBy: { slideNumber: 'asc' }
+              orderBy: { orderIndex: 'asc' }
             }
           }
         }
@@ -48,7 +48,7 @@ export async function GET(
     const reportBuffer = await generateComplianceReport(record)
 
     // Retorna PDF
-    return new NextResponse(reportBuffer, {
+    return new NextResponse(reportBuffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="relatorio-compliance-${record.nr}-${record.id}.pdf"`

@@ -36,10 +36,10 @@ import {
   Copy,
   Move,
   RotateCw,
-  Waveform,
+  AudioLines,
   Target,
   Clock,
-  Sync,
+  RefreshCw,
   Activity,
   Headphones,
   Monitor,
@@ -571,7 +571,7 @@ export default function MultiTrackManager() {
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Sync className={cn("w-4 h-4", realTimeSync ? "text-green-400" : "text-gray-400")} />
+              <RefreshCw className={cn("w-4 h-4", realTimeSync ? "text-green-400" : "text-gray-400")} />
               <Switch
                 checked={realTimeSync}
                 onCheckedChange={setRealTimeSync}
@@ -723,7 +723,7 @@ export default function MultiTrackManager() {
 
                     <div className="flex items-center gap-2">
                       {/* Sync Status */}
-                      <Button
+                        <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => toggleTrackSync(track.id)}
@@ -732,10 +732,8 @@ export default function MultiTrackManager() {
                           track.sync.enabled ? "text-green-400" : "text-gray-400"
                         )}
                       >
-                        <Sync className="w-3 h-3" />
-                      </Button>
-
-                      {/* Visibility */}
+                        <RefreshCw className="w-3 h-3" />
+                      </Button>                      {/* Visibility */}
                       <Button
                         variant="ghost"
                         size="icon"

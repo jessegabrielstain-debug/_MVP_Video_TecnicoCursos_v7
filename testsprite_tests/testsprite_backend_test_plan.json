@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "user_authentication_and_session_management",
+    "description": "Test user login via email and social methods using Supabase authentication, including session management and role-based access control enforcement."
+  },
+  {
+    "id": "TC002",
+    "title": "pptx_file_upload_and_parsing",
+    "description": "Verify uploading of PPTX files and automated parsing extracting text, images, layouts, and animations within performance criteria."
+  },
+  {
+    "id": "TC003",
+    "title": "video_editor_slide_manipulation_and_preview",
+    "description": "Test the drag-and-drop visual editor for slides including real-time preview, text and narration editing, and state persistence."
+  },
+  {
+    "id": "TC004",
+    "title": "tts_audio_generation_and_preview",
+    "description": "Validate multi-provider TTS system with voice selection, adjustable speed, audio preview, and generation completion within expected time."
+  },
+  {
+    "id": "TC005",
+    "title": "video_rendering_pipeline_with_progress_and_cancellation",
+    "description": "Test asynchronous video rendering pipeline with real-time progress updates, support for multiple resolutions and codecs, and job cancellation."
+  },
+  {
+    "id": "TC006",
+    "title": "user_project_management_and_sharing",
+    "description": "Verify user dashboard functionalities for creating, editing, duplicating, sharing, and deleting video projects with persistent storage."
+  },
+  {
+    "id": "TC007",
+    "title": "compliance_template_enforcement_and_certificate_generation",
+    "description": "Test selection and customization of NR compliance templates, validation of legal requirements, and generation of valid compliance certificates."
+  },
+  {
+    "id": "TC008",
+    "title": "analytics_and_metrics_accuracy_and_performance",
+    "description": "Validate analytics and metrics dashboard for accurate system usage data, error classification, and cache optimization."
+  },
+  {
+    "id": "TC009",
+    "title": "system_security_and_input_validation",
+    "description": "Test enforcement of security standards including RLS, JWT authentication, HTTPS usage, input sanitation, and rate limiting."
+  },
+  {
+    "id": "TC010",
+    "title": "system_availability_and_recovery",
+    "description": "Verify system uptime meets 99.5% availability and recovery time objectives are within defined limits."
+  }
+]

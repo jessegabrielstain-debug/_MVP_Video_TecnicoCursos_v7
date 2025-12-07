@@ -34,7 +34,7 @@ import { User, Comment, ProjectVersion, ActivityNotification } from '@/types/col
 interface CollaborationPanelProps {
   projectId: string;
   userId: string;
-  onElementChange?: (elementId: string, changes: any) => void;
+  onElementChange?: (elementId: string, changes: Record<string, unknown>) => void;
 }
 
 export function CollaborationPanel({ projectId, userId, onElementChange }: CollaborationPanelProps) {

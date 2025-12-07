@@ -1,5 +1,7 @@
+// TODO: Fix NRTemplate type mapping
 
 import { NextRequest, NextResponse } from 'next/server'
+import { listNRTemplates, NRTemplate as ServiceNRTemplate } from '@/lib/services/nr-templates-service'
 
 interface NRTemplate {
   id: string
@@ -19,7 +21,44 @@ interface NRTemplate {
   isNew?: boolean
   isPremium?: boolean
   aiOptimized: boolean
-  content?: any
+  content?: unknown
+}
+
+/**
+ * Converte template do banco (nr_templates) para formato de API v1
+ */
+function convertToV1Format(dbTemplate: ServiceNRTemplate): NRTemplate {
+  const title = String(dbTemplate.title || '');
+  const nrNumber = String(dbTemplate.nr_number || '');
+  const description = String(dbTemplate.description || '');
+  const durationSeconds = Number(dbTemplate.duration_seconds || 0);
+  const slideCount = Number(dbTemplate.slide_count || 0);
+  const updatedAt = String(dbTemplate.updated_at || new Date().toISOString());
+
+  return {
+    id: String(dbTemplate.id),
+    name: title,
+    norma: nrNumber,
+    description: description,
+    category: 'seguranca', // Padrão, pode ser inferido futuramente
+    industry: ['Geral'], // Pode ser expandido no banco
+    duration: `${Math.floor(durationSeconds / 60)} min`,
+    slides: slideCount,
+    compliance: 100, // Pode ser calculado ou armazenado
+    thumbnail: `/nr-thumbnails/${nrNumber.toLowerCase()}.jpg`,
+    features: [
+      'Conteúdo atualizado',
+      'Conforme legislação vigente',
+      'Exemplos práticos',
+      'Quiz de avaliação'
+    ],
+    lastUpdated: new Date(updatedAt).toISOString().split('T')[0],
+    downloads: 0, // Pode ser rastreado futuramente
+    rating: 4.8,
+    isNew: false,
+    isPremium: false,
+    aiOptimized: true
+  };
 }
 
 const mockNRTemplates: NRTemplate[] = [
@@ -104,7 +143,9 @@ export async function GET(request: NextRequest) {
     const aiOnly = searchParams.get('ai') === 'true'
     const search = searchParams.get('search')
     
-    let filteredTemplates = [...mockNRTemplates]
+    // Busca templates reais do banco de dados
+    const dbTemplates = await listNRTemplates()
+    let filteredTemplates = dbTemplates.map(convertToV1Format)
     
     // Filtros
     if (category && category !== 'all') {
@@ -190,10 +231,12 @@ export async function POST(request: NextRequest) {
     
     // Download template
     if (body.action === 'download') {
-      const template = mockNRTemplates.find(t => t.id === body.templateId)
-      if (template) {
-        // Incrementar contador de downloads
-        template.downloads += 1
+      // Busca template real do banco
+      const dbTemplates = await listNRTemplates()
+      const dbTemplate = dbTemplates.find(t => t.id === body.templateId)
+      
+      if (dbTemplate) {
+        const template = convertToV1Format(dbTemplate)
         
         return NextResponse.json({
           success: true,
@@ -217,3 +260,4 @@ export async function POST(request: NextRequest) {
     }, { status: 500 })
   }
 }
+

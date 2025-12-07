@@ -2,6 +2,50 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Database } from '@/lib/supabase/database.types'
+import { SupabaseClient } from '@supabase/supabase-js'
+
+type DatabaseWithRBAC = {
+  public: {
+    Tables: Database['public']['Tables'] & {
+      user_roles: {
+        Row: {
+          user_id: string
+          role_id: string
+        }
+        Insert: unknown
+        Update: unknown
+        Relationships: []
+      }
+      roles: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: unknown
+        Update: unknown
+        Relationships: []
+      }
+    }
+    Views: Database['public']['Views']
+    Functions: {
+      user_has_permission: {
+        Args: { user_id: string; permission_name: string }
+        Returns: boolean
+      }
+      user_role: {
+        Args: Record<string, never>
+        Returns: string | null
+      }
+      is_admin: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+    }
+    Enums: Database['public']['Enums']
+    CompositeTypes: Database['public']['CompositeTypes']
+  }
+}
 
 /**
  * Hook para verificar se o usuário possui uma permissão específica
@@ -22,7 +66,7 @@ export function usePermission(permission: string) {
   useEffect(() => {
     async function checkPermission() {
       try {
-        const supabase = createClient()
+        const supabase = createClient() as unknown as SupabaseClient<DatabaseWithRBAC>
         const { data: { user } } = await supabase.auth.getUser()
 
         if (!user) {
@@ -31,7 +75,9 @@ export function usePermission(permission: string) {
           return
         }
 
-        const { data, error: rpcError } = await supabase.rpc('user_has_permission', {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rpc = (supabase as unknown as { rpc: Function }).rpc;
+        const { data, error: rpcError } = await rpc('user_has_permission', {
           user_id: user.id,
           permission_name: permission
         })
@@ -72,7 +118,7 @@ export function useRole() {
   useEffect(() => {
     async function fetchRole() {
       try {
-        const supabase = createClient()
+        const supabase = createClient() as unknown as SupabaseClient<DatabaseWithRBAC>
         const { data: { user } } = await supabase.auth.getUser()
 
         if (!user) {
@@ -81,9 +127,7 @@ export function useRole() {
           return
         }
 
-        const { data, error: rpcError } = await supabase.rpc('user_role', {
-          user_id: user.id
-        })
+        const { data, error: rpcError } = await supabase.rpc('user_role')
 
         if (rpcError) {
           throw rpcError
@@ -121,7 +165,7 @@ export function useIsAdmin() {
   useEffect(() => {
     async function checkAdmin() {
       try {
-        const supabase = createClient()
+        const supabase = createClient() as unknown as SupabaseClient<DatabaseWithRBAC>
         const { data: { user } } = await supabase.auth.getUser()
 
         if (!user) {
@@ -130,9 +174,7 @@ export function useIsAdmin() {
           return
         }
 
-        const { data, error: rpcError } = await supabase.rpc('is_admin', {
-          user_id: user.id
-        })
+        const { data, error: rpcError } = await supabase.rpc('is_admin')
 
         if (rpcError) {
           throw rpcError
@@ -170,7 +212,7 @@ export function useUserRoles() {
   useEffect(() => {
     async function fetchRoles() {
       try {
-        const supabase = createClient()
+        const supabase = createClient() as unknown as SupabaseClient<DatabaseWithRBAC>
         const { data: { user } } = await supabase.auth.getUser()
 
         if (!user) {
@@ -189,8 +231,8 @@ export function useUserRoles() {
         }
 
         const roleNames = data
-          ?.map((item: { role: { name: string } | null }) => item.role?.name)
-          .filter((name): name is string => name !== null && name !== undefined) || []
+          ?.map((item: { role: { name: string } | null } | any) => item.role?.name)
+          .filter((name: string | null | undefined): name is string => name !== null && name !== undefined) || []
 
         setRoles(roleNames)
       } catch (err) {
@@ -206,6 +248,7 @@ export function useUserRoles() {
 
   return { roles, loading, error }
 }
+
 
 /**
  * Hook para verificar se usuário possui pelo menos um dos roles especificados

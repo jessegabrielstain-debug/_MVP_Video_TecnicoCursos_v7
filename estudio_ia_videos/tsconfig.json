@@ -28,6 +28,14 @@
       "@/*": [
         "./app/*"
       ],
+      "@/components/*": [
+        "./app/components/*",
+        "./components/*"
+      ],
+      "@/lib/*": [
+        "./app/lib/*",
+        "./lib/*"
+      ],
       "~lib/*": [
         "../lib/*"
       ]
@@ -40,14 +48,11 @@
   },
   "include": [
     "next-env.d.ts",
-    "app/app/**/*.ts",
-    "app/app/**/*.tsx",
-    "app/lib/**/*.ts",
-    "app/lib/**/*.tsx",
-    "app/types/**/*.ts",
-    "app/types/**/*.tsx",
-    "_next_temp/types/**/*.ts",
-    ".next/types/**/*.ts"
+    "types/**/*.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    ".next/types/**/*.ts",
+    "../lib/**/*"
   ],
   "exclude": [
     "node_modules",
@@ -55,12 +60,12 @@
     "app/.next",
     "app/archive",
     "app/archive/**/*",
+    "app/scripts/archive",
+    "app/scripts/archive/**/*",
     "_next_temp",
     "__tests__",
     "app/(pages)",
     "app/__tests__",
-    "app/api",
-    "app/api/**/*",
     "src/__tests__",
     "src/tests",
     "src/test",

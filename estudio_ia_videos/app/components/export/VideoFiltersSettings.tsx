@@ -25,7 +25,7 @@ import {
   Contrast as ContrastIcon,
   Droplet,
   Wind,
-  Blur as BlurIcon,
+  Aperture as BlurIcon,
   Focus,
   ImageIcon,
 } from 'lucide-react'

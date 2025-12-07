@@ -1,3 +1,4 @@
+// TODO: Alinhar Template type com Omit<Template, ...>
 'use client';
 
 import React, { useState } from 'react';
@@ -182,6 +183,10 @@ export default function CreateTemplatePage() {
         tags,
         author: 'User',
         version: '1.0',
+        rating: 0,
+        downloads: 0,
+        isCustom: true,
+        isFavorite: false,
         content: {
           slides: [],
           assets: [],
@@ -200,6 +205,15 @@ export default function CreateTemplatePage() {
               template: '',
             })),
           },
+          settings: {
+            duration: estimatedDuration * 60,
+            resolution: { width: 1920, height: 1080 },
+            frameRate: 30,
+            renderSettings: {
+              quality: 'high' as const,
+              format: 'mp4' as const,
+            },
+          },
         },
         metadata: {
           difficulty,
@@ -214,6 +228,13 @@ export default function CreateTemplatePage() {
             lastAudit: new Date(),
             auditScore: 0,
             certifications,
+            status: 'pending' as const,
+            requirements: [],
+          },
+          performance: {
+            renderTime: 0,
+            fileSize: 0,
+            complexity: 'low' as const,
           },
         },
       };
@@ -440,7 +461,7 @@ export default function CreateTemplatePage() {
                   <CardContent className="space-y-4">
                     <div>
                       <Label htmlFor="difficulty">Nível de Dificuldade</Label>
-                      <Select value={difficulty} onValueChange={(value: any) => setDifficulty(value)}>
+                      <Select value={difficulty} onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => setDifficulty(value)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>

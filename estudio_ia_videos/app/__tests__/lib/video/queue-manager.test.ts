@@ -4,7 +4,6 @@
  * Testes completos para o sistema de fila de processamento
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import {
   VideoProcessingQueue,
   QueuePriority,

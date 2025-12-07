@@ -45,10 +45,18 @@ export default function LMSExportInterface({
   videoUrl,
   onExport
 }: LMSExportInterfaceProps) {
+  interface ExportResult {
+    success: boolean;
+    format: string;
+    package_id: string;
+    download_url: string;
+    error?: string;
+  }
+
   const [selectedFormat, setSelectedFormat] = useState<string>('SCORM_1_2')
   const [isExporting, setIsExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
-  const [exportResult, setExportResult] = useState<unknown>(null)
+  const [exportResult, setExportResult] = useState<ExportResult | null>(null)
   
   // Metadados do curso
   const [metadata, setMetadata] = useState<Partial<LMSMetadata>>({
@@ -97,7 +105,7 @@ export default function LMSExportInterface({
     }
   ]
 
-  const estimatedDuration = slides.reduce((sum, slide) => sum + slide.duration, 0)
+  const estimatedDuration = slides.reduce((sum, slide) => sum + (slide.duration || 0), 0)
 
   const handleExport = async () => {
     if (!selectedFormat) {

@@ -25,27 +25,43 @@ export async function GET() {
 
     const data = await response.json()
 
+    interface ElevenLabsVoice {
+      voice_id: string;
+      name: string;
+      category?: string;
+      description?: string;
+      preview_url?: string;
+      labels?: {
+        gender?: string;
+        age?: string;
+        accent?: string;
+        'use case'?: string;
+        language?: string;
+      };
+      fine_tuning?: {
+        is_allowed?: boolean;
+      };
+    }
+
     // Format the response for our component
-    const formattedVoices = data.voices?.map((voice: any) => ({
-      voice_id: voice.voice_id,
+    const formattedVoices = data.voices?.map((voice: ElevenLabsVoice) => ({
+      id: voice.voice_id,
       name: voice.name,
-      category: voice.category || 'premade',
-      description: voice.description || `${voice.labels?.gender || 'Unknown'} voice with ${voice.labels?.accent || 'neutral'} accent`,
-      preview_url: voice.preview_url,
-      labels: {
-        gender: voice.labels?.gender || 'Unknown',
-        age: voice.labels?.age || 'Unknown', 
-        accent: voice.labels?.accent || 'Neutral',
-        'use case': voice.labels?.['use case'] || 'General'
-      },
-      fine_tuning: {
-        is_allowed: voice.fine_tuning?.is_allowed || false
-      }
+      category: voice.category || 'professional',
+      description: voice.description || '',
+      gender: voice.labels?.gender || 'unknown',
+      age: voice.labels?.age || 'unknown',
+      accent: voice.labels?.accent || 'unknown',
+      language: voice.labels?.language || 'en',
+      useCase: voice.labels?.['use case'] || 'general',
+      previewUrl: voice.preview_url,
+      samples: 0
     })) || []
 
     return NextResponse.json({
+      success: true,
       voices: formattedVoices,
-      count: formattedVoices.length
+      total: formattedVoices.length
     })
 
   } catch (error) {
@@ -56,3 +72,4 @@ export async function GET() {
     )
   }
 }
+

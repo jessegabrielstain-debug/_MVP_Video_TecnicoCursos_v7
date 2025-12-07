@@ -188,7 +188,10 @@ export function WatermarkSettings({ config, onChange, compact = false }: Waterma
           <input
             type="text"
             value={config.text}
-            onChange={(e) => updateConfig('text', e.target.value)}
+            onChange={(e) => {
+              const newConfig = { ...config, text: e.target.value } as TextWatermarkConfig
+              onChange(newConfig)
+            }}
             className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
             placeholder="Digite o texto..."
           />
@@ -275,7 +278,10 @@ export function WatermarkSettings({ config, onChange, compact = false }: Waterma
               min="50"
               max="500"
               value={config.width}
-              onChange={(e) => updateConfig('width', parseInt(e.target.value))}
+              onChange={(e) => {
+                const newConfig = { ...config, width: parseInt(e.target.value) } as ImageWatermarkConfig
+                onChange(newConfig)
+              }}
               className="w-full"
             />
           </div>

@@ -25,7 +25,7 @@ import {
   FileCode,
   Globe
 } from 'lucide-react';
-import { Template, TemplateImportExportData } from '@/types/templates';
+import { Template } from '@/types/templates';
 
 interface TemplateImportExportProps {
   mode: 'import' | 'export';

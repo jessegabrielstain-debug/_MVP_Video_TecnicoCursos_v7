@@ -68,7 +68,6 @@ import {
   Package,
   Sparkles,
   Cpu,
-  Memory,
   Route,
   Navigation
 } from 'lucide-react';
@@ -577,7 +576,7 @@ export default function CDNIntegration({
           </div>
           
           <div className="flex items-center gap-2">
-            <Select value={timeRange} onValueChange={(value) => setTimeRange(value)}>
+            <Select value={timeRange} onValueChange={(value) => setTimeRange(value as '24h' | '7d' | '30d')}>
               <SelectTrigger className="w-24">
                 <SelectValue />
               </SelectTrigger>
@@ -663,7 +662,7 @@ export default function CDNIntegration({
 
       {/* Main Content */}
       <div className="flex-1">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="h-full">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'overview' | 'providers' | 'cache' | 'optimization' | 'analytics')} className="h-full">
           {/* Tabs Navigation */}
           <div className="bg-gray-800 border-b border-gray-700 px-6">
             <TabsList className="bg-gray-700">

@@ -54,6 +54,31 @@ import {
   Download
 } from 'lucide-react'
 
+interface FabricObject {
+  lockMovementX?: boolean
+  lockMovementY?: boolean
+  left: number
+  top: number
+  set: (options: Record<string, unknown>) => void
+  clone: (callback: (cloned: FabricObject) => void) => void
+  [key: string]: unknown
+}
+
+interface Canvas {
+  undo?: () => void
+  redo?: () => void
+  getZoom: () => number
+  setZoom: (value: number) => void
+  setViewportTransform: (transform: number[]) => void
+  getActiveObject: () => FabricObject | null
+  discardActiveObject: () => void
+  add: (object: FabricObject) => void
+  setActiveObject: (object: FabricObject) => void
+  requestRenderAll: () => void
+  clipboard?: FabricObject
+  [key: string]: unknown
+}
+
 interface QuickAction {
   id: string
   icon: React.ReactNode
@@ -66,7 +91,7 @@ interface QuickAction {
 
 interface QuickActionsBarProps {
   canvas?: any
-  onAction?: (actionId: string, params?: any) => void
+  onAction?: (actionId: string, params?: unknown) => void
   selectedObjects?: any[]
   canUndo?: boolean
   canRedo?: boolean
@@ -234,10 +259,10 @@ export default function QuickActionsBar({
     },
     {
       id: 'lock',
-      icon: selectedObjects.some((obj: any) => obj.lockMovementX || obj.lockMovementY) 
+      icon: selectedObjects.some((obj: FabricObject) => obj.lockMovementX || obj.lockMovementY) 
         ? <Unlock className="h-4 w-4" />
         : <Lock className="h-4 w-4" />,
-      label: selectedObjects.some((obj: any) => obj.lockMovementX || obj.lockMovementY)
+      label: selectedObjects.some((obj: FabricObject) => obj.lockMovementX || obj.lockMovementY)
         ? 'Desbloquear'
         : 'Bloquear',
       category: 'layer',
@@ -321,7 +346,7 @@ export default function QuickActionsBar({
         break
       case 'copy':
         if (canvas && selectedObjects.length > 0) {
-          canvas.getActiveObject()?.clone((cloned: any) => {
+          canvas.getActiveObject()?.clone((cloned: FabricObject) => {
             canvas.clipboard = cloned
           })
           toast.success(`${selectedObjects.length} objeto(s) copiado(s)`)
@@ -329,7 +354,7 @@ export default function QuickActionsBar({
         break
       case 'paste':
         if (canvas?.clipboard) {
-          canvas.clipboard.clone((cloned: any) => {
+          canvas.clipboard.clone((cloned: FabricObject) => {
             canvas.discardActiveObject()
             cloned.set({
               left: cloned.left + 10,

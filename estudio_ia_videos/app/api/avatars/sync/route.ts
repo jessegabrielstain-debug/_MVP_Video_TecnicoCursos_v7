@@ -15,7 +15,7 @@ class MonitoringService {
     return this.instance;
   }
   
-  logEvent(event: string, data: any) {
+  logEvent(event: string, data: unknown) {
     console.log(`📊 [${event}]`, data);
   }
 }
@@ -30,19 +30,19 @@ class AdvancedLipSyncProcessor {
     return this.instance;
   }
   
-  async processAudio(audioData: ArrayBuffer, config: any) {
+  async processAudio(audioData: ArrayBuffer, config: Record<string, unknown>) {
     // Simulate lip-sync processing
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     const duration = 5000; // 5 seconds
-    const frameCount = Math.floor(duration / 1000 * config.frameRate);
+    const frameCount = Math.floor(duration / 1000 * ((config.frameRate as number) || 30));
     
     return {
       jobId: `lipsync_${Date.now()}`,
       duration,
       frameRate: config.frameRate,
       visemeFrames: Array.from({ length: frameCount }, (_, i) => ({
-        time: i / config.frameRate,
+        time: i / ((config.frameRate as number) || 30),
         viseme: 'A',
         intensity: Math.random()
       })),
@@ -248,11 +248,11 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Log do erro
     monitoring.logEvent('avatar_sync_error', {
-      error: error.message,
-      stack: error.stack,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       processingTime: Date.now() - startTime
     });
 
@@ -261,7 +261,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Erro interno do servidor',
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
         code: 'AVATAR_SYNC_ERROR'
       },
       { status: 500 }
@@ -297,13 +297,13 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao obter informações dos avatares:', error);
     
     return NextResponse.json(
       { 
         error: 'Erro ao obter informações',
-        message: error.message 
+        message: error instanceof Error ? error.message : 'Unknown error' 
       },
       { status: 500 }
     );

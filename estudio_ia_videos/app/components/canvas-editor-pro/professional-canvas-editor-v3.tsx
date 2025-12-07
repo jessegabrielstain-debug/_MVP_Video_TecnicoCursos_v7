@@ -1,4 +1,4 @@
-
+// TODO: Fixar CanvasData e FabricCanvas tipos
 
 'use client'
 
@@ -52,6 +52,56 @@ import {
   RotateCcw
 } from 'lucide-react'
 
+interface FabricObject {
+  id?: string
+  type?: string
+  name?: string
+  visible?: boolean
+  lockMovementX?: boolean
+  lockMovementY?: boolean
+  opacity?: number
+  zIndex?: number
+  toObject: () => Record<string, unknown>
+  set: (key: string, value: unknown) => void
+  [key: string]: unknown
+}
+
+interface FabricEvent {
+  selected?: FabricObject[]
+  target?: FabricObject
+  [key: string]: unknown
+}
+
+interface FabricCanvas {
+  on: (event: string, handler: (e: FabricEvent) => void) => void
+  off: (event: string, handler?: (e: FabricEvent) => void) => void
+  getObjects: () => FabricObject[]
+  getWidth: () => number
+  getHeight: () => number
+  getZoom: () => number
+  backgroundColor?: string | unknown
+  add: (object: FabricObject) => void
+  setActiveObject: (object: FabricObject) => void
+  getActiveObject: () => FabricObject | null
+  renderAll: () => void
+  toJSON: () => Record<string, unknown>
+  [key: string]: unknown
+}
+
+interface CanvasData {
+  objects: Array<{
+    id: string
+    type: string
+    properties: Record<string, unknown>
+    visible: boolean
+    locked: boolean
+  }>
+  dimensions: { width: number; height: number }
+  backgroundColor: string | unknown
+  zoom: number
+  timestamp: number
+}
+
 interface CanvasObject {
   id: string
   type: 'text' | 'image' | 'shape' | 'group'
@@ -60,15 +110,15 @@ interface CanvasObject {
   locked: boolean
   opacity: number
   layer: number
-  data?: any
+  data?: FabricObject
 }
 
 interface ProfessionalCanvasEditorProps {
   width?: number
   height?: number
   backgroundColor?: string
-  onExportTimeline?: (timeline: any) => void
-  onSceneUpdate?: (sceneData: any) => void
+  onExportTimeline?: (timeline: CanvasData) => void
+  onSceneUpdate?: (sceneData: CanvasData) => void
   initialObjects?: CanvasObject[]
 }
 
@@ -83,7 +133,7 @@ function ProfessionalCanvasEditorCore({
   const { theme } = useCanvasTheme()
   
   // Canvas state
-  const [canvas, setCanvas] = useState<any>(null)
+  const [canvas, setCanvas] = useState<FabricCanvas | null>(null)
   const [selectedObjects, setSelectedObjects] = useState<CanvasObject[]>([])
   const [canvasObjects, setCanvasObjects] = useState<CanvasObject[]>(initialObjects)
   const [zoomLevel, setZoomLevel] = useState(100)
@@ -114,16 +164,16 @@ function ProfessionalCanvasEditorCore({
   })
 
   // Canvas ready handler
-  const handleCanvasReady = useCallback((fabricCanvas: any) => {
+  const handleCanvasReady = useCallback((fabricCanvas: FabricCanvas) => {
     setCanvas(fabricCanvas)
     startMonitoring(fabricCanvas)
     
     // Setup canvas event listeners
-    fabricCanvas.on('selection:created', (e: any) => {
+    fabricCanvas.on('selection:created', (e: FabricEvent) => {
       updateSelectedObjects(e.selected || [])
     })
     
-    fabricCanvas.on('selection:updated', (e: any) => {
+    fabricCanvas.on('selection:updated', (e: FabricEvent) => {
       updateSelectedObjects(e.selected || [])
     })
     
@@ -131,8 +181,9 @@ function ProfessionalCanvasEditorCore({
       setSelectedObjects([])
     })
     
-    fabricCanvas.on('object:modified', (e: any) => {
-      onSceneUpdate?.(getCanvasData())
+    fabricCanvas.on('object:modified', (e: FabricEvent) => {
+      const data = getCanvasData()
+      if (data) onSceneUpdate?.(data)
     })
     
     // Zoom tracking
@@ -147,10 +198,10 @@ function ProfessionalCanvasEditorCore({
   }, [startMonitoring, onSceneUpdate])
 
   // Update selected objects
-  const updateSelectedObjects = useCallback((fabricObjects: any[]) => {
+  const updateSelectedObjects = useCallback((fabricObjects: FabricObject[]) => {
     const objects = fabricObjects.map(obj => ({
       id: obj.id || `obj_${Date.now()}`,
-      type: obj.type || 'shape',
+      type: (obj.type as 'text' | 'image' | 'shape' | 'group') || 'shape',
       name: obj.name || `${obj.type} ${obj.id}`,
       visible: obj.visible !== false,
       locked: obj.lockMovementX || obj.lockMovementY || false,
@@ -162,16 +213,16 @@ function ProfessionalCanvasEditorCore({
   }, [])
 
   // Get canvas data for export
-  const getCanvasData = useCallback(() => {
+  const getCanvasData = useCallback((): CanvasData | null => {
     if (!canvas) return null
     
     return {
-      objects: canvas.getObjects().map((obj: any) => ({
-        id: obj.id,
-        type: obj.type,
+      objects: canvas.getObjects().map((obj: FabricObject) => ({
+        id: obj.id || '',
+        type: obj.type || 'unknown',
         properties: obj.toObject(),
-        visible: obj.visible,
-        locked: obj.lockMovementX || obj.lockMovementY
+        visible: obj.visible || true,
+        locked: !!(obj.lockMovementX || obj.lockMovementY)
       })),
       dimensions: { width: canvas.getWidth(), height: canvas.getHeight() },
       backgroundColor: canvas.backgroundColor,
@@ -181,25 +232,25 @@ function ProfessionalCanvasEditorCore({
   }, [canvas])
 
   // Quick actions handler
-  const handleQuickAction = useCallback((actionId: string, params?: any) => {
+  const handleQuickAction = useCallback((actionId: string, params?: unknown) => {
     if (!canvas) return
     
     switch (actionId) {
       case 'add-text':
-        const text = new ((window as Window & { fabric?: unknown }).fabric as { Textbox: new (...args: unknown[]) => unknown; Rect: new (...args: unknown[]) => unknown; Circle: new (...args: unknown[]) => unknown }).Textbox('Click to edit', {
+        const text = new ((window as Window & { fabric?: unknown }).fabric as any).Textbox('Click to edit', {
           left: 100,
           top: 100,
           fontFamily: 'Arial',
           fontSize: 24,
           fill: theme.colors.text
-        })
+        }) as any
         text.id = `text_${Date.now()}`
         canvas.add(text)
         canvas.setActiveObject(text)
         break
         
       case 'add-rectangle':
-        const rect = new ((window as Window & { fabric?: unknown }).fabric as { Textbox: new (...args: unknown[]) => unknown; Rect: new (...args: unknown[]) => unknown; Circle: new (...args: unknown[]) => unknown }).Rect({
+        const rect = new ((window as Window & { fabric?: unknown }).fabric as any).Rect({
           left: 100,
           top: 100,
           width: 200,
@@ -207,21 +258,21 @@ function ProfessionalCanvasEditorCore({
           fill: theme.colors.accent,
           stroke: theme.colors.border,
           strokeWidth: 2
-        })
+        }) as any
         rect.id = `rect_${Date.now()}`
         canvas.add(rect)
         canvas.setActiveObject(rect)
         break
         
       case 'add-circle':
-        const circle = new ((window as Window & { fabric?: unknown }).fabric as { Textbox: new (...args: unknown[]) => unknown; Rect: new (...args: unknown[]) => unknown; Circle: new (...args: unknown[]) => unknown }).Circle({
+        const circle = new ((window as Window & { fabric?: unknown }).fabric as any).Circle({
           left: 100,
           top: 100,
           radius: 50,
           fill: theme.colors.accent,
           stroke: theme.colors.border,
           strokeWidth: 2
-        })
+        }) as any
         circle.id = `circle_${Date.now()}`
         canvas.add(circle)
         canvas.setActiveObject(circle)
@@ -229,8 +280,10 @@ function ProfessionalCanvasEditorCore({
         
       case 'export':
         const data = getCanvasData()
-        onExportTimeline?.(data)
-        toast.success('Canvas exportado para timeline!')
+        if (data) {
+          onExportTimeline?.(data)
+          toast.success('Canvas exportado para timeline!')
+        }
         break
         
       case 'save':
@@ -245,11 +298,11 @@ function ProfessionalCanvasEditorCore({
         break
         
       case 'toggle-grid':
-        setGuideOptions(prev => ({ ...prev, showGrid: params }))
+        setGuideOptions(prev => ({ ...prev, showGrid: params as boolean }))
         break
         
       case 'toggle-rulers':
-        setGuideOptions(prev => ({ ...prev, showRulers: params }))
+        setGuideOptions(prev => ({ ...prev, showRulers: params as boolean }))
         break
         
       default:
@@ -572,7 +625,7 @@ function ProfessionalCanvasEditorCore({
               
               {/* Smart Guides Overlay */}
               <SmartGuides
-                canvas={canvas}
+                canvas={canvas as any}
                 options={guideOptions}
                 onOptionsChange={setGuideOptions}
               />

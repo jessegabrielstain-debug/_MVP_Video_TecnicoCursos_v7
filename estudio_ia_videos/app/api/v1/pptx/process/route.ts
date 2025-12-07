@@ -1,21 +1,19 @@
-
-
-/**
- * 🎯 API de Processamento PPTX Real - FASE 1
- * Processamento completo com extração real de texto, imagens, layouts e metadados
- */
-
 import { NextRequest, NextResponse } from 'next/server'
 import { S3StorageService } from '@/lib/s3-storage'
 import { prisma } from '@/lib/prisma'
-import { PPTXProcessor, ProcessingProgress } from '@/lib/pptx/pptx-processor'
-import { PPTXExtractionResult } from '@/lib/pptx/types/pptx-types'
+import { PPTXProcessor, PPTXProcessResult } from '@/lib/pptx/pptx-processor'
 import type { Prisma } from '@prisma/client'
+
+interface ProcessingProgress {
+  stage: string;
+  progress: number;
+  message: string;
+}
 
 interface PPTXProcessingResult {
   success: boolean
   projectId?: string
-  extractedContent?: PPTXExtractionResult
+  extractedContent?: PPTXProcessResult
   thumbnailUrl?: string
   error?: string
   processingTime?: number
@@ -24,9 +22,11 @@ interface PPTXProcessingResult {
 export async function POST(request: NextRequest) {
   console.log('🎯 Iniciando processamento PPTX real - FASE 1...')
   const startTime = Date.now()
+  let requestBody: { s3Key?: string; projectId?: string } = {}
   
   try {
-    const { s3Key, projectId } = await request.json()
+    requestBody = await request.json()
+    const { s3Key, projectId } = requestBody
 
     if (!s3Key || !projectId) {
       return NextResponse.json({
@@ -56,7 +56,10 @@ export async function POST(request: NextRequest) {
     if (!fileExists) {
       await prisma.project.update({
         where: { id: projectId },
-        data: { status: 'ERROR', errorMessage: 'Arquivo não encontrado no S3' }
+        data: { 
+          status: 'ERROR', 
+          processingLog: { error: 'Arquivo não encontrado no S3', failedAt: new Date().toISOString() } as Prisma.InputJsonValue
+        }
       })
       
       return NextResponse.json({
@@ -73,7 +76,10 @@ export async function POST(request: NextRequest) {
       
       await prisma.project.update({
         where: { id: projectId },
-        data: { status: 'ERROR', errorMessage: errorMsg }
+        data: { 
+          status: 'ERROR', 
+          processingLog: { error: errorMsg, failedAt: new Date().toISOString() } as Prisma.InputJsonValue
+        }
       })
       
       return NextResponse.json({
@@ -88,11 +94,14 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Validando arquivo PPTX...')
     const validation = await PPTXProcessor.validatePPTXFile(downloadResult.buffer)
     if (!validation.isValid) {
-      const errorMsg = `Arquivo PPTX inválido: ${validation.errors.join(', ')}`
+      const errorMsg = `Arquivo PPTX inválido: ${validation.error || 'Erro desconhecido'}`
       
       await prisma.project.update({
         where: { id: projectId },
-        data: { status: 'ERROR', errorMessage: errorMsg }
+        data: { 
+          status: 'ERROR', 
+          processingLog: { error: errorMsg, failedAt: new Date().toISOString() } as Prisma.InputJsonValue
+        }
       })
       
       return NextResponse.json({
@@ -135,7 +144,7 @@ export async function POST(request: NextRequest) {
         where: { id: projectId },
         data: {
           status: 'ERROR',
-          errorMessage: errorMsg,
+          processingLog: { error: errorMsg, failedAt: new Date().toISOString() } as Prisma.InputJsonValue,
         },
       })
       
@@ -161,49 +170,58 @@ export async function POST(request: NextRequest) {
     
     const processingTime = Date.now() - startTime
     
+    // Ensure data is JSON compatible (remove undefined)
+    const safeSlidesData = JSON.parse(JSON.stringify(extractionResult));
+    const safeProcessingLog = JSON.parse(JSON.stringify({
+      processingCompleted: new Date().toISOString(),
+      s3Key: s3Key,
+      status: 'completed',
+      phase: 'FASE_1_REAL_PROCESSING',
+      slidesExtracted: extractionResult.slides.length,
+      imagesExtracted: extractionResult.assets.images.length,
+      totalDuration: extractionResult.timeline?.totalDuration || 0,
+      processingTime: processingTime,
+      extractionStats: extractionResult.extractionStats
+    }));
+
     const updatedProject = await prisma.project.update({
       where: { id: projectId },
       data: {
         status: 'COMPLETED',
-        slidesData: extractionResult as unknown as Prisma.JsonValue, // JSON com dados reais extraídos
+        slidesData: safeSlidesData as Prisma.InputJsonValue,
         totalSlides: extractionResult.slides.length,
         duration: extractionResult.timeline ? Math.round(extractionResult.timeline.totalDuration / 1000) : 0, // Converter para segundos
         thumbnailUrl: thumbnailUrl,
-        processingLog: {
-          processingCompleted: new Date().toISOString(),
-          s3Key: s3Key,
-          status: 'completed',
-          phase: 'FASE_1_REAL_PROCESSING',
-          slidesExtracted: extractionResult.slides.length,
-          imagesExtracted: extractionResult.assets.images.length,
-          totalDuration: extractionResult.timeline?.totalDuration || 0,
-          processingTime: processingTime,
-          extractionStats: extractionResult.extractionStats
-        } as unknown as Prisma.JsonValue
+        processingLog: safeProcessingLog as Prisma.InputJsonValue
       }
     })
 
     // Criar slides individuais no banco de dados
     console.log('📄 Criando slides individuais no banco...')
     
-    for (const slide of extractionResult.slides) {
+    for (let i = 0; i < extractionResult.slides.length; i++) {
+      const slide = extractionResult.slides[i];
+      
+      const safeAvatarConfig = JSON.parse(JSON.stringify({
+        layout: slide.layout,
+        textElements: slide.textBoxes,
+        animations: slide.animations,
+        backgroundType: slide.backgroundType,
+        images: slide.images,
+        shapes: slide.shapes,
+        audioText: slide.content + (slide.notes ? '\n\n' + slide.notes : '')
+      }));
+
       await prisma.slide.create({
         data: {
           projectId: projectId,
-          title: slide.title,
-          content: slide.content,
-          slideNumber: slide.slideNumber,
-          duration: slide.duration / 1000, // Converter para segundos
-          audioText: slide.content + (slide.notes ? '\n\n' + slide.notes : ''), // Incluir notas no texto para TTS
-          elements: {
-            layout: slide.layout,
-            textElements: slide.textBoxes,
-            animations: slide.animations,
-            backgroundType: slide.backgroundType,
-            backgroundColor: slide.backgroundColor,
-            images: slide.images,
-            shapes: slide.shapes
-          } as unknown as Prisma.JsonValue
+          title: slide.title || '',
+          content: slide.content || '',
+          orderIndex: i, // Usar orderIndex em vez de slideNumber
+          duration: Math.round((slide.duration || 5000) / 1000), // Converter para segundos, default 5s
+          backgroundColor: slide.backgroundColor || '#FFFFFF',
+          // Armazenar dados extras em avatarConfig (JSON disponível no modelo)
+          avatarConfig: safeAvatarConfig as Prisma.InputJsonValue
         }
       })
     }
@@ -227,20 +245,18 @@ export async function POST(request: NextRequest) {
     const processingTime = Date.now() - startTime
     
     // Atualizar projeto com status de erro se projectId estiver disponível
-    const body = await request.json().catch(() => ({}))
-    if (body.projectId) {
+    if (requestBody.projectId) {
       await prisma.project.update({
-        where: { id: body.projectId },
+        where: { id: requestBody.projectId },
         data: {
           status: 'ERROR',
-          errorMessage: errorMessage,
           processingLog: {
             error: errorMessage,
             timestamp: new Date().toISOString(),
             phase: 'FASE_1_REAL_PROCESSING',
             processingTime: processingTime,
             failedAt: new Date().toISOString()
-          }
+          } as Prisma.InputJsonValue
         }
       }).catch(console.error)
     }
@@ -252,3 +268,4 @@ export async function POST(request: NextRequest) {
     }, { status: 500 })
   }
 }
+

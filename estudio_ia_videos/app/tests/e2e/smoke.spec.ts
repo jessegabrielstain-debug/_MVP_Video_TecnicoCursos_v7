@@ -1,4 +1,3 @@
-
 /**
  * 🚀 SMOKE TESTS - Sprint 44
  * Testes rápidos pós-deploy

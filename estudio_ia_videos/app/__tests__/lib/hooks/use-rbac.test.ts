@@ -117,9 +117,7 @@ describe('RBAC Hooks', () => {
 
       expect(result.current.role).toBe('editor')
       expect(result.current.error).toBeNull()
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('user_role', {
-        user_id: 'user-123'
-      })
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('user_role')
     })
 
     it('deve retornar null quando usuário não tem role', async () => {
@@ -158,9 +156,7 @@ describe('RBAC Hooks', () => {
       })
 
       expect(result.current.isAdmin).toBe(true)
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('is_admin', {
-        user_id: 'admin-123'
-      })
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('is_admin')
     })
 
     it('deve retornar false quando usuário não é admin', async () => {

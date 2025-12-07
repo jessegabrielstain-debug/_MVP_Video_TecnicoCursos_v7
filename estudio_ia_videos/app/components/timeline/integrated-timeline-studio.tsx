@@ -483,7 +483,7 @@ export function IntegratedTimelineStudio() {
         ...prev,
         tracks: isTimelineTrackArray(tracks) ? tracks : prev.tracks,
         duration: typeof totalDuration === 'number' ? totalDuration : prev.duration,
-        lastSaved: new Date(json.data.updatedAt || Date.now()),
+        lastSaved: new Date(json.data?.updatedAt || Date.now()),
         projectName: projectName || prev.projectName,
       }));
       if (settings) {
@@ -1458,9 +1458,11 @@ export function IntegratedTimelineStudio() {
                       variant="outline"
                       className="text-gray-300 border-gray-600"
                       onClick={() => {
-                        navigator.clipboard.writeText(jobDetails.outputUrl)
-                          .then(() => toast.success('Link copiado'))
-                          .catch(() => toast.error('Falha ao copiar'));
+                        if (jobDetails.outputUrl) {
+                          navigator.clipboard.writeText(jobDetails.outputUrl)
+                            .then(() => toast.success('Link copiado'))
+                            .catch(() => toast.error('Falha ao copiar'));
+                        }
                       }}
                     >
                       Copiar

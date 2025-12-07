@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Bell, X, Play, AlertCircle, CheckCircle, Clock, Wifi, WifiOff } from 'lucide-react';
-import { useRenderNotifications, RenderJob } from '@/hooks/useRenderNotifications';
+import { useRenderPipeline, RenderJob } from '@/hooks/use-render-pipeline';
 
 interface RenderNotificationsProps {
   userId: string | null;
@@ -15,11 +15,16 @@ interface RenderNotificationsProps {
 export function RenderNotifications({ userId, className = '' }: RenderNotificationsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { 
-    activeJobs, 
+    renderQueue, 
     isConnected, 
-    connectionError, 
-    retryConnection 
-  } = useRenderNotifications(userId);
+    // connectionError, // Not exposed by useRenderPipeline yet
+    // retryConnection // Not exposed
+  } = useRenderPipeline();
+
+  const activeJobs = renderQueue ? [
+    ...renderQueue.processing,
+    ...renderQueue.pending
+  ] : [];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -131,14 +136,6 @@ export function RenderNotifications({ userId, className = '' }: RenderNotificati
                 <>
                   <WifiOff className="w-4 h-4 text-red-500" />
                   <span className="text-red-600">Desconectado</span>
-                  {connectionError && (
-                    <button
-                      onClick={retryConnection}
-                      className="ml-auto text-blue-600 hover:text-blue-700 text-xs underline"
-                    >
-                      Reconectar
-                    </button>
-                  )}
                 </>
               )}
             </div>
@@ -240,7 +237,7 @@ function RenderJobItem({ job }: RenderJobItemProps) {
           </div>
           
           <p className="text-sm text-gray-600 truncate mb-2">
-            {job.script_text}
+            {(job.input_data?.script_text as string) || 'Sem descrição'}
           </p>
           
           {/* Barra de progresso */}
@@ -248,21 +245,21 @@ function RenderJobItem({ job }: RenderJobItemProps) {
             <div className="mb-2">
               <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
                 <span>Progresso</span>
-                <span>{job.progress_percentage}%</span>
+                <span>{job.progress}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${job.progress_percentage}%` }}
+                  style={{ width: `${job.progress}%` }}
                 />
               </div>
             </div>
           )}
           
           {/* Botão de ação */}
-          {job.status === 'completed' && job.output_video_url && (
+          {job.status === 'completed' && job.output_url && (
             <button
-              onClick={() => window.open(job.output_video_url, '_blank')}
+              onClick={() => window.open(job.output_url, '_blank')}
               className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
             >
               <Play className="w-3 h-3" />

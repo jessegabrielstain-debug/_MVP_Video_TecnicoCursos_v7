@@ -1,4 +1,3 @@
-
 /**
  * 🗣️ Estúdio IA de Vídeos - Sprint 5
  * Studio de Clonagem de Voz
@@ -50,10 +49,30 @@ const statusConfig: Record<TrainingStatus, { variant: BadgeProps['variant']; ico
   failed: { variant: 'destructive', icon: '❌', text: 'Falhou' }
 };
 
+interface VoiceProfile {
+  id: string;
+  name: string;
+  description: string;
+  gender: string;
+  language: string;
+  training: {
+    trainingStatus: TrainingStatus;
+    similarity: number;
+    quality: number;
+    samplesProvided: number;
+    samplesRequired: number;
+  };
+  characteristics: {
+    emotion: string;
+    clarity: number;
+    naturalness: number;
+  };
+}
+
 export default function VoiceCloningStudio({ onVoiceCreated }: VoiceCloningStudioProps) {
   const [currentTab, setCurrentTab] = useState('create');
-  const [voiceProfiles, setVoiceProfiles] = useState<any[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState<unknown>(null);
+  const [voiceProfiles, setVoiceProfiles] = useState<VoiceProfile[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<VoiceProfile | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -88,7 +107,7 @@ export default function VoiceCloningStudio({ onVoiceCreated }: VoiceCloningStudi
           description: 'Voz autoritativa para treinamentos de segurança',
           gender: 'male',
           language: 'pt-BR',
-          training: { trainingStatus: 'ready', similarity: 0.89, quality: 0.92, samplesProvided: 12 },
+          training: { trainingStatus: 'ready', similarity: 0.89, quality: 0.92, samplesProvided: 12, samplesRequired: 20 },
           characteristics: { emotion: 'authoritative', clarity: 0.95, naturalness: 0.88 }
         },
         {
@@ -97,7 +116,7 @@ export default function VoiceCloningStudio({ onVoiceCreated }: VoiceCloningStudi
           description: 'Voz amigável e clara para explicações',
           gender: 'female',
           language: 'pt-BR',
-          training: { trainingStatus: 'training', similarity: 0.75, quality: 0.80, samplesProvided: 8 },
+          training: { trainingStatus: 'training', similarity: 0.75, quality: 0.80, samplesProvided: 8, samplesRequired: 20 },
           characteristics: { emotion: 'friendly', clarity: 0.90, naturalness: 0.85 }
         }
       ]);

@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { UnifiedProject } from '@/lib/stores/unified-project-store'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -64,7 +65,9 @@ export default function DashboardReal() {
   const [signingOut, setSigningOut] = useState(false)
 
   // Real data hooks
-  const { projects, loading: projectsLoading, error: projectsError, refresh: refreshProjects } = useProjects(projectFilter)
+  const { projects, isLoading: projectsLoading, error: projectsError, refresh: refreshProjects } = useProjects(
+    projectFilter === 'all' ? undefined : { status: projectFilter }
+  )
   const { metrics, loading: metricsLoading, error: metricsError, refresh: refreshMetrics } = useMetrics(selectedPeriod)
 
   // 🚨 EMERGENCY: Removed auto-refresh to prevent infinite loops
@@ -82,8 +85,8 @@ export default function DashboardReal() {
 
         if (authUser) {
           const { data: profile, error } = await supabase
-            .from('user_profiles')
-            .select('full_name')
+            .from('users')
+            .select('name')
             .eq('id', authUser.id)
             .maybeSingle()
 
@@ -93,7 +96,7 @@ export default function DashboardReal() {
             console.warn('Erro ao carregar perfil:', error)
           }
 
-          setDisplayName(profile?.full_name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
+          setDisplayName(profile?.name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
         } else {
           setDisplayName(null)
         }
@@ -211,7 +214,7 @@ export default function DashboardReal() {
     }
   }
 
-  const handleDownloadVideo = async (project: any) => {
+  const handleDownloadVideo = async (project: UnifiedProject) => {
     if (!project.videoUrl) {
       toast.error('Vídeo ainda não está pronto')
       return
@@ -352,7 +355,7 @@ export default function DashboardReal() {
               </SelectContent>
             </Select>
             
-            <Select value={selectedPeriod} onValueChange={(value: string) => setSelectedPeriod(value)}>
+            <Select value={selectedPeriod} onValueChange={(value: 'day' | 'week' | 'month' | 'quarter') => setSelectedPeriod(value)}>
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -634,7 +637,7 @@ export default function DashboardReal() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(projects || []).slice(0, 6).map((project: any) => (
+            {(projects || []).slice(0, 6).map((project: UnifiedProject) => (
               <Card key={project.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">

@@ -1,46 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
-import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
-import { AlertSystem, AlertType, AlertSeverity } from '@/lib/analytics/alert-system';
+import { authOptions } from '@/lib/auth';
+import { getOrgId, isAdmin } from '@/lib/auth/session-helpers';
+import { AlertSystem, AlertType } from '@/lib/analytics/alert-system';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
-// Type-safe helper extraindo organizationId
-const getOrgId = (user: unknown): string | undefined => {
-  const u = user as { currentOrgId?: string; organizationId?: string };
-  return u.currentOrgId || u.organizationId || undefined;
-};
+interface AlertEventData {
+  ruleId?: string;
+  type?: string;
+  severity?: string;
+  title?: string;
+  message?: string;
+  value?: number;
+  measurement?: number;
+  threshold?: number;
+  status?: string;
+  organizationId?: string;
+  acknowledgedAt?: string;
+  resolvedAt?: string;
+  acknowledgedBy?: string;
+  resolvedBy?: string;
+  [key: string]: unknown;
+}
 
-// Type-safe helper verificando admin
-const isAdmin = (user: unknown): boolean => {
-  return ((user as { isAdmin?: boolean }).isAdmin) === true;
-};
-// Type-safe helper extraindo organizationId
-const getOrgId = (user: unknown): string | undefined => {
-  const u = user as { currentOrgId?: string; organizationId?: string };
-  return u.currentOrgId || u.organizationId || undefined;
-};
-
-// Type-safe helper verificando admin
-const isAdmin = (user: unknown): boolean => {
-  return ((user as { isAdmin?: boolean }).isAdmin) === true;
-};
 /**
  * GET /api/analytics/alerts
  * Lista alertas ativos ou executa avaliação de alertas
- * 
- * Query params:
- * - action: 'list' | 'evaluate' (default: 'list')
- * - status: 'active' | 'acknowledged' | 'resolved' | 'all' (default: 'active')
- * - severity: 'info' | 'warning' | 'error' | 'critical' | 'all' (default: 'all')
- * - limit: number (default: 50)
  */
 async function getHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id) {
+    if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -57,7 +50,6 @@ async function getHandler(req: NextRequest) {
     const alertSystem = new AlertSystem();
 
     if (action === 'evaluate') {
-      // Verificar se o usuário tem permissão para executar avaliação manual
       if (!isAdmin(session.user)) {
         return NextResponse.json(
           { error: 'Admin privileges required to evaluate alerts manually' },
@@ -74,20 +66,54 @@ async function getHandler(req: NextRequest) {
     }
 
     // Listar alertas
-    const whereClause: any = {
-      category: 'alert',
-      ...(organizationId && { organizationId })
+    const whereClause: Prisma.AnalyticsEventWhereInput = {
+      eventType: 'alert',
+      ...(organizationId && { 
+        eventData: {
+          path: ['organizationId'],
+          equals: organizationId
+        }
+      })
     };
 
     if (status !== 'all') {
-      whereClause.status = status;
+      // We need to be careful with merging filters on eventData
+      // Using AND is safer when multiple filters on the same JSON field are needed
+      const statusFilter: Prisma.AnalyticsEventWhereInput = {
+        eventData: {
+          path: ['status'],
+          equals: status
+        }
+      };
+      
+      if (whereClause.AND) {
+        if (Array.isArray(whereClause.AND)) {
+          (whereClause.AND as Prisma.AnalyticsEventWhereInput[]).push(statusFilter);
+        } else {
+          whereClause.AND = [whereClause.AND as Prisma.AnalyticsEventWhereInput, statusFilter];
+        }
+      } else {
+        whereClause.AND = [statusFilter];
+      }
     }
 
     if (severity !== 'all') {
-      whereClause.metadata = {
-        path: ['severity'],
-        equals: severity
+      const severityFilter: Prisma.AnalyticsEventWhereInput = {
+        eventData: {
+          path: ['severity'],
+          equals: severity
+        }
       };
+
+      if (whereClause.AND) {
+        if (Array.isArray(whereClause.AND)) {
+          (whereClause.AND as Prisma.AnalyticsEventWhereInput[]).push(severityFilter);
+        } else {
+          whereClause.AND = [whereClause.AND as Prisma.AnalyticsEventWhereInput, severityFilter];
+        }
+      } else {
+        whereClause.AND = [severityFilter];
+      }
     }
 
     const alerts = await prisma.analyticsEvent.findMany({
@@ -100,69 +126,105 @@ async function getHandler(req: NextRequest) {
     const [totalAlerts, activeAlerts, criticalAlerts, recentAlerts] = await Promise.all([
       prisma.analyticsEvent.count({
         where: {
-          category: 'alert',
-          ...(organizationId && { organizationId })
+          eventType: 'alert',
+          ...(organizationId && { 
+            eventData: {
+              path: ['organizationId'],
+              equals: organizationId
+            }
+          })
         }
       }),
       
       prisma.analyticsEvent.count({
         where: {
-          category: 'alert',
-          status: 'active',
-          ...(organizationId && { organizationId })
+          eventType: 'alert',
+          AND: [
+            {
+              eventData: {
+                path: ['status'],
+                equals: 'active'
+              }
+            },
+            ...(organizationId ? [{
+              eventData: {
+                path: ['organizationId'],
+                equals: organizationId
+              }
+            }] : [])
+          ]
         }
       }),
       
       prisma.analyticsEvent.count({
         where: {
-          category: 'alert',
-          status: 'active',
-          metadata: {
-            path: ['severity'],
-            equals: 'critical'
-          },
-          ...(organizationId && { organizationId })
+          eventType: 'alert',
+          AND: [
+            {
+              eventData: {
+                path: ['status'],
+                equals: 'active'
+              }
+            },
+            {
+              eventData: {
+                path: ['severity'],
+                equals: 'critical'
+              }
+            },
+            ...(organizationId ? [{
+              eventData: {
+                path: ['organizationId'],
+                equals: organizationId
+              }
+            }] : [])
+          ]
         }
       }),
       
       prisma.analyticsEvent.count({
         where: {
-          category: 'alert',
+          eventType: 'alert',
           createdAt: {
             gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Últimas 24h
           },
-          ...(organizationId && { organizationId })
+          ...(organizationId && { 
+            eventData: {
+              path: ['organizationId'],
+              equals: organizationId
+            }
+          })
         }
       })
     ]);
 
     const formattedAlerts = alerts.map(alert => {
-      const metadata = (alert.metadata as Record<string, unknown> | null) ?? {}
+      const data = (alert.eventData as unknown as AlertEventData) || {};
 
-      const valueFromMetadata = typeof metadata.value === 'number'
-        ? metadata.value
-        : typeof metadata.measurement === 'number'
-          ? metadata.measurement
+      const valueFromData = typeof data.value === 'number'
+        ? data.value
+        : typeof data.measurement === 'number'
+          ? data.measurement
           : undefined
 
       return {
         id: alert.id,
-        ruleId: metadata.ruleId || '',
-        type: alert.action as AlertType,
-        severity: metadata.severity || 'warning',
-        title: alert.label || 'Unknown Alert',
-        message: metadata.message || '',
-        value: valueFromMetadata ?? alert.duration ?? 0,
-        threshold: typeof metadata.threshold === 'number' ? metadata.threshold : 0,
-        status: alert.status ?? 'success',
-        organizationId: alert.organizationId,
+        ruleId: data.ruleId || '',
+        type: (data.type as AlertType) || 'system',
+        severity: data.severity || 'warning',
+        title: data.title || 'Unknown Alert',
+        message: data.message || '',
+        value: valueFromData ?? 0,
+        threshold: typeof data.threshold === 'number' ? data.threshold : 0,
+        status: data.status ?? 'success',
+        organizationId: data.organizationId,
         userId: alert.userId,
-        metadata: alert.metadata,
+        metadata: data,
         triggeredAt: alert.createdAt,
-        acknowledgedAt: metadata.acknowledgedAt ? new Date(metadata.acknowledgedAt) : null,
-        resolvedAt: metadata.resolvedAt ? new Date(metadata.resolvedAt) : null,
-        acknowledgedBy: metadata.acknowledgedBy,
-        resolvedBy: metadata.resolvedBy,
+        acknowledgedAt: data.acknowledgedAt ? new Date(data.acknowledgedAt) : null,
+        resolvedAt: data.resolvedAt ? new Date(data.resolvedAt) : null,
+        acknowledgedBy: data.acknowledgedBy,
+        resolvedBy: data.resolvedBy,
       }
     });
 
@@ -180,13 +242,13 @@ async function getHandler(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Analytics Alerts] Error:', error);
     
     return NextResponse.json(
       {
         error: 'Failed to fetch alerts',
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -199,9 +261,9 @@ async function getHandler(req: NextRequest) {
  */
 async function postHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id) {
+    if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -215,7 +277,7 @@ async function postHandler(req: NextRequest) {
     const alertSystem = new AlertSystem();
 
     if (action === 'acknowledge' && alertId) {
-      await alertSystem.acknowledgeAlert(alertId, session.user.id);
+      await alertSystem.acknowledgeAlert(alertId, (session.user as any).id);
       return NextResponse.json({
         success: true,
         message: 'Alert acknowledged successfully'
@@ -223,7 +285,7 @@ async function postHandler(req: NextRequest) {
     }
 
     if (action === 'resolve' && alertId) {
-      await alertSystem.resolveAlert(alertId, session.user.id);
+      await alertSystem.resolveAlert(alertId, (session.user as any).id);
       return NextResponse.json({
         success: true,
         message: 'Alert resolved successfully'
@@ -259,13 +321,13 @@ async function postHandler(req: NextRequest) {
       // Criar regra de alerta
       const rule = await prisma.analyticsEvent.create({
         data: {
-          organizationId,
-          userId: session.user.id,
-          category: 'alert_rule',
-          action: type,
-          label: name,
-          status: 'active',
-          metadata: {
+          userId: (session.user as any).id,
+          eventType: 'alert_rule',
+          eventData: {
+            organizationId,
+            type,
+            title: name,
+            status: 'active',
             severity,
             condition: {
               ...condition,
@@ -273,8 +335,8 @@ async function postHandler(req: NextRequest) {
             },
             channels: channels || [],
             cooldown,
-            createdBy: session.user.id,
-            createdAt: new Date()
+            createdBy: (session.user as any).id,
+            createdAt: new Date().toISOString()
           }
         }
       });
@@ -291,13 +353,13 @@ async function postHandler(req: NextRequest) {
       { status: 400 }
     );
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Analytics Alerts POST] Error:', error);
     
     return NextResponse.json(
       {
         error: 'Failed to process alert request',
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -310,9 +372,9 @@ async function postHandler(req: NextRequest) {
  */
 async function putHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id) {
+    if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -335,9 +397,14 @@ async function putHandler(req: NextRequest) {
     const existingRule = await prisma.analyticsEvent.findFirst({
       where: {
         id: ruleId,
-        category: 'alert_rule',
-        userId: session.user.id,
-        ...(organizationId && { organizationId })
+        eventType: 'alert_rule',
+        userId: (session.user as any).id,
+        ...(organizationId && { 
+          eventData: {
+            path: ['organizationId'],
+            equals: organizationId
+          }
+        })
       }
     });
 
@@ -349,22 +416,22 @@ async function putHandler(req: NextRequest) {
     }
 
     // Atualizar regra
-    const currentMetadata = existingRule.metadata as Record<string, unknown> | null;
-    const updatedMetadata = {
-      ...currentMetadata,
+    const currentData = (existingRule.eventData as Record<string, unknown> | null) || {};
+    const updatedData = {
+      ...currentData,
       ...updates,
-      updatedBy: session.user.id,
-      updatedAt: new Date()
+      title: updates.name || currentData.title,
+      type: updates.type || currentData.type,
+      status: updates.isActive !== undefined ? 
+        (updates.isActive ? 'active' : 'inactive') : currentData.status,
+      updatedBy: (session.user as any).id,
+      updatedAt: new Date().toISOString()
     };
 
     await prisma.analyticsEvent.update({
       where: { id: ruleId },
       data: {
-        label: updates.name || existingRule.label,
-        action: updates.type || existingRule.action,
-        status: updates.isActive !== undefined ? 
-          (updates.isActive ? 'active' : 'inactive') : existingRule.status,
-        metadata: updatedMetadata
+        eventData: updatedData as Prisma.InputJsonValue
       }
     });
 
@@ -373,13 +440,13 @@ async function putHandler(req: NextRequest) {
       message: 'Alert rule updated successfully'
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Analytics Alerts PUT] Error:', error);
     
     return NextResponse.json(
       {
         error: 'Failed to update alert rule',
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -392,9 +459,9 @@ async function putHandler(req: NextRequest) {
  */
 async function deleteHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id) {
+    if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -417,9 +484,14 @@ async function deleteHandler(req: NextRequest) {
     const existingRule = await prisma.analyticsEvent.findFirst({
       where: {
         id: ruleId,
-        category: 'alert_rule',
-        userId: session.user.id,
-        ...(organizationId && { organizationId })
+        eventType: 'alert_rule',
+        userId: (session.user as any).id,
+        ...(organizationId && { 
+          eventData: {
+            path: ['organizationId'],
+            equals: organizationId
+          }
+        })
       }
     });
 
@@ -440,13 +512,13 @@ async function deleteHandler(req: NextRequest) {
       message: 'Alert rule deleted successfully'
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Analytics Alerts DELETE] Error:', error);
     
     return NextResponse.json(
       {
         error: 'Failed to delete alert rule',
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -458,3 +530,4 @@ export const GET = withAnalytics(getHandler);
 export const POST = withAnalytics(postHandler);
 export const PUT = withAnalytics(putHandler);
 export const DELETE = withAnalytics(deleteHandler);
+

@@ -214,7 +214,7 @@ export function ProjectManager({ projectId, onProjectUpdate }: ProjectManagerPro
     if (!project) return
 
     setIsRendering(true)
-    toast.info('Iniciando renderização do vídeo...')
+    toast('Iniciando renderização do vídeo...', { icon: 'ℹ️' })
 
     try {
       // Simular processo de renderização
@@ -234,7 +234,7 @@ export function ProjectManager({ projectId, onProjectUpdate }: ProjectManagerPro
 
   const handlePreviewSlide = (slideIndex: number) => {
     setActiveSlide(slideIndex)
-    toast.info(`Visualizando slide ${slideIndex + 1}`)
+    toast(`Visualizando slide ${slideIndex + 1}`, { icon: 'ℹ️' })
   }
 
   const formatDuration = (seconds: number) => {

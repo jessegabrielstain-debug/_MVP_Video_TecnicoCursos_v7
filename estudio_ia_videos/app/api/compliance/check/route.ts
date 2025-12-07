@@ -6,15 +6,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth/auth-config'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import type { Prisma } from '@prisma/client'
-import { checkCompliance } from '@/lib/compliance/nr-engine'
-import { type NRCode } from '@/lib/compliance/templates'
+import { Prisma } from '@prisma/client'
+import { checkCompliance, type NRCode } from '@/lib/compliance/nr-engine'
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -33,7 +32,7 @@ export async function POST(req: NextRequest) {
       where: { id: projectId },
       include: {
         slides: {
-          orderBy: { slideNumber: 'asc' }
+          orderBy: { orderIndex: 'asc' }
         }
       }
     })
@@ -50,16 +49,16 @@ export async function POST(req: NextRequest) {
     // Prepara conteúdo para análise
     const projectContent = {
       slides: project.slides.map((slide) => ({
-        number: slide.slideNumber,
+        number: slide.orderIndex,
         title: slide.title,
         content: slide.content,
         duration: slide.duration || 5,
-        imageUrls: slide.imageUrls || [],
-        audioPath: slide.audioPath || null
+        imageUrls: slide.backgroundImage ? [slide.backgroundImage] : [],
+        audioPath: null // TODO: Extract from audioConfig if needed
       })),
       totalDuration: project.duration || 0,
-      imageUrls: project.slides.flatMap((slide) => slide.imageUrls || []),
-      audioFiles: project.slides.map((slide) => slide.audioPath).filter(Boolean)
+      imageUrls: project.slides.map((slide) => slide.backgroundImage).filter(Boolean),
+      audioFiles: []
     }
 
     // Executa análise de conformidade com IA
@@ -78,9 +77,9 @@ export async function POST(req: NextRequest) {
         requirementsTotal: result.requirementsTotal,
         validatedAt: new Date(),
         validatedBy: 'AI',
-        recommendations: result.recommendations as unknown as Prisma.JsonValue,
-        criticalPoints: result.criticalPoints as unknown as Prisma.JsonValue,
-        aiAnalysis: result.aiAnalysis as unknown as Prisma.JsonValue,
+        recommendations: (result.recommendations || []) as Prisma.InputJsonValue,
+        criticalPoints: (result.criticalPoints || []) as Prisma.InputJsonValue,
+        aiAnalysis: (result.aiAnalysis || {}) as Prisma.InputJsonValue,
         aiScore: result.aiScore,
         confidence: result.confidence
       }
@@ -103,7 +102,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -134,3 +133,5 @@ export async function GET(req: NextRequest) {
     )
   }
 }
+
+

@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Download, Search, Filter, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { createBrowserSupabaseClient } from '@/lib/services';
+import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
 interface AuditLog {

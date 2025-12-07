@@ -38,7 +38,7 @@ import {
   User,
   Settings
 } from 'lucide-react';
-import { EditorState, EditorElement, EditorLayer, TimelineKeyframe, TimelineMarker } from '@/types/editor';
+import { EditorState, EditorElement, EditorLayer, Keyframe, TimelineMarker } from '@/types/editor';
 
 interface TimelinePanelProps {
   state: EditorState;
@@ -175,11 +175,11 @@ export function TimelinePanel({
   };
 
   const renderKeyframes = (elementId: string) => {
-    const element = state.elements[elementId];
+    const element = state.elements.find(e => e.id === elementId);
     if (!element || !element.animations) return null;
 
     return element.animations.map((animation, index) => {
-      const x = timeToPixels(animation.startTime);
+      const x = timeToPixels(animation.delay);
       const width = timeToPixels(animation.duration);
       
       return (
@@ -187,7 +187,7 @@ export function TimelinePanel({
           key={index}
           className="absolute h-2 bg-yellow-400 rounded opacity-75 cursor-pointer"
           style={{ left: x, width, top: '50%', transform: 'translateY(-50%)' }}
-          title={`${animation.property}: ${animation.type}`}
+          title={`Animation: ${animation.type}`}
         />
       );
     });
@@ -369,7 +369,7 @@ export function TimelinePanel({
                 
                 {/* Element tracks */}
                 {layer.elements.map((elementId) => {
-                  const element = state.elements[elementId];
+                  const element = state.elements.find(e => e.id === elementId);
                   if (!element) return null;
                   
                   const IconComponent = getElementIcon(element.type);
@@ -384,7 +384,7 @@ export function TimelinePanel({
                     >
                       <IconComponent className="w-3 h-3 mr-2" />
                       <span className="truncate">
-                        {element.properties.content || element.type}
+                        {(element.properties.content as string) || element.type}
                       </span>
                     </div>
                   );
@@ -418,7 +418,7 @@ export function TimelinePanel({
                   
                   {/* Element tracks */}
                   {layer.elements.map((elementId, elementIndex) => {
-                    const element = state.elements[elementId];
+                    const element = state.elements.find(e => e.id === elementId);
                     if (!element) return null;
                     
                     return (
@@ -436,7 +436,7 @@ export function TimelinePanel({
                           }}
                         >
                           <div className="px-2 py-1 text-white text-xs truncate">
-                            {element.properties.content || element.type}
+                            {(element.properties.content as string) || element.type}
                           </div>
                         </div>
                         
@@ -479,7 +479,7 @@ export function TimelinePanel({
       <div className="h-8 bg-gray-50 border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-600">
         <div className="flex items-center space-x-4">
           <span>Layers: {state.layers.length}</span>
-          <span>Elements: {Object.keys(state.elements).length}</span>
+          <span>Elements: {state.elements.length}</span>
           <span>Markers: {state.timeline.markers.length}</span>
         </div>
         
@@ -487,7 +487,7 @@ export function TimelinePanel({
           <span>Zoom: {Math.round(zoom * 100)}%</span>
           <span>Snap: {snapToGrid ? 'On' : 'Off'}</span>
           {selectedTrack && (
-            <span>Selected: {state.elements[selectedTrack]?.type}</span>
+            <span>Selected: {state.elements.find(e => e.id === selectedTrack)?.type}</span>
           )}
         </div>
       </div>

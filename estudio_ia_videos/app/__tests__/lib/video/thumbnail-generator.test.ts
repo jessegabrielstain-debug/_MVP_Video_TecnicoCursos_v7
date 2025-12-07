@@ -231,19 +231,30 @@ describe('ThumbnailGenerator', () => {
 
     it('should handle errors gracefully', async () => {
       const ffmpeg = require('fluent-ffmpeg');
-      ffmpeg().on = jest.fn((event: string, callback: Function) => {
-        if (event === 'error') {
-          setTimeout(() => callback(new Error('Frame extraction failed')), 10);
-        }
-        return ffmpeg();
-      });
+      const mockCommand = ffmpeg();
+      
+      // Save original implementation
+      const originalOn = mockCommand.on.getMockImplementation();
 
-      await expect(
-        generator.generate(testVideoPath, {
-          count: 1,
-          outputDir
-        })
-      ).rejects.toThrow();
+      try {
+        // Override for this test
+        mockCommand.on.mockImplementation(function(this: any, event: string, callback: Function) {
+          if (event === 'error') {
+            setTimeout(() => callback(new Error('Frame extraction failed')), 10);
+          }
+          return this;
+        });
+
+        await expect(
+          generator.generate(testVideoPath, {
+            count: 1,
+            outputDir
+          })
+        ).rejects.toThrow();
+      } finally {
+        // Restore original implementation
+        mockCommand.on.mockImplementation(originalOn);
+      }
     });
 
     it('should use specific timestamp when provided', async () => {

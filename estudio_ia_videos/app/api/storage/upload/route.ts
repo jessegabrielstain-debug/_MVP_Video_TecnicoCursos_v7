@@ -1,11 +1,7 @@
 /**
  * STORAGE API - Upload e gerenciamento de arquivos
  * POST /api/storage/upload - Upload simples
- * POST /api/storage/multipart/start - Iniciar upload multipart
- * POST /api/storage/multipart/upload - Upload de parte
- * POST /api/storage/multipart/complete - Completar upload
- * GET /api/storage/files - Listar arquivos do usuário
- * GET /api/storage/quota - Obter quota do usuário
+ * GET /api/storage/upload - Listar arquivos do usuário
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,6 +9,8 @@ import { storageSystem } from '@/lib/storage-system-real';
 import { auditLogger, AuditAction, getRequestMetadata } from '@/lib/audit-logging-real';
 import { withRateLimit, RATE_LIMITS } from '@/lib/rate-limiter-real';
 import { getServerSession } from 'next-auth';
+
+const DEFAULT_BUCKET = 'videos';
 
 export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POST(req: NextRequest) {
   try {
@@ -24,37 +22,44 @@ export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POS
     const formData = await req.formData();
     const file = formData.get('file') as File;
     const folder = formData.get('folder') as string || 'uploads';
-    const compress = formData.get('compress') === 'true';
-    const optimize = formData.get('optimize') === 'true';
-    const isPublic = formData.get('isPublic') === 'true';
+    const bucket = formData.get('bucket') as string || DEFAULT_BUCKET;
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    const result = await storageSystem.upload({
-      userId: session.user.id,
-      file,
-      folder,
-      compress,
-      optimize,
-      isPublic,
+    // Generate path with userId for isolation
+    const timestamp = Date.now();
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const path = `users/${session.user.id}/${folder}/${timestamp}_${safeName}`;
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    
+    const publicUrl = await storageSystem.upload({
+      bucket,
+      path,
+      file: fileBuffer,
+      contentType: file.type || 'application/octet-stream',
     });
 
     // Audit log
     const { ip, userAgent } = getRequestMetadata(req);
     await auditLogger.logUserAction(
-      AuditAction.FILE_UPLOAD,
       session.user.id,
-      ip,
-      userAgent,
-      true,
-      { fileId: result.id, size: result.size }
+      AuditAction.FILE_UPLOAD,
+      `${bucket}/${path}`,
+      { fileName: file.name, size: file.size, ip, userAgent }
     );
 
-    return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      url: publicUrl, 
+      path, 
+      bucket,
+      fileName: file.name,
+      size: file.size 
+    });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 });
 
@@ -66,18 +71,13 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const folder = searchParams.get('folder') || undefined;
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const cursor = searchParams.get('cursor') || undefined;
+    const bucket = searchParams.get('bucket') || DEFAULT_BUCKET;
 
-    const result = await storageSystem.listUserFiles(session.user.id, {
-      folder,
-      limit,
-      cursor,
-    });
+    const files = await storageSystem.listUserFiles(session.user.id, bucket);
 
-    return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ files });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
+

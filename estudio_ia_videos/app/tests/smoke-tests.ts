@@ -1,4 +1,3 @@
-
 /**
  * 🧪 Smoke Tests - Testes Automatizados Pós-Deploy
  * 
@@ -75,6 +74,7 @@ test('Dashboard should load for authenticated users', async ({ page }) => {
 
   if (error || !data.session) {
     test.skip(true, `Falha ao autenticar usuário de smoke test: ${error?.message ?? 'sessão indisponível'}`)
+    return
   }
 
   const { access_token: accessToken, refresh_token: refreshToken } = data.session

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseConfig } from './config'
-import type { Database } from './types'
+import type { Database } from './database.types'
 
 let cachedServiceClient: SupabaseClient<Database> | null = null
 

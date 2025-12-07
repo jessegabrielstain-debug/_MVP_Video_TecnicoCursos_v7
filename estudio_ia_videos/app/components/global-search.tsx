@@ -9,6 +9,13 @@ import { Button } from './ui/button'
 import { Search, FileVideo, FolderOpen, Settings, BookOpen, TrendingUp, Users, Command, ArrowRight } from 'lucide-react'
 import { cn } from '../lib/utils'
 
+interface Project {
+  id: string
+  name: string
+  updatedAt: string
+  [key: string]: unknown
+}
+
 interface SearchResult {
   id: string
   type: 'project' | 'template' | 'page' | 'action'
@@ -103,7 +110,7 @@ export function GlobalSearch() {
       const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`)
       if (response.ok) {
         const data = await response.json()
-        const projectResults: SearchResult[] = data.projects?.map((project: any) => ({
+        const projectResults: SearchResult[] = data.projects?.map((project: Project) => ({
           id: project.id,
           type: 'project' as const,
           title: project.name,

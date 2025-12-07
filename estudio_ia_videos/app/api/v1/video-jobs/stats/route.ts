@@ -5,7 +5,7 @@ import { VideoJobStatsQuerySchema } from '~lib/validation/schemas'
 
 // Cache in-memory simples com TTL por usuário
 const CACHE_TTL_MS = 30_000
-const cache = new Map<string, { expiresAt: number; payload: any }>()
+const cache = new Map<string, { expiresAt: number; payload: unknown }>()
 
 function getCache(key: string) {
   const hit = cache.get(key)
@@ -17,7 +17,7 @@ function getCache(key: string) {
   return hit.payload
 }
 
-function setCache(key: string, payload: any) {
+function setCache(key: string, payload: unknown) {
   cache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, payload })
 }
 
@@ -68,7 +68,7 @@ export async function GET(req: Request) {
     }
     buildMockResponse = () => createMockResponse('MISS')
 
-    const cached = getCache(cacheKey)
+    const cached = getCache(cacheKey) as any
     if (cached) {
       return new NextResponse(JSON.stringify({
         ...cached,
@@ -106,6 +106,7 @@ export async function GET(req: Request) {
     // Total de jobs (head=true para retornar apenas count)
     let baseQuery = supabase
       .from('render_jobs')
+      .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
 
     if (queryParams.status) {
@@ -116,12 +117,11 @@ export async function GET(req: Request) {
     }
 
     const totalQuery = await baseQuery
-      .select('*', { count: 'exact', head: true })
 
     const total_jobs = totalQuery.count ?? 0
 
     // Buscar status (limit para evitar exaustão – segue padrão MAX_ROWS=5000 usado em analytics)
-    let statusQuery = supabase
+    let statusQuery: any = supabase
       .from('render_jobs')
       .select('status')
       .eq('user_id', userId)
@@ -160,7 +160,7 @@ export async function GET(req: Request) {
     }
 
     // Throughput: completados nos últimos 60 minutos
-    let completedQueryBuilder = supabase
+    let completedQueryBuilder: any = supabase
       .from('render_jobs')
       .select('id', { count: 'exact' })
       .eq('user_id', userId)
@@ -177,7 +177,7 @@ export async function GET(req: Request) {
     const jobs_per_min = Number(((jobs_completed_last_60m || 0) / 60).toFixed(3))
 
     // Duração média (ms) para completados recentes (limitado a 5000)
-    let durationQuery = supabase
+    let durationQuery: any = supabase
       .from('render_jobs')
       .select('duration_ms')
       .eq('user_id', userId)
@@ -198,7 +198,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ code: 'DB_ERROR', message: 'Falha ao obter métricas de duração', details: durationErr.message }, { status: 500 })
     }
 
-    const durations = (durationRows || []).map((r: any) => (typeof r.duration_ms === 'number' ? r.duration_ms : null)).filter((v: any) => typeof v === 'number') as number[]
+    const durations = (durationRows || []).map((r: { duration_ms: number | null }) => (typeof r.duration_ms === 'number' ? r.duration_ms : null)).filter((v: number | null) => typeof v === 'number') as number[]
     const avg_duration_ms = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0
 
     // Percentis (p50/p90/p95) sobre durations
@@ -254,3 +254,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ code: 'UNEXPECTED', message: 'Erro inesperado', details: (err as Error).message }, { status: 500 })
   }
 }
+

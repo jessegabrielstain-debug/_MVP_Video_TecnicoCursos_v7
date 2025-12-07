@@ -1,22 +1,37 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createClient as createSupabaseClient, type SupabaseClient, type SupabaseClientOptions } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { Database } from './database.types';
 
 // Criando o cliente Supabase para uso no lado do servidor
-export const createServerSupabaseClient = () => {
+export const createClient = () => {
   const cookieStore = cookies();
   
-  return createClient<Database>(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
       cookies: {
-        get(name) {
+        get(name: string) {
           return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) {
+            // The `set` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch (error) {
+            // The `remove` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
         },
       },
     }
@@ -24,7 +39,7 @@ export const createServerSupabaseClient = () => {
 };
 
 // Cliente Supabase com a chave de serviço para operações administrativas
-export const supabaseAdmin = createClient<Database>(
+export const supabaseAdmin = createSupabaseClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   {
@@ -37,14 +52,20 @@ export const supabaseAdmin = createClient<Database>(
 
 // Cria cliente Supabase usando Authorization do Request (para APIs)
 export function getSupabaseForRequest(req: Request): SupabaseClient<Database> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
-  const authHeader = (req.headers.get('authorization') || req.headers.get('Authorization')) ?? '';
-  const globalHeaders: Record<string, string> = {};
-  if (authHeader) globalHeaders['Authorization'] = authHeader;
+  const authHeader = (req.headers.get('authorization') || req.headers.get('Authorization'));
 
-  return createClient<Database>(url, anonKey, {
-    global: { headers: globalHeaders },
-    auth: { persistSession: false, autoRefreshToken: true },
-  });
+  // Se houver header de autorização, usa o cliente padrão (API externa/Service)
+  if (authHeader) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+    const globalHeaders: Record<string, string> = { 'Authorization': authHeader };
+
+    return createSupabaseClient<Database>(url, anonKey, {
+      global: { headers: globalHeaders },
+      auth: { persistSession: false, autoRefreshToken: false },
+    } as SupabaseClientOptions<'public'>);
+  }
+
+  // Fallback: Se não houver header, tenta usar cookies (Browser/Dashboard)
+  return createClient();
 }

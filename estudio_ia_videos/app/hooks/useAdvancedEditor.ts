@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useEditor } from './useEditor';
 import { useAdvancedAI } from './useAdvancedAI';
 import { useRealTimeCollaboration } from './useRealTimeCollaboration';
-import type { ContentGenerationResult, ContentOptimization } from './useAdvancedAI';
+import type { ContentGenerationResult, ContentOptimization, OptimizableContentInput } from './useAdvancedAI';
 
 export interface TextLayerContent {
   text: string;
@@ -884,7 +884,19 @@ export const useAdvancedEditor = (): AdvancedEditorFeatures & {
   const generateContent = useCallback(async (prompt: string, type: EditorLayer['type']): Promise<EditorLayer> => {
     setIsProcessing(true);
     try {
-      const content = await aiGenerateContent(prompt, { type, context: 'safety-training' });
+      const aiType = type === 'text' ? 'text' : type === 'image' ? 'image' : type === 'audio' ? 'audio' : 'text';
+      
+      const result = await aiGenerateContent({
+        type: aiType,
+        prompt,
+        model: 'gpt-4',
+        parameters: {},
+        context: {
+          previousContent: 'safety-training'
+        }
+      });
+      
+      const content = result ? (result.content as unknown as EditorLayerContent) : getDefaultContent(type);
       const layer = addLayer(type, content);
       return layer;
     } finally {
@@ -898,11 +910,11 @@ export const useAdvancedEditor = (): AdvancedEditorFeatures & {
       // AI-powered timeline optimization
       const optimizedLayers = await Promise.all(
         layers.map(async layer => {
-          const optimized = await optimizeContent(layer.content, {
+          const optimized = await optimizeContent(layer.content as OptimizableContentInput, {
             type: 'layer-optimization',
             goals: ['performance', 'engagement', 'accessibility'],
           });
-          return { ...layer, content: optimized };
+          return { ...layer, content: optimized as EditorLayerContent };
         })
       );
       
@@ -995,7 +1007,7 @@ export const useAdvancedEditor = (): AdvancedEditorFeatures & {
       const fixedLayers = await Promise.all(
         layers.map(async layer => {
           if (layer.metadata.compliance.warnings.length > 0) {
-            const optimized = await optimizeContent(layer.content, {
+            const optimized = await optimizeContent(layer.content as OptimizableContentInput, {
               type: 'compliance-optimization',
               goals: ['accessibility', 'safety', 'standards'],
               constraints: {
@@ -1006,7 +1018,7 @@ export const useAdvancedEditor = (): AdvancedEditorFeatures & {
             
             return {
               ...layer,
-              content: optimized,
+              content: optimized as EditorLayerContent,
               metadata: {
                 ...layer.metadata,
                 compliance: {

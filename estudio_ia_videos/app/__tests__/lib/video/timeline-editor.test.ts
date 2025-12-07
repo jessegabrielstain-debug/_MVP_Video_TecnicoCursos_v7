@@ -10,19 +10,25 @@ import TimelineEditor, {
   TimelineClip,
   TimelineTrack,
   TransitionType
-} from '../../../lib/video/timeline-editor';
+} from '@/lib/video/timeline-editor';
 import { EventEmitter } from 'events';
 
 // Mocks
 jest.mock('fluent-ffmpeg');
-jest.mock('fs/promises');
+jest.mock('fs', () => ({
+  promises: {
+    access: jest.fn(),
+    mkdir: jest.fn(),
+    stat: jest.fn()
+  }
+}));
 
 type MockedFfmpegModule = jest.Mock & {
   ffprobe: jest.Mock;
 };
 
 const ffmpeg = require('fluent-ffmpeg') as MockedFfmpegModule;
-const fs = require('fs/promises');
+const fs = require('fs').promises;
 
 describe('TimelineEditor', () => {
   let editor: TimelineEditor;
@@ -73,9 +79,9 @@ describe('TimelineEditor', () => {
     });
 
     // Mock fs - sempre resolver com sucesso por padrão
-    fs.access = jest.fn().mockImplementation(() => Promise.resolve());
-    fs.mkdir = jest.fn().mockImplementation(() => Promise.resolve());
-    fs.stat = jest.fn().mockImplementation(() => Promise.resolve({ size: 1024000 }));
+    (fs.access as jest.Mock).mockImplementation(() => Promise.resolve());
+    (fs.mkdir as jest.Mock).mockImplementation(() => Promise.resolve());
+    (fs.stat as jest.Mock).mockImplementation(() => Promise.resolve({ size: 1024000 }));
   });
 
   afterEach(() => {
@@ -280,11 +286,13 @@ describe('TimelineEditor', () => {
       ).rejects.toThrow('Tempos de clip inválidos');
     });
 
-    it('deve emitir evento ao adicionar clip', async (done) => {
-      editor.on('clip-added', ({ trackId: tid, clipId }) => {
-        expect(tid).toBe(trackId);
-        expect(clipId).toBeDefined();
-        done();
+    it('deve emitir evento ao adicionar clip', async () => {
+      const eventPromise = new Promise<void>((resolve) => {
+        editor.on('clip-added', ({ trackId: tid, clipId }) => {
+          expect(tid).toBe(trackId);
+          expect(clipId).toBeDefined();
+          resolve();
+        });
       });
       
       await editor.addClip(trackId, {
@@ -292,6 +300,8 @@ describe('TimelineEditor', () => {
         startTime: 0,
         endTime: 10
       });
+      
+      await eventPromise;
     });
   });
 
@@ -388,15 +398,18 @@ describe('TimelineEditor', () => {
       ).rejects.toThrow('Ponto de divisão inválido');
     });
 
-    it('deve emitir evento ao fazer trim', async (done) => {
-      editor.on('clip-trimmed', ({ clipId: id, oldDuration, newDuration }) => {
-        expect(id).toBe(clipId);
-        expect(oldDuration).toBe(20);
-        expect(newDuration).toBe(10);
-        done();
+    it('deve emitir evento ao fazer trim', async () => {
+      const eventPromise = new Promise<void>((resolve) => {
+        editor.on('clip-trimmed', ({ clipId: id, oldDuration, newDuration }) => {
+          expect(id).toBe(clipId);
+          expect(oldDuration).toBe(20);
+          expect(newDuration).toBe(10);
+          resolve();
+        });
       });
       
       await editor.trimClip(trackId, clipId, { duration: 10 });
+      await eventPromise;
     });
   });
 
@@ -521,7 +534,7 @@ describe('TimelineEditor', () => {
       expect(result.timestamp).toBe(15);
     });
 
-    it('deve emitir eventos de preview', async (done) => {
+    it('deve emitir eventos de preview', async () => {
       const trackId = editor.addTrack('video');
       await editor.addClip(trackId, {
         filePath: 'test.mp4',
@@ -531,18 +544,21 @@ describe('TimelineEditor', () => {
       
       let startEmitted = false;
       
-      editor.on('preview-start', ({ timestamp }) => {
-        expect(timestamp).toBe(10);
-        startEmitted = true;
-      });
-      
-      editor.on('preview-complete', (result) => {
-        expect(startEmitted).toBe(true);
-        expect(result.success).toBe(true);
-        done();
+      const eventPromise = new Promise<void>((resolve) => {
+        editor.on('preview-start', ({ timestamp }) => {
+          expect(timestamp).toBe(10);
+          startEmitted = true;
+        });
+        
+        editor.on('preview-complete', (result) => {
+          expect(startEmitted).toBe(true);
+          expect(result.success).toBe(true);
+          resolve();
+        });
       });
       
       await editor.generatePreview(10);
+      await eventPromise;
     });
   });
 
@@ -599,26 +615,29 @@ describe('TimelineEditor', () => {
       ).rejects.toThrow('Timeline vazia');
     });
 
-    it('deve emitir eventos durante exportação', async (done) => {
+    it('deve emitir eventos durante exportação', async () => {
       let startEmitted = false;
       let progressEmitted = false;
       
-      editor.on('export-start', ({ tracks }) => {
-        expect(tracks).toBe(1);
-        startEmitted = true;
-      });
-      
-      editor.on('export-progress', ({ percent }) => {
-        progressEmitted = true;
-      });
-      
-      editor.on('export-complete', (result) => {
-        expect(startEmitted).toBe(true);
-        expect(result.success).toBe(true);
-        done();
+      const eventPromise = new Promise<void>((resolve) => {
+        editor.on('export-start', ({ tracks }) => {
+          expect(tracks).toBe(1);
+          startEmitted = true;
+        });
+        
+        editor.on('export-progress', ({ percent }) => {
+          progressEmitted = true;
+        });
+        
+        editor.on('export-complete', (result) => {
+          expect(startEmitted).toBe(true);
+          expect(result.success).toBe(true);
+          resolve();
+        });
       });
       
       await editor.export({ outputPath: 'output.mp4' });
+      await eventPromise;
     });
   });
 

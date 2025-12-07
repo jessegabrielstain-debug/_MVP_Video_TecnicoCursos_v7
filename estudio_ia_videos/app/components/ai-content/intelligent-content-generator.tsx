@@ -1,4 +1,4 @@
-
+// TODO: Fixar tipos de content states com enums apropriados
 "use client"
 
 import React, { useState, useRef } from 'react'
@@ -312,7 +312,7 @@ Espaços confinados são ambientes com aberturas limitadas de entrada e saída, 
                 {/* Content Type */}
                 <div className="space-y-2">
                   <Label>Tipo de Conteúdo</Label>
-                  <Select value={options.type} onValueChange={(value: string) => setOptions({...options, type: value})}>
+                  <Select value={options.type} onValueChange={(value: string) => setOptions({...options, type: value as any})}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

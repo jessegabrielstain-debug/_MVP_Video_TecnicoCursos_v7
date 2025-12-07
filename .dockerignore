@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.vscode
+.env
+.env.local
+estudio_ia_videos/node_modules
+estudio_ia_videos/.next
+estudio_ia_videos/.env
+estudio_ia_videos/.env.local
+logs
+tmp
+coverage
+evidencias

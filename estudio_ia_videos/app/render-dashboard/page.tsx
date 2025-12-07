@@ -1,7 +1,5 @@
-'use client';
-
-import RenderDashboard from '@/components/render/RenderDashboard';
+import { redirect } from 'next/navigation'
 
 export default function RenderDashboardPage() {
-  return <RenderDashboard />;
+  redirect('/dashboard/render')
 }

@@ -24,7 +24,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ApiError, ApiErrorUtils } from '@/lib/error-handling/api-error-handler';
+import { ApiError } from '@/lib/error-handling/api-error-handler';
 
 // Enum para tipos de erro
 export enum ErrorType {
@@ -37,6 +37,15 @@ export enum ErrorType {
   RATE_LIMIT = 'rate_limit',
   UNKNOWN = 'unknown',
 }
+
+// Helper functions to replace ApiErrorUtils
+const ApiErrorUtils = {
+  isNetworkError: (error: ApiError) => error.statusCode === 0,
+  isTimeoutError: (error: ApiError) => error.statusCode === 408,
+  isAuthError: (error: ApiError) => error.statusCode === 401 || error.statusCode === 403,
+  isServerError: (error: ApiError) => error.statusCode >= 500,
+  getUserFriendlyMessage: (error: ApiError) => error.message,
+};
 
 interface ErrorDisplayProps {
   error?: ApiError | Error;
@@ -72,7 +81,7 @@ export function ErrorDisplay({
         message: message || ApiErrorUtils.getUserFriendlyMessage(apiError),
         icon: getErrorIcon(getErrorTypeFromApiError(apiError)),
         color: getErrorColor(getErrorTypeFromApiError(apiError)),
-        canRetry: showRetry && (apiError.retryable || false),
+        canRetry: showRetry,
       };
     } else if (error) {
       // Error genérico
@@ -378,8 +387,8 @@ function getErrorTypeFromApiError(error: ApiError): ErrorType {
   if (ApiErrorUtils.isTimeoutError(error)) return ErrorType.TIMEOUT;
   if (ApiErrorUtils.isAuthError(error)) return ErrorType.AUTH;
   if (ApiErrorUtils.isServerError(error)) return ErrorType.SERVER;
-  if (error.status === 404) return ErrorType.NOT_FOUND;
-  if (error.status === 429) return ErrorType.RATE_LIMIT;
+  if (error.statusCode === 404) return ErrorType.NOT_FOUND;
+  if (error.statusCode === 429) return ErrorType.RATE_LIMIT;
   return ErrorType.UNKNOWN;
 }
 

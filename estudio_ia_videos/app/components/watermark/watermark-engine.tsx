@@ -496,7 +496,7 @@ export function WatermarkEngine({ onApply, previewMode = true, videoPreview }: W
 
                       <div>
                         <Label>Peso da Fonte</Label>
-                        <Select value={config.fontWeight} onValueChange={(value: string) => updateConfig({ fontWeight: value })}>
+                        <Select value={config.fontWeight} onValueChange={(value: string) => updateConfig({ fontWeight: value as 'normal' | 'bold' | 'lighter' })}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -527,14 +527,14 @@ export function WatermarkEngine({ onApply, previewMode = true, videoPreview }: W
                   {/* Blend Mode */}
                   <div>
                     <Label>Modo de Mesclagem</Label>
-                    <Select value={config.blendMode} onValueChange={(value) => updateConfig({ blendMode: value })}>
+                    <Select value={config.blendMode} onValueChange={(value) => updateConfig({ blendMode: value as React.CSSProperties['mixBlendMode'] })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {blendModes.map(mode => (
-                          <SelectItem key={mode} value={mode}>
-                            {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                          <SelectItem key={mode} value={mode || 'normal'}>
+                            {(mode || 'normal').charAt(0).toUpperCase() + (mode || 'normal').slice(1)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -622,7 +622,7 @@ export function WatermarkEngine({ onApply, previewMode = true, videoPreview }: W
                           <Select 
                             value={config.animation.type} 
                             onValueChange={(value: string) => updateConfig({ 
-                              animation: { ...config.animation, type: value }
+                              animation: { ...config.animation, type: value as 'fade' | 'slide' | 'pulse' | 'rotate' }
                             })}
                           >
                             <SelectTrigger>

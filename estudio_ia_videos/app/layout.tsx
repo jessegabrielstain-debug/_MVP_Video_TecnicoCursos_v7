@@ -1,5 +1,4 @@
-
-import type { Metadata, ReportHandler } from 'next';
+import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import './styles/mobile-first.css';
@@ -13,9 +12,10 @@ import PWAInstallPrompt from './components/pwa/pwa-install-prompt';
 import ProductionProvider from './components/providers/production-provider';
 import GlobalButtonFix from './components/ui/button-fix-global';
 import { AuthProvider } from '@/hooks/use-auth';
+import { Navbar } from './components/layout/navbar';
 
 // Import do sistema de correções melhorado
-import './lib/emergency-fixes-improved';
+// import './lib/emergency-fixes-improved';
 
 // Inicializar Sentry se configurado
 if (process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN) {
@@ -64,6 +64,7 @@ export default function RootLayout({
               <ProductionProvider>
                 <AuthProvider>
                   <div className="relative">
+                    <Navbar />
                     {children}
                     <PWAInstallPrompt />
                     <InteractiveTutorial />
@@ -80,23 +81,3 @@ export default function RootLayout({
   );
 }
 
-// Coleta Web Vitals e envia para API interna
-export const reportWebVitals: ReportHandler = (metric) => {
-  try {
-    const body = JSON.stringify({
-      id: metric.id,
-      name: metric.name,
-      value: metric.value,
-      label: metric.label,
-      navigationType: (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type
-    });
-    // Envia assíncrono sem bloquear UI
-    navigator.sendBeacon?.('/api/metrics/web-vitals', body) || fetch('/api/metrics/web-vitals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body
-    }).catch(() => {});
-  } catch {
-    // Silenciar falhas
-  }
-};

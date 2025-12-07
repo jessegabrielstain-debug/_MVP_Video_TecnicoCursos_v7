@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     // Ler arquivo
     const buffer = await readFile(filePath);
-    const file = new File([buffer], fileName, {
+    const file = new File([new Uint8Array(buffer)], fileName, {
       type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
     });
 
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         createdDate: pptxDocument.createdDate,
         theme: pptxDocument.theme
       },
-      slides: pptxDocument.slides.map(slide => ({
+      slides: pptxDocument.slides.map((slide: any) => ({
         id: slide.id,
         slideNumber: slide.slideNumber,
         title: slide.title,
@@ -66,13 +66,13 @@ export async function POST(request: NextRequest) {
         totalSlides: pptxDocument.slideCount,
         totalDuration: pptxDocument.totalDuration,
         averageSlideDuration: pptxDocument.totalDuration / pptxDocument.slideCount,
-        totalWords: pptxDocument.slides.reduce((sum, slide) => 
+        totalWords: pptxDocument.slides.reduce((sum: number, slide: any) => 
           sum + slide.content.join(' ').split(/\s+/).length, 0
         ),
-        totalImages: pptxDocument.slides.reduce((sum, slide) => 
+        totalImages: pptxDocument.slides.reduce((sum: number, slide: any) => 
           sum + slide.images.length, 0
         ),
-        totalShapes: pptxDocument.slides.reduce((sum, slide) => 
+        totalShapes: pptxDocument.slides.reduce((sum: number, slide: any) => 
           sum + slide.shapes.length, 0
         )
       },
@@ -85,14 +85,14 @@ export async function POST(request: NextRequest) {
       data: processedData
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no processamento PPTX:', error);
     
     return NextResponse.json(
       { 
         error: 'Erro ao processar PPTX', 
-        details: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        details: error instanceof Error ? error.message : String(error),
+        stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
       },
       { status: 500 }
     );

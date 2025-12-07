@@ -5,8 +5,11 @@
  * Testa conectividade com Azure Speech Services e ElevenLabs
  */
 
-require('dotenv').config();
-const https = require('https');
+import dotenv from 'dotenv';
+import https from 'https';
+import { fileURLToPath } from 'url';
+
+dotenv.config({ path: 'estudio_ia_videos/.env.local' });
 
 async function testAzureSpeech() {
   console.log('🔍 Testando Azure Speech Services...');
@@ -128,6 +131,6 @@ async function main() {
 }
 
 // Executar teste
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch(console.error);
 }

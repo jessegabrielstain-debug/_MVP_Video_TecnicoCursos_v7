@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 
 // Schema de validação para atualização de track
 const updateTrackSchema = z.object({
@@ -10,8 +11,28 @@ const updateTrackSchema = z.object({
   visible: z.boolean().optional(),
   locked: z.boolean().optional(),
   muted: z.boolean().optional(),
-  properties: z.record(z.any()).optional()
+  properties: z.record(z.unknown()).optional()
 })
+
+// Type interfaces
+interface ProjectInfo {
+  user_id: string;
+  is_public?: boolean;
+}
+
+interface TrackWithProject {
+  id: string;
+  name: string;
+  type: string;
+  color?: string | null;
+  height?: number;
+  visible?: boolean;
+  locked?: boolean;
+  muted?: boolean;
+  project_id: string;
+  project: ProjectInfo;
+  timeline_elements?: unknown[];
+}
 
 interface RouteParams {
   params: {
@@ -25,7 +46,7 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -38,11 +59,11 @@ export async function GET(
     const trackId = params.id
 
     // Buscar track com elementos e verificar permissões
-    const { data: track, error } = await supabase
+    const { data: trackData, error } = await supabase
       .from('timeline_tracks')
       .select(`
         *,
-        project:projects(owner_id, collaborators, is_public),
+        project:projects(user_id, is_public),
         timeline_elements:timeline_elements(*)
       `)
       .eq('id', trackId)
@@ -62,11 +83,22 @@ export async function GET(
       )
     }
 
+    const track = trackData as unknown as TrackWithProject;
+    
     // Verificar permissões
     const project = track.project
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id) ||
-                         project.is_public
+    let hasPermission = project.user_id === user.id || !!project.is_public
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('user_id')
+        .eq('project_id', track.project_id)
+        .eq('user_id', user.id)
+        .single()
+      
+      if (collaborator) hasPermission = true
+    }
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -76,9 +108,9 @@ export async function GET(
     }
 
     // Remover dados do projeto da resposta
-    const { project: _, ...trackData } = track
+    const { project: _, ...trackResponse } = track
 
-    return NextResponse.json(trackData)
+    return NextResponse.json(trackResponse)
 
   } catch (error) {
     console.error('Erro na API de track:', error)
@@ -95,7 +127,7 @@ export async function PUT(
   { params }: RouteParams
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -110,26 +142,44 @@ export async function PUT(
     const validatedData = updateTrackSchema.parse(body)
 
     // Verificar se a track existe e obter dados do projeto
-    const { data: existingTrack } = await supabase
+    const { data: existingTrackData } = await supabase
       .from('timeline_tracks')
       .select(`
         *,
-        project:projects(owner_id, collaborators)
+        project:projects(user_id)
       `)
       .eq('id', trackId)
       .single()
 
-    if (!existingTrack) {
+    if (!existingTrackData) {
       return NextResponse.json(
         { error: 'Track não encontrada' },
         { status: 404 }
       )
     }
 
+    const existingTrack = existingTrackData as unknown as TrackWithProject;
+    
     // Verificar permissões
     const project = existingTrack.project
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+    let hasPermission = project.user_id === user.id
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('permissions')
+        .eq('project_id', existingTrack.project_id)
+        .eq('user_id', user.id)
+        .single()
+      
+      // Check if permissions array contains 'write' or 'edit'
+      if (collaborator && collaborator.permissions) {
+        const perms = collaborator.permissions as string[];
+        if (perms.includes('write') || perms.includes('edit')) {
+          hasPermission = true;
+        }
+      }
+    }
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -139,9 +189,9 @@ export async function PUT(
     }
 
     // Atualizar track
-    const { data: track, error } = await supabase
+    const { data: updatedTrackData, error } = await supabase
       .from('timeline_tracks')
-      .update(validatedData)
+      .update(validatedData as any) // validatedData matches partial track structure
       .eq('id', trackId)
       .select()
       .single()
@@ -154,8 +204,10 @@ export async function PUT(
       )
     }
 
+    const track = updatedTrackData as unknown as TrackWithProject;
+    
     // Registrar no histórico
-    await supabase
+    await (supabase
       .from('project_history')
       .insert({
         project_id: existingTrack.project_id,
@@ -171,12 +223,11 @@ export async function PUT(
             height: existingTrack.height,
             visible: existingTrack.visible,
             locked: existingTrack.locked,
-            muted: existingTrack.muted,
-            properties: existingTrack.properties
+            muted: existingTrack.muted
           },
           new_data: validatedData
-        }
-      })
+        } as any
+      }) as any)
 
     return NextResponse.json(track)
 
@@ -202,7 +253,7 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -215,26 +266,44 @@ export async function DELETE(
     const trackId = params.id
 
     // Verificar se a track existe e obter dados do projeto
-    const { data: existingTrack } = await supabase
+    const { data: existingTrackData } = await supabase
       .from('timeline_tracks')
       .select(`
         *,
-        project:projects(owner_id, collaborators)
+        project:projects(user_id)
       `)
       .eq('id', trackId)
       .single()
 
-    if (!existingTrack) {
+    if (!existingTrackData) {
       return NextResponse.json(
         { error: 'Track não encontrada' },
         { status: 404 }
       )
     }
 
+    const existingTrack = existingTrackData as unknown as TrackWithProject;
+    
     // Verificar permissões
     const project = existingTrack.project
-    const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+    let hasPermission = project.user_id === user.id
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('permissions')
+        .eq('project_id', existingTrack.project_id)
+        .eq('user_id', user.id)
+        .single()
+      
+      // Check if permissions array contains 'write' or 'edit'
+      if (collaborator && collaborator.permissions) {
+        const perms = collaborator.permissions as string[];
+        if (perms.includes('write') || perms.includes('edit')) {
+          hasPermission = true;
+        }
+      }
+    }
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -272,7 +341,7 @@ export async function DELETE(
     }
 
     // Registrar no histórico
-    await supabase
+    await (supabase
       .from('project_history')
       .insert({
         project_id: existingTrack.project_id,
@@ -287,8 +356,8 @@ export async function DELETE(
             name: existingTrack.name,
             type: existingTrack.type
           }
-        }
-      })
+        } as any
+      }) as any)
 
     return NextResponse.json({ message: 'Track excluída com sucesso' })
 

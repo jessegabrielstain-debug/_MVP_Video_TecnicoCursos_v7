@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { PPTXUploader } from '@/components/pptx/PPTXUploader';
+import { PPTXUploader, PPTXFile } from '@/components/pptx/PPTXUploader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,12 +29,12 @@ export default function PPTXTestPage() {
   const [processedFiles, setProcessedFiles] = useState<ProcessedFile[]>([]);
   const [testResults, setTestResults] = useState<string[]>([]);
 
-  const handleUploadComplete = (file: any) => {
+  const handleUploadComplete = (file: PPTXFile) => {
     addTestResult(`✅ Upload concluído: ${file.name}`);
     toast.success('Upload realizado com sucesso!');
   };
 
-  const handleProcessingComplete = (file: any) => {
+  const handleProcessingComplete = (file: PPTXFile) => {
     setProcessedFiles(prev => [...prev, {
       id: file.id,
       name: file.name,
@@ -181,6 +181,7 @@ export default function PPTXTestPage() {
               </CardHeader>
               <CardContent>
                 <PPTXUploader
+                  projectId="test-project-id"
                   onUploadComplete={handleUploadComplete}
                   onProcessingComplete={handleProcessingComplete}
                   maxFileSize={50}

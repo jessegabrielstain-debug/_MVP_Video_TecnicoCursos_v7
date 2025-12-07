@@ -6,7 +6,7 @@
  * Complete integration testing
  */
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -40,22 +40,44 @@ interface ProcessedData {
   hasAnimations: boolean
 }
 
+interface PPTXSlideRaw {
+  id: string;
+  title: string;
+  content: string;
+  images?: unknown[];
+  duration?: number;
+  animations?: unknown[];
+}
+
+interface PPTXProcessResult {
+  data?: {
+    slides?: PPTXSlideRaw[];
+    totalDuration?: number;
+  };
+}
+
 export default function PPTXUploadProductionTestPage() {
   const [processedData, setProcessedData] = useState<ProcessedData | null>(null)
   const [showUpload, setShowUpload] = useState(true)
 
-  const handleProcessComplete = (data: any) => {
+  const handleProcessComplete = (data: PPTXProcessResult) => {
     console.log('🎉 Processing completed:', data)
     
     // Extract processed data
     if (data.data) {
       const result: ProcessedData = {
-        slides: data.data.slides || [],
+        slides: data.data.slides?.map(s => ({
+          id: s.id,
+          title: s.title,
+          content: s.content,
+          images: s.images?.length || 0,
+          duration: s.duration || 0
+        })) || [],
         totalDuration: data.data.totalDuration || 0,
         slideCount: data.data.slides?.length || 0,
-        imageCount: data.data.slides?.reduce((acc: number, slide: any) => 
+        imageCount: data.data.slides?.reduce((acc: number, slide) => 
           acc + (slide.images?.length || 0), 0) || 0,
-        hasAnimations: data.data.slides?.some((slide: any) => 
+        hasAnimations: data.data.slides?.some((slide) => 
           slide.animations && slide.animations.length > 0) || false
       }
       setProcessedData(result)
@@ -129,12 +151,14 @@ export default function PPTXUploadProductionTestPage() {
           </Card>
 
           {/* Upload Component */}
-          <ProductionPPTXUploadV2
-            onProcessComplete={handleProcessComplete}
-            onCancel={handleCancel}
-            maxFiles={3}
-            acceptedTypes={['.pptx', '.ppt', '.pdf']}
-          />
+          <Suspense fallback={<div className="flex justify-center py-12 text-gray-500">Carregando componente de upload...</div>}>
+            <ProductionPPTXUploadV2
+              onProcessComplete={handleProcessComplete}
+              onCancel={handleCancel}
+              maxFiles={3}
+              acceptedTypes={['.pptx', '.ppt', '.pdf']}
+            />
+          </Suspense>
         </div>
       </div>
     )

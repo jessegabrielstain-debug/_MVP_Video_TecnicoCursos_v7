@@ -9,13 +9,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth/auth-config'
+import { authOptions } from '@/lib/auth'
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
-import { prisma } from '@/lib/db'
+import { commentsService } from '@/lib/collab/comments-service';
+import { prisma } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -38,25 +39,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Projeto não encontrado' }, { status: 404 })
     }
 
-    // Cria comentário
-    const comment = await prisma.projectComment.create({
-      data: {
-        projectId,
-        userId: getUserId(session.user),
-        content,
-        position: position ? JSON.stringify(position) : null,
-        parentId: parentId || null
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-            image: true
-          }
-        }
-      }
-    })
+    const userId = getUserId(session.user);
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID not found' }, { status: 401 })
+    }
+
+    // Cria comentário usando service
+    const comment = await commentsService.create({
+      projectId,
+      userId,
+      content,
+      position,
+      parentId
+    });
 
     return NextResponse.json({ comment })
 
@@ -71,7 +66,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
@@ -86,35 +81,8 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Busca comentários
-    const comments = await prisma.projectComment.findMany({
-      where: {
-        projectId,
-        parentId: null // Apenas comentários top-level
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-            image: true
-          }
-        },
-        replies: {
-          include: {
-            user: {
-              select: {
-                name: true,
-                email: true,
-                image: true
-              }
-            }
-          },
-          orderBy: { createdAt: 'asc' }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    // Busca comentários usando service
+    const comments = await commentsService.list({ projectId });
 
     return NextResponse.json({ comments })
 
@@ -126,3 +94,5 @@ export async function GET(req: NextRequest) {
     )
   }
 }
+
+

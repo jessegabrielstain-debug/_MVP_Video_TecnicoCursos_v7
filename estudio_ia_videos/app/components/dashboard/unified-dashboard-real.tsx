@@ -139,8 +139,8 @@ export default function UnifiedDashboardReal() {
 
         if (authUser) {
           const { data: profile, error } = await supabase
-            .from('user_profiles')
-            .select('full_name, avatar_url')
+            .from('users')
+            .select('name, avatar_url')
             .eq('id', authUser.id)
             .maybeSingle()
 
@@ -150,7 +150,7 @@ export default function UnifiedDashboardReal() {
             console.warn('Erro ao carregar perfil:', error)
           }
 
-          setDisplayName(profile?.full_name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
+          setDisplayName(profile?.name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
           setAvatarUrl(profile?.avatar_url ?? authUser.user_metadata?.avatar_url ?? null)
         } else {
           setDisplayName(null)

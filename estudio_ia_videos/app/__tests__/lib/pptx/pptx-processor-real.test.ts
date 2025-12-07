@@ -3,7 +3,6 @@
  * Valida extração completa de conteúdo PPTX
  */
 
-import { describe, it, expect, beforeAll } from '@jest/globals'
 import JSZip from 'jszip'
 import { PPTXProcessorReal } from '@/lib/pptx/pptx-processor-real'
 import { readFileSync } from 'fs'

@@ -35,16 +35,32 @@ function log(message, color = 'reset') {
 // Arquivos SQL em ordem de execução
 const sqlFiles = [
     {
+        name: 'scripts/sql/migrations/2025-12-01_normalize_project_ids.sql',
+        description: 'Migração: normalizar IDs de projeto para UUID e recriar FKs'
+    },
+    {
         name: 'database-schema.sql',
         description: 'Schema do banco de dados (tabelas, índices, triggers)'
+    },
+    {
+        name: 'database-rbac-complete.sql',
+        description: 'Sistema RBAC Completo (Roles & Permissions)'
+    },
+    {
+        name: 'database-rbac-seed.sql',
+        description: 'Seed Data para RBAC'
     },
     {
         name: 'database-rls-policies.sql', 
         description: 'Políticas de segurança RLS'
     },
     {
-        name: 'scripts/seed-nr-courses.sql',
-        description: 'Dados iniciais dos cursos NR'
+        name: 'database-nr-templates.sql',
+        description: 'Tabela e dados iniciais de Templates NR'
+    },
+    {
+        name: 'database-seed-test-users.sql',
+        description: 'Usuários de Teste (Admin, Editor, Viewer, Moderator)'
     },
     {
         name: 'scripts/sql/migrations/2025-11-12_fix_render_jobs_status.sql',
@@ -54,6 +70,30 @@ const sqlFiles = [
     {
         name: 'scripts/sql/migrations/2025-11-12_add_attempts_duration.sql',
         description: 'Migração: adicionar colunas attempts e duration_ms em render_jobs'
+    },
+    {
+        name: 'scripts/sql/migrations/2025-11-23_fix_projects_schema.sql',
+        description: 'Migração: corrigir schema de projects e adicionar tabelas faltantes'
+    },
+    {
+        name: 'scripts/sql/migrations/2025-11-23_fix_user_relations.sql',
+        description: 'Migração: corrigir referências de usuário para public.users'
+    },
+    {
+        name: 'scripts/sql/migrations/2025-11-23_force_fix_projects_fk.sql',
+        description: 'Migração: forçar correção da FK de projects para public.users'
+    },
+    {
+        name: 'scripts/sql/migrations/2025-11-23_fix_slides_column.sql',
+        description: 'Migração: renomear coluna index para order_index em slides'
+    },
+    {
+        name: 'scripts/sql/migrations/2025-11-23_fix_render_jobs_schema.sql',
+        description: 'Migração: corrigir constraints de status e FK de user_id em render_jobs'
+    },
+    {
+        name: 'scripts/sql/migrations/2025-11-24_create_user_render_settings.sql',
+        description: 'Migração: criar tabela user_render_settings'
     }
 ];
 
@@ -105,39 +145,84 @@ async function executeSQL() {
             try {
                 const sqlContent = fs.readFileSync(file.name, 'utf8');
                 
-                // Dividir em comandos individuais (separados por ;)
-                const commands = sqlContent
-                    .split(';')
-                    .map(cmd => cmd.trim())
-                    .filter(cmd => cmd.length > 0 && !cmd.startsWith('--'));
+                // Se o arquivo contém funções PL/PGSQL ($$), executar como um único bloco
+                // Isso evita erros de split incorreto em ; dentro das funções
+                if (sqlContent.includes('$$')) {
+                    try {
+                        await client.query(sqlContent);
+                        log(`✅ ${file.description} executado com sucesso! (Bloco único)`, 'green');
+                    } catch (blockError) {
+                        // Se falhar o bloco único, tentamos o método antigo como fallback
+                        // mas apenas se não for um erro de sintaxe óbvio que quebraria o split também
+                        log(`⚠️ Erro ao executar bloco único: ${blockError.message}. Tentando comando a comando...`, 'yellow');
+                        
+                        // Fallback para o método antigo (split)
+                        const commands = sqlContent
+                            .split(';')
+                            .map(cmd => cmd.trim())
+                            .filter(cmd => cmd.length > 0 && !cmd.startsWith('--'));
 
-                let successCount = 0;
-                let errorCount = 0;
+                        let successCount = 0;
+                        let errorCount = 0;
 
-                for (const command of commands) {
-                    if (command.trim()) {
-                        try {
-                            await client.query(command);
-                            successCount++;
-                        } catch (cmdError) {
-                            // Ignorar erros de "já existe" que são esperados
-                            if (cmdError.message.includes('already exists') || 
-                                cmdError.message.includes('duplicate key') ||
-                                cmdError.message.includes('relation') && cmdError.message.includes('already exists')) {
-                                log(`⚠️ Comando já executado anteriormente (ignorado)`, 'yellow');
+                        for (const command of commands) {
+                            if (command.trim()) {
+                                try {
+                                    await client.query(command);
+                                    successCount++;
+                                } catch (cmdError) {
+                                    if (cmdError.message.includes('already exists') || 
+                                        cmdError.message.includes('duplicate key') ||
+                                        cmdError.message.includes('relation') && cmdError.message.includes('already exists')) {
+                                        successCount++;
+                                    } else {
+                                        log(`❌ Erro no comando: ${cmdError.message}`, 'red');
+                                        errorCount++;
+                                    }
+                                }
+                            }
+                        }
+                        if (errorCount === 0) {
+                            log(`✅ ${file.description} executado com sucesso! (${successCount} comandos)`, 'green');
+                        } else {
+                            log(`⚠️ ${file.description} executado com ${errorCount} erros de ${successCount + errorCount} comandos`, 'yellow');
+                        }
+                    }
+                } else {
+                    // Método original para arquivos simples
+                    const commands = sqlContent
+                        .split(';')
+                        .map(cmd => cmd.trim())
+                        .filter(cmd => cmd.length > 0 && !cmd.startsWith('--'));
+
+                    let successCount = 0;
+                    let errorCount = 0;
+
+                    for (const command of commands) {
+                        if (command.trim()) {
+                            try {
+                                await client.query(command);
                                 successCount++;
-                            } else {
-                                log(`❌ Erro no comando: ${cmdError.message}`, 'red');
-                                errorCount++;
+                            } catch (cmdError) {
+                                // Ignorar erros de "já existe" que são esperados
+                                if (cmdError.message.includes('already exists') || 
+                                    cmdError.message.includes('duplicate key') ||
+                                    cmdError.message.includes('relation') && cmdError.message.includes('already exists')) {
+                                    log(`⚠️ Comando já executado anteriormente (ignorado)`, 'yellow');
+                                    successCount++;
+                                } else {
+                                    log(`❌ Erro no comando: ${cmdError.message}`, 'red');
+                                    errorCount++;
+                                }
                             }
                         }
                     }
-                }
 
-                if (errorCount === 0) {
-                    log(`✅ ${file.description} executado com sucesso! (${successCount} comandos)`, 'green');
-                } else {
-                    log(`⚠️ ${file.description} executado com ${errorCount} erros de ${successCount + errorCount} comandos`, 'yellow');
+                    if (errorCount === 0) {
+                        log(`✅ ${file.description} executado com sucesso! (${successCount} comandos)`, 'green');
+                    } else {
+                        log(`⚠️ ${file.description} executado com ${errorCount} erros de ${successCount + errorCount} comandos`, 'yellow');
+                    }
                 }
 
             } catch (fileError) {

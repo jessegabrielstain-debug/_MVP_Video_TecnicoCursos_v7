@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { GovernanceCharts } from './charts';
 
 interface KPIData {
   coverage_core: number;
@@ -45,6 +46,11 @@ export default function GovernancaDashboard() {
           <Metric title="Change Failure Rate" value={kpis.change_failure_rate != null ? `${kpis.change_failure_rate.toFixed(2)}%` : '—'}/>
         </div>
       )}
+
+      {kpis?.history && kpis.history.length > 0 && (
+        <GovernanceCharts history={kpis.history} />
+      )}
+
       <section>
         <h2 className="text-xl font-medium mb-2">Últimos Releases</h2>
         <div className="overflow-x-auto">
@@ -106,4 +112,4 @@ function Metric({ title, value }: { title: string; value: string }) {
 }
 
 function Th({ children }: { children: any }) { return <th className="px-2 py-1 text-left font-medium">{children}</th>; }
-function Td({ children, colSpan }: { children: any; colSpan?: number }) { return <td colSpan={colSpan} className="px-2 py-1">{children}</td>; }
+function Td({ children, colSpan, className }: { children: any; colSpan?: number; className?: string }) { return <td colSpan={colSpan} className={`px-2 py-1 ${className || ''}`}>{children}</td>; }

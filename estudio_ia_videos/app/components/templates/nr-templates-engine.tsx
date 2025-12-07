@@ -78,7 +78,7 @@ interface ComplianceCheck {
 interface IndustryProfile {
   id: string
   name: string
-  icon: any
+  icon: React.ComponentType<{ className?: string }>
   templates: number
   compliance: number
   popularNRs: string[]

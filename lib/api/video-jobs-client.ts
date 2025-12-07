@@ -5,6 +5,14 @@ export type CreateJobPayload = {
   slides: { title: string; content: string; order_index: number }[]
   tts_voice?: string
   quality?: 'low'|'medium'|'high'
+  flow?: {
+    enabled?: boolean
+    bpmSource?: 'auto'|'manual'
+    bpmManual?: number
+    beatToleranceMs?: number
+    crossfadeRatio?: number
+    sidechain?: { threshold?: number; ratio?: number }
+  }
 }
 
 export async function createJob(baseUrl: string, token: string, payload: CreateJobPayload) {

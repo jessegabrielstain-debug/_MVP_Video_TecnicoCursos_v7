@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+// TODO: Script - fix types
 
 /**
  * Script para criar um arquivo PPTX de teste válido
@@ -149,7 +150,7 @@ async function createTestPPTX() {
       ['Precisão de extração', '95%', 'texto']
     ]
 
-    slide4.addTable(tableData, {
+    slide4.addTable(tableData as any, {
       x: 1,
       y: 2,
       w: 8,

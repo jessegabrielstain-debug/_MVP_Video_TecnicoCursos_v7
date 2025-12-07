@@ -68,7 +68,7 @@ export interface Achievement {
   id: string;
   name: string;
   description: string;
-  icon: any;
+  icon: string;
   unlocked: boolean;
   unlockedAt: Date | null;
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
@@ -91,7 +91,7 @@ export interface BadgeItem {
   id: string;
   name: string;
   description: string;
-  icon: any;
+  icon: string;
   color: string;
   earned: boolean;
 }
@@ -176,7 +176,7 @@ export interface Integration {
   name: string;
   description: string;
   category: string;
-  icon: any;
+  icon: string;
   status: 'connected' | 'available' | 'error';
   features: string[];
   color: string;
@@ -223,7 +223,7 @@ export interface AutomationTemplate {
   category: string;
   steps: number;
   estimatedTime: string;
-  icon: any;
+  icon: string;
   color: string;
 }
 
@@ -318,7 +318,7 @@ export interface PWAFeature {
   name: string;
   description: string;
   status: 'enabled' | 'disabled' | 'configuring';
-  icon: any;
+  icon: string;
   category: string;
 }
 

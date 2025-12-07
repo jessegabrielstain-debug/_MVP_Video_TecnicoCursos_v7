@@ -33,7 +33,7 @@ export async function POST(
     const { action } = NotificationActionSchema.parse(body)
 
     // Get the notification to verify ownership and get action details
-    const { data: notification, error: fetchError } = await supabaseAdmin
+    const { data: notification, error: fetchError } = await (supabaseAdmin as any)
       .from('notifications')
       .select('*')
       .eq('id', notificationId)
@@ -51,7 +51,7 @@ export async function POST(
     }
 
     // Find the action in the notification's actions array
-    const notificationAction = notification.actions?.find((a: any) => a.action === action)
+    const notificationAction = (notification as any).actions?.find((a: Record<string, unknown>) => a.action === action)
     if (!notificationAction) {
       return NextResponse.json(
         { success: false, error: 'Action not found for this notification' },
@@ -59,24 +59,31 @@ export async function POST(
       )
     }
 
-    let actionResult: any = { success: true }
+    let actionResult: Record<string, unknown> = { success: true }
 
     // Handle different types of actions
     switch (action) {
       case 'accept_collaboration':
-        // Handle collaboration invitation acceptance
+        // Handle collaboration invitation acceptance via project metadata
         if (notification.project_id) {
           try {
-            const { error: collabError } = await supabaseAdmin
-              .from('project_collaborators')
-              .update({
-                status: 'accepted',
-                updated_at: new Date().toISOString()
-              })
-              .eq('project_id', notification.project_id)
-              .eq('user_id', session.user.id)
+            const { data: project } = await supabaseAdmin
+              .from('projects')
+              .select('metadata')
+              .eq('id', notification.project_id)
+              .single()
 
-            if (collabError) throw collabError
+            if (project) {
+              const metadata = (project.metadata || {}) as Record<string, unknown>
+              const collaborators = ((metadata.collaborators || []) as Array<Record<string, unknown>>).map(c => 
+                c.user_id === session.user.id ? { ...c, status: 'accepted', updated_at: new Date().toISOString() } : c
+              )
+
+              await (supabaseAdmin as any)
+                .from('projects')
+                .update({ metadata: { ...metadata, collaborators } })
+                .eq('id', notification.project_id)
+            }
 
             actionResult.message = 'Collaboration invitation accepted'
           } catch (error) {
@@ -86,19 +93,26 @@ export async function POST(
         break
 
       case 'decline_collaboration':
-        // Handle collaboration invitation decline
+        // Handle collaboration invitation decline via project metadata
         if (notification.project_id) {
           try {
-            const { error: collabError } = await supabaseAdmin
-              .from('project_collaborators')
-              .update({
-                status: 'declined',
-                updated_at: new Date().toISOString()
-              })
-              .eq('project_id', notification.project_id)
-              .eq('user_id', session.user.id)
+            const { data: project } = await supabaseAdmin
+              .from('projects')
+              .select('metadata')
+              .eq('id', notification.project_id)
+              .single()
 
-            if (collabError) throw collabError
+            if (project) {
+              const metadata = (project.metadata || {}) as Record<string, unknown>
+              const collaborators = ((metadata.collaborators || []) as Array<Record<string, unknown>>).map(c => 
+                c.user_id === session.user.id ? { ...c, status: 'declined', updated_at: new Date().toISOString() } : c
+              )
+
+              await (supabaseAdmin as any)
+                .from('projects')
+                .update({ metadata: { ...metadata, collaborators } })
+                .eq('id', notification.project_id)
+            }
 
             actionResult.message = 'Collaboration invitation declined'
           } catch (error) {
@@ -170,7 +184,7 @@ export async function POST(
     }
 
     // Mark notification as read after action
-    const { error: updateError } = await supabaseAdmin
+    const { error: updateError } = await (supabaseAdmin as any)
       .from('notifications')
       .update({
         status: 'read',
@@ -184,13 +198,12 @@ export async function POST(
 
     // Log the action for analytics
     try {
-      await supabaseAdmin
+      await (supabaseAdmin as any)
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
-          category: 'notifications',
-          action: `notification_action_${action}`,
-          metadata: {
+          event_type: `notification_action_${action}`,
+          event_data: {
             notification_id: notificationId,
             action_type: action,
             success: actionResult.success,
@@ -200,31 +213,6 @@ export async function POST(
         })
     } catch (analyticsError) {
       console.warn('Failed to log notification action:', analyticsError)
-    }
-
-    // Send WebSocket update if action was successful
-    if (actionResult.success) {
-      try {
-        await fetch(`${process.env.NEXTAUTH_URL}/api/websocket/broadcast`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.WEBSOCKET_SECRET}`
-          },
-          body: JSON.stringify({
-            type: 'notification_action_completed',
-            channel: 'notifications',
-            userId: session.user.id,
-            data: {
-              notification_id: notificationId,
-              action,
-              result: actionResult
-            }
-          })
-        })
-      } catch (wsError) {
-        console.warn('Failed to send WebSocket update:', wsError)
-      }
     }
 
     return NextResponse.json({

@@ -15,6 +15,8 @@ interface RenderJobRow {
   duration_ms?: number | null;
   render_settings: unknown;
   started_at?: string;
+  user_id?: string;
+  error_message?: string | null;
 }
 function badRequest(details: unknown) {
   return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'Payload inválido', details }, { status: 400 })
@@ -50,7 +52,7 @@ export async function POST(req: Request) {
       .single()
 
     if (fetchErr || !existing) return NextResponse.json({ code: 'NOT_FOUND', message: 'Job não encontrado' }, { status: 404 })
-    type RenderJobRow = { id: string; status: string; progress?: number | null; error_message?: string | null };
+    
     const row = existing as unknown as RenderJobRow
     if (row.user_id && row.user_id !== userData.user.id) {
       return NextResponse.json({ code: 'FORBIDDEN', message: 'Sem permissão para atualizar este job' }, { status: 403 })
@@ -75,12 +77,12 @@ export async function POST(req: Request) {
 
     // Usa RPC de update simples via raw SQL se tipos inferidos bloquearem update
     // Obter registro para cálculo de duração se necessário
-    let baseRow: any = null
+    let baseRow: RenderJobRow | null = null
     if (status === 'completed') {
       const { data: existingForDuration } = await supabase.from('render_jobs').select('id,started_at').eq('id', jobId).single()
-      baseRow = existingForDuration
-      if (existingForDuration && (existingForDuration as RenderJobRow).started_at) {
-        const startedAtMs = Date.parse((existingForDuration as RenderJobRow).started_at)
+      baseRow = existingForDuration as unknown as RenderJobRow
+      if (existingForDuration && (existingForDuration as unknown as RenderJobRow).started_at) {
+        const startedAtMs = Date.parse((existingForDuration as unknown as RenderJobRow).started_at!)
         const dur = Date.now() - startedAtMs
         patch.duration_ms = dur
       }
@@ -109,3 +111,4 @@ export async function POST(req: Request) {
 export function GET() {
   return NextResponse.json({ code: 'METHOD_NOT_ALLOWED', message: 'Use POST para atualizar progresso' }, { status: 405 })
 }
+

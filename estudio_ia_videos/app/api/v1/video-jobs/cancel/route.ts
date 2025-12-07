@@ -88,3 +88,4 @@ export async function POST(req: Request) {
 export function GET() {
   return NextResponse.json({ code: 'METHOD_NOT_ALLOWED', message: 'Use POST para cancelar job' }, { status: 405 })
 }
+

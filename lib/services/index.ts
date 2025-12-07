@@ -16,5 +16,6 @@ export type { JobData, QueueMetrics, QueueConfig } from './queue-client';
 export { logger } from './logger';
 export type { LogLevel, LogContext, LogEntry } from './logger';
 
-export { createClient } from './supabase-client';
-export { createServerClient } from './supabase-server';
+export { getSupabaseClient } from './supabase-client';
+export { getSupabaseForRequest } from './supabase-server';
+export { createServerSupabaseClient, supabaseAdmin } from '../supabase/server';

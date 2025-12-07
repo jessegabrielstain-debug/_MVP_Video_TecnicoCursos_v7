@@ -2,6 +2,9 @@ import JSZip from 'jszip';
 import { PPTXTextParser } from './text-parser';
 import { PPTXLayoutParser } from './layout-parser';
 import { PPTXNotesParser } from './notes-parser';
+import type { SlideTextExtractionResult } from './text-parser';
+import type { SpeakerNotesResult } from './notes-parser';
+import type { SlideLayoutDetectionResult } from './layout-parser';
 
 export interface SlideDurationResult {
   success: boolean;
@@ -48,7 +51,7 @@ export class SlideDurationCalculator {
   async calculateDuration(zip: JSZip, slideNumber: number): Promise<SlideDurationResult> {
     try {
       // 1. Extrair texto do slide
-      const textResult = await this.textParser.extractText(zip, slideNumber);
+      const textResult = await this.textParser.extractTextFromSlide(zip, slideNumber);
       const slideWordCount = textResult.wordCount || 0;
       
       // 2. Extrair speaker notes (prioridade para narração)
@@ -123,7 +126,11 @@ export class SlideDurationCalculator {
     return this.options.visualProcessingTime * 2.5; // Máximo para muitos elementos
   }
 
-  private calculateConfidence(textResult: any, notesResult: any, layoutResult: any): number {
+  private calculateConfidence(
+    textResult: SlideTextExtractionResult,
+    notesResult: SpeakerNotesResult,
+    layoutResult: SlideLayoutDetectionResult
+  ): number {
     let confidence = 0.5; // Base
     
     // Se temos notes, confiança maior (mais preciso para TTS)

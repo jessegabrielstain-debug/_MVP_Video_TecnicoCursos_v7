@@ -57,3 +57,8 @@ export const listVoices = async (): Promise<Array<{ id: string; name: string; la
     { id: 'en-US-Neural2-C', name: 'US English Male', language: 'en-US' },
   ];
 };
+
+export const TTSService = {
+  synthesize: synthesizeToFile,
+  listVoices,
+};

@@ -4,15 +4,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { SmartComplianceValidator } from '@/lib/compliance/smart-validator';
-import { prisma } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user) {
+    const supabase = getSupabaseForRequest(request);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
@@ -27,16 +27,17 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 Starting compliance validation: ${projectId} - ${nrType}`);
 
     // Verificar se o projeto existe e pertence ao usuário
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { userId: true }
-    });
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('user_id')
+      .eq('id', projectId)
+      .single();
 
-    if (!project) {
+    if (projectError || !project) {
       return NextResponse.json({ error: 'Projeto não encontrado' }, { status: 404 });
     }
 
-    if (project.userId !== session.user.id) {
+    if (project.user_id !== user.id) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 });
     }
 
@@ -45,17 +46,28 @@ export async function POST(request: NextRequest) {
     const result = await validator.validate(projectId, nrType);
 
     // Salvar resultado no banco
-    await prisma.complianceValidation.create({
-      data: {
-        projectId,
-        nrType,
+    const { error: insertError } = await supabase
+      .from('nr_compliance_records')
+      .insert({
+        project_id: projectId,
+        nr: nrType,
+        nr_name: nrType,
+        status: result.passed ? 'compliant' : 'non_compliant',
         score: result.score,
-        passed: result.passed,
-        report: result.report as unknown,
-        validatedAt: result.timestamp,
-        validatedBy: session.user.id
-      }
-    });
+        final_score: result.score,
+        requirements_met: Math.floor(result.score / 10),
+        requirements_total: 10,
+        validated_at: result.timestamp ? new Date(result.timestamp).toISOString() : new Date().toISOString(),
+        validated_by: user.id,
+        ai_analysis: result.report,
+        recommendations: result.report.recommendations,
+        critical_points: result.report.criticalPoints
+      });
+
+    if (insertError) {
+        console.error('Error saving compliance record:', insertError);
+        // We don't fail the request if saving fails, but we should log it.
+    }
 
     console.log(`✅ Compliance validation complete. Score: ${result.score}`);
 
@@ -64,11 +76,11 @@ export async function POST(request: NextRequest) {
       ...result
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Compliance validation error:', error);
     return NextResponse.json({
       success: false,
-      error: error.message || 'Erro interno do servidor'
+      error: error instanceof Error ? error.message : 'Erro interno do servidor'
     }, { status: 500 });
   }
 }
@@ -79,8 +91,10 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user) {
+    const supabase = getSupabaseForRequest(request);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
@@ -103,11 +117,11 @@ export async function PUT(request: NextRequest) {
       ...result
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Quick validation error:', error);
     return NextResponse.json({
       success: false,
-      error: error.message || 'Erro interno do servidor'
+      error: error instanceof Error ? error.message : 'Erro interno do servidor'
     }, { status: 500 });
   }
 }
@@ -118,8 +132,10 @@ export async function PUT(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
-    if (!session?.user) {
+    const supabase = getSupabaseForRequest(request);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
@@ -133,25 +149,31 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar permissão
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { userId: true }
-    });
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('user_id')
+      .eq('id', projectId)
+      .single();
 
-    if (!project) {
+    if (projectError || !project) {
       return NextResponse.json({ error: 'Projeto não encontrado' }, { status: 404 });
     }
 
-    if (project.userId !== session.user.id) {
+    if (project.user_id !== user.id) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 });
     }
 
     // Buscar validações
-    const validations = await prisma.complianceValidation.findMany({
-      where: { projectId },
-      orderBy: { validatedAt: 'desc' },
-      take: 10
-    });
+    const { data: validations, error: fetchError } = await supabase
+      .from('nr_compliance_records')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('validated_at', { ascending: false })
+      .limit(10);
+
+    if (fetchError) {
+        throw fetchError;
+    }
 
     return NextResponse.json({
       success: true,
@@ -162,7 +184,9 @@ export async function GET(request: NextRequest) {
     console.error('Get validations error:', error);
     return NextResponse.json({
       success: false,
-      error: error.message || 'Erro interno do servidor'
+      error: error?.message || 'Erro interno do servidor',
+      details: error
     }, { status: 500 });
   }
 }
+

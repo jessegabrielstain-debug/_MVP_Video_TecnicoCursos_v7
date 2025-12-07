@@ -609,7 +609,7 @@ export default function AdvancedTimelineEditor() {
 
               {/* Property value at current time */}
               <div className="mt-2 text-sm text-gray-400">
-                Current value: {getCurrentPropertyValue(property, project.currentTime)}
+                Current value: {String(getCurrentPropertyValue(property, project.currentTime))}
               </div>
             </div>
           ))}
@@ -716,7 +716,7 @@ export default function AdvancedTimelineEditor() {
           </div>
 
           {/* Tabs for different views */}
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="flex-1 flex flex-col">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'timeline' | 'keyframes' | 'properties')} className="flex-1 flex flex-col">
             <div className="bg-gray-800 border-b border-gray-700 px-4">
               <TabsList className="bg-gray-700">
                 <TabsTrigger value="timeline" className="flex items-center gap-2">

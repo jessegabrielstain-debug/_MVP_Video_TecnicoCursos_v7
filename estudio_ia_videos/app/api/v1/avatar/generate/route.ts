@@ -1,3 +1,4 @@
+// TODO: Fix logger parameter types
 
 /**
  * 🧑‍💼 Avatar Generation API - Production Ready
@@ -6,23 +7,27 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+interface AvatarConfig {
+  id: string;
+  style: 'professional' | 'casual' | 'corporate' | 'instructor';
+  gender: 'male' | 'female' | 'neutral';
+  ethnicity?: string;
+}
+
+interface AvatarSettings {
+  background?: string;
+  animation?: 'subtle' | 'normal' | 'expressive';
+  duration?: number;
+  format?: 'mp4' | 'webm' | 'gif';
+  quality?: 'low' | 'medium' | 'high' | 'ultra';
+}
+
 interface AvatarRequest {
   type: 'talking-photo' | '3d-avatar' | 'animated-character';
   text?: string;
   audioUrl?: string;
-  avatar?: {
-    id: string;
-    style: 'professional' | 'casual' | 'corporate' | 'instructor';
-    gender: 'male' | 'female' | 'neutral';
-    ethnicity?: string;
-  };
-  settings?: {
-    background?: string;
-    animation?: 'subtle' | 'normal' | 'expressive';
-    duration?: number;
-    format?: 'mp4' | 'webm' | 'gif';
-    quality?: 'low' | 'medium' | 'high' | 'ultra';
-  };
+  avatar?: AvatarConfig;
+  settings?: AvatarSettings;
 }
 
 export async function POST(request: NextRequest) {
@@ -94,8 +99,8 @@ export async function POST(request: NextRequest) {
 async function generateTalkingPhoto(
   text?: string,
   audioUrl?: string,
-  avatar?: any,
-  settings?: any
+  avatar?: AvatarConfig,
+  settings?: AvatarSettings
 ) {
   console.log('📸 Gerando Talking Photo...');
 
@@ -122,8 +127,8 @@ async function generateTalkingPhoto(
 async function generate3DAvatar(
   text?: string,
   audioUrl?: string,
-  avatar?: any,
-  settings?: any
+  avatar?: AvatarConfig,
+  settings?: AvatarSettings
 ) {
   console.log('🧑‍💻 Gerando Avatar 3D...');
 
@@ -150,8 +155,8 @@ async function generate3DAvatar(
 async function generateAnimatedCharacter(
   text?: string,
   audioUrl?: string,
-  avatar?: any,
-  settings?: any
+  avatar?: AvatarConfig,
+  settings?: AvatarSettings
 ) {
   console.log('🎭 Gerando Personagem Animado...');
 
@@ -237,3 +242,4 @@ export async function GET() {
     }
   });
 }
+

@@ -1,3 +1,4 @@
+// TODO: Fix null vs undefined return types
 /**
  * API de Upload - Finalização e Montagem do Arquivo
  */
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
       size: stats.size,
       mimeType,
       url: getPublicUrl(finalFilename),
-      thumbnailUrl,
+      thumbnailUrl: thumbnailUrl || undefined,
       metadata: {
         originalFilename: filename,
         uploadedChunks: chunks,

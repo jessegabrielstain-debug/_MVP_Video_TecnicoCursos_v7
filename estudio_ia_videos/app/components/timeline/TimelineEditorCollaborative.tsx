@@ -69,8 +69,9 @@ export default function TimelineEditorCollaborative({
 
     // Usuário saiu
     socket.onUserLeft((data) => {
-      console.log(`👋 ${data.userName} saiu do projeto`)
-      addNotification('info', `${data.userName} saiu do projeto`)
+      const name = data.userName || 'Usuário'
+      console.log(`👋 ${name} saiu do projeto`)
+      addNotification('info', `${name} saiu do projeto`)
       
       // Remover locks do usuário que saiu
       setLockedTracks(prev => {
@@ -172,7 +173,7 @@ export default function TimelineEditorCollaborative({
     // await updateTimeline(changes)
     
     // Broadcast para outros usuários
-    socket.broadcastTimelineUpdate(1, changes)
+    socket.broadcastTimelineUpdate(1, changes as Record<string, unknown>)
   }
 
   return (
@@ -191,13 +192,13 @@ export default function TimelineEditorCollaborative({
           <span className="text-sm text-gray-400">
             {socket.activeUsers.length} online
           </span>
-          {socket.activeUsers.slice(0, 5).map((userId) => (
+          {socket.activeUsers.slice(0, 5).map((user) => (
             <div
-              key={userId}
+              key={user.userId}
               className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs"
-              title={userId}
+              title={user.userName}
             >
-              {userId.charAt(0).toUpperCase()}
+              {user.userName.charAt(0).toUpperCase()}
             </div>
           ))}
         </div>

@@ -17,9 +17,10 @@ import {
   Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PPTXParser, type PPTXDocument } from '@/lib/pptx/PPTXParser';
+import { PPTXParser } from '@/lib/pptx/PPTXParser';
+import { type ParsedPPTXData } from '@/lib/definitions';
 
-interface PPTXFile {
+export interface PPTXFile {
   id: string;
   name: string;
   size: number;
@@ -33,13 +34,14 @@ interface PPTXFile {
     textContent: string[];
     images: string[];
     duration: number;
-    pptxDocument?: PPTXDocument;
+    pptxDocument?: ParsedPPTXData;
     timelineData?: any;
   };
   error?: string;
 }
 
 interface PPTXUploaderProps {
+  projectId: string;
   onUploadComplete?: (file: PPTXFile) => void;
   onProcessingComplete?: (file: PPTXFile) => void;
   maxFileSize?: number; // MB
@@ -48,6 +50,7 @@ interface PPTXUploaderProps {
 }
 
 export const PPTXUploader: React.FC<PPTXUploaderProps> = ({
+  projectId,
   onUploadComplete,
   onProcessingComplete,
   maxFileSize = 50,
@@ -93,66 +96,11 @@ export const PPTXUploader: React.FC<PPTXUploaderProps> = ({
     return { valid: true };
   }, [maxFileSize]);
 
-  // Processamento PPTX real usando parser
-  const processPPTX = useCallback(async (fileData: PPTXFile): Promise<PPTXFile> => {
-    try {
-      const parser = new PPTXParser();
-      
-      // Parse real do arquivo PPTX
-      const pptxDocument = await parser.parseFile(fileData.file);
-      
-      // Converter para dados de timeline
-      const timelineData = parser.convertToTimelineData(pptxDocument);
-      
-      // Extrair textos dos slides
-      const textContent = pptxDocument.slides.map(slide => 
-        `${slide.title}: ${slide.content.join(' ')}`
-      );
-      
-      const processedData = {
-        slideCount: pptxDocument.slideCount,
-        textContent,
-        images: pptxDocument.slides.flatMap(slide => 
-          slide.images.map(img => img.src)
-        ),
-        duration: pptxDocument.totalDuration,
-        pptxDocument,
-        timelineData
-      };
-
-      return {
-        ...fileData,
-        status: 'completed',
-        processedData
-      };
-      
-    } catch (error: any) {
-      console.error('Erro no processamento PPTX:', error);
-      
-      // Fallback para dados mockados em caso de erro
-      const processedData = {
-        slideCount: 5,
-        textContent: [
-          'Erro no processamento - usando dados de exemplo',
-          'Slide de exemplo 1',
-          'Slide de exemplo 2'
-        ],
-        images: [],
-        duration: 150
-      };
-
-      return {
-        ...fileData,
-        status: 'completed',
-        processedData
-      };
-    }
-  }, []);
-
-  // Upload e processamento do arquivo
+  // Upload e processamento do arquivo (REAL)
   const uploadFile = useCallback(async (file: File) => {
+    const fileId = generateFileId();
     const fileData: PPTXFile = {
-      id: generateFileId(),
+      id: fileId,
       name: file.name,
       size: file.size,
       type: file.type,
@@ -164,50 +112,114 @@ export const PPTXUploader: React.FC<PPTXUploaderProps> = ({
     setFiles(prev => [...prev, fileData]);
 
     try {
-      // Simular progresso de upload
-      const uploadInterval = setInterval(() => {
-        setFiles(prev => prev.map(f => 
-          f.id === fileData.id 
-            ? { ...f, uploadProgress: Math.min(f.uploadProgress + 10, 90) }
-            : f
-        ));
-      }, 200);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('project_id', projectId);
 
-      // Simular upload (2 segundos)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 1. Upload
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/pptx/upload');
       
-      clearInterval(uploadInterval);
-      
-      // Marcar upload completo
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          setFiles(prev => prev.map(f => 
+            f.id === fileId ? { ...f, uploadProgress: progress } : f
+          ));
+        }
+      };
+
+      const response = await new Promise<any>((resolve, reject) => {
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText));
+          } else {
+            reject(new Error(JSON.parse(xhr.responseText).error || 'Erro no upload'));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Erro de rede'));
+        xhr.send(formData);
+      });
+
+      const uploadId = response.upload_id;
+
       setFiles(prev => prev.map(f => 
-        f.id === fileData.id 
-          ? { ...f, uploadProgress: 100, status: 'processing' }
-          : f
+        f.id === fileId ? { ...f, status: 'processing', uploadProgress: 100 } : f
       ));
 
       onUploadComplete?.(fileData);
       toast.success(`Upload concluído: ${file.name}`);
 
-      // Iniciar processamento
-      const processedFile = await processPPTX(fileData);
-      
-      setFiles(prev => prev.map(f => 
-        f.id === processedFile.id ? processedFile : f
-      ));
+      // 2. Polling for Processing Status
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`/api/pptx/upload?project_id=${projectId}&status=completed`);
+          const statusData = await statusRes.json();
+          
+          const completedUpload = statusData.uploads?.find((u: any) => u.id === uploadId);
+          
+          if (completedUpload) {
+            clearInterval(pollInterval);
+            
+            // 3. Import to Timeline
+            const importRes = await fetch('/api/import/pptx-to-timeline-real', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId, pptxUploadId: uploadId })
+            });
+            
+            if (!importRes.ok) {
+                throw new Error('Erro ao importar para timeline');
+            }
 
-      onProcessingComplete?.(processedFile);
-      toast.success(`Processamento concluído: ${processedFile.processedData?.slideCount} slides encontrados`);
+            const importData = await importRes.json();
+
+            const processedFile: PPTXFile = {
+                ...fileData,
+                status: 'completed',
+                processedData: {
+                    slideCount: completedUpload.slide_count,
+                    textContent: [], // TODO: Fetch if needed
+                    images: [], // TODO: Fetch if needed
+                    duration: importData.timeline.duration,
+                    timelineData: importData.timeline
+                }
+            };
+
+            setFiles(prev => prev.map(f => 
+                f.id === fileId ? processedFile : f
+            ));
+
+            onProcessingComplete?.(processedFile);
+            toast.success(`Processamento concluído: ${completedUpload.slide_count} slides importados`);
+          }
+          
+          // Check for failure
+          const failedRes = await fetch(`/api/pptx/upload?project_id=${projectId}&status=failed`);
+          const failedData = await failedRes.json();
+          const failedUpload = failedData.uploads?.find((u: any) => u.id === uploadId);
+          
+          if (failedUpload) {
+             clearInterval(pollInterval);
+             throw new Error(failedUpload.error_message || 'Falha no processamento');
+          }
+
+        } catch (err) {
+            // Ignore polling errors or handle them
+            console.error('Polling error', err);
+        }
+      }, 2000);
 
     } catch (error: any) {
       setFiles(prev => prev.map(f => 
-        f.id === fileData.id 
+        f.id === fileId 
           ? { ...f, status: 'error', error: error.message }
           : f
       ));
       
-      toast.error(`Erro no upload: ${error.message}`);
+      toast.error(`Erro: ${error.message}`);
     }
-  }, [generateFileId, onUploadComplete, onProcessingComplete, processPPTX]);
+  }, [generateFileId, projectId, onUploadComplete, onProcessingComplete]);
 
   // Manipular arquivos selecionados
   const handleFileSelect = useCallback((selectedFiles: FileList | null) => {

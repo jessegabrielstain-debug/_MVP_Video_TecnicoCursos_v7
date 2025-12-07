@@ -525,7 +525,7 @@ export default function AdvancedRenderStudio() {
                     <Label>Resolução</Label>
                     <Select 
                       value={renderSettings.resolution} 
-                      onValueChange={(value: string) => setRenderSettings(prev => ({ ...prev, resolution: value }))}
+                      onValueChange={(value: string) => setRenderSettings(prev => ({ ...prev, resolution: value as RenderSettings['resolution'] }))}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -543,7 +543,7 @@ export default function AdvancedRenderStudio() {
                     <Label>Formato</Label>
                     <Select 
                       value={renderSettings.format} 
-                      onValueChange={(value: string) => setRenderSettings(prev => ({ ...prev, format: value }))}
+                      onValueChange={(value: string) => setRenderSettings(prev => ({ ...prev, format: value as RenderSettings['format'] }))}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -561,7 +561,7 @@ export default function AdvancedRenderStudio() {
                     <Label>Qualidade</Label>
                     <Select 
                       value={renderSettings.quality} 
-                      onValueChange={(value: string) => setRenderSettings(prev => ({ ...prev, quality: value }))}
+                      onValueChange={(value: string) => setRenderSettings(prev => ({ ...prev, quality: value as RenderSettings['quality'] }))}
                     >
                       <SelectTrigger>
                         <SelectValue />

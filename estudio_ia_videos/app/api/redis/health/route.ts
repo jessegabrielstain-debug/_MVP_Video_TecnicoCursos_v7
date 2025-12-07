@@ -32,13 +32,14 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
-    console.error("Redis health check error:", error.message)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Redis health check error:", errorMessage)
     
     return NextResponse.json({
       timestamp: new Date().toISOString(),
       redis: {
-        health: { healthy: false, error: error.message },
+        health: { healthy: false, error: errorMessage },
         status: "error"
       }
     }, { 

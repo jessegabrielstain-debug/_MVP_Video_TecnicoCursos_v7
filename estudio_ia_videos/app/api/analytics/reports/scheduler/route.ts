@@ -1,30 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { ReportScheduler } from '@/lib/analytics/report-scheduler';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
-
-// Type-safe helper extraindo organizationId
-const getOrgId = (user: unknown): string | undefined => {
-  const u = user as { currentOrgId?: string; organizationId?: string };
-  return u.currentOrgId || u.organizationId || undefined;
-};
-
-// Type-safe helper verificando admin
-const isAdmin = (user: unknown): boolean => {
-  return ((user as { isAdmin?: boolean }).isAdmin) === true;
-};
-// Type-safe helper extraindo organizationId
-const getOrgId = (user: unknown): string | undefined => {
-  const u = user as { currentOrgId?: string; organizationId?: string };
-  return u.currentOrgId || u.organizationId || undefined;
-};
-
-// Type-safe helper verificando admin
-const isAdmin = (user: unknown): boolean => {
-  return ((user as { isAdmin?: boolean }).isAdmin) === true;
-};
 /**
  * GET /api/analytics/reports/scheduler
  * Retorna informações sobre relatórios agendados e estatísticas do agendador
@@ -32,9 +11,9 @@ const isAdmin = (user: unknown): boolean => {
  * Query params:
  * - action: 'list' | 'stats' | 'run' (default: 'list')
  */
-async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -85,13 +64,13 @@ async function GET(req: NextRequest) {
         );
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics Reports Scheduler] Error:', error);
     
     return NextResponse.json(
       {
         error: 'Failed to process scheduler request',
-        message: error.message
+        message: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );
@@ -102,9 +81,9 @@ async function GET(req: NextRequest) {
  * POST /api/analytics/reports/scheduler
  * Gerencia relatórios agendados (ativar/desativar/deletar)
  */
-async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -154,13 +133,13 @@ async function POST(req: NextRequest) {
         );
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics Reports Scheduler POST] Error:', error);
     
     return NextResponse.json(
       {
         error: 'Failed to manage scheduled report',
-        message: error.message
+        message: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );
@@ -168,3 +147,6 @@ async function POST(req: NextRequest) {
 }
 
 // Aplicar middleware de performance
+export const GET = withAnalytics(getHandler);
+export const POST = withAnalytics(postHandler);
+

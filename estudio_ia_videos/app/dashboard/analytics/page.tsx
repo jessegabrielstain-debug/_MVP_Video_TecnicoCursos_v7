@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { createBrowserSupabaseClient } from '@/lib/services';
+import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
 interface AnalyticsData {

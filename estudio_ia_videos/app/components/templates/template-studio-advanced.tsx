@@ -69,11 +69,9 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
     filteredTemplates,
     filter,
     sort,
-    searchTerm,
     isLoading,
     setFilter,
     setSort,
-    setSearchTerm,
     getTemplate,
     createTemplate,
     updateTemplate,
@@ -232,8 +230,8 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
     return categoryOptions.includes(value as NRCategory);
   };
 
-  const isDifficulty = (value: string): value is TemplateFilter['difficulty'][number] => {
-    return difficultyOptions.includes(value as TemplateFilter['difficulty'][number]);
+  const isDifficulty = (value: string): value is NonNullable<TemplateFilter['difficulty']>[number] => {
+    return difficultyOptions.includes(value as any);
   };
 
   const isComplianceStatus = (value: string): value is NonNullable<TemplateFilter['compliance']> => {
@@ -428,8 +426,8 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
                 placeholder="Buscar templates..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={filter.search || ''}
+                onChange={(e) => setFilter({ search: e.target.value })}
                 className="pl-10"
               />
             </div>

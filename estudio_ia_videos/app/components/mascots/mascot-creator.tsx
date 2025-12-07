@@ -99,7 +99,7 @@ export default function MascotCreator({ onMascotCreate, companyBranding }: Masco
         ...prev,
         template_id: customMascot.id
       }))
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao gerar mascote:', error)
     } finally {
       setGeneratingCustom(false)

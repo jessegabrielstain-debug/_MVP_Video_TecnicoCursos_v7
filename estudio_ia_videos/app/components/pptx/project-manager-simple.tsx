@@ -35,6 +35,7 @@ interface ProjectSlideSummary {
   title: string | null
   content: string | null
   duration: number
+  notes?: string | null
 }
 
 export interface ProjectOverview {
@@ -319,7 +320,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                           beginSlideEdit(slide.id, {
                             duration: slide.duration,
                             transition: slideWithTransition.transition,
-                            notes: slide.notes
+                            notes: slide.notes ?? undefined
                           })
                         }}
                       >

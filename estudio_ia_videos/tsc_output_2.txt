@@ -1,0 +1,74 @@
+app/admin/metrics/page.tsx(55,63): error TS2339: Property 'total_jobs' does not exist on type 'BasicStatsResult'.
+app/admin/metrics/page.tsx(57,29): error TS2339: Property 'completed_jobs' does not exist on type 'BasicStatsResult'.
+app/admin/metrics/page.tsx(72,29): error TS2339: Property 'failed_jobs' does not exist on type 'BasicStatsResult'.
+app/admin/metrics/page.tsx(84,50): error TS2339: Property 'avg_render_time_ms' does not exist on type 'PerformanceMetricsResult'.
+app/admin/metrics/page.tsx(87,55): error TS2551: Property 'p95_render_time_ms' does not exist on type 'PerformanceMetricsResult'. Did you mean 'p95_render_time'?
+app/admin/metrics/page.tsx(98,63): error TS2339: Property 'pending' does not exist on type 'QueueStatsResult'.
+app/admin/metrics/page.tsx(100,29): error TS2339: Property 'processing' does not exist on type 'QueueStatsResult'.
+app/admin/metrics/page.tsx(123,43): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+app/admin/metrics/page.tsx(123,47): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+app/admin/metrics/page.tsx(132,29): error TS2322: Type 'NormalizedErrorCategory' is not assignable to type 'ReactNode'.
+app/admin/metrics/page.tsx(132,41): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+app/admin/metrics/page.tsx(132,62): error TS2339: Property 'failed_jobs' does not exist on type 'BasicStatsResult'.
+app/admin/metrics/page.tsx(139,42): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+app/admin/metrics/page.tsx(139,63): error TS2339: Property 'failed_jobs' does not exist on type 'BasicStatsResult'.
+app/api/analytics/render-stats/route.ts(113,39): error TS2345: Argument of type 'string' is not assignable to parameter of type 'NonNullable<"pptx" | "template-nr" | "talking-photo" | "custom" | "ai-generated">'.
+app/api/compliance/validate/route.ts(50,13): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(relation: "videos" | "courses" | "projects" | "slides" | "users" | "user_progress" | "render_jobs" | "analytics_events" | "nr_courses" | "nr_modules" | "nr_templates" | "timelines" | ... 8 more ... | "user_roles"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type '"nr_compliance_records"' is not assignable to parameter of type '"videos" | "courses" | "projects" | "slides" | "users" | "user_progress" | "render_jobs" | "analytics_events" | "nr_courses" | "nr_modules" | "nr_templates" | "timelines" | ... 8 more ... | "user_roles"'.
+  Overload 2 of 2, '(relation: never): PostgrestQueryBuilder<{ PostgrestVersion: "12"; }, { Tables: { users: { Row: { id: string; email: string; name: string | null; avatar_url: string | null; role: string | null; metadata: Json; created_at: string; updated_at: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: []; }; ... 19 more ...; user_roles: { ...; }; }; Views: {}; Functions: { ...; }; Enums: {}; CompositeTypes: {}; }, never, never, never>', gave the following error.
+    Argument of type '"nr_compliance_records"' is not assignable to parameter of type 'never'.
+app/api/compliance/validate/route.ts(168,13): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(relation: "videos" | "courses" | "projects" | "slides" | "users" | "user_progress" | "render_jobs" | "analytics_events" | "nr_courses" | "nr_modules" | "nr_templates" | "timelines" | ... 8 more ... | "user_roles"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type '"nr_compliance_records"' is not assignable to parameter of type '"videos" | "courses" | "projects" | "slides" | "users" | "user_progress" | "render_jobs" | "analytics_events" | "nr_courses" | "nr_modules" | "nr_templates" | "timelines" | ... 8 more ... | "user_roles"'.
+  Overload 2 of 2, '(relation: never): PostgrestQueryBuilder<{ PostgrestVersion: "12"; }, { Tables: { users: { Row: { id: string; email: string; name: string | null; avatar_url: string | null; role: string | null; metadata: Json; created_at: string; updated_at: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: []; }; ... 19 more ...; user_roles: { ...; }; }; Views: {}; Functions: { ...; }; Enums: {}; CompositeTypes: {}; }, never, never, never>', gave the following error.
+    Argument of type '"nr_compliance_records"' is not assignable to parameter of type 'never'.
+app/api/org/[orgId]/audit-logs/export/route.ts(12,1): error TS2578: Unused '@ts-expect-error' directive.
+app/api/pptx/process/route.ts(12,1): error TS2578: Unused '@ts-expect-error' directive.
+app/api/templates/route.ts(235,33): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number | Date'.
+      Type 'null' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | number'.
+      Type 'null' is not assignable to type 'string | number'.
+app/api/v1/render/video-production-v2/route.ts(187,49): error TS2345: Argument of type 'unknown[]' is not assignable to parameter of type 'DatabaseSlide[]'.
+  Type 'unknown' is not assignable to type 'DatabaseSlide'.
+app/api/v1/render/video-production-v2/route.ts(193,56): error TS2345: Argument of type 'unknown[]' is not assignable to parameter of type 'DatabaseSlide[]'.
+  Type 'unknown' is not assignable to type 'DatabaseSlide'.
+app/api/v1/render/video-production-v2/route.ts(199,74): error TS2345: Argument of type '{ [key: string]: unknown; totalDuration: number; }' is not assignable to parameter of type 'Timeline'.
+  Type '{ [key: string]: unknown; totalDuration: number; }' is missing the following properties from type 'Timeline': id, projectId, tracks, duration, and 9 more.
+app/api/v1/render/video-production-v2/route.ts(205,66): error TS2345: Argument of type 'RenderSettings' is not assignable to parameter of type 'RenderPipelineOptions'.
+  Type 'RenderSettings' is missing the following properties from type 'RenderPipelineOptions': projectId, jobId
+app/components/ComplianceDashboard.tsx(26,33): error TS2305: Module '"@/hooks/useComplianceAnalyzer"' has no exported member 'ComplianceAnalysisResult'.
+app/components/ComplianceDashboard.tsx(26,59): error TS2724: '"@/hooks/useComplianceAnalyzer"' has no exported member named 'ComplianceIssue'. Did you mean 'ComplianceRule'?
+app/components/ComplianceDashboard.tsx(42,5): error TS2339: Property 'analysisResult' does not exist on type 'UseComplianceAnalyzerReturn'.
+app/components/ComplianceDashboard.tsx(43,5): error TS2339: Property 'error' does not exist on type 'UseComplianceAnalyzerReturn'.
+app/components/ComplianceDashboard.tsx(44,5): error TS2339: Property 'analyzeTemplate' does not exist on type 'UseComplianceAnalyzerReturn'.
+app/components/ComplianceDashboard.tsx(45,5): error TS2339: Property 'reanalyze' does not exist on type 'UseComplianceAnalyzerReturn'.
+app/components/ComplianceDashboard.tsx(46,5): error TS2339: Property 'getIssuesByType' does not exist on type 'UseComplianceAnalyzerReturn'.
+app/components/ComplianceDashboard.tsx(47,5): error TS2339: Property 'resolveIssue' does not exist on type 'UseComplianceAnalyzerReturn'.
+app/components/ComplianceDashboard.tsx(48,5): error TS2339: Property 'autoFixIssue' does not exist on type 'UseComplianceAnalyzerReturn'.
+app/components/ComplianceDashboard.tsx(49,5): error TS2339: Property 'applySuggestion' does not exist on type 'UseComplianceAnalyzerReturn'.
+app/components/ComplianceDashboard.tsx(50,5): error TS2339: Property 'dismissSuggestion' does not exist on type 'UseComplianceAnalyzerReturn'.
+app/components/ComplianceDashboard.tsx(51,5): error TS2339: Property 'startRealTimeAnalysis' does not exist on type 'UseComplianceAnalyzerReturn'.
+app/components/ComplianceDashboard.tsx(52,5): error TS2339: Property 'stopRealTimeAnalysis' does not exist on type 'UseComplianceAnalyzerReturn'.
+app/components/ComplianceDashboard.tsx(53,5): error TS2339: Property 'generateComplianceReport' does not exist on type 'UseComplianceAnalyzerReturn'.
+app/components/ComplianceDashboard.tsx(243,59): error TS7006: Parameter 'r' implicitly has an 'any' type.
+app/components/ComplianceDashboard.tsx(328,47): error TS7006: Parameter 'issue' implicitly has an 'any' type.
+app/components/ComplianceDashboard.tsx(401,52): error TS7006: Parameter 'suggestion' implicitly has an 'any' type.
+app/components/ComplianceDashboard.tsx(456,51): error TS7006: Parameter 'reqStatus' implicitly has an 'any' type.
+app/components/ComplianceDashboard.tsx(491,52): error TS7006: Parameter 'issue' implicitly has an 'any' type.
+app/components/ComplianceDashboard.tsx(491,59): error TS7006: Parameter 'index' implicitly has an 'any' type.
+app/components/editor/unified-preview-player.tsx(154,26): error TS2540: Cannot assign to 'current' because it is a read-only property.
+app/components/pptx/canvas-editor.tsx(4,10): error TS2305: Module '"fabric"' has no exported member 'fabric'.
+app/components/pptx/canvas-editor.tsx(31,44): error TS7006: Parameter 'o' implicitly has an 'any' type.
+app/components/templates/template-system.tsx(99,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { id?: string | undefined; user_id: string; name: string; type?: "pptx" | "template-nr" | "talking-photo" | "custom" | "ai-generated" | undefined; description?: string | null | undefined; ... 11 more ...; last_accessed_at?: string | ... 1 more ... | undefined; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type '{ template_id: string; template_data: Template; }' is not assignable to type 'Json | undefined'.
+      Types of property 'template_data' are incompatible.
+        Type 'Template' is not assignable to type 'Json | undefined'.
+          Type 'Template' is not assignable to type '{ [key: string]: Json | undefined; }'.
+            Index signature for type 'string' is missing in type 'Template'.
+  Overload 2 of 2, '(values: { id?: string | undefined; user_id: string; name: string; type?: "pptx" | "template-nr" | "talking-photo" | "custom" | "ai-generated" | undefined; description?: string | null | undefined; ... 11 more ...; last_accessed_at?: string | ... 1 more ... | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Object literal may only specify known properties, and 'name' does not exist in type '{ id?: string | undefined; user_id: string; name: string; type?: "pptx" | "template-nr" | "talking-photo" | "custom" | "ai-generated" | undefined; description?: string | null | undefined; ... 11 more ...; last_accessed_at?: string | ... 1 more ... | undefined; }[]'.

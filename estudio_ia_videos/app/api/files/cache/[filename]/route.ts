@@ -6,8 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { VideoCache } from '@/lib/video-cache'
-import { AudioCache } from '@/lib/audio-cache'
+import { videoCache } from '@/lib/video-cache'
+import { audioCache } from '@/lib/audio-cache'
 
 export async function GET(
   request: NextRequest,
@@ -23,33 +23,37 @@ export async function GET(
     console.log(`📁 Servindo arquivo do cache: ${filename}`)
 
     // Tentar primeiro no cache de vídeo
-    let cached = VideoCache.get(filename)
+    const cachedVideo = videoCache.get(filename)
+    const cachedAudio = !cachedVideo ? audioCache.get(filename) : null
     
-    // Se não encontrar, tentar no cache de áudio
-    if (!cached) {
-      cached = AudioCache.get(filename)
-    }
+    const cached = cachedVideo || cachedAudio
 
     if (!cached) {
       console.log(`❌ Arquivo não encontrado em nenhum cache: ${filename}`)
       return new NextResponse('File not found', { status: 404 })
     }
 
+    // Determinar content type
+    let contentType = 'application/octet-stream'
+    if (cached.format === 'mp4') contentType = 'video/mp4'
+    else if (cached.format === 'mp3') contentType = 'audio/mpeg'
+    else if (cached.format.includes('/')) contentType = cached.format // Já é mime type
+
     // Determinar headers baseado no content type
     const headers = new Headers()
-    headers.set('Content-Type', cached.contentType || 'application/octet-stream')
+    headers.set('Content-Type', contentType)
     headers.set('Content-Length', cached.buffer.length.toString())
     headers.set('Cache-Control', 'public, max-age=300') // Cache por 5 minutos
     headers.set('Access-Control-Allow-Origin', '*')
 
     // Para arquivos de mídia, adicionar ranges support
-    if (cached.contentType?.startsWith('video/') || cached.contentType?.startsWith('audio/')) {
+    if (contentType.startsWith('video/') || contentType.startsWith('audio/')) {
       headers.set('Accept-Ranges', 'bytes')
     }
 
     console.log(`✅ Servindo ${filename} do cache (${cached.buffer.length} bytes)`)
 
-    return new NextResponse(cached.buffer, {
+    return new NextResponse(new Uint8Array(cached.buffer), {
       status: 200,
       headers
     })

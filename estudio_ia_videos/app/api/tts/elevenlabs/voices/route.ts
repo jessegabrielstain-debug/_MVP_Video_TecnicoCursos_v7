@@ -5,7 +5,7 @@ import ElevenLabsService from '@/lib/elevenlabs-service'
 export async function GET() {
   try {
     const elevenLabsService = ElevenLabsService.getInstance()
-    const voices = await elevenLabsService.getVoices()
+    const voices = await elevenLabsService.listVoices()
     
     return NextResponse.json({
       success: true,
@@ -24,3 +24,4 @@ export async function GET() {
     )
   }
 }
+

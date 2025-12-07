@@ -69,7 +69,8 @@ export async function POST(request: NextRequest) {
       codec: body.codec || 'h264',
       outputLocation: outputPath,
       inputProps: body.props,
-      quality: body.quality || 8,
+      // quality is deprecated in newer versions, using crf instead
+      ...(body.quality ? { crf: body.quality } : {}),
       onProgress: ({ progress }) => {
         console.log(`🎬 Render progress: ${Math.round(progress * 100)}%`);
       },

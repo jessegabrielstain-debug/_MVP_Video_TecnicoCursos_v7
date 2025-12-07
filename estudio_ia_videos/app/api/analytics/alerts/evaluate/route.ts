@@ -178,3 +178,4 @@ async function getHandler(req: NextRequest) {
 
 export const POST = withAnalytics(postHandler);
 export const GET = withAnalytics(getHandler);
+

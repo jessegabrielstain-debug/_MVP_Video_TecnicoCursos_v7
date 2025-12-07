@@ -1,8 +1,7 @@
-
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -39,7 +38,7 @@ import {
 } from 'lucide-react'
 import { SlideData, VideoConfig, DEFAULT_VIDEO_CONFIG } from '../../lib/ai-services'
 import { VideoProcessor, VideoScene } from '../../lib/video-processor'
-import { AvatarService } from '../../lib/avatar-service'
+import { AvatarService, AvatarDefinition } from '../../lib/avatar-service'
 import { TTSService } from '../../lib/tts-service'
 import { AdvancedVoiceLibrary } from '../../lib/voice-library-advanced'
 import { Analytics } from '../../lib/analytics'
@@ -53,6 +52,11 @@ interface AdvancedVideoEditorProps {
   onSave: (slides: SlideData[], config: VideoConfig) => void
   onPreview: (slides: SlideData[], config: VideoConfig) => void
   onExport: (slides: SlideData[], config: VideoConfig) => void
+}
+
+interface Voice {
+  id: string;
+  name: string;
 }
 
 interface RenderJobStatus {
@@ -110,7 +114,7 @@ export default function AdvancedVideoEditor({
         id: slide.id,
         type: 'slide' as const,
         content: slide.content,
-        duration: slide.duration * 1000,
+        duration: (slide.duration || 5) * 1000,
         position: 0
       }))
 
@@ -145,7 +149,7 @@ export default function AdvancedVideoEditor({
         id: slide.id,
         type: 'slide' as const,
         content: slide.content,
-        duration: slide.duration * 1000,
+        duration: (slide.duration || 5) * 1000,
         position: 0
       }))
 
@@ -199,7 +203,7 @@ export default function AdvancedVideoEditor({
   }, [])
 
   // Drag and Drop
-  const handleDragEnd = useCallback((result: any) => {
+  const handleDragEnd = useCallback((result: DropResult) => {
     if (!result.destination) return
 
     const items = Array.from(slides)
@@ -234,7 +238,7 @@ export default function AdvancedVideoEditor({
     ))
   }, [slides])
 
-  const totalDuration = slides.reduce((sum, slide) => sum + slide.duration, 0)
+  const totalDuration = slides.reduce((sum, slide) => sum + (slide.duration || 0), 0)
   const currentSlide = slides.find(slide => slide.id === selectedSlide)
 
   return (
@@ -474,11 +478,11 @@ export default function AdvancedVideoEditor({
                       <div className="flex items-center justify-center gap-3 text-sm text-blue-700">
                         <User className="w-4 h-4" />
                         <span>
-                          Avatar: {avatars.find((a: any) => a.id === selectedAvatar)?.name}
+                          Avatar: {avatars.find((a: AvatarDefinition) => a.id === selectedAvatar)?.name ?? 'Avatar padrão'}
                         </span>
                         <Volume2 className="w-4 h-4" />
                         <span>
-                          Voz: {voices.find((v: any) => v.id === selectedVoice)?.name}
+                          Voz: {voices.find((v: Voice) => v.id === selectedVoice)?.name ?? 'Voz padrão'}
                         </span>
                       </div>
                     </div>
@@ -569,7 +573,7 @@ export default function AdvancedVideoEditor({
                     Duração: {currentSlide.duration}s
                   </label>
                   <Slider
-                    value={[currentSlide.duration]}
+                    value={[currentSlide.duration || 5]}
                     onValueChange={([value]) => updateSlide(currentSlide.id, { duration: value })}
                     min={5}
                     max={60}
@@ -583,13 +587,13 @@ export default function AdvancedVideoEditor({
             
             {/* Avatar Selection */}
             <div>
-              <label className="text-sm font-medium mb-3 block flex items-center gap-2">
+              <label className="text-sm font-medium mb-3 flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Avatar Falante
               </label>
               
               <div className="space-y-2">
-                {avatars.map((avatar) => (
+                {avatars.map((avatar: AvatarDefinition) => (
                   <div
                     key={avatar.id}
                     className={`p-3 border rounded-lg cursor-pointer transition-all ${
@@ -608,9 +612,9 @@ export default function AdvancedVideoEditor({
                       </div>
                       <div className="flex-1">
                         <div className="font-medium text-sm">{avatar.name}</div>
-                        <div className="text-xs text-gray-500 mt-1">{avatar.description}</div>
+                        <div className="text-xs text-gray-500 mt-1">{avatar.description ?? 'Descrição não disponível'}</div>
                         <Badge variant="outline" className="mt-1 text-xs">
-                          {avatar.style}
+                          {avatar.style ?? 'custom'}
                         </Badge>
                       </div>
                     </div>

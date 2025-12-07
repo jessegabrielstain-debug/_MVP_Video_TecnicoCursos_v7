@@ -1,4 +1,4 @@
-
+// TODO: Fixar getAllAvatars -> getAvatar e tipos
 
 /**
  * 🎭 Avatar Integration Component - Hiper-Realista
@@ -29,7 +29,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { avatar3DHyperPipeline } from '@/lib/avatar-3d-pipeline';
+import { avatar3DPipeline } from '@/lib/avatar-3d-pipeline';
 
 interface AvatarIntegrationProps {
   onAvatarImported: (avatar: any) => void;
@@ -52,7 +52,7 @@ export default function AvatarIntegration({ onAvatarImported }: AvatarIntegratio
   useEffect(() => {
     // Carregar avatares hiper-realistas disponíveis
     const loadHyperAvatars = () => {
-      const avatars = avatar3DHyperPipeline.getAllAvatars();
+      const avatars = avatar3DPipeline.getAllAvatars();
       setHyperAvatars(avatars);
     };
     

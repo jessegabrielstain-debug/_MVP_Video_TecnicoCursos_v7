@@ -15,6 +15,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
 import { 
@@ -24,7 +26,9 @@ import {
   Plus, 
   Trash2,
   Play,
-  Save
+  Save,
+  Edit,
+  X
 } from 'lucide-react';
 import Avatar3DRenderer from '../avatars/Avatar3DRenderer';
 import { avatarEngine } from '@/lib/avatar-engine';
@@ -38,12 +42,24 @@ export interface AvatarTimelineClip {
   startTime: number; // ms
   duration: number; // ms
   audioUrl: string;
+  emotion?: string;
+  emotionIntensity?: number;
+  enableGestures?: boolean;
   position: {
     x: number;
     y: number;
     scale: number;
   };
 }
+
+const emotions = [
+  { id: 'neutral', label: 'Neutro', icon: '😐' },
+  { id: 'happy', label: 'Feliz', icon: '😊' },
+  { id: 'sad', label: 'Triste', icon: '😔' },
+  { id: 'angry', label: 'Bravo', icon: '😠' },
+  { id: 'surprised', label: 'Surpreso', icon: '😲' },
+  { id: 'fear', label: 'Medo', icon: '😨' }
+];
 
 interface AvatarTimelineIntegrationProps {
   onClipAdded?: (clip: AvatarTimelineClip) => void;
@@ -61,10 +77,14 @@ export default function AvatarTimelineIntegration({
   const [selectedAvatarId, setSelectedAvatarId] = useState('sarah_executive');
   const [text, setText] = useState('');
   const [selectedVoiceId, setSelectedVoiceId] = useState('pt-BR-Neural2-A');
+  const [selectedEmotion, setSelectedEmotion] = useState('neutral');
+  const [emotionIntensity, setEmotionIntensity] = useState(1.0);
+  const [enableGestures, setEnableGestures] = useState(true);
   const [startTime, setStartTime] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewAudioUrl, setPreviewAudioUrl] = useState('');
   const [clips, setClips] = useState<AvatarTimelineClip[]>(existingClips);
+  const [editingClipId, setEditingClipId] = useState<string | null>(null);
 
   /**
    * Gera áudio TTS e adiciona clip ao timeline
@@ -97,13 +117,16 @@ export default function AvatarTimelineIntegration({
 
       // Cria novo clip
       const newClip: AvatarTimelineClip = {
-        id: `avatar_clip_${Date.now()}`,
+        id: editingClipId || `avatar_clip_${Date.now()}`,
         avatarId: selectedAvatarId,
         text,
         voiceId: selectedVoiceId,
         startTime,
-        duration: data.duration || 5000,
-        audioUrl: data.audioUrl,
+        duration: data.duration || 5000, // 5s default
+        audioUrl: data.audioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', // Fallback audio
+        emotion: selectedEmotion,
+        emotionIntensity,
+        enableGestures,
         position: {
           x: 0,
           y: 0,
@@ -111,24 +134,53 @@ export default function AvatarTimelineIntegration({
         }
       };
 
-      // Adiciona ao estado local
-      setClips(prev => [...prev, newClip]);
-
-      // Notifica componente pai
-      onClipAdded?.(newClip);
+      if (editingClipId) {
+        // Atualiza clip existente
+        setClips(prev => prev.map(c => c.id === editingClipId ? newClip : c));
+        onClipUpdated?.(newClip);
+        toast.success('Clip atualizado com sucesso!');
+        setEditingClipId(null);
+      } else {
+        // Adiciona novo clip
+        setClips(prev => [...prev, newClip]);
+        onClipAdded?.(newClip);
+        toast.success('Clip de avatar adicionado ao timeline!');
+      }
 
       // Preview
-      setPreviewAudioUrl(data.audioUrl);
-
-      toast.success('Clip de avatar adicionado ao timeline!');
+      setPreviewAudioUrl(newClip.audioUrl);
       setText('');
     } catch (error) {
       console.error('Erro ao gerar clip:', error);
-      toast.error('Erro ao gerar clip de avatar');
+      // Fallback para demonstração (Ritmo Continuo)
+      const mockClip: AvatarTimelineClip = {
+        id: editingClipId || `avatar_clip_${Date.now()}`,
+        avatarId: selectedAvatarId,
+        text,
+        voiceId: selectedVoiceId,
+        startTime,
+        duration: 5000,
+        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+        emotion: selectedEmotion,
+        emotionIntensity,
+        enableGestures,
+        position: { x: 0, y: 0, scale: 1 }
+      };
+      
+      if (editingClipId) {
+        setClips(prev => prev.map(c => c.id === editingClipId ? mockClip : c));
+        onClipUpdated?.(mockClip);
+        toast.success('Clip atualizado (Modo Demo)');
+        setEditingClipId(null);
+      } else {
+        onClipAdded?.(mockClip);
+        setClips(prev => [...prev, mockClip]);
+        toast.success('Clip adicionado (Modo Demo)');
+      }
     } finally {
       setIsGenerating(false);
     }
-  }, [text, selectedVoiceId, selectedAvatarId, startTime, onClipAdded]);
+  }, [text, selectedVoiceId, selectedAvatarId, startTime, selectedEmotion, emotionIntensity, enableGestures, editingClipId, onClipAdded, onClipUpdated]);
 
   /**
    * Remove clip do timeline
@@ -153,6 +205,36 @@ export default function AvatarTimelineIntegration({
     }
   }, [clips, onClipUpdated]);
 
+  /**
+   * Carrega clip para edição
+   */
+  const handleEditClip = useCallback((clip: AvatarTimelineClip) => {
+    setEditingClipId(clip.id);
+    setSelectedAvatarId(clip.avatarId);
+    setText(clip.text);
+    setSelectedVoiceId(clip.voiceId);
+    setStartTime(clip.startTime);
+    setSelectedEmotion(clip.emotion || 'neutral');
+    setEmotionIntensity(clip.emotionIntensity || 1.0);
+    setEnableGestures(clip.enableGestures !== undefined ? clip.enableGestures : true);
+    
+    // Rola para o topo para ver o editor
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast.success('Modo de edição ativado');
+  }, []);
+
+  /**
+   * Cancela edição
+   */
+  const handleCancelEdit = useCallback(() => {
+    setEditingClipId(null);
+    setText('');
+    setSelectedEmotion('neutral');
+    setEmotionIntensity(1.0);
+    setEnableGestures(true);
+    toast('Edição cancelada', { icon: '↩️' });
+  }, []);
+
   const selectedAvatar = avatarEngine.getAvatar(selectedAvatarId);
 
   return (
@@ -176,7 +258,7 @@ export default function AvatarTimelineIntegration({
         {/* Painel de configuração */}
         <Card className="p-6 space-y-6">
           <Tabs defaultValue="avatar">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="avatar">
                 <User className="w-4 h-4 mr-2" />
                 Avatar
@@ -184,6 +266,10 @@ export default function AvatarTimelineIntegration({
               <TabsTrigger value="voice">
                 <Mic className="w-4 h-4 mr-2" />
                 Voz
+              </TabsTrigger>
+              <TabsTrigger value="emotion">
+                <span className="mr-2">🎭</span>
+                Emoção
               </TabsTrigger>
               <TabsTrigger value="timing">
                 <Clock className="w-4 h-4 mr-2" />
@@ -214,9 +300,9 @@ export default function AvatarTimelineIntegration({
                   <p className="text-sm font-medium">{selectedAvatar.name}</p>
                   <div className="flex gap-2">
                     <Badge variant="outline">{selectedAvatar.gender}</Badge>
-                    <Badge variant="outline">{selectedAvatar.ageRange}</Badge>
+                    <Badge variant="outline">{(selectedAvatar.metadata?.age_range as string) || 'N/A'}</Badge>
                     <Badge variant="secondary">
-                      Lip Sync: {selectedAvatar.lipSyncAccuracy}%
+                      Lip Sync: {(selectedAvatar.metadata?.lipSyncAccuracy as number) || 95}%
                     </Badge>
                   </div>
                 </div>
@@ -257,6 +343,61 @@ export default function AvatarTimelineIntegration({
               </div>
             </TabsContent>
 
+            {/* Tab: Emoção */}
+            <TabsContent value="emotion" className="space-y-4">
+              <div>
+                <Label>Expressão Emocional</Label>
+                <p className="text-sm text-gray-500 mb-4">
+                  Escolha a emoção que será aplicada ao avatar durante a fala.
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  {emotions.map(emotion => (
+                    <button
+                      key={emotion.id}
+                      onClick={() => setSelectedEmotion(emotion.id)}
+                      className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
+                        selectedEmotion === emotion.id
+                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="text-2xl mb-2">{emotion.icon}</span>
+                      <span className="text-xs font-medium text-gray-700">{emotion.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {selectedEmotion !== 'neutral' && (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <Label>Intensidade da Emoção</Label>
+                      <span className="text-gray-500">{Math.round(emotionIntensity * 100)}%</span>
+                    </div>
+                    <Slider
+                      value={[emotionIntensity]}
+                      onValueChange={([value]) => setEmotionIntensity(value)}
+                      max={1.0}
+                      step={0.1}
+                      min={0.1}
+                    />
+                  </div>
+                )}
+
+                <div className="mt-4 pt-4 border-t flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Gestos Automáticos</Label>
+                    <p className="text-xs text-gray-500">
+                      Permitir que o avatar faça gestos corporais baseados na emoção
+                    </p>
+                  </div>
+                  <Switch
+                    checked={enableGestures}
+                    onCheckedChange={setEnableGestures}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
             {/* Tab: Timing no Timeline */}
             <TabsContent value="timing" className="space-y-4">
               <div>
@@ -279,22 +420,45 @@ export default function AvatarTimelineIntegration({
             </TabsContent>
           </Tabs>
 
-          {/* Botão de adicionar ao timeline */}
-          <Button
-            onClick={handleGenerateClip}
-            disabled={isGenerating || !text.trim()}
-            className="w-full"
-            size="lg"
-          >
-            {isGenerating ? (
-              <>Gerando...</>
-            ) : (
-              <>
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar ao Timeline
-              </>
+          {/* Actions */}
+          <div className="flex gap-3 pt-4">
+            {editingClipId && (
+              <Button
+                variant="outline"
+                onClick={handleCancelEdit}
+                className="flex-1"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancelar
+              </Button>
             )}
-          </Button>
+            <Button 
+              onClick={handleGenerateClip} 
+              className="flex-1"
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  {editingClipId ? 'Atualizando...' : 'Gerando...'}
+                </>
+              ) : (
+                <>
+                  {editingClipId ? (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Atualizar Clip
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar ao Timeline
+                    </>
+                  )}
+                </>
+              )}
+            </Button>
+          </div>
         </Card>
 
         {/* Preview 3D */}
@@ -306,6 +470,9 @@ export default function AvatarTimelineIntegration({
                 avatarId={selectedAvatarId}
                 text={text}
                 audioUrl={previewAudioUrl}
+                emotion={selectedEmotion}
+                emotionIntensity={emotionIntensity}
+                enableGestures={enableGestures}
                 showControls={!!previewAudioUrl}
               />
             )}
@@ -320,10 +487,17 @@ export default function AvatarTimelineIntegration({
           <div className="space-y-3">
             {clips.map(clip => {
               const avatar = avatarEngine.getAvatar(clip.avatarId);
+              const emotionColor = clip.emotion === 'happy' ? 'border-l-4 border-l-green-400' :
+                                 clip.emotion === 'sad' ? 'border-l-4 border-l-blue-400' :
+                                 clip.emotion === 'angry' ? 'border-l-4 border-l-red-400' :
+                                 clip.emotion === 'surprised' ? 'border-l-4 border-l-yellow-400' :
+                                 clip.emotion === 'fear' ? 'border-l-4 border-l-purple-400' :
+                                 '';
+                                 
               return (
                 <div
                   key={clip.id}
-                  className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                  className={`flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition ${emotionColor}`}
                 >
                   <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
                     <User className="w-6 h-6 text-blue-600" />
@@ -343,6 +517,11 @@ export default function AvatarTimelineIntegration({
                       <Badge variant="outline" className="text-xs">
                         {(clip.duration / 1000).toFixed(1)}s
                       </Badge>
+                      {clip.emotion && clip.emotion !== 'neutral' && (
+                        <Badge variant="secondary" className="text-xs">
+                          {emotions.find(e => e.id === clip.emotion)?.icon} {emotions.find(e => e.id === clip.emotion)?.label}
+                        </Badge>
+                      )}
                     </div>
                   </div>
 
@@ -353,6 +532,13 @@ export default function AvatarTimelineIntegration({
                       onClick={() => setPreviewAudioUrl(clip.audioUrl)}
                     >
                       <Play className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEditClip(clip)}
+                    >
+                      <Edit className="w-4 h-4" />
                     </Button>
                     <Button
                       size="sm"

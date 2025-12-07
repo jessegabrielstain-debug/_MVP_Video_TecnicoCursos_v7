@@ -417,7 +417,7 @@ export class EnhancedPPTXProcessor {
     return slide;
   }
 
-  private async processShape(shape: any, slide: SlideData, shapeIndex: number): Promise<void> {
+  private async processShape(shape: Record<string, any>, slide: SlideData, shapeIndex: number): Promise<void> {
     // Process text content
     if (shape['p:txBody'] && shape['p:txBody']['a:p']) {
       const paragraphs = Array.isArray(shape['p:txBody']['a:p']) 
@@ -427,7 +427,7 @@ export class EnhancedPPTXProcessor {
       for (const paragraph of paragraphs) {
         if (paragraph['a:r'] && paragraph['a:r']['a:t']) {
           const textContent = paragraph['a:r']['a:t'];
-          if (textContent && textContent.trim()) {
+          if (textContent && typeof textContent === 'string' && textContent.trim()) {
             slide.textElements.push({
               id: `text-${slide.order}-${shapeIndex}`,
               content: textContent.trim(),
@@ -460,7 +460,7 @@ export class EnhancedPPTXProcessor {
     }
   }
 
-  private processBackground(bgData: any, slide: SlideData): void {
+  private processBackground(bgData: Record<string, any>, slide: SlideData): void {
     // Process background properties
     if (bgData['p:bgPr']) {
       const bgPr = bgData['p:bgPr'];

@@ -1,6 +1,6 @@
 'use client'
 
-import { createBrowserSupabaseClient } from '@/lib/services'
+import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 
 export default function SupabaseTestPage() {

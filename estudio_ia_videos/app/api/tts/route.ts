@@ -1,3 +1,4 @@
+// TODO: Fix TTSService constructor signature
 import { NextResponse } from 'next/server';
 import { TTSService } from '@/lib/tts/tts-service';
 import { z } from 'zod';
@@ -18,26 +19,15 @@ export async function POST(request: Request) {
 
     const { text, slideId } = validation.data;
 
-    const ttsService = new TTSService();
-    const ttsResponse = await ttsService.generate({ text });
+    const ttsResponse = await TTSService.synthesize({ text });
 
-    if (ttsResponse.error || !ttsResponse.audioUrl) {
-      return NextResponse.json({ error: ttsResponse.error || 'TTS generation failed.' }, { status: 500 });
+    if (!ttsResponse.fileUrl) {
+      return NextResponse.json({ error: 'TTS generation failed.' }, { status: 500 });
     }
-
-    // Here you would typically update the slide in the database with the audioUrl
-    // For now, we just return the successful response.
-    // Example:
-    // const { error: updateError } = await supabase
-    //   .from('slides')
-    //   .update({ audio_url: ttsResponse.audioUrl, tts_status: 'completed' })
-    //   .eq('id', slideId);
-    //
-    // if (updateError) { ... }
 
     return NextResponse.json({
       slideId: slideId,
-      audioUrl: ttsResponse.audioUrl,
+      audioUrl: ttsResponse.fileUrl,
       duration: ttsResponse.duration,
     });
   } catch (error) {

@@ -33,9 +33,35 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+interface SystemHealth {
+  cluster: {
+    uptime: number;
+    cpuUsage: number;
+    requests: number;
+    latency: number;
+  };
+  ml: {
+    modelsDeployed: number;
+    accuracy: number;
+  };
+  services: {
+    healthy: number;
+    total: number;
+  };
+}
+
+interface RealtimeMetrics {
+  ml: any[];
+  security: {
+    overview: {
+      activeSessions: number;
+    };
+  };
+}
+
 export default function Sprint9Overview() {
-  const [systemHealth, setSystemHealth] = useState<unknown>(null);
-  const [realtimeMetrics, setRealtimeMetrics] = useState<unknown>(null);
+  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
+  const [realtimeMetrics, setRealtimeMetrics] = useState<RealtimeMetrics | null>(null);
 
   const getBadgeVariant = (color: string) => {
     const variants = {

@@ -1,4 +1,3 @@
-
 /**
  * 📁 Animaker PPTX Uploader
  * Upload especializado para parser Animaker com preview em tempo real
@@ -292,10 +291,10 @@ export function AnimakerPPTXUploader({ onProjectCreated, onCancel }: AnimakerPPT
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900">
-                      {uploadState.project.title}
+                      {uploadState.project.metadata.title}
                     </h3>
                     <p className="text-gray-600 mt-1">
-                      {uploadState.project.description}
+                      Projeto importado em {new Date(uploadState.project.metadata.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <Badge className="bg-purple-100 text-purple-700">

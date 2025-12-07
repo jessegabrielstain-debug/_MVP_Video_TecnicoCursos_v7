@@ -1,6 +1,38 @@
+// TODO: Add timeline_elements and timeline_tracks tables to Supabase types
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+
+// Type interfaces for Supabase query results
+interface ProjectPermissions {
+  owner_id: string;
+  collaborators?: string[];
+  is_public?: boolean;
+}
+
+interface TrackWithProject {
+  id: string;
+  name?: string;
+  locked?: boolean;
+  project_id?: string;
+  project: ProjectPermissions;
+}
+
+interface TimelineElement {
+  id: string;
+  track_id: string;
+  project_id?: string;
+  start_time: number;
+  duration: number;
+  type?: string;
+  content?: string;
+  source_url?: string;
+  properties?: Record<string, unknown>;
+  effects?: Record<string, unknown>[];
+  transitions?: Record<string, unknown>;
+  locked?: boolean;
+  track?: TrackWithProject;
+}
 
 // Schema de validação para criação de elemento
 const createElementSchema = z.object({
@@ -21,15 +53,15 @@ const createElementSchema = z.object({
     rotation: z.number().optional(),
     scale: z.number().min(0.1).max(10).optional()
   }).optional(),
-  effects: z.array(z.record(z.any())).optional(),
-  transitions: z.record(z.any()).optional(),
+  effects: z.array(z.record(z.unknown())).optional(),
+  transitions: z.record(z.unknown()).optional(),
   thumbnail_url: z.string().url().optional(),
   file_size: z.number().int().min(0).optional(),
   mime_type: z.string().optional()
 })
 
 // Schema de validação para atualização de elemento
-const updateElementSchema = createElementSchema.partial().omit(['track_id', 'project_id'])
+const updateElementSchema = createElementSchema.omit({ track_id: true, project_id: true }).partial()
 
 // Schema de validação para mover elemento
 const moveElementSchema = z.object({
@@ -41,7 +73,7 @@ const moveElementSchema = z.object({
 // GET - Listar elementos de uma track ou projeto
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -68,30 +100,32 @@ export async function GET(request: NextRequest) {
     // Verificar permissões
     let hasPermission = false
     if (projectId) {
-      const { data: project } = await supabase
+      const { data: projectData } = await (supabase
         .from('projects')
-        .select('owner_id, collaborators, is_public')
+        .select('owner_id, collaborators, is_public') as any)
         .eq('id', projectId)
         .single()
 
+      const project = projectData as unknown as ProjectPermissions | null;
       if (project) {
         hasPermission = project.owner_id === user.id || 
-                       project.collaborators?.includes(user.id) ||
-                       project.is_public
+                       (Array.isArray(project.collaborators) && (project.collaborators as string[]).includes(user.id)) ||
+                       !!project.is_public
       }
     } else if (trackId) {
-      const { data: track } = await supabase
+      const { data: trackData } = await (supabase
         .from('timeline_tracks')
         .select(`
           project:projects(owner_id, collaborators, is_public)
-        `)
+        `) as any)
         .eq('id', trackId)
         .single()
 
+      const track = trackData as unknown as { project: ProjectPermissions } | null;
       if (track?.project) {
         hasPermission = track.project.owner_id === user.id || 
-                       track.project.collaborators?.includes(user.id) ||
-                       track.project.is_public
+                       (Array.isArray(track.project.collaborators) && (track.project.collaborators as string[]).includes(user.id)) ||
+                       !!track.project.is_public
       }
     }
 
@@ -103,9 +137,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Construir query
-    let query = supabase
+    let query = (supabase
       .from('timeline_elements')
-      .select('*')
+      .select('*') as any)
       .order('start_time', { ascending: true })
 
     if (trackId) {
@@ -148,7 +182,7 @@ export async function GET(request: NextRequest) {
 // POST - Criar novo elemento
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -162,22 +196,24 @@ export async function POST(request: NextRequest) {
     const validatedData = createElementSchema.parse(body)
 
     // Verificar se a track existe e obter dados do projeto
-    const { data: track } = await supabase
+    const { data: trackData } = await (supabase
       .from('timeline_tracks')
       .select(`
         *,
         project:projects(owner_id, collaborators)
-      `)
+      `) as any)
       .eq('id', validatedData.track_id)
       .single()
 
-    if (!track) {
+    if (!trackData) {
       return NextResponse.json(
         { error: 'Track não encontrada' },
         { status: 404 }
       )
     }
 
+    const track = trackData as unknown as TrackWithProject & { project_id: string; locked?: boolean };
+    
     // Verificar se o project_id corresponde
     if (track.project_id !== validatedData.project_id) {
       return NextResponse.json(
@@ -189,7 +225,7 @@ export async function POST(request: NextRequest) {
     // Verificar permissões
     const project = track.project
     const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+                         (Array.isArray(project.collaborators) && (project.collaborators as string[]).includes(user.id))
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -220,9 +256,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar sobreposição de elementos (opcional - pode ser configurável)
-    const { data: overlappingElements } = await supabase
+    const { data: overlappingElements } = await (supabase
       .from('timeline_elements')
-      .select('id, start_time, duration')
+      .select('id, start_time, duration') as any)
       .eq('track_id', validatedData.track_id)
       .or(`and(start_time.lte.${validatedData.start_time},end_time.gt.${validatedData.start_time}),and(start_time.lt.${validatedData.start_time + validatedData.duration},end_time.gte.${validatedData.start_time + validatedData.duration})`)
 
@@ -237,14 +273,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar elemento
-    const { data: element, error } = await supabase
+    const { data: elementData, error } = await (supabase
       .from('timeline_elements')
       .insert({
         ...validatedData,
         properties: defaultProperties,
         effects: validatedData.effects || [],
         transitions: validatedData.transitions || {}
-      })
+      }) as any)
       .select()
       .single()
 
@@ -256,8 +292,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const element = elementData as unknown as TimelineElement;
+    
     // Registrar no histórico
-    await supabase
+    await (supabase
       .from('project_history')
       .insert({
         project_id: validatedData.project_id,
@@ -265,11 +303,11 @@ export async function POST(request: NextRequest) {
         action: 'create',
         entity_type: 'element',
         entity_id: element.id,
-        description: `Elemento ${element.type} adicionado à timeline`,
+        description: `Elemento ${element.type || 'desconhecido'} adicionado à timeline`,
         changes: {
           created_element: element
-        }
-      })
+        } as any
+      }) as any)
 
     return NextResponse.json(element, { status: 201 })
 
@@ -292,7 +330,7 @@ export async function POST(request: NextRequest) {
 // PUT - Mover elemento para outra track ou posição
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -316,7 +354,7 @@ export async function PUT(request: NextRequest) {
     const validatedData = moveElementSchema.parse(body)
 
     // Verificar se o elemento existe
-    const { data: existingElement } = await supabase
+    const { data: existingElementData } = await (supabase
       .from('timeline_elements')
       .select(`
         *,
@@ -324,21 +362,23 @@ export async function PUT(request: NextRequest) {
           *,
           project:projects(owner_id, collaborators)
         )
-      `)
+      `) as any)
       .eq('id', elementId)
       .single()
 
-    if (!existingElement) {
+    if (!existingElementData) {
       return NextResponse.json(
         { error: 'Elemento não encontrado' },
         { status: 404 }
       )
     }
 
+    const existingElement = existingElementData as unknown as TimelineElement;
+    
     // Verificar permissões
-    const project = existingElement.track.project
+    const project = existingElement.track!.project
     const hasPermission = project.owner_id === user.id || 
-                         project.collaborators?.includes(user.id)
+                         (Array.isArray(project.collaborators) && (project.collaborators as string[]).includes(user.id))
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -349,20 +389,23 @@ export async function PUT(request: NextRequest) {
 
     // Se mudando de track, verificar se a nova track existe e pertence ao mesmo projeto
     if (validatedData.track_id && validatedData.track_id !== existingElement.track_id) {
-      const { data: newTrack } = await supabase
+      const { data: newTrackData } = await (supabase
         .from('timeline_tracks')
-        .select('project_id, locked')
+        .select('project_id, locked') as any)
         .eq('id', validatedData.track_id)
         .single()
 
-      if (!newTrack) {
+      if (!newTrackData) {
         return NextResponse.json(
           { error: 'Track de destino não encontrada' },
           { status: 404 }
         )
       }
 
-      if (newTrack.project_id !== existingElement.project_id) {
+      const newTrack = newTrackData as unknown as { project_id: string; locked?: boolean };
+      const currentProjectId = existingElement.track?.project_id;
+      
+      if (newTrack.project_id !== currentProjectId) {
         return NextResponse.json(
           { error: 'Track de destino deve pertencer ao mesmo projeto' },
           { status: 400 }
@@ -378,14 +421,14 @@ export async function PUT(request: NextRequest) {
     }
 
     // Atualizar elemento
-    const updateData: any = {}
+    const updateData: Record<string, unknown> = {}
     if (validatedData.track_id) updateData.track_id = validatedData.track_id
     if (validatedData.start_time !== undefined) updateData.start_time = validatedData.start_time
     if (validatedData.duration !== undefined) updateData.duration = validatedData.duration
 
-    const { data: element, error } = await supabase
+    const { data: element, error } = await (supabase
       .from('timeline_elements')
-      .update(updateData)
+      .update(updateData) as any)
       .eq('id', elementId)
       .select()
       .single()
@@ -398,25 +441,29 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Registrar no histórico
-    await supabase
-      .from('project_history')
-      .insert({
-        project_id: existingElement.project_id,
-        user_id: user.id,
-        action: 'update',
-        entity_type: 'element',
-        entity_id: elementId,
-        description: 'Elemento movido na timeline',
-        changes: {
-          previous_data: {
-            track_id: existingElement.track_id,
-            start_time: existingElement.start_time,
-            duration: existingElement.duration
-          },
-          new_data: updateData
-        }
-      })
+    const currentProjectId = existingElement.project_id || existingElement.track?.project_id;
+    
+    if (currentProjectId) {
+      // Registrar no histórico
+      await (supabase
+        .from('project_history')
+        .insert({
+          project_id: currentProjectId,
+          user_id: user.id,
+          action: 'update',
+          entity_type: 'element',
+          entity_id: elementId,
+          description: 'Elemento movido na timeline',
+          changes: {
+            previous_data: {
+              track_id: existingElement.track_id,
+              start_time: existingElement.start_time,
+              duration: existingElement.duration
+            },
+            new_data: updateData
+          } as any
+        }) as any)
+    }
 
     return NextResponse.json(element)
 

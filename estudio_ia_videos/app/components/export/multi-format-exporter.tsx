@@ -193,8 +193,8 @@ export function MultiFormatExporter({
   videoData, 
   onExportComplete 
 }: { 
-  videoData?: any
-  onExportComplete?: (result: any) => void 
+  videoData?: Record<string, unknown>
+  onExportComplete?: (result: ExportJob[]) => void 
 }) {
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>(exportFormats[0])
   const [exportOptions, setExportOptions] = useState<ExportOptions>({

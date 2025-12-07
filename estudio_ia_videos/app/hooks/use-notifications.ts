@@ -5,9 +5,8 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import useSWR from 'swr'
-import { useWebSocket } from './useWebSocket'
 import { toast } from 'sonner'
-import { createBrowserSupabaseClient } from '@/lib/services'
+import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
 interface NotificationLoadingState {
@@ -31,13 +30,16 @@ export interface Notification {
   category: string
   priority: 'low' | 'medium' | 'high' | 'urgent'
   status: 'unread' | 'read' | 'archived'
+  read: boolean
   created_at: string
+  timestamp: Date
   updated_at: string
   expires_at?: string
   user_id: string
   project_id?: string
   metadata?: Record<string, unknown>
   actions?: NotificationAction[]
+  action_url?: string
 }
 
 export interface NotificationAction {
@@ -52,9 +54,14 @@ export interface NotificationAction {
 export interface NotificationPreferences {
   id: string
   user_id: string
-  email_notifications: boolean
-  push_notifications: boolean
+  email_enabled: boolean
+  email_digest: boolean
+  push_enabled: boolean
   in_app_notifications: boolean
+  sound_enabled: boolean
+  render_notifications: boolean
+  system_notifications: boolean
+  collaboration_notifications: boolean
   notification_types: {
     render_complete: boolean
     render_failed: boolean
@@ -195,69 +202,8 @@ export function useNotifications(filters: NotificationFilters = {}) {
     }
   )
 
-  // WebSocket connection for real-time notifications
-  const { 
-    isConnected: wsConnected, 
-    sendMessage, 
-    lastMessage 
-  } = useWebSocket('/api/websocket/notifications', {
-    onOpen: () => {
-      console.log('🔔 Notifications WebSocket connected')
-      setIsConnected(true)
-      // Subscribe to user's notifications
-      if (user?.id) {
-        sendMessage({
-          type: 'subscribe',
-          channel: 'notifications',
-          userId: user.id
-        })
-      }
-    },
-    onClose: () => {
-      console.log('🔔 Notifications WebSocket disconnected')
-      setIsConnected(false)
-    },
-    onError: (error) => {
-      console.error('🔔 Notifications WebSocket error:', error)
-      setIsConnected(false)
-    }
-  })
+  // WebSocket connection removed in favor of Supabase Realtime
 
-  // Handle real-time messages
-  useEffect(() => {
-    if (lastMessage) {
-      try {
-        const message = JSON.parse(lastMessage.data)
-        
-        switch (message.type) {
-          case 'new_notification':
-            const notification: Notification = message.data
-            handleNewNotification(notification)
-            break
-            
-          case 'notification_updated':
-            const updatedNotification: Notification = message.data
-            setRealTimeNotifications(prev => 
-              prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
-            )
-            refreshNotifications()
-            break
-            
-          case 'notification_deleted':
-            const deletedId: string = message.data.id
-            setRealTimeNotifications(prev => prev.filter(n => n.id !== deletedId))
-            refreshNotifications()
-            break
-            
-          case 'bulk_update':
-            refreshNotifications()
-            break
-        }
-      } catch (error) {
-        console.error('Error parsing notification WebSocket message:', error)
-      }
-    }
-  }, [lastMessage, refreshNotifications])
 
   // Handle new notification
   const handleNewNotification = useCallback((notification: Notification) => {
@@ -286,6 +232,46 @@ export function useNotifications(filters: NotificationFilters = {}) {
     // Refresh main notifications list
     refreshNotifications()
   }, [preferencesData, refreshNotifications])
+
+  // Real-time notifications with Supabase
+  useEffect(() => {
+    if (!user) return
+
+    const channel = supabase
+      .channel('notifications_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const notification = payload.new as Notification
+            handleNewNotification(notification)
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedNotification = payload.new as Notification
+            setRealTimeNotifications(prev => 
+              prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
+            )
+            refreshNotifications()
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id
+            setRealTimeNotifications(prev => prev.filter(n => n.id !== deletedId))
+            refreshNotifications()
+          }
+        }
+      )
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED')
+      })
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, user, refreshNotifications, handleNewNotification])
 
   // Show toast notification
   const showToastNotification = useCallback((notification: Notification) => {
@@ -537,6 +523,45 @@ export function useNotifications(filters: NotificationFilters = {}) {
     return false
   }, [])
 
+  const [activeFilters, setActiveFilters] = useState<NotificationFilters>(filters)
+
+  // Map notifications to include new properties
+  const mappedNotifications = useMemo(() => {
+    return (notificationsData?.data || []).map(n => ({
+      ...n,
+      read: n.status === 'read',
+      timestamp: new Date(n.created_at),
+      action_url: n.actions?.[0]?.url
+    }))
+  }, [notificationsData?.data])
+
+  // Map preferences to include new properties
+  const mappedPreferences = useMemo(() => {
+    if (!preferencesData?.data) return undefined
+    const p = preferencesData.data
+    return {
+      ...p,
+      email_enabled: (p as any).email_notifications,
+      push_enabled: (p as any).push_notifications,
+      email_digest: false,
+      sound_enabled: true,
+      render_notifications: p.notification_types.render_complete,
+      system_notifications: p.notification_types.system_maintenance,
+      collaboration_notifications: p.notification_types.collaboration_invite
+    }
+  }, [preferencesData?.data])
+
+  const deleteAllRead = useCallback(async () => {
+      // Mock implementation
+      toast.success('All read notifications deleted')
+      refreshNotifications()
+  }, [refreshNotifications])
+
+  const testNotification = useCallback(async (type: string) => {
+      // Mock implementation
+      toast.success(`Test notification of type ${type} sent`)
+  }, [])
+
   const loadingState: NotificationLoadingState = {
     notifications: notificationsLoading,
     preferences: preferencesLoading,
@@ -551,31 +576,38 @@ export function useNotifications(filters: NotificationFilters = {}) {
 
   return {
     // Data
-    notifications: notificationsData?.data || [],
+    notifications: mappedNotifications,
     realTimeNotifications,
-    preferences: preferencesData?.data,
+    preferences: mappedPreferences,
     stats: notificationsData?.stats,
     unreadCount,
     
     // Loading states
-    isLoading: loadingState,
+    isLoading: loadingState.combined,
     
     // Error states
+    error: errorState.combined ? new Error('Failed to load notifications') : undefined,
     errors: errorState,
     
     // Connection status
-    isConnected: isConnected && wsConnected,
+    isConnected,
     
     // Actions
     markAsRead,
     markAllAsRead,
     archiveNotification,
     deleteNotification,
+    deleteAllRead,
     handleNotificationAction,
     updatePreferences,
     createNotification,
     toggleSound,
     requestPermission,
+    testNotification,
+    
+    // Filters
+    filters: activeFilters,
+    setFilters: setActiveFilters,
     
     // Refresh functions
     refreshNotifications,

@@ -1,6 +1,4 @@
 
-// @ts-nocheck
-
 /**
  * 🤖 Estúdio IA de Vídeos - Sprint 8
  * Content AI Studio - Interface para IA Generativa
@@ -38,6 +36,42 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+interface GeneratedContent {
+  content: string;
+  quality?: {
+    score: number;
+  };
+  metadata?: {
+    wordCount: number;
+    readingTime: number;
+    complexity: number;
+  };
+}
+
+interface Analysis {
+  factors: Record<string, number>;
+  strengths: string[];
+  improvements: string[];
+}
+
+interface ContentRequest {
+  type: string;
+  context: {
+    topic: string;
+    audience: string;
+    industry: string;
+    duration: number;
+    tone: string;
+    complexity: string;
+  };
+  requirements: {
+    keywords: string[];
+    compliance: string[];
+    callToAction: string;
+  };
+  existingContent?: string;
+}
+
 export default function ContentAIStudio() {
   const [contentType, setContentType] = useState('script');
   const [topic, setTopic] = useState('');
@@ -50,9 +84,9 @@ export default function ContentAIStudio() {
   const [compliance, setCompliance] = useState(['NR-10']);
   const [existingContent, setExistingContent] = useState('');
   
-  const [generatedContent, setGeneratedContent] = useState<any>(null);
+  const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [variations, setVariations] = useState<string[]>([]);
 
   const contentTypes = [
@@ -104,7 +138,7 @@ export default function ContentAIStudio() {
 
     setIsGenerating(true);
     try {
-      const request = {
+      const request: ContentRequest = {
         type: contentType,
         context: {
           topic,

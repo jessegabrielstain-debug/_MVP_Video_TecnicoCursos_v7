@@ -50,20 +50,20 @@ export default function ProductionProvider({
             this.url = targetUrl;
           }
 
-          get CONNECTING(): number {
-            return WebSocket.CONNECTING;
+          get CONNECTING(): 0 {
+            return WebSocket.CONNECTING as 0;
           }
 
-          get OPEN(): number {
-            return WebSocket.OPEN;
+          get OPEN(): 1 {
+            return WebSocket.OPEN as 1;
           }
 
-          get CLOSING(): number {
-            return WebSocket.CLOSING;
+          get CLOSING(): 2 {
+            return WebSocket.CLOSING as 2;
           }
 
-          get CLOSED(): number {
-            return WebSocket.CLOSED;
+          get CLOSED(): 3 {
+            return WebSocket.CLOSED as 3;
           }
 
           close(_code?: number, _reason?: string): void {
@@ -108,7 +108,7 @@ export default function ProductionProvider({
             
             super(url, protocols);
           }
-        };
+        } as any;
       }
     }
 

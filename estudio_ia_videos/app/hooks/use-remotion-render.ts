@@ -146,8 +146,8 @@ export function useTimelineRender() {
     const props: VideoCompositionProps = {
       project,
       config: {
-        width: project.width,
-        height: project.height,
+        width: project.resolution.width,
+        height: project.resolution.height,
         fps: project.fps,
         durationInFrames: Math.round((project.duration / 1000) * project.fps),
         composition: compositionId,
@@ -182,8 +182,8 @@ export function usePPTXRender() {
     const props: VideoCompositionProps = {
       project,
       config: {
-        width: project.width,
-        height: project.height,
+        width: project.resolution.width,
+        height: project.resolution.height,
         fps: project.fps,
         durationInFrames: Math.round((project.duration / 1000) * project.fps),
         composition: 'PPTXVideoComposition',

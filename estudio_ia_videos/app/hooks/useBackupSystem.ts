@@ -214,7 +214,7 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
-  const { broadcastUpdate } = useRealTimeCollaboration();
+  const { broadcastUpdate } = useRealTimeCollaboration(projectId);
   const autoBackupInterval = useRef<NodeJS.Timeout | null>(null);
   const restorePointInterval = useRef<NodeJS.Timeout | null>(null);
   const eventCallbacks = useRef<{
@@ -558,6 +558,10 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
       // Carregar dados da versão
       const versionData = await loadVersionData(versionId);
       
+      if (!versionData) {
+        throw new Error('Dados da versão não encontrados');
+      }
+
       // Criar backup do estado atual antes de restaurar
       await createBackup('manual', `Backup antes de restaurar para ${version.version}`);
       

@@ -1,6 +1,4 @@
 
-// @ts-nocheck
-
 /**
  * ☁️ Estúdio IA de Vídeos - Sprint 9
  * Cloud Native Control Center
@@ -47,13 +45,94 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+interface ClusterNode {
+  name: string;
+  status: string;
+  cpu: string;
+  memory: string;
+  pods: string;
+}
+
+interface ClusterStatus {
+  nodes: ClusterNode[];
+  overall: {
+    health: string;
+    version: string;
+    uptime: string;
+  };
+}
+
+interface ServiceMetrics {
+  cpu: number;
+  memory: number;
+  requests: number;
+  latency: number;
+}
+
+interface Service {
+  id: string;
+  name: string;
+  status: string;
+  instances: number;
+  version: string;
+  endpoint: string;
+  metrics: ServiceMetrics;
+}
+
+interface Deployment {
+  name: string;
+  namespace: string;
+  replicas: {
+    desired: number;
+    ready: number;
+    available: number;
+  };
+  status: string;
+  age: string;
+  image: string;
+}
+
+interface ClusterMetrics {
+  cpuUsage: number;
+  memoryUsage: number;
+  storageUsage: number;
+  networkIO: {
+    inbound: string;
+    outbound: string;
+  };
+  requests: number;
+  errors: number;
+  latency: number;
+}
+
+interface AutoscalingMetrics {
+  events: number;
+  lastScale: Date;
+  predictions: {
+    nextScaleEvent: Date;
+    reason: string;
+  };
+}
+
+interface Metrics {
+  cluster: ClusterMetrics;
+  autoscaling: AutoscalingMetrics;
+}
+
+interface Log {
+  timestamp: Date;
+  level: string;
+  service: string;
+  message: string;
+}
+
 export default function CloudNativeControl() {
-  const [clusterStatus, setClusterStatus] = useState(null);
-  const [services, setServices] = useState([]);
-  const [deployments, setDeployments] = useState([]);
-  const [metrics, setMetrics] = useState(null);
-  const [logs, setLogs] = useState([]);
-  const [selectedService, setSelectedService] = useState(null);
+  const [clusterStatus, setClusterStatus] = useState<ClusterStatus | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
 
   useEffect(() => {
     loadClusterStatus();
@@ -216,7 +295,7 @@ export default function CloudNativeControl() {
     }
   };
 
-  const scaleService = async (serviceId, replicas) => {
+  const scaleService = async (serviceId: string, replicas: number) => {
     try {
       const response = await fetch(`/api/v2/cloud-native/services/${serviceId}/scale`, {
         method: 'POST',
@@ -231,11 +310,11 @@ export default function CloudNativeControl() {
         throw new Error('Falha no scaling');
       }
     } catch (error) {
-      toast.error('Erro no scaling: ' + error.message);
+      toast.error('Erro no scaling: ' + (error as Error).message);
     }
   };
 
-  const restartService = async (serviceId) => {
+  const restartService = async (serviceId: string) => {
     try {
       const response = await fetch(`/api/v2/cloud-native/services/${serviceId}/restart`, {
         method: 'POST'
@@ -248,11 +327,11 @@ export default function CloudNativeControl() {
         throw new Error('Falha no restart');
       }
     } catch (error) {
-      toast.error('Erro no restart: ' + error.message);
+      toast.error('Erro no restart: ' + (error as Error).message);
     }
   };
 
-  const deployNewVersion = async (serviceName, version) => {
+  const deployNewVersion = async (serviceName: string, version: string) => {
     try {
       const response = await fetch('/api/v2/cloud-native/deploy', {
         method: 'POST',
@@ -267,11 +346,11 @@ export default function CloudNativeControl() {
         throw new Error('Falha no deploy');
       }
     } catch (error) {
-      toast.error('Erro no deploy: ' + error.message);
+      toast.error('Erro no deploy: ' + (error as Error).message);
     }
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'healthy':
       case 'running':
@@ -288,7 +367,7 @@ export default function CloudNativeControl() {
     }
   };
 
-  const getLogLevelColor = (level) => {
+  const getLogLevelColor = (level: string) => {
     switch (level) {
       case 'error': return 'text-red-600';
       case 'warn': return 'text-yellow-600';

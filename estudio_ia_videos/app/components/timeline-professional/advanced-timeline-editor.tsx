@@ -57,7 +57,7 @@ interface Keyframe {
   id: string;
   time: number;
   property: string;
-  value: any;
+  value: number | string;
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce';
 }
 

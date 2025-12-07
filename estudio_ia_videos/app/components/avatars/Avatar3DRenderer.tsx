@@ -23,7 +23,7 @@ import {
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { useLipSync } from '@/hooks/useLipSync';
-import { Avatar3DModel, avatarEngine } from '@/lib/avatar-engine';
+import { Avatar3DModel, AvatarClientHelper, LipSyncFrame } from '@/lib/avatar-client-logic';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -32,10 +32,26 @@ interface Avatar3DRendererProps {
   avatarId: string;
   text?: string;
   audioUrl?: string;
+  emotion?: string;
+  emotionIntensity?: number;
+  enableGestures?: boolean;
   autoPlay?: boolean;
   showControls?: boolean;
   onAnimationComplete?: () => void;
   className?: string;
+  externalAudio?: HTMLAudioElement | null;
+}
+
+interface LipSyncState {
+  currentFrame: LipSyncFrame | null;
+  isPlaying: boolean;
+  duration: number;
+  progress: number;
+}
+
+interface CameraControls {
+  zoom: number;
+  rotation: number;
 }
 
 /**
@@ -44,23 +60,30 @@ interface Avatar3DRendererProps {
 function AvatarModel({ 
   avatar, 
   lipSyncFrame,
-  isPlaying 
+  isPlaying,
+  emotion,
+  emotionIntensity = 1.0,
+  enableGestures = true
 }: { 
   avatar: Avatar3DModel;
-  lipSyncFrame: any;
+  lipSyncFrame: LipSyncFrame | null;
   isPlaying: boolean;
+  emotion?: string;
+  emotionIntensity?: number;
+  enableGestures?: boolean;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const headRef = useRef<THREE.Group>(null);
+  const bodyRef = useRef<THREE.Group>(null);
   const [idleAnimation, setIdleAnimation] = useState({ breathPhase: 0, blinkTimer: 0 });
 
   // Carrega o modelo 3D (fallback para geometria simples se modelo não existir)
   const modelUrl = avatar.modelUrl;
-  let scene: any = null;
+  let scene: THREE.Group | null = null;
   
   try {
     // Tenta carregar o modelo GLTF
-    const gltf = useGLTF(modelUrl, true);
+    const gltf = useGLTF(modelUrl as string, true) as any;
     scene = gltf.scene;
   } catch (error) {
     console.warn('Modelo 3D não encontrado, usando fallback');
@@ -115,14 +138,54 @@ function AvatarModel({
 
     // FASE 2: Sincronização Labial
     if (isPlaying && lipSyncFrame) {
-      // Aplica blend shapes do lip sync
-      avatarEngine.applyBlendShapes(meshRef.current, lipSyncFrame.blendShapes);
+      // Aplica blend shapes do lip sync com emoção
+      AvatarClientHelper.applyBlendShapes(meshRef.current, lipSyncFrame, emotion, emotionIntensity);
       
       // Movimento sutil da cabeça durante a fala
       if (headRef.current) {
         const intensity = lipSyncFrame.intensity || 0;
         headRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 2) * 0.02 * intensity;
         headRef.current.rotation.y = Math.cos(state.clock.elapsedTime * 1.5) * 0.03 * intensity;
+      }
+
+      // FASE 4: Gestos Corporais (Se ativado)
+      if (enableGestures && bodyRef.current && emotion) {
+        const time = state.clock.elapsedTime;
+        const baseIntensity = emotionIntensity;
+        
+        // Reset suave
+        const targetRotX = 0;
+        const targetRotY = 0;
+        const targetRotZ = 0;
+        const targetPosY = -0.2; // Posição base
+
+        if (emotion === 'happy') {
+          // Movimento mais solto e energético
+          bodyRef.current.rotation.y = Math.sin(time * 2) * 0.05 * baseIntensity;
+          bodyRef.current.position.y = -0.2 + Math.abs(Math.sin(time * 4)) * 0.02 * baseIntensity;
+          if (headRef.current) headRef.current.rotation.z = Math.sin(time * 1.5) * 0.05 * baseIntensity;
+        } 
+        else if (emotion === 'angry') {
+          // Tensão, movimentos rápidos e curtos
+          bodyRef.current.rotation.x = 0.1 * baseIntensity; // Inclina para frente
+          bodyRef.current.rotation.y = Math.sin(time * 8) * 0.02 * baseIntensity; // Tremor leve
+        }
+        else if (emotion === 'sad') {
+          // Ombros caídos, movimento lento
+          bodyRef.current.rotation.x = 0.15 * baseIntensity; // Curvado
+          bodyRef.current.position.y = -0.22 * baseIntensity; // Mais baixo
+          if (headRef.current) headRef.current.rotation.x = 0.2 * baseIntensity; // Cabeça baixa
+        }
+        else if (emotion === 'surprised') {
+          // Recuo súbito (simulado com movimento lento aqui para suavidade)
+          bodyRef.current.rotation.x = -0.1 * baseIntensity; // Inclina para trás
+          bodyRef.current.position.y = -0.18 * baseIntensity; // Sobe um pouco
+        }
+        else if (emotion === 'fear') {
+          // Encolhido, trêmulo
+          bodyRef.current.scale.setScalar(1 - (0.05 * baseIntensity)); // Encolhe levemente
+          bodyRef.current.rotation.y = Math.sin(time * 15) * 0.03 * baseIntensity; // Tremor rápido
+        }
       }
     }
   });
@@ -153,7 +216,7 @@ function AvatarModel({
       </mesh>
       
       {/* Corpo */}
-      <mesh position={[0, -0.2, 0]} castShadow>
+      <mesh ref={bodyRef} position={[0, -0.2, 0]} castShadow>
         <cylinderGeometry args={[0.25, 0.3, 0.8, 16]} />
         <meshStandardMaterial 
           color={avatar.gender === 'male' ? '#2563eb' : '#ec4899'} 
@@ -232,11 +295,17 @@ function Lighting() {
 function Scene({ 
   avatar, 
   lipSyncState,
-  cameraControls 
+  cameraControls,
+  emotion,
+  emotionIntensity,
+  enableGestures
 }: { 
   avatar: Avatar3DModel;
-  lipSyncState: any;
-  cameraControls: any;
+  lipSyncState: LipSyncState;
+  cameraControls: CameraControls;
+  emotion?: string;
+  emotionIntensity?: number;
+  enableGestures?: boolean;
 }) {
   const controlsRef = useRef<any>();
 
@@ -275,10 +344,13 @@ function Scene({
 
       {/* Avatar 3D */}
       <Suspense fallback={null}>
-        <AvatarModel
-          avatar={avatar}
+        <AvatarModel 
+          avatar={avatar} 
           lipSyncFrame={lipSyncState.currentFrame}
           isPlaying={lipSyncState.isPlaying}
+          emotion={emotion}
+          emotionIntensity={emotionIntensity}
+          enableGestures={enableGestures}
         />
       </Suspense>
 
@@ -309,7 +381,11 @@ export default function Avatar3DRenderer({
   autoPlay = false,
   showControls = true,
   onAnimationComplete,
-  className = ''
+  className = '',
+  externalAudio = null,
+  emotion,
+  emotionIntensity,
+  enableGestures
 }: Avatar3DRendererProps) {
   const [avatar, setAvatar] = useState<Avatar3DModel | null>(null);
   const [cameraControls, setCameraControls] = useState({ zoom: 1, rotation: 0 });
@@ -320,12 +396,13 @@ export default function Avatar3DRenderer({
     text,
     audioUrl,
     onComplete: onAnimationComplete,
-    onError: (error) => console.error('Erro no lip sync:', error)
+    onError: (error) => console.error('Erro no lip sync:', error),
+    externalAudio
   });
 
   // Carrega avatar
   useEffect(() => {
-    const loadedAvatar = avatarEngine.getAvatar(avatarId);
+    const loadedAvatar = AvatarClientHelper.getAvatar(avatarId);
     if (loadedAvatar) {
       setAvatar(loadedAvatar);
       setIsLoading(false);
@@ -337,10 +414,10 @@ export default function Avatar3DRenderer({
 
   // Auto-play se configurado
   useEffect(() => {
-    if (autoPlay && audioUrl && !isLoading) {
+    if (autoPlay && audioUrl && !isLoading && !externalAudio) {
       play();
     }
-  }, [autoPlay, audioUrl, isLoading, play]);
+  }, [autoPlay, audioUrl, isLoading, play, externalAudio]);
 
   // Controles de câmera
   const handleZoomIn = () => {
@@ -390,6 +467,9 @@ export default function Avatar3DRenderer({
             avatar={avatar}
             lipSyncState={lipSyncState}
             cameraControls={cameraControls}
+            emotion={emotion}
+            emotionIntensity={emotionIntensity}
+            enableGestures={enableGestures}
           />
         </Canvas>
       </div>
@@ -465,7 +545,7 @@ export default function Avatar3DRenderer({
         </p>
         {lipSyncState.currentFrame && (
           <p className="text-xs text-blue-600 mt-1">
-            Viseme: {lipSyncState.currentFrame.viseme}
+            Phoneme: {lipSyncState.currentFrame.phoneme}
           </p>
         )}
       </div>

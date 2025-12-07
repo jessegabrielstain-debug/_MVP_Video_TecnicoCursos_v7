@@ -66,7 +66,7 @@ describe('PPTX Processor Tests', () => {
       
       expect(result.valid).toBe(false);
       expect(result.error).toBeDefined();
-      expect(result.error).toContain('Formato de arquivo inválido');
+      expect(result.error).toContain('Assinatura ZIP não encontrada');
     });
   });
 

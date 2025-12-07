@@ -7,8 +7,8 @@
 
 import React, { useState } from 'react';
 import { useRendering } from '@/hooks/use-rendering';
-import { TimelineProject } from '../types/timeline-types';
-import { ExportSettings } from '../types/remotion-types';
+import { TimelineProject } from '@/lib/types/timeline-types';
+import { ExportSettings, RenderProgress } from '@/lib/types/remotion-types';
 
 const RenderingTest: React.FC = () => {
   const {
@@ -39,71 +39,80 @@ const RenderingTest: React.FC = () => {
       width: 1920,
       height: 1080
     },
-    elements: [
+    layers: [
       {
-        id: 'text-1',
-        type: 'text',
-        content: 'Teste de Renderização Completa!',
-        startTime: 0,
-        duration: 5,
-        style: {
-          fontSize: 48,
-          color: '#ffffff',
-          fontFamily: 'Arial',
-          textAlign: 'center',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          padding: '20px',
-          borderRadius: '10px'
-        },
-        position: { x: 50, y: 50 },
-        animations: [{
-          type: 'fadeInScale',
-          startTime: 0,
-          duration: 1,
-          easing: 'easeOut'
-        }]
-      },
-      {
-        id: 'text-2',
-        type: 'text',
-        content: 'Sistema Integrado Funcionando!',
-        startTime: 5,
-        duration: 5,
-        style: {
-          fontSize: 36,
-          color: '#00ff00',
-          fontFamily: 'Arial',
-          textAlign: 'center'
-        },
-        position: { x: 50, y: 70 },
-        animations: [{
-          type: 'slideIn',
-          startTime: 5,
-          duration: 1,
-          direction: 'left',
-          easing: 'easeOut'
-        }]
+        id: 'layer-1',
+        name: 'Main Layer',
+        type: 'video',
+        visible: true,
+        locked: false,
+        elements: [
+          {
+            id: 'text-1',
+            type: 'text',
+            start: 0,
+            duration: 5,
+            source: 'text',
+            layer: 0,
+            data: {
+              content: 'Teste de Renderização Completa!',
+              style: {
+                fontSize: 48,
+                color: '#ffffff',
+                fontFamily: 'Arial',
+                textAlign: 'center',
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                padding: '20px',
+                borderRadius: '10px'
+              },
+              position: { x: 50, y: 50 },
+              animations: [{
+                type: 'fadeInScale',
+                startTime: 0,
+                duration: 1,
+                easing: 'easeOut'
+              }]
+            }
+          },
+          {
+            id: 'text-2',
+            type: 'text',
+            start: 5,
+            duration: 5,
+            source: 'text',
+            layer: 0,
+            data: {
+              content: 'Sistema Integrado Funcionando!',
+              style: {
+                fontSize: 36,
+                color: '#00ff00',
+                fontFamily: 'Arial',
+                textAlign: 'center'
+              },
+              position: { x: 50, y: 70 },
+              animations: [{
+                type: 'slideIn',
+                startTime: 5,
+                duration: 1,
+                direction: 'left',
+                easing: 'easeOut'
+              }]
+            }
+          }
+        ]
       }
     ],
-    layers: [],
-    createdAt: new Date(),
-    updatedAt: new Date()
+    currentTime: 0,
+    zoomLevel: 1
   };
 
   // Configurações de exportação
   const exportSettings: ExportSettings = {
     format: 'mp4',
-    quality: 'high',
+    quality: 80,
     fps: 30,
-    resolution: {
-      width: 1920,
-      height: 1080
-    },
     codec: 'h264',
-    bitrate: '5M',
-    audio: {
-      enabled: false
-    }
+    bitrate: '5M'
   };
 
   const handleStartRender = async () => {
@@ -293,7 +302,7 @@ const RenderingTest: React.FC = () => {
           <p><strong>Duração:</strong> {testProject.duration}s</p>
           <p><strong>FPS:</strong> {testProject.fps}</p>
           <p><strong>Resolução:</strong> {testProject.resolution.width}x{testProject.resolution.height}</p>
-          <p><strong>Elementos:</strong> {testProject.elements.length}</p>
+          <p><strong>Elementos:</strong> {testProject.layers[0]?.elements.length || 0}</p>
         </div>
       </div>
     </div>

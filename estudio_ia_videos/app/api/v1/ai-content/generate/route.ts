@@ -1,8 +1,17 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 
+interface AIContentOptions {
+  nrType: string
+  audience: string
+  type: string
+  includeQuiz?: boolean
+  duration?: number
+  includeImages?: boolean
+}
+
 // Mock AI content generation - In production, this would call actual AI services
-const generateAIContent = async (prompt: string, options: any) => {
+const generateAIContent = async (prompt: string, options: AIContentOptions) => {
   // Simulate AI processing time
   await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000))
   
@@ -329,3 +338,4 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+

@@ -5,7 +5,6 @@
  * favoritos, histórico e analytics
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import {
   VideoTemplateLibrary,
   type TemplateCategory,
@@ -165,7 +164,7 @@ describe('Template Library System', () => {
       const templateId = templates[0].id;
       
       library.addFavorite(templateId);
-      const favorites = library.getFavorites();
+      const favorites = library.getFavoriteIds();
       
       expect(favorites).toContain(templateId);
     });
@@ -176,7 +175,7 @@ describe('Template Library System', () => {
       
       library.addFavorite(templateId);
       library.removeFavorite(templateId);
-      const favorites = library.getFavorites();
+      const favorites = library.getFavoriteIds();
       
       expect(favorites).not.toContain(templateId);
     });
@@ -197,7 +196,7 @@ describe('Template Library System', () => {
       
       library.addToFavorites(templateId);
       library.addToFavorites(templateId);
-      const favorites = library.getFavorites();
+      const favorites = library.getFavoriteIds();
       
       expect(favorites.filter(id => id === templateId).length).toBe(1);
     });
@@ -218,8 +217,8 @@ describe('Template Library System', () => {
       const templates = library.getAllTemplates();
       const templateId = templates[0].id;
       
-      library.on('favorite:added', (id) => {
-        expect(id).toBe(templateId);
+      library.on('favorite:added', (payload) => {
+        expect(payload.templateId).toBe(templateId);
         done();
       });
       
@@ -232,8 +231,8 @@ describe('Template Library System', () => {
       
       library.addToFavorites(templateId);
       
-      library.on('favorite:removed', (id) => {
-        expect(id).toBe(templateId);
+      library.on('favorite:removed', (payload) => {
+        expect(payload.templateId).toBe(templateId);
         done();
       });
       
@@ -567,12 +566,24 @@ describe('Template Library System', () => {
         eventFired = true;
       });
       
+      const templates = library.getAllTemplates();
+      const templateId = templates[0].id;
+
       library.destroy();
       
-      const templates = library.getAllTemplates();
-      library.addToFavorites(templates[0].id);
+      // Re-initialize to test if listeners are gone but we can still use the library object?
+      // Actually destroy() clears templates, so we can't add to favorites easily unless we add a template first.
+      // But the test intent is to check if the LISTENER is gone.
       
-      // Event should not fire after destroy
+      // We can't use addToFavorites if templates are gone.
+      // So we must assume destroy() is final.
+      // But to test if listener is gone, we'd need to trigger the event.
+      // If we can't trigger the event because the object is dead, then the test is moot.
+      
+      // Let's try to add a template back and then add to favorites
+      // Or just manually emit?
+      library.emit('favorite:added', 'test');
+      
       expect(eventFired).toBe(false);
     });
   });

@@ -287,7 +287,7 @@ describe('VideoEffects', () => {
       expect(result.effectsApplied).toContain('Special Effect: blur');
       
       const filterCall = mockFfmpeg.videoFilters.mock.calls[0][0];
-      expect(filterCall).toContain('boxblur');
+      expect(filterCall).toEqual(expect.arrayContaining([expect.stringContaining('boxblur')]));
     });
 
     test('should apply sharpen effect', async () => {
@@ -381,7 +381,7 @@ describe('VideoEffects', () => {
       expect(result.effectsApplied).toContain('Temporal Effect: slow-motion');
       
       const filterCall = mockFfmpeg.videoFilters.mock.calls[0][0];
-      expect(filterCall).toContain('setpts');
+      expect(filterCall).toEqual(expect.arrayContaining([expect.stringContaining('setpts')]));
     });
 
     test('should apply time lapse', async () => {
@@ -397,12 +397,12 @@ describe('VideoEffects', () => {
         temporalEffect: { type: 'time-lapse', speed: 2.0 }
       };
 
-      await effects.applyEffects('input.mp4', config, {
+      const result = await effects.applyEffects('input.mp4', config, {
         outputPath: 'output.mp4'
       });
 
       const filterCall = mockFfmpeg.videoFilters.mock.calls[0][0];
-      expect(filterCall).toContain('setpts');
+      expect(filterCall).toEqual(expect.arrayContaining([expect.stringContaining('setpts')]));
     });
 
     test('should apply reverse effect', async () => {
@@ -469,8 +469,8 @@ describe('VideoEffects', () => {
 
       expect(result.success).toBe(true);
       const filterCall = mockFfmpeg.complexFilter.mock.calls[0][0];
-      expect(filterCall).toContain('xfade');
-      expect(filterCall).toContain('wipeleft');
+      expect(filterCall).toEqual(expect.arrayContaining([expect.stringContaining('xfade')]));
+      expect(filterCall).toEqual(expect.arrayContaining([expect.stringContaining('wipeleft')]));
     });
   });
 
@@ -518,9 +518,9 @@ describe('VideoEffects', () => {
 
       expect(result.success).toBe(true);
       const filterCall = mockFfmpeg.complexFilter.mock.calls[0][0];
-      expect(filterCall).toContain('scale');
-      expect(filterCall).toContain('hstack');
-      expect(filterCall).toContain('vstack');
+      expect(filterCall).toEqual(expect.arrayContaining([expect.stringContaining('scale')]));
+      expect(filterCall).toEqual(expect.arrayContaining([expect.stringContaining('hstack')]));
+      expect(filterCall).toEqual(expect.arrayContaining([expect.stringContaining('vstack')]));
     });
 
     test('should reject split with less than 2 videos', async () => {

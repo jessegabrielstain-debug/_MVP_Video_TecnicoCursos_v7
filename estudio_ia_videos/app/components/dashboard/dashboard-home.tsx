@@ -83,13 +83,13 @@ export default function DashboardHome() {
       if (authUser) {
         try {
           const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('full_name, avatar_url')
+            .from('users')
+            .select('name, avatar_url')
             .eq('id', authUser.id)
             .maybeSingle()
 
           if (!isMounted) return
-          setDisplayName(profile?.full_name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
+          setDisplayName(profile?.name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
           setAvatarUrl(profile?.avatar_url ?? authUser.user_metadata?.avatar_url ?? null)
         } catch (error) {
           console.error('Erro ao carregar perfil do usuário:', error)

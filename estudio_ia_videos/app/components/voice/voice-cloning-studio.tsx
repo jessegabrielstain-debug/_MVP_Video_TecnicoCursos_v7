@@ -1,5 +1,3 @@
-
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -33,6 +31,12 @@ import {
 } from 'lucide-react'
 import { VoiceCloningSystem, VoiceProfile, VoiceCloneRequest, VoiceCloneAnalysis } from '../../lib/voice/voice-cloning-system'
 
+interface TrainingProgress {
+  job_id: string;
+  progress: number;
+  stage: string;
+}
+
 export default function VoiceCloningStudio() {
   const [voiceProfiles, setVoiceProfiles] = useState<VoiceProfile[]>([])
   const [selectedProfile, setSelectedProfile] = useState<VoiceProfile | null>(null)
@@ -40,7 +44,7 @@ export default function VoiceCloningStudio() {
   const [transcripts, setTranscripts] = useState<string[]>([])
   const [analysis, setAnalysis] = useState<VoiceCloneAnalysis | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [trainingProgress, setTrainingProgress] = useState<unknown>(null)
+  const [trainingProgress, setTrainingProgress] = useState<TrainingProgress | null>(null)
   const [testText, setTestText] = useState('Olá! Esta é uma demonstração da minha voz clonada. Como você está hoje?')
   const [synthesizedAudio, setSynthesizedAudio] = useState<string | null>(null)
 
@@ -484,7 +488,7 @@ export default function VoiceCloningStudio() {
                 
                 {/* Métricas de Qualidade */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  {Object.entries(analysis.input_quality).map(([metric, score]) => (
+                  {(Object.entries(analysis.input_quality) as [string, number][]).map(([metric, score]) => (
                     <div key={metric} className="text-center">
                       <div className={`text-lg font-bold ${
                         score > 80 ? 'text-green-600' : 

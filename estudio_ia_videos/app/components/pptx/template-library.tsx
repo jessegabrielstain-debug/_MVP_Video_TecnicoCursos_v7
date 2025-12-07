@@ -194,7 +194,7 @@ export function TemplateLibrary({ onTemplateSelect }: TemplateLibraryProps) {
   }
 
   const handleTemplatePreview = (template: Template) => {
-    toast.info(`Visualizando template "${template.name}"`)
+    toast(`Visualizando template "${template.name}"`, { icon: 'ℹ️' })
     // Implementar preview modal
   }
 

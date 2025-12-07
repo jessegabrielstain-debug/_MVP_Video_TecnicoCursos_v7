@@ -152,12 +152,13 @@ export default function AdvancedTTSPanelSprint28() {
         toast.error(data.error || 'Erro ao gerar áudio')
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       clearInterval(progressInterval)
-      toast.error(error.message || 'Erro ao gerar áudio')
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao gerar áudio';
+      toast.error(errorMessage)
       setResult({
         success: false,
-        error: error.message
+        error: errorMessage
       })
     } finally {
       setIsGenerating(false)

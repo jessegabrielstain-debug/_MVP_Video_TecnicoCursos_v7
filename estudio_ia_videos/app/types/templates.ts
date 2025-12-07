@@ -19,14 +19,36 @@ export interface Template {
 }
 
 export interface TemplateContent {
-  slides: SlideTemplate[];
+  slides: TemplateSlide[];
   assets: AssetTemplate[];
   animations: AnimationTemplate[];
   interactions: InteractionTemplate[];
   compliance: ComplianceTemplate;
+  settings: TemplateSettings;
 }
 
-export interface SlideTemplate {
+export interface TemplateSettings {
+  duration: number;
+  resolution: {
+    width: number;
+    height: number;
+  };
+  frameRate: number;
+  audioSettings?: {
+    enabled: boolean;
+    volume: number;
+    fadeIn: number;
+    fadeOut: number;
+  };
+  renderSettings: {
+    quality: 'low' | 'medium' | 'high' | 'ultra';
+    format: 'mp4' | 'webm' | 'gif';
+    codec?: string;
+    bitrate?: number;
+  };
+}
+
+export interface TemplateSlide {
   id: string;
   type: 'intro' | 'content' | 'quiz' | 'summary' | 'compliance';
   title: string;
@@ -34,6 +56,8 @@ export interface SlideTemplate {
   elements: ElementTemplate[];
   duration: number;
   transitions: TransitionTemplate[];
+  content?: string;
+  background?: string;
 }
 
 export interface ComplianceRule {
@@ -192,6 +216,13 @@ export interface TemplateMetadata {
   lastOptimization?: Date;
   optimizationScore?: number;
   complianceStatus?: 'compliant' | 'non-compliant' | 'pending';
+  performance: PerformanceMetadata;
+}
+
+export interface PerformanceMetadata {
+  renderTime: number;
+  fileSize: number;
+  complexity: 'low' | 'medium' | 'high';
 }
 
 export interface AccessibilityFeatures {
@@ -209,6 +240,8 @@ export interface ComplianceMetadata {
   auditScore: number;
   certifications: string[];
   expiryDate?: Date;
+  status: 'compliant' | 'warning' | 'non-compliant' | 'pending';
+  requirements: string[];
 }
 
 export type NRCategory = 
@@ -248,7 +281,8 @@ export type NRCategory =
   | 'NR-34' // Condições e Meio Ambiente de Trabalho na Indústria da Construção, Reparação e Desmonte Naval
   | 'NR-35' // Trabalho em Altura
   | 'NR-36' // Segurança e Saúde no Trabalho em Empresas de Abate e Processamento de Carnes e Derivados
-  | 'NR-37' // Segurança e Saúde em Plataformas de Petróleo;
+  | 'NR-37' // Segurança e Saúde em Plataformas de Petróleo
+  | 'CUSTOM';
 
 export interface TemplateFilter {
   category?: NRCategory[];

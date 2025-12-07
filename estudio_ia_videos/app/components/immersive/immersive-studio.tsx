@@ -28,12 +28,18 @@ import {
 } from 'lucide-react'
 import { ImmersiveEnvironmentEngine, Environment3D, ImmersiveScenario } from '../../lib/immersive/3d-environments'
 
+interface GenerationProgress {
+  stage: string
+  progress: number
+  error?: string
+}
+
 export default function ImmersiveStudio() {
   const [environments, setEnvironments] = useState<Environment3D[]>([])
   const [selectedEnvironment, setSelectedEnvironment] = useState<Environment3D | null>(null)
   const [scenarios, setScenarios] = useState<ImmersiveScenario[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generationProgress, setGenerationProgress] = useState<unknown>(null)
+  const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null)
   const [deviceType, setDeviceType] = useState<'mobile' | 'desktop' | 'vr_headset'>('desktop')
 
   useEffect(() => {

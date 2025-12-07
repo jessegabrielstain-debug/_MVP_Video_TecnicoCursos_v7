@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 
 // Schema de validação para atualização de projetos
 const UpdateProjectSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo').optional(),
   description: z.string().optional(),
-  type: z.enum(['video', 'presentation', 'animation']).optional(),
-  status: z.enum(['draft', 'in_progress', 'completed', 'failed']).optional(),
+  type: z.enum(['pptx', 'template-nr', 'talking-photo', 'custom', 'ai-generated']).optional(),
+  status: z.enum(['draft', 'in-progress', 'review', 'completed', 'archived', 'error']).optional(),
   settings: z.object({
     width: z.number().optional(),
     height: z.number().optional(),
@@ -18,58 +19,26 @@ const UpdateProjectSchema = z.object({
   is_public: z.boolean().optional()
 })
 
-// Armazenamento em memória (mesmo do route.ts principal)
-// Em produção, isso seria substituído por consultas ao banco de dados
-let projects: any[] = [
-  {
-    id: 'proj-001',
-    name: 'Projeto Demo 1',
-    description: 'Projeto de demonstração do sistema',
-    type: 'video',
-    status: 'draft',
-    owner_id: 'user-demo',
-    settings: {
-      width: 1920,
-      height: 1080,
-      fps: 30,
-      quality: 'high',
-      format: 'mp4'
-    },
-    is_public: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'proj-002',
-    name: 'Apresentação Corporativa',
-    description: 'Vídeo para apresentação da empresa',
-    type: 'presentation',
-    status: 'in_progress',
-    owner_id: 'user-demo',
-    settings: {
-      width: 1920,
-      height: 1080,
-      fps: 30,
-      quality: 'high',
-      format: 'mp4'
-    },
-    is_public: true,
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    updated_at: new Date().toISOString()
-  }
-]
-
 // GET - Obter projeto específico
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log(`🔍 [PROJECT-API] Buscando projeto: ${params.id}`)
+    const supabase = getSupabaseForRequest(request)
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: project, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', params.id)
+      .single()
     
-    const project = projects.find(p => p.id === params.id)
-    
-    if (!project) {
+    if (error || !project) {
       return NextResponse.json({
         success: false,
         error: 'Projeto não encontrado',
@@ -77,8 +46,23 @@ export async function GET(
       }, { status: 404 })
     }
 
-    console.log(`✅ [PROJECT-API] Projeto encontrado: ${project.name}`)
-    
+    let hasPermission = project.user_id === user.id || project.is_public
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('user_id')
+        .eq('project_id', params.id)
+        .eq('user_id', user.id)
+        .single()
+      
+      if (collaborator) hasPermission = true
+    }
+
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
     return NextResponse.json({
       success: true,
       data: project,
@@ -102,7 +86,12 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log(`📝 [PROJECT-API] Atualizando projeto: ${params.id}`)
+    const supabase = getSupabaseForRequest(request)
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     
     const body = await request.json()
     
@@ -119,10 +108,14 @@ export async function PUT(
 
     const validatedData = validationResult.data
     
-    // Encontrar projeto
-    const projectIndex = projects.findIndex(p => p.id === params.id)
-    
-    if (projectIndex === -1) {
+    // Verificar permissões
+    const { data: project } = await supabase
+      .from('projects')
+      .select('user_id')
+      .eq('id', params.id)
+      .single()
+
+    if (!project) {
       return NextResponse.json({
         success: false,
         error: 'Projeto não encontrado',
@@ -130,22 +123,65 @@ export async function PUT(
       }, { status: 404 })
     }
 
-    // Atualizar projeto
-    const currentProject = projects[projectIndex]
-    const updatedProject = {
-      ...currentProject,
-      ...validatedData,
-      settings: {
-        ...currentProject.settings,
-        ...validatedData.settings
-      },
+    let hasPermission = project.user_id === user.id
+
+    if (!hasPermission) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('permissions')
+        .eq('project_id', params.id)
+        .eq('user_id', user.id)
+        .single()
+      
+      if (collaborator && (collaborator.permissions as any)?.can_edit) {
+        hasPermission = true
+      }
+    }
+
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+    
+    // Preparar dados para atualização
+    const updateData: any = {
       updated_at: new Date().toISOString()
     }
 
-    projects[projectIndex] = updatedProject
-
-    console.log(`✅ [PROJECT-API] Projeto atualizado: ${updatedProject.name}`)
+    if (validatedData.name) updateData.name = validatedData.name
+    if (validatedData.description !== undefined) updateData.description = validatedData.description
+    if (validatedData.type) updateData.type = validatedData.type
+    if (validatedData.status) updateData.status = validatedData.status
+    if (validatedData.is_public !== undefined) updateData.is_public = validatedData.is_public
     
+    // Se houver settings, precisamos fazer merge com o existente ou substituir
+    // Como é JSONB, o update do supabase faz merge se for top-level, mas aqui é uma coluna
+    // Vamos buscar o atual primeiro se precisarmos fazer merge profundo, mas por simplicidade vamos assumir substituição ou merge via jsonb_set se fosse complexo.
+    // Aqui vamos apenas atualizar a coluna render_settings se fornecida.
+    if (validatedData.settings) {
+        // Fetch current settings to merge? Or just overwrite?
+        // Let's overwrite for now as the schema implies complete settings object or partial update of the column
+        // Actually, let's fetch first to be safe if we want partial update inside jsonb
+        const { data: currentProject } = await supabase
+            .from('projects')
+            .select('render_settings')
+            .eq('id', params.id)
+            .single()
+        
+        const currentSettings = (typeof currentProject?.render_settings === 'object' && currentProject?.render_settings !== null) 
+          ? currentProject.render_settings as Record<string, unknown>
+          : {}
+        updateData.render_settings = { ...currentSettings, ...validatedData.settings }
+    }
+
+    const { data: updatedProject, error } = await supabase
+      .from('projects')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (error) throw error
+
     return NextResponse.json({
       success: true,
       message: 'Projeto atualizado com sucesso!',
@@ -170,30 +206,25 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log(`🗑️ [PROJECT-API] Excluindo projeto: ${params.id}`)
-    
-    const projectIndex = projects.findIndex(p => p.id === params.id)
-    
-    if (projectIndex === -1) {
-      return NextResponse.json({
-        success: false,
-        error: 'Projeto não encontrado',
-        timestamp: new Date().toISOString()
-      }, { status: 404 })
+    const supabase = getSupabaseForRequest(request)
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const deletedProject = projects[projectIndex]
-    projects.splice(projectIndex, 1)
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', params.id)
+      .eq('user_id', user.id)
 
-    console.log(`✅ [PROJECT-API] Projeto excluído: ${deletedProject.name}`)
-    
+    if (error) throw error
+
     return NextResponse.json({
       success: true,
       message: 'Projeto excluído com sucesso!',
-      data: {
-        id: deletedProject.id,
-        name: deletedProject.name
-      },
+      data: { id: params.id },
       timestamp: new Date().toISOString()
     })
 

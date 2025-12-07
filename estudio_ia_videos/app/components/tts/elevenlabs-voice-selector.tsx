@@ -52,9 +52,16 @@ interface VoiceSettings {
   useSpeakerBoost: boolean
 }
 
+interface AudioData {
+  success: boolean;
+  audioBase64: string;
+  error?: string;
+  [key: string]: unknown;
+}
+
 interface ElevenLabsVoiceSelectorProps {
   onVoiceSelect?: (voice: ElevenLabsVoice) => void
-  onAudioGenerate?: (audioData: any) => void
+  onAudioGenerate?: (audioData: AudioData) => void
   defaultText?: string
 }
 
@@ -99,8 +106,9 @@ export function ElevenLabsVoiceSelector({
         throw new Error(data.error || 'Erro ao carregar vozes')
       }
       
-    } catch (error: any) {
-      toast.error('❌ Erro ao carregar vozes: ' + error.message)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error('❌ Erro ao carregar vozes: ' + errorMessage)
       setVoices([])
     } finally {
       setLoading(false)
@@ -157,8 +165,9 @@ export function ElevenLabsVoiceSelector({
         throw new Error(result.error || 'Erro na geração')
       }
       
-    } catch (error: any) {
-      toast.error('❌ Erro: ' + error.message, { id: 'tts' })
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error('❌ Erro: ' + errorMessage, { id: 'tts' })
     } finally {
       setGenerating(false)
     }

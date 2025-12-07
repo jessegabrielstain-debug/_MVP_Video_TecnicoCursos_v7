@@ -60,7 +60,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-async function simulateEnhancedProcessing(s3Key: string, buffer: Buffer, options: any = {}) {
+async function simulateEnhancedProcessing(s3Key: string, buffer: Buffer, options: Record<string, unknown> = {}) {
   // Simular processamento melhorado baseado nas opções
   const enhancedOptions = {
     extractTextDeep: options?.extractTextDeep || true,
@@ -84,3 +84,4 @@ async function simulateEnhancedProcessing(s3Key: string, buffer: Buffer, options
     ]
   }
 }
+

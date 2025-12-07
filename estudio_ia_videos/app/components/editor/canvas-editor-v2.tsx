@@ -7,7 +7,7 @@
 'use client'
 
 import React, { forwardRef, useImperativeHandle, useRef, useState, useCallback, useEffect } from 'react'
-import { UnifiedSlide, UnifiedElement, EditorState, EditorEvent } from '@/lib/types-unified-v2'
+import { UnifiedSlide, UnifiedElement, EditorState, EditorEvent, EditorConfig } from '@/lib/types-unified-v2'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -106,7 +106,7 @@ const CanvasEditorV2 = forwardRef<CanvasEditorHandle, CanvasEditorProps>(({
   const sortedElements = [...visibleElements].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
   
   // Canvas config com fallback
-  const canvasConfig = editorState.canvas || { 
+  const canvasConfig = (editorState.canvas as EditorConfig['canvas']) || { 
     showGrid: false, 
     gridSize: 20, 
     width: 1920, 
@@ -393,7 +393,7 @@ const CanvasEditorV2 = forwardRef<CanvasEditorHandle, CanvasEditorProps>(({
           width: element.width,
           height: element.height,
           zIndex: element.zIndex || 0,
-          opacity: element.style.opacity || 1,
+          opacity: (element.style.opacity as number) || 1,
           transform: element.style.rotation ? `rotate(${element.style.rotation}deg)` : undefined,
           pointerEvents: element.locked ? 'none' : 'auto'
         }}
@@ -414,9 +414,9 @@ const CanvasEditorV2 = forwardRef<CanvasEditorHandle, CanvasEditorProps>(({
                 fontSize: element.style.fontSize,
                 fontFamily: element.style.fontFamily,
                 color: element.style.color,
-                textAlign: element.style.textAlign,
-                fontWeight: element.style.fontWeight,
-                fontStyle: element.style.fontStyle
+                textAlign: element.style.textAlign as any,
+                fontWeight: element.style.fontWeight as any,
+                fontStyle: element.style.fontStyle as any
               }}
               onBlur={(e) => {
                 onElementUpdate(element.id, { content: e.target.value })
@@ -437,10 +437,10 @@ const CanvasEditorV2 = forwardRef<CanvasEditorHandle, CanvasEditorProps>(({
                 fontSize: element.style.fontSize,
                 fontFamily: element.style.fontFamily,
                 color: element.style.color,
-                backgroundColor: element.style.backgroundColor,
-                textAlign: element.style.textAlign,
-                fontWeight: element.style.fontWeight,
-                fontStyle: element.style.fontStyle,
+                backgroundColor: element.style.backgroundColor as string,
+                textAlign: element.style.textAlign as any,
+                fontWeight: element.style.fontWeight as any,
+                fontStyle: element.style.fontStyle as any,
                 wordWrap: 'break-word',
                 overflow: 'hidden'
               }}
@@ -450,23 +450,23 @@ const CanvasEditorV2 = forwardRef<CanvasEditorHandle, CanvasEditorProps>(({
           )
         )}
 
-        {element.type === 'shape' && (
+        {element.type === 'shape' ? (
           <div
             className="w-full h-full"
             style={{
-              backgroundColor: element.style.backgroundColor || '#3b82f6',
-              borderColor: element.style.borderColor,
-              borderWidth: element.style.borderWidth,
-              borderRadius: element.properties?.shape === 'circle' ? '50%' : '0'
+              backgroundColor: (element.style.backgroundColor as string) || '#3b82f6',
+              borderColor: element.style.borderColor as string,
+              borderWidth: element.style.borderWidth as string | number | undefined,
+              borderRadius: (element.properties?.shape as string) === 'circle' ? '50%' : '0'
             }}
           />
-        )}
+        ) : null}
 
-        {element.type === 'image' && element.properties?.src && (
+        {element.type === 'image' && !!element.properties?.src && (
           <div className="w-full h-full relative overflow-hidden">
             <Image
-              src={element.properties.src}
-              alt={element.properties.alt || 'Imagem'}
+              src={element.properties.src as string}
+              alt={(element.properties.alt as string) || 'Imagem'}
               fill
               className="object-cover"
               draggable={false}

@@ -119,3 +119,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .text-shadow-md {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+}

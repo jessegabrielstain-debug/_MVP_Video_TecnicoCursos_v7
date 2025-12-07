@@ -1,32 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { ReportGenerator, ReportType } from '@/lib/analytics/report-generator';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
-// Type-safe helper extraindo organizationId
-const getOrgId = (user: unknown): string | undefined => {
-  const u = user as { currentOrgId?: string; organizationId?: string };
-  return u.currentOrgId || u.organizationId || undefined;
-};
-
-// Type-safe helper verificando admin
-const isAdmin = (user: unknown): boolean => {
-  return ((user as { isAdmin?: boolean }).isAdmin) === true;
-};
-// Type-safe helper extraindo organizationId
-const getOrgId = (user: unknown): string | undefined => {
-  const u = user as { currentOrgId?: string; organizationId?: string };
-  return u.currentOrgId || u.organizationId || undefined;
-};
-
-// Type-safe helper verificando admin
-const isAdmin = (user: unknown): boolean => {
-  return ((user as { isAdmin?: boolean }).isAdmin) === true;
-};
 /**
  * GET /api/analytics/reports
  * Lista relatórios disponíveis ou gera um relatório específico
@@ -39,7 +19,7 @@ const isAdmin = (user: unknown): boolean => {
  */
 async function getHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -59,28 +39,34 @@ async function getHandler(req: NextRequest) {
     if (!type) {
       const reports = await prisma.analyticsEvent.findMany({
         where: {
-          category: 'report_generated',
-          ...(organizationId && { organizationId })
+          eventType: 'report_generated',
+          ...(organizationId && { 
+            eventData: {
+              path: ['organizationId'],
+              equals: organizationId
+            }
+          })
         },
         orderBy: { createdAt: 'desc' },
         take: 50,
         select: {
           id: true,
-          action: true,
-          label: true,
-          createdAt: true,
-          metadata: true
+          eventData: true,
+          createdAt: true
         }
       });
 
       return NextResponse.json({
-        reports: reports.map(report => ({
-          id: report.id,
-          type: report.action,
-          period: report.label,
-          generatedAt: report.createdAt,
-          metadata: report.metadata
-        })),
+        reports: reports.map(report => {
+          const data = report.eventData as Record<string, unknown>;
+          return {
+            id: report.id,
+            type: data.action,
+            period: data.label,
+            generatedAt: report.createdAt,
+            metadata: data
+          };
+        }),
         availableTypes: ['daily', 'weekly', 'monthly'],
         availableFormats: ['json', 'html', 'pdf']
       });
@@ -116,18 +102,32 @@ async function getHandler(req: NextRequest) {
 
     // Verificar se já existe um relatório para este período (cache)
     if (!generate) {
+      const label = reportGenerator['getDateRange'](type, date).label;
       const existingReport = await prisma.analyticsEvent.findFirst({
         where: {
-          category: 'report_generated',
-          action: type,
-          label: reportGenerator['getDateRange'](type, date).label,
-          ...(organizationId && { organizationId })
+          eventType: 'report_generated',
+          eventData: {
+            path: ['action'],
+            equals: type
+          },
+          AND: {
+            eventData: {
+              path: ['label'],
+              equals: label
+            }
+          },
+          ...(organizationId && { 
+            eventData: {
+              path: ['organizationId'],
+              equals: organizationId
+            }
+          })
         },
         orderBy: { createdAt: 'desc' }
       });
 
-      if (existingReport && existingReport.metadata) {
-        const cachedData = existingReport.metadata as Record<string, unknown>;
+      if (existingReport && existingReport.eventData) {
+        const cachedData = existingReport.eventData as Record<string, unknown>;
         
         if (format === 'html') {
           const htmlContent = await reportGenerator.generateHTMLReport(cachedData);
@@ -163,13 +163,15 @@ async function getHandler(req: NextRequest) {
     // Salvar relatório no banco para cache
     await prisma.analyticsEvent.create({
       data: {
-        organizationId,
         userId: session.user.id,
-        category: 'report_generated',
-        action: type,
-        label: reportData.period.label,
-        status: 'success',
-        metadata: (reportData as unknown) as Prisma.InputJsonValue
+        eventType: 'report_generated',
+        eventData: {
+          organizationId: organizationId || null,
+          action: type,
+          label: reportData.period.label,
+          status: 'success',
+          ...reportData
+        } as unknown as Prisma.InputJsonValue
       }
     });
 
@@ -199,13 +201,13 @@ async function getHandler(req: NextRequest) {
       generatedAt: new Date()
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics Reports] Error:', error);
     
     return NextResponse.json(
       {
         error: 'Failed to generate report',
-        message: error.message
+        message: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );
@@ -218,7 +220,7 @@ async function getHandler(req: NextRequest) {
  */
 async function postHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -266,20 +268,20 @@ async function postHandler(req: NextRequest) {
       // Salvar configuração de relatório automático
       await prisma.analyticsEvent.create({
         data: {
-          organizationId,
           userId: session.user.id,
-          category: 'report_scheduled',
-          action: type,
-          label: `Auto-report ${type}`,
-          status: 'success',
-          metadata: {
+          eventType: 'report_scheduled',
+          eventData: {
+            organizationId: organizationId || null,
+            action: type,
+            label: `Auto-report ${type}`,
+            status: 'success',
             schedule,
             recipients,
             format,
             customFilters,
             createdBy: session.user.id,
-            createdAt: new Date()
-          }
+            createdAt: new Date().toISOString()
+          } as unknown as Prisma.InputJsonValue
         }
       });
 
@@ -297,20 +299,20 @@ async function postHandler(req: NextRequest) {
     // Apenas configurar agendamento
     await prisma.analyticsEvent.create({
       data: {
-        organizationId,
         userId: session.user.id,
-        category: 'report_scheduled',
-        action: type,
-        label: `Scheduled ${type} report`,
-        status: 'pending',
-        metadata: {
+        eventType: 'report_scheduled',
+        eventData: {
+          organizationId: organizationId || null,
+          action: type,
+          label: `Scheduled ${type} report`,
+          status: 'pending',
           schedule,
           recipients,
           format,
           customFilters,
           createdBy: session.user.id,
-          createdAt: new Date()
-        }
+          createdAt: new Date().toISOString()
+        } as unknown as Prisma.InputJsonValue
       }
     });
 
@@ -325,13 +327,13 @@ async function postHandler(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics Reports POST] Error:', error);
     
     return NextResponse.json(
       {
         error: 'Failed to schedule report',
-        message: error.message
+        message: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );
@@ -344,7 +346,7 @@ async function postHandler(req: NextRequest) {
  */
 async function deleteHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -368,21 +370,36 @@ async function deleteHandler(req: NextRequest) {
 
     if (reportId) {
       // Remover relatório específico
-      await prisma.analyticsEvent.delete({
+      // Note: Prisma delete requires unique ID. If we want to check ownership, we should findFirst then delete.
+      // Or use deleteMany with ID and user check.
+      await prisma.analyticsEvent.deleteMany({
         where: {
           id: reportId,
           userId: session.user.id,
-          ...(organizationId && { organizationId })
+          ...(organizationId && { 
+            eventData: {
+              path: ['organizationId'],
+              equals: organizationId
+            }
+          })
         }
       });
     } else if (type) {
       // Remover todos os agendamentos deste tipo
       await prisma.analyticsEvent.deleteMany({
         where: {
-          category: 'report_scheduled',
-          action: type,
+          eventType: 'report_scheduled',
           userId: session.user.id,
-          ...(organizationId && { organizationId })
+          eventData: {
+            path: ['action'],
+            equals: type
+          },
+          ...(organizationId && { 
+            eventData: {
+              path: ['organizationId'],
+              equals: organizationId
+            }
+          })
         }
       });
     }
@@ -392,13 +409,13 @@ async function deleteHandler(req: NextRequest) {
       message: 'Report schedule removed successfully'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Analytics Reports DELETE] Error:', error);
     
     return NextResponse.json(
       {
         error: 'Failed to remove report schedule',
-        message: error.message
+        message: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );
@@ -437,3 +454,4 @@ function getNextRunDate(schedule: string): Date {
 export const GET = withAnalytics(getHandler);
 export const POST = withAnalytics(postHandler);
 export const DELETE = withAnalytics(deleteHandler);
+

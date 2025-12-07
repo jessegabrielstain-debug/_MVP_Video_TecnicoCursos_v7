@@ -222,7 +222,7 @@ export function SceneManager({
         <div className="text-xs text-gray-600 space-y-1">
           <div className="flex justify-between">
             <span>Duração total:</span>
-            <span>{scenes.reduce((acc, scene) => acc + scene.duration, 0)}s</span>
+            <span>{scenes.reduce((acc, scene) => acc + (scene.duration || 0), 0)}s</span>
           </div>
           <div className="flex justify-between">
             <span>Elementos totais:</span>

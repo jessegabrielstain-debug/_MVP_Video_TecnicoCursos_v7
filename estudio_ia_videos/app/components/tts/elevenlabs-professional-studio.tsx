@@ -4,9 +4,19 @@
 import React from 'react'
 import { Button } from "@/components/ui/button"
 
+interface AudioData {
+  audio_url: string;
+  [key: string]: unknown;
+}
+
+interface VoiceData {
+  voice_id: string;
+  [key: string]: unknown;
+}
+
 interface ElevenLabsProfessionalStudioProps {
-  onAudioGenerated?: (audioData: any) => void
-  onVoiceCloned?: (voiceData: any) => void
+  onAudioGenerated?: (audioData: AudioData) => void
+  onVoiceCloned?: (voiceData: VoiceData) => void
 }
 
 export default function ElevenLabsProfessionalStudio({

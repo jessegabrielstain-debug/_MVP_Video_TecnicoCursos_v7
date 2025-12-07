@@ -11,11 +11,14 @@ const s3Client = new S3Client({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { text, voice_id, voice_settings, model_id = 'eleven_multilingual_v2' } = body
+    const { text, voiceId, voice_id, settings, voice_settings, model_id = 'eleven_multilingual_v2' } = body
+    
+    const actualVoiceId = voiceId || voice_id
+    const actualSettings = settings || voice_settings
 
-    if (!text || !voice_id) {
+    if (!text || !actualVoiceId) {
       return NextResponse.json(
-        { error: 'Text and voice_id are required' },
+        { error: 'Text and voiceId are required' },
         { status: 400 }
       )
     }
@@ -30,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call ElevenLabs TTS API
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${actualVoiceId}`, {
       method: 'POST',
       headers: {
         'xi-api-key': apiKey,
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         text,
         model_id,
-        voice_settings: voice_settings || {
+        voice_settings: actualSettings || {
           stability: 0.5,
           similarity_boost: 0.8,
           style: 0.2,
@@ -55,39 +58,12 @@ export async function POST(request: NextRequest) {
 
     // Get the audio data
     const audioBuffer = await response.arrayBuffer()
-    const audioData = Buffer.from(audioBuffer)
-
-    // Upload to S3
-    const filename = `${process.env.AWS_FOLDER_PREFIX}tts-audio/${Date.now()}-${voice_id}.mp3`
-    
-    const upload = new Upload({
-      client: s3Client,
-      params: {
-        Bucket: process.env.AWS_S3_BUCKET!,
-        Key: filename,
-        Body: audioData,
-        ContentType: 'audio/mpeg'
-      }
-    })
-    
-    const uploadResult = await upload.done()
-
-    // Generate public URL  
-    const audioUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${filename}`
-
-    // Estimate duration (rough calculation based on characters)
-    const estimatedDuration = Math.max(1, Math.floor(text.length * 0.08)) // ~80ms per character
+    const audioBase64 = Buffer.from(audioBuffer).toString('base64')
 
     return NextResponse.json({
-      audio_url: audioUrl,
-      duration: estimatedDuration,
-      text,
-      voice_id,
-      voice_settings,
-      model_id,
-      filename,
-      file_size: audioData.length,
-      created_at: new Date().toISOString()
+      success: true,
+      audioBase64,
+      duration: Math.max(1, Math.floor(text.length * 0.08)) // Estimate
     })
 
   } catch (error) {
@@ -101,3 +77,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

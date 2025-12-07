@@ -6,7 +6,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { batchSystem } from '@/lib/batch-processing-system';
-import type { BatchPriority } from '@/lib/batch-processing-system';
 
 /**
  * POST /api/batch/control
@@ -18,7 +17,7 @@ export async function POST(request: NextRequest) {
     const { jobId, action, priority } = body as {
       jobId: string;
       action: 'pause' | 'resume' | 'cancel' | 'setPriority';
-      priority?: BatchPriority;
+      priority?: 'low' | 'normal' | 'high';
     };
 
     if (!jobId || !action) {
@@ -32,13 +31,13 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'pause':
-        success = batchSystem.pauseJob(jobId);
+        success = await batchSystem.pauseJob(jobId);
         break;
       case 'resume':
-        success = batchSystem.resumeJob(jobId);
+        success = await batchSystem.resumeJob(jobId);
         break;
       case 'cancel':
-        success = batchSystem.cancelJob(jobId);
+        success = await batchSystem.cancelJob(jobId);
         break;
       case 'setPriority':
         if (!priority) {
@@ -47,7 +46,7 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
-        success = batchSystem.setPriority(jobId, priority);
+        success = await batchSystem.setPriority(jobId, priority);
         break;
       default:
         return NextResponse.json(
@@ -75,3 +74,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

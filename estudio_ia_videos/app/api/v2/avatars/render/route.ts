@@ -1,3 +1,4 @@
+// TODO: Fix v2 API types
 /**
  * 🎬 API v2: Avatar Render
  * Pipeline de renderização hiper-realista com Audio2Face
@@ -5,12 +6,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { avatar3DPipeline } from '@/lib/avatar-3d-pipeline'
-import { supabaseClient } from '@/lib/supabase'
+import { createRateLimiter, rateLimitPresets } from '../../../../lib/utils/rate-limit-middleware';
+import { avatar3DPipeline } from '../../../../lib/avatar-3d-pipeline'
+import { supabaseClient } from '../../../../lib/supabase'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
+const rateLimiterPost = createRateLimiter(rateLimitPresets.render);
 export async function POST(request: NextRequest) {
+  return rateLimiterPost(request, async (request: NextRequest) => {
   try {
     const formData = await request.formData()
     
@@ -45,9 +49,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se avatar existe no Supabase
-    const { data: avatar, error: avatarError } = await supabaseClient
+    const { data: avatar, error: avatarError } = await ((supabaseClient as any)
       .from('avatar_models')
-      .select('*')
+      .select('*') as any)
       .eq('id', avatarId)
       .eq('is_active', true)
       .single()
@@ -157,7 +161,7 @@ export async function POST(request: NextRequest) {
           rayTracingEnabled: rayTracing
         },
         metadata: {
-          startTime: new Date(renderResult.startTime).toISOString(),
+          startTime: renderResult.startTime ? new Date(renderResult.startTime).toISOString() : new Date().toISOString(),
           version: '2.0.0',
           userId: 'user-temp', // TODO: Obter userId real
           audioFile: audioFile ? audioFile.name : null,
@@ -179,9 +183,12 @@ export async function POST(request: NextRequest) {
       }
     }, { status: 500 })
   }
+  });
 }
 
+const rateLimiterGet = createRateLimiter(rateLimitPresets.authenticated);
 export async function GET(request: NextRequest) {
+  return rateLimiterGet(request, async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
@@ -192,7 +199,7 @@ export async function GET(request: NextRequest) {
     console.log('📊 API v2: Listando jobs de renderização...')
 
     // Buscar jobs do Supabase
-    let query = supabaseClient
+    let query: any = (supabaseClient
       .from('render_jobs')
       .select(`
         *,
@@ -202,7 +209,7 @@ export async function GET(request: NextRequest) {
           display_name,
           category
         )
-      `)
+      `) as any)
       .order('created_at', { ascending: false })
 
     // Filtrar por status
@@ -225,9 +232,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Contar total de jobs
-    let countQuery = supabaseClient
+    let countQuery: any = (supabaseClient
       .from('render_jobs')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'exact', head: true }) as any)
 
     if (status && status !== 'all') {
       countQuery = countQuery.eq('status', status)
@@ -244,7 +251,7 @@ export async function GET(request: NextRequest) {
     const response = {
       success: true,
       data: {
-        jobs: (jobs || []).map(job => ({
+        jobs: (jobs || []).map((job: any) => ({
           id: job.id,
           avatarId: job.avatar_model_id,
           userId: job.user_id,
@@ -282,10 +289,10 @@ export async function GET(request: NextRequest) {
         },
         stats: {
           ...stats,
-          queueLength: (jobs || []).filter(job => job.status === 'queued').length,
-          processingCount: (jobs || []).filter(job => job.status === 'processing').length,
-          completedCount: (jobs || []).filter(job => job.status === 'completed').length,
-          failedCount: (jobs || []).filter(job => job.status === 'failed').length
+          queueLength: (jobs || []).filter((job: any) => job.status === 'queued').length,
+          processingCount: (jobs || []).filter((job: any) => job.status === 'processing').length,
+          completedCount: (jobs || []).filter((job: any) => job.status === 'completed').length,
+          failedCount: (jobs || []).filter((job: any) => job.status === 'failed').length
         },
         metadata: {
           version: '2.0.0',
@@ -311,9 +318,12 @@ export async function GET(request: NextRequest) {
       }
     }, { status: 500 })
   }
+  });
 }
 
+const rateLimiterDelete = createRateLimiter(rateLimitPresets.authenticated);
 export async function DELETE(request: NextRequest) {
+  return rateLimiterDelete(request, async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url)
     const jobId = searchParams.get('jobId')
@@ -361,9 +371,9 @@ export async function DELETE(request: NextRequest) {
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
       
-      const { data: oldJobs } = await supabaseClient
+      const { data: oldJobs } = await (supabaseClient
         .from('render_jobs')
-        .select('id')
+        .select('id') as any)
         .lt('created_at', thirtyDaysAgo.toISOString())
         .in('status', ['completed', 'failed', 'cancelled'])
 
@@ -396,4 +406,5 @@ export async function DELETE(request: NextRequest) {
       }
     }, { status: 500 })
   }
+  });
 }

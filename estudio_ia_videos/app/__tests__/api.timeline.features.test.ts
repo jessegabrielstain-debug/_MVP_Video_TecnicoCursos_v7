@@ -9,6 +9,24 @@ import * as templatesRoute from '../api/v1/timeline/multi-track/templates/route'
 import * as bulkRoute from '../api/v1/timeline/multi-track/bulk/route'
 import * as analyticsRoute from '../api/v1/timeline/multi-track/analytics/route'
 
+jest.mock('next/server', () => {
+  return {
+    NextRequest: jest.fn().mockImplementation((url, init) => ({
+      url,
+      method: init?.method || 'GET',
+      headers: new Map(Object.entries(init?.headers || {})),
+      json: async () => init?.body ? JSON.parse(init.body) : {},
+      nextUrl: new URL(url)
+    })),
+    NextResponse: {
+      json: jest.fn().mockImplementation((body, init) => ({
+        status: init?.status || 200,
+        json: async () => body
+      }))
+    }
+  }
+})
+
 jest.mock('@/lib/prisma', () => {
   const mockTimeline = {
     id: 't1',

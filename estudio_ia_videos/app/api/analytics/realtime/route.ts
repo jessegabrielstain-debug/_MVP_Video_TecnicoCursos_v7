@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth/auth-config';
+import { authOptions } from '@/lib/auth';
 import { getOrgId } from '@/lib/auth/session-helpers';
 import { prisma } from '@/lib/db';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
+import { Prisma } from '@prisma/client';
+
 /**
  * GET /api/analytics/realtime
  * Retorna métricas em tempo real do sistema
- * 
- * Query params:
- * - window: '5m' | '15m' | '1h' (default: '15m') - janela de tempo para "tempo real"
  */
 async function getHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -44,9 +43,14 @@ async function getHandler(req: NextRequest) {
         startTime.setMinutes(now.getMinutes() - 15);
     }
 
-    const whereClause = {
+    const whereClause: Prisma.AnalyticsEventWhereInput = {
       createdAt: { gte: startTime },
-      ...(organizationId && { organizationId })
+      ...(organizationId && { 
+        eventData: {
+          path: ['organizationId'],
+          equals: organizationId
+        }
+      })
     };
 
     // Buscar dados em paralelo
@@ -77,7 +81,10 @@ async function getHandler(req: NextRequest) {
       prisma.analyticsEvent.count({
         where: {
           ...whereClause,
-          status: 'error'
+          eventData: {
+            path: ['status'],
+            equals: 'error'
+          }
         }
       }),
 
@@ -88,11 +95,8 @@ async function getHandler(req: NextRequest) {
         take: 20,
         select: {
           id: true,
-          category: true,
-          action: true,
-          label: true,
-          status: true,
-          duration: true,
+          eventType: true,
+          eventData: true,
           createdAt: true,
           userId: true
         }
@@ -101,20 +105,20 @@ async function getHandler(req: NextRequest) {
       // Eventos por minuto para gráfico de timeline
       prisma.$queryRaw`
         SELECT 
-          DATE_FORMAT(created_at, '%H:%i') as minute,
+          TO_CHAR(created_at, 'HH24:MI') as minute,
           COUNT(*) as events,
-          COUNT(CASE WHEN status = 'error' THEN 1 END) as errors
-        FROM analytics_event 
+          COUNT(CASE WHEN event_data->>'status' = 'error' THEN 1 END) as errors
+        FROM "AnalyticsEvent" 
         WHERE created_at >= ${startTime}
-        ${organizationId ? prisma.$queryRaw`AND organization_id = ${organizationId}` : prisma.$queryRaw``}
+        ${organizationId ? Prisma.sql`AND event_data->>'organizationId' = ${organizationId}` : Prisma.sql``}
         GROUP BY minute
         ORDER BY minute DESC
         LIMIT 60
       `,
 
-      // Top categorias de eventos
+      // Top categorias de eventos (usando eventType como categoria)
       prisma.analyticsEvent.groupBy({
-        by: ['category'],
+        by: ['eventType'],
         where: whereClause,
         _count: { id: true },
         orderBy: { _count: { id: 'desc' } },
@@ -123,32 +127,42 @@ async function getHandler(req: NextRequest) {
 
       // ✅ REAL - Métricas de saúde do sistema
       (async () => {
-        // Get latest system metrics
-        const systemMetrics = await prisma.systemMetrics.findFirst({
-          orderBy: { date: 'desc' }
-        });
-
         // Calculate average response time from recent events
-        const recentResponseTimes = await prisma.analyticsEvent.aggregate({
-          where: {
-            createdAt: { gte: startTime },
-            duration: { not: null },
-            ...(organizationId && { organizationId })
-          },
-          _avg: { duration: true }
-        });
+        // Note: aggregate on JSONB field is not directly supported by Prisma aggregate
+        // We use raw query for this
+        const avgDurationResult = await prisma.$queryRaw<{ avg_duration: number | null }[]>`
+          SELECT AVG(CAST(event_data->>'duration' AS FLOAT)) as avg_duration
+          FROM "AnalyticsEvent"
+          WHERE created_at >= ${startTime}
+          AND event_data->>'duration' IS NOT NULL
+          ${organizationId ? Prisma.sql`AND event_data->>'organizationId' = ${organizationId}` : Prisma.sql``}
+        `;
+        
+        const avgDuration = avgDurationResult[0]?.avg_duration || 0;
 
         // Calculate throughput (events per second)
         const durationSeconds = (now.getTime() - startTime.getTime()) / 1000;
-        const throughput = Math.round(totalEvents / Math.max(1, durationSeconds));
+        // We need totalEvents here, but we can't access it inside Promise.all easily without chaining
+        // So we re-fetch count or assume it will be consistent
+        const count = await prisma.analyticsEvent.count({ where: whereClause });
+        const throughput = Math.round(count / Math.max(1, durationSeconds));
 
         // Calculate error rate
-        const realtimeErrorRate = totalEvents > 0 ? (errorEvents / totalEvents * 100) : 0;
+        const errorCount = await prisma.analyticsEvent.count({
+          where: {
+            ...whereClause,
+            eventData: {
+              path: ['status'],
+              equals: 'error'
+            }
+          }
+        });
+        const realtimeErrorRate = count > 0 ? (errorCount / count * 100) : 0;
 
         return {
           cpu: 0,
           memory: 0,
-          responseTime: Math.round(recentResponseTimes._avg.duration || 0),
+          responseTime: Math.round(avgDuration),
           throughput,
           errorRate: realtimeErrorRate
         };
@@ -169,25 +183,28 @@ async function getHandler(req: NextRequest) {
     // Calcular tendências (comparar com período anterior)
     const previousStartTime = new Date(startTime.getTime() - (now.getTime() - startTime.getTime()));
     
+    const previousWhereClause: Prisma.AnalyticsEventWhereInput = {
+      createdAt: { 
+        gte: previousStartTime,
+        lt: startTime
+      },
+      ...(organizationId && { 
+        eventData: {
+          path: ['organizationId'],
+          equals: organizationId
+        }
+      })
+    };
+
     const previousPeriodEvents = await prisma.analyticsEvent.count({
-      where: {
-        createdAt: { 
-          gte: previousStartTime,
-          lt: startTime
-        },
-        ...(organizationId && { organizationId })
-      }
+      where: previousWhereClause
     });
 
     const previousPeriodUsers = await prisma.analyticsEvent.groupBy({
       by: ['userId'],
       where: {
-        createdAt: { 
-          gte: previousStartTime,
-          lt: startTime
-        },
-        userId: { not: null },
-        ...(organizationId && { organizationId })
+        ...previousWhereClause,
+        userId: { not: null }
       }
     });
 
@@ -256,7 +273,7 @@ async function getHandler(req: NextRequest) {
       },
       timeline,
       topCategories: topCategories.map((item) => ({
-        category: item.category,
+        category: item.eventType,
         count: item._count.id,
         percentage: totalEvents > 0 ? ((item._count.id / totalEvents) * 100).toFixed(1) : '0'
       })),
@@ -267,10 +284,20 @@ async function getHandler(req: NextRequest) {
         responseTime: Math.round(systemHealth.responseTime),
         throughput: systemHealth.throughput
       },
-      recentEvents: recentEvents.map(event => ({
-        ...event,
-        timeAgo: Math.round((now.getTime() - new Date(event.createdAt).getTime()) / 1000) // segundos atrás
-      })),
+      recentEvents: recentEvents.map(event => {
+        const data = (event.eventData as Record<string, unknown>) || {};
+        return {
+          id: event.id,
+          category: event.eventType,
+          action: data.action || 'unknown',
+          label: data.label || '',
+          status: data.status || 'success',
+          duration: data.duration || 0,
+          createdAt: event.createdAt,
+          userId: event.userId,
+          timeAgo: Math.round((now.getTime() - new Date(event.createdAt).getTime()) / 1000) // segundos atrás
+        };
+      }),
       anomalies,
       alerts: anomalies.filter(a => a.severity === 'warning' || a.severity === 'error')
     };
@@ -296,7 +323,7 @@ async function getHandler(req: NextRequest) {
  */
 async function postHandler(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     const body = await req.json();
     
     const {
@@ -318,21 +345,23 @@ async function postHandler(req: NextRequest) {
 
     // Processar eventos em lote
     const processedEvents = (events as unknown as Array<Record<string, unknown>>).map((event) => ({
-      organizationId,
       userId: (event.userId as string) || userId,
-      category: (event.category as string) || 'realtime',
-      action: (event.action as string) || 'event',
-      label: event.label as string | null | undefined,
-      duration: event.duration as number | null | undefined,
-      fileSize: event.fileSize as number | null | undefined,
-      value: event.value as number | null | undefined,
-      status: (event.status as string) || 'success',
-      errorCode: event.errorCode as string | null | undefined,
-      errorMessage: event.errorMessage as string | null | undefined,
-      metadata: {
-        source,
-        originalTimestamp: timestamp,
-        ...(event.metadata as Record<string, unknown> | undefined)
+      eventType: (event.category as string) || 'realtime',
+      eventData: {
+        organizationId,
+        action: (event.action as string) || 'event',
+        label: event.label as string | null | undefined,
+        duration: event.duration as number | null | undefined,
+        fileSize: event.fileSize as number | null | undefined,
+        value: event.value as number | null | undefined,
+        status: (event.status as string) || 'success',
+        errorCode: event.errorCode as string | null | undefined,
+        errorMessage: event.errorMessage as string | null | undefined,
+        metadata: {
+          source,
+          originalTimestamp: timestamp,
+          ...(event.metadata as Record<string, unknown> | undefined)
+        }
       }
     }));
 
@@ -363,3 +392,5 @@ async function postHandler(req: NextRequest) {
 // Aplicar middleware de performance
 export const GET = withAnalytics(getHandler);
 export const POST = withAnalytics(postHandler);
+
+

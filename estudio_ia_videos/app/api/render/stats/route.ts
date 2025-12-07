@@ -1,12 +1,12 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * 🎬 Render Statistics API
  * Provides comprehensive render performance analytics
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { supabaseAdmin } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 // Validation schema
@@ -14,9 +14,40 @@ const StatsQuerySchema = z.object({
   time_range: z.enum(['1h', '24h', '7d', '30d', '90d', 'all']).default('7d'),
   project_id: z.string().optional(),
   type: z.string().optional(),
-  include_performance: z.string().transform(val => val === 'true').default(true),
-  include_resources: z.string().transform(val => val === 'true').default(true)
+  include_performance: z.string().transform(val => val === 'true').default('true'),
+  include_resources: z.string().transform(val => val === 'true').default('true')
 })
+
+// Interfaces
+interface RenderSettings {
+  type?: string;
+  resource_usage?: ResourceUsage;
+  [key: string]: unknown;
+}
+
+interface ResourceUsage {
+  cpu_usage?: number;
+  memory_usage?: number;
+  gpu_usage?: number;
+  storage_used?: number;
+}
+
+interface RenderJob {
+  id: string;
+  status: string;
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+  duration_ms?: number;
+  render_settings?: RenderSettings;
+  [key: string]: unknown;
+}
+
+interface ProcessedRenderJob extends RenderJob {
+  type: string;
+  actual_duration: number;
+  resource_usage: ResourceUsage;
+}
 
 // Helper function to get time range filter
 function getTimeRangeFilter(timeRange: string) {
@@ -48,9 +79,10 @@ function getTimeRangeFilter(timeRange: string) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    const supabase = getSupabaseForRequest(request)
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
@@ -62,10 +94,10 @@ export async function GET(request: NextRequest) {
     const query = StatsQuerySchema.parse(Object.fromEntries(searchParams))
 
     // Build base query
-    let baseQuery = supabaseAdmin
+    let baseQuery = supabase
       .from('render_jobs')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
 
     // Apply time range filter
     const startDate = getTimeRangeFilter(query.time_range)
@@ -78,36 +110,47 @@ export async function GET(request: NextRequest) {
       baseQuery = baseQuery.eq('project_id', query.project_id)
     }
 
-    if (query.type) {
-      const types = query.type.split(',')
-      baseQuery = baseQuery.in('type', types)
-    }
-
     // Execute query
-    const { data: renderJobs, error } = await baseQuery
+    const { data: rawRenderJobs, error } = await baseQuery
 
     if (error) throw error
 
+    // Map and filter jobs in memory
+    let renderJobs: ProcessedRenderJob[] = (rawRenderJobs as unknown as RenderJob[])?.map((job) => {
+      const settings = job.render_settings || {};
+      return {
+        ...job,
+        type: settings.type || 'video',
+        actual_duration: job.duration_ms ? job.duration_ms / 1000 : 0, // Convert ms to seconds
+        resource_usage: settings.resource_usage || {}
+      };
+    }) || [];
+
+    if (query.type) {
+      const types = query.type.split(',')
+      renderJobs = renderJobs.filter(job => types.includes(job.type))
+    }
+
     // Calculate basic statistics
-    const totalRenders = renderJobs?.length || 0
-    const successfulRenders = renderJobs?.filter(job => job.status === 'completed').length || 0
-    const failedRenders = renderJobs?.filter(job => job.status === 'failed').length || 0
+    const totalRenders = renderJobs.length
+    const successfulRenders = renderJobs.filter(job => job.status === 'completed').length
+    const failedRenders = renderJobs.filter(job => job.status === 'failed').length
     const successRate = totalRenders > 0 ? (successfulRenders / totalRenders) * 100 : 0
 
     // Calculate render times
-    const completedJobs = renderJobs?.filter(job => 
-      job.status === 'completed' && job.actual_duration
-    ) || []
+    const completedJobs = renderJobs.filter(job => 
+      job.status === 'completed' && job.actual_duration > 0
+    )
 
-    const renderTimes = completedJobs.map(job => job.actual_duration || 0)
+    const renderTimes = completedJobs.map(job => job.actual_duration)
     const averageRenderTime = renderTimes.length > 0 
       ? renderTimes.reduce((sum, time) => sum + time, 0) / renderTimes.length 
       : 0
     const totalRenderTime = renderTimes.reduce((sum, time) => sum + time, 0)
 
     // Calculate queue statistics
-    const pendingJobs = renderJobs?.filter(job => job.status === 'pending') || []
-    const processingJobs = renderJobs?.filter(job => job.status === 'processing') || []
+    const pendingJobs = renderJobs.filter(job => job.status === 'queued') // 'queued' in DB, 'pending' in API types
+    const processingJobs = renderJobs.filter(job => job.status === 'processing')
 
     // Calculate average wait time
     const jobsWithWaitTime = processingJobs.filter(job => job.started_at)

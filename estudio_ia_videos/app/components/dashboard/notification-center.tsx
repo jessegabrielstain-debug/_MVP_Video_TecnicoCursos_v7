@@ -147,7 +147,7 @@ export function NotificationCenter() {
     }
   }
 
-  const handleUpdatePreferences = async (newPreferences: any) => {
+  const handleUpdatePreferences = async (newPreferences: Record<string, unknown>) => {
     try {
       await updatePreferences(newPreferences)
       toast.success('Notification preferences updated')

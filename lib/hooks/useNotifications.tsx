@@ -9,7 +9,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import type { Notification, NotificationType } from '@/lib/websocket/notification-system';
+import type { Notification, NotificationType } from '~lib/websocket/notification-system';
 
 // ============================================================================
 // TYPES
@@ -97,8 +97,8 @@ export function useNotifications(config: NotificationHookConfig): NotificationHo
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const clientIdRef = useRef<string>();
-  const pollingTimerRef = useRef<NodeJS.Timeout>();
+  const clientIdRef = useRef<string | undefined>(undefined);
+  const pollingTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Gerar client ID único
   useEffect(() => {

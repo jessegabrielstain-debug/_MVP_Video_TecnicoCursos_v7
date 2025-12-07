@@ -34,11 +34,11 @@ import {
 import { useRouter } from 'next/navigation'
 import 'react-circular-progressbar/dist/styles.css'
 
-interface ProcessedResult {
+export interface ProcessedResult {
   slides: number
   duration: number
   assets: number
-  timeline: any
+  timeline: Record<string, unknown>
   s3Key: string
   fileName: string
   processingTime: number

@@ -1,4 +1,4 @@
-
+// TODO: Alinhar Avatar3D com AvatarDefinition do pipeline
 
 'use client'
 
@@ -20,7 +20,7 @@ import {
   Sparkles
 } from 'lucide-react'
 import Image from 'next/image'
-import { avatar3DHyperPipeline } from '../../lib/avatar-3d-pipeline'
+import { avatar3DPipeline } from '../../lib/avatar-3d-pipeline'
 
 // Interface compatível com pipeline hiper-realista
 interface Avatar3D {
@@ -107,6 +107,24 @@ const sliderValueToIntensity = (
   return 'moderado'
 }
 
+const mapToAvatar3D = (def: any): Avatar3D => ({
+  id: def.id,
+  name: def.name,
+  category: (def.metadata?.category as any) || 'business',
+  gender: def.gender === 'male' ? 'male' : 'female',
+  ethnicity: (def.metadata?.ethnicity as any) || 'caucasian',
+  age: 'adult',
+  quality: def.engine === 'ue5' || def.engine === 'heygen' ? 'hyperreal' : 'standard',
+  features: {
+    facialDetails: 'high',
+    skinTexture: 'scanned',
+    hairSystem: 'strand',
+    lipSyncAccuracy: 95
+  },
+  model_quality: 'High',
+  appearance: def.metadata
+})
+
 export default function Avatar3DSelector({ onAvatarSelect, selectedAvatar, contentType = 'general' }: Avatar3DSelectorProps) {
   const [avatars, setAvatars] = useState<Avatar3D[]>([])
   const [filteredAvatars, setFilteredAvatars] = useState<Avatar3D[]>([])
@@ -116,7 +134,7 @@ export default function Avatar3DSelector({ onAvatarSelect, selectedAvatar, conte
 
   useEffect(() => {
     // Carregar avatares hiper-realistas
-    const allAvatars = avatar3DHyperPipeline.getAllAvatars()
+    const allAvatars = avatar3DPipeline.getAllAvatars().map(mapToAvatar3D)
     setAvatars(allAvatars)
     
     // Filtrar por categoria padrão
@@ -126,14 +144,15 @@ export default function Avatar3DSelector({ onAvatarSelect, selectedAvatar, conte
       'general': 'business'
     }
     
-    const recommended = avatar3DHyperPipeline.getAvatarsByCategory(categoryMap[contentType] || 'business')
+    const recommendedDefs = avatar3DPipeline.getAvatarsByCategory(categoryMap[contentType] || 'business')
+    const recommended = recommendedDefs.map(mapToAvatar3D)
     setFilteredAvatars(recommended)
   }, [contentType])
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category)
     
-    let filtered: Avatar3D[] = []
+    let filteredDefs: any[] = []
     
     switch (category) {
       case 'recommended':
@@ -143,28 +162,28 @@ export default function Avatar3DSelector({ onAvatarSelect, selectedAvatar, conte
           'corporate': 'business', 
           'general': 'business'
         }
-        filtered = avatar3DHyperPipeline.getAvatarsByCategory(categoryMap[contentType] || 'business')
+        filteredDefs = avatar3DPipeline.getAvatarsByCategory((categoryMap[contentType] as string) || 'business')
         break
       case 'technical':
-        filtered = avatar3DHyperPipeline.getAvatarsByCategory('safety')
+        filteredDefs = avatar3DPipeline.getAvatarsByCategory('safety')
         break
       case 'professional':
-        filtered = avatar3DHyperPipeline.getAvatarsByCategory('business')
+        filteredDefs = avatar3DPipeline.getAvatarsByCategory('business')
         break
       case 'executive':
-        filtered = avatar3DHyperPipeline.getAvatarsByCategory('business')
+        filteredDefs = avatar3DPipeline.getAvatarsByCategory('business')
         break
       case 'instructor':
-        filtered = avatar3DHyperPipeline.getAvatarsByCategory('education')
+        filteredDefs = avatar3DPipeline.getAvatarsByCategory('education')
         break
       case 'all':
-        filtered = avatars
+        filteredDefs = avatar3DPipeline.getAllAvatars()
         break
       default:
-        filtered = avatars
+        filteredDefs = avatar3DPipeline.getAllAvatars()
     }
     
-    setFilteredAvatars(filtered)
+    setFilteredAvatars(filteredDefs.map(mapToAvatar3D))
   }
 
   const handleAvatarSelection = (avatar: Avatar3D) => {

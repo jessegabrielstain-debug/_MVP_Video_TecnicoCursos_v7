@@ -3,10 +3,11 @@
  * Upload de vídeos renderizados para Supabase Storage
  */
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getBrowserClient } from '../supabase/browser';
 import fs from 'fs/promises';
 import path from 'path';
 import { createCanvas, loadImage } from 'canvas';
+import { FileObject } from '@supabase/storage-js';
 
 export interface VideoUploadOptions {
   videoPath: string;
@@ -32,7 +33,7 @@ export interface UploadResult {
 }
 
 export class VideoUploader {
-  private supabase = createClientComponentClient();
+  private supabase = getBrowserClient();
 
   /**
    * Upload de vídeo para Supabase Storage
@@ -206,9 +207,15 @@ export class VideoUploader {
     }
   ): Promise<void> {
     try {
+      const dbUpdates: Record<string, unknown> = {};
+      if (updates.videoUrl) dbUpdates.output_url = updates.videoUrl;
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.error) dbUpdates.error_message = updates.error;
+      if (updates.completedAt) dbUpdates.completed_at = updates.completedAt;
+
       const { error } = await this.supabase
         .from('render_jobs')
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', jobId);
 
       if (error) {
@@ -266,7 +273,7 @@ export class VideoUploader {
   /**
    * Lista vídeos de um usuário
    */
-  async listUserVideos(userId: string): Promise<any[]> {
+  async listUserVideos(userId: string): Promise<FileObject[]> {
     try {
       const { data, error } = await this.supabase.storage
         .from('videos')
@@ -311,7 +318,7 @@ export class VideoUploader {
   /**
    * Obtém informações de um vídeo
    */
-  async getVideoInfo(videoPath: string): Promise<any> {
+  async getVideoInfo(videoPath: string): Promise<FileObject | null> {
     try {
       const { data, error } = await this.supabase.storage
         .from('videos')

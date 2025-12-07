@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -13,10 +17,15 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
+    "ignoreDeprecations": "5.0",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["estudio_ia_videos/app/*"],
-      "~lib/*": ["lib/*"]
+      "@/*": [
+        "estudio_ia_videos/app/*"
+      ],
+      "~lib/*": [
+        "lib/*"
+      ]
     },
     "plugins": [
       {
@@ -25,19 +34,21 @@
     ]
   },
   "include": [
-    "next-env.d.ts",
-    "estudio_ia_videos/app/**/*.ts",
-    "estudio_ia_videos/app/**/*.tsx",
+    "lib/**/*.d.ts",
     "lib/**/*.ts",
     "lib/**/*.tsx",
-    "scripts/**/*.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "estudio_ia_videos/app/archive/**",
-    "estudio_ia_videos/app/pages_old_backup/**",
+    ".next",
+    "dist",
+    "build",
+    "coverage",
+    "out",
     "archive/**",
-    "_archive/**"
+    "_archive/**",
+    "estudio_ia_videos/**",
+    "**/__tests__/**"
   ]
 }

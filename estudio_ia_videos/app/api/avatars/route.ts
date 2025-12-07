@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 // Schema de validação para avatar 3D
 const avatarSchema = z.object({
-  project_id: z.string().uuid('ID do projeto inválido'),
+  project_id: z.string().refine((val) => /^[0-9a-fA-F-]{36}$/.test(val), 'ID do projeto inválido'),
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome muito longo'),
   ready_player_me_url: z.string().url('URL do Ready Player Me inválida'),
   avatar_type: z.enum(['full_body', 'half_body', 'head_only']).default('half_body'),
@@ -24,15 +24,15 @@ const avatarSchema = z.object({
     pitch: z.number().min(-20).max(20).default(0),
     volume: z.number().min(0).max(1).default(0.8)
   }).optional(),
-  properties: z.record(z.any()).default({})
+  properties: z.record(z.unknown()).default({})
 })
 
-const updateAvatarSchema = avatarSchema.partial().omit(['project_id'])
+const updateAvatarSchema = avatarSchema.omit({ project_id: true }).partial()
 
 // GET - Listar avatares 3D
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    let query = supabase
-      .from('avatars_3d')
+    let query = (supabase
+      .from('avatars_3d' as any) as any)
       .select(`
         *,
         projects:project_id (
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       query = query.eq('style', style)
     }
 
-    const { data: avatars, error } = await query
+    const { data: avatarsData, error } = await query
 
     if (error) {
       console.error('Erro ao buscar avatares:', error)
@@ -86,11 +86,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const avatars = avatarsData as any[]
+
     // Filtrar apenas avatares que o usuário tem permissão para ver
     const authorizedAvatars = (avatars || []).filter(avatar => {
       const project = avatar.projects as Record<string, unknown>
       return project.owner_id === user.id || 
-             project.collaborators?.includes(user.id) ||
+             (Array.isArray(project.collaborators) && (project.collaborators as string[]).includes(user.id)) ||
              project.is_public
     })
 
@@ -108,7 +110,7 @@ export async function GET(request: NextRequest) {
 // POST - Criar novo avatar 3D
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -122,18 +124,20 @@ export async function POST(request: NextRequest) {
     const validatedData = avatarSchema.parse(body)
 
     // Verificar se projeto existe e permissões
-    const { data: project } = await supabase
+    const { data: projectData } = await supabase
       .from('projects')
       .select('owner_id, collaborators')
       .eq('id', validatedData.project_id)
       .single()
 
-    if (!project) {
+    if (!projectData) {
       return NextResponse.json(
         { error: 'Projeto não encontrado' },
         { status: 404 }
       )
     }
+
+    const project = projectData as any
 
     const hasPermission = project.owner_id === user.id || 
                          project.collaborators?.includes(user.id)
@@ -146,8 +150,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se já existe avatar com mesmo nome no projeto
-    const { data: existingAvatar } = await supabase
-      .from('avatars_3d')
+    const { data: existingAvatar } = await (supabase
+      .from('avatars_3d' as any) as any)
       .select('id')
       .eq('project_id', validatedData.project_id)
       .eq('name', validatedData.name)
@@ -172,8 +176,8 @@ export async function POST(request: NextRequest) {
     const avatarData = await fetchReadyPlayerMeData(validatedData.ready_player_me_url)
 
     // Criar avatar
-    const { data: avatar, error } = await supabase
-      .from('avatars_3d')
+    const { data: avatar, error } = await (supabase
+      .from('avatars_3d' as any) as any)
       .insert({
         ...validatedData,
         user_id: user.id,
@@ -193,8 +197,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Registrar no histórico
-    await supabase
-      .from('project_history')
+    await (supabase
+      .from('project_history' as any) as any)
       .insert({
         project_id: validatedData.project_id,
         user_id: user.id,
@@ -263,7 +267,7 @@ async function fetchReadyPlayerMeData(url: string) {
 // PUT - Atualizar configurações globais de avatares
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseForRequest(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -284,18 +288,20 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verificar permissões no projeto
-    const { data: project } = await supabase
+    const { data: projectData } = await supabase
       .from('projects')
       .select('owner_id, collaborators, settings')
       .eq('id', project_id)
       .single()
 
-    if (!project) {
+    if (!projectData) {
       return NextResponse.json(
         { error: 'Projeto não encontrado' },
         { status: 404 }
       )
     }
+
+    const project = projectData as any
 
     const hasPermission = project.owner_id === user.id || 
                          project.collaborators?.includes(user.id)
@@ -316,8 +322,8 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const { error: updateError } = await supabase
-      .from('projects')
+    const { error: updateError } = await (supabase
+      .from('projects' as any) as any)
       .update({ settings: updatedSettings })
       .eq('id', project_id)
 
@@ -330,8 +336,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Registrar no histórico
-    await supabase
-      .from('project_history')
+    await (supabase
+      .from('project_history' as any) as any)
       .insert({
         project_id: project_id,
         user_id: user.id,

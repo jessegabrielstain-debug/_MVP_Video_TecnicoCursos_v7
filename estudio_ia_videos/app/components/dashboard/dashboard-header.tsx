@@ -37,8 +37,8 @@ export default function DashboardHeader() {
 
       try {
         const { data: profile, error } = await supabase
-          .from('user_profiles')
-          .select('full_name, avatar_url')
+          .from('users')
+          .select('name, avatar_url')
           .eq('id', authUser.id)
           .maybeSingle()
 
@@ -46,7 +46,7 @@ export default function DashboardHeader() {
           console.warn('Não foi possível carregar perfil do usuário:', error)
         }
 
-        setDisplayName(profile?.full_name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
+        setDisplayName(profile?.name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
         setAvatarUrl(profile?.avatar_url ?? authUser.user_metadata?.avatar_url ?? null)
       } catch (error) {
         console.error('Erro ao carregar perfil do usuário:', error)

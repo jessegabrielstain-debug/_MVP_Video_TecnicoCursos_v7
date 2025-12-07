@@ -4,6 +4,7 @@
  */
 
 'use client';
+export const dynamic = 'force-dynamic';
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
@@ -50,7 +51,7 @@ export default function VideoStudioPage() {
     { id: 'avatar', name: 'Avatar', icon: User }
   ];
 
-  const handleAddElement = (type: string, data: any = {}) => {
+  const handleAddElement = (type: string, data: { url?: string; [key: string]: unknown } = {}) => {
     const newElement: TimelineElement = {
       id: crypto.randomUUID(),
       type: type as TimelineElement['type'],

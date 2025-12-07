@@ -41,7 +41,7 @@ import {
   Archive,
   Plus
 } from 'lucide-react'
-import { avatar3DHyperPipeline } from '@/lib/avatar-3d-pipeline'
+import { avatar3DPipeline } from '@/lib/avatar-3d-pipeline'
 import { HyperRealAvatarSelector } from './hyperreal-avatar-selector'
 
 interface Scene {
@@ -69,8 +69,15 @@ export function AnimakerIdenticalLayout({ projectTitle = "NR 11 - OPERAÇÃO DE 
   const timelineRef = useRef<HTMLDivElement>(null)
 
   // Carregar avatares 3D hiper-realistas
-  const avatarCategories = avatar3DHyperPipeline.getAllCategories()
-  const currentAvatars = avatar3DHyperPipeline.getAvatarsByCategory(selectedAvatarCategory)
+  // Note: avatar3DPipeline does not have getAllCategories or getAvatarsByCategory in the file I read.
+  // I need to check if I need to add them to avatar3DPipeline or if I should use another way.
+  // The file app/lib/avatar-3d-pipeline.ts only has renderAvatar, customizeAvatar, renderHyperRealisticAvatar, getRenderJobStatus, generateHyperRealisticLipSync.
+  
+  // Wait, I should check if I can add these methods to avatar3DPipeline in app/lib/avatar-3d-pipeline.ts
+  // Or maybe I should use avatarRegistry directly?
+  
+  // Let's check app/lib/avatars/avatar-registry.ts
+
 
   // Cenas do projeto (lado direito)
   const scenes: Scene[] = [
@@ -87,7 +94,7 @@ export function AnimakerIdenticalLayout({ projectTitle = "NR 11 - OPERAÇÃO DE 
 
   const handleAvatarSelect = (avatarId: string) => {
     setSelectedAvatar(avatarId)
-    const avatar = avatar3DHyperPipeline.getAvatar(avatarId)
+    const avatar = avatar3DPipeline.getAvatar(avatarId)
     if (avatar) {
       toast.success(`🎭 Avatar "${avatar.name}" selecionado (Hiper-Realista)`)
     }

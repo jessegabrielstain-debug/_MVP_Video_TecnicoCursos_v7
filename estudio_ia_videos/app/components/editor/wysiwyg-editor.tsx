@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useAdvancedEditor } from '@/hooks/useAdvancedEditor';
-import type { EditorLayer, Timeline, EditorViewport } from '@/hooks/useAdvancedEditor';
+import type { EditorLayer, Timeline, EditorViewport, MediaLayerContent, TextLayerContent } from '@/hooks/useAdvancedEditor';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,7 +29,7 @@ import {
   Undo,
   Redo,
   Copy,
-  Cut,
+  Scissors,
   Clipboard,
   Eye,
   EyeOff,
@@ -308,7 +308,7 @@ export const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
           disabled={editor.selection.selectedLayers.length === 0}
           title="Recortar (Ctrl+X)"
         >
-          <Cut className="w-4 h-4" />
+          <Scissors className="w-4 h-4" />
         </Button>
         
         <Button
@@ -562,9 +562,9 @@ export const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
                 onClick={() => editor.selectLayer(layer.id)}
               >
                 <div className="w-full h-full flex items-center justify-center bg-white rounded">
-                  {layer.type === 'image' && layer.content?.src ? (
+                  {layer.type === 'image' && (layer.content as MediaLayerContent)?.src ? (
                     <img 
-                      src={layer.content.src} 
+                      src={(layer.content as MediaLayerContent).src} 
                       alt={layer.name}
                       className="w-full h-full object-cover rounded"
                     />
@@ -572,11 +572,11 @@ export const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
                     <div 
                       className="text-center text-xs"
                       style={{ 
-                        fontSize: Math.min(layer.content?.fontSize || 12, 12),
-                        color: layer.content?.color || '#000'
+                        fontSize: Math.min((layer.content as TextLayerContent)?.fontSize || 12, 12),
+                        color: (layer.content as TextLayerContent)?.color || '#000'
                       }}
                     >
-                      {layer.content?.text || layer.name}
+                      {(layer.content as TextLayerContent)?.text || layer.name}
                     </div>
                   ) : (
                     <LayerIcon className="w-6 h-6 text-gray-400" />
@@ -1000,10 +1000,10 @@ export const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
                           <div>
                             <label className="text-xs font-medium">Texto</label>
                             <textarea
-                              value={layer.content?.text || ''}
+                              value={(layer.content as TextLayerContent)?.text || ''}
                               onChange={(e) => 
                                 editor.updateLayer(layerId, {
-                                  content: { ...layer.content, text: e.target.value }
+                                  content: { ...(layer.content as TextLayerContent), text: e.target.value }
                                 })
                               }
                               className="w-full text-xs border rounded px-2 py-1 mt-1"
@@ -1016,10 +1016,10 @@ export const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
                               <label className="text-xs font-medium">Tamanho</label>
                               <input
                                 type="number"
-                                value={layer.content?.fontSize || 16}
+                                value={(layer.content as TextLayerContent)?.fontSize || 16}
                                 onChange={(e) => 
                                   editor.updateLayer(layerId, {
-                                    content: { ...layer.content, fontSize: Number(e.target.value) }
+                                    content: { ...(layer.content as TextLayerContent), fontSize: Number(e.target.value) }
                                   })
                                 }
                                 className="w-full text-xs border rounded px-1 py-0.5"
@@ -1029,10 +1029,10 @@ export const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
                               <label className="text-xs font-medium">Cor</label>
                               <input
                                 type="color"
-                                value={layer.content?.color || '#000000'}
+                                value={(layer.content as TextLayerContent)?.color || '#000000'}
                                 onChange={(e) => 
                                   editor.updateLayer(layerId, {
-                                    content: { ...layer.content, color: e.target.value }
+                                    content: { ...(layer.content as TextLayerContent), color: e.target.value }
                                   })
                                 }
                                 className="w-full h-6 border rounded"

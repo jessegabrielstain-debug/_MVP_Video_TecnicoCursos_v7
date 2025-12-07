@@ -1,4 +1,3 @@
-
 /**
  * E2E Tests: Blockchain Certificates
  * Sprint 44

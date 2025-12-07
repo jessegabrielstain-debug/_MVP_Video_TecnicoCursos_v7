@@ -1,4 +1,3 @@
-
 /**
  * 🔧 Global Button Fix - Sprint 20 Enhanced
  * Correção universal para botões sem handlers detectados nos testes
@@ -29,10 +28,10 @@ export function GlobalButtonFix() {
       }
 
       // Encontrar todos os botões sem onClick
-      const buttons = document.querySelectorAll('button:not([data-fixed])')
+      const buttons = document.querySelectorAll<HTMLButtonElement>('button:not([data-fixed])')
 
       // Fix específico para botões que ainda estão sendo detectados como inativos
-      const allButtons = document.querySelectorAll('button')
+      const allButtons = document.querySelectorAll<HTMLButtonElement>('button')
       const problematicButtons = Array.from(allButtons).filter(button => {
         const text = button.textContent?.trim() || ''
         return text === 'Assets' ||

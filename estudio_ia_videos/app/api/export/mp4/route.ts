@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { workflowManager } from '../../unified/route'
+import { workflowManager } from '@/lib/workflow/unified-workflow-manager'
 import { z } from 'zod'
 
 // Schemas de validação
@@ -65,6 +65,21 @@ interface ExportJob {
   completedAt?: string
 }
 
+interface ProjectMetadata {
+  render?: {
+    outputUrl?: string
+  }
+  [key: string]: unknown
+}
+
+interface ExportFormat {
+  id: string
+  name: string
+  description: string
+  extension: string
+  mimeType: string
+}
+
 class ExportSystem {
   private exportJobs: Map<string, ExportJob> = new Map()
 
@@ -113,15 +128,16 @@ class ExportSystem {
       if (!project) throw new Error('Project not found')
 
       // Verificar se o vídeo foi renderizado
-      if (!project.metadata?.render?.outputUrl) {
+      const metadata = (project.metadata as unknown as ProjectMetadata) || {}
+      if (!metadata.render?.outputUrl) {
         throw new Error('Project not rendered yet. Please render the video first.')
       }
 
       // Etapas da exportação
-      await this.prepareExport(job, project.metadata)
+      await this.prepareExport(job, metadata)
       this.updateJobStatus(jobId, 'processing', 25)
 
-      await this.processVideo(job, project.metadata)
+      await this.processVideo(job, metadata)
       this.updateJobStatus(jobId, 'processing', 50)
 
       await this.addWatermark(job)
@@ -131,11 +147,12 @@ class ExportSystem {
       this.updateJobStatus(jobId, 'completed', 100, undefined, result.outputUrl, result.downloadUrl, result.fileSize)
 
       // Salvar resultado no banco
+      const currentMetadata = (project.metadata as unknown as ProjectMetadata) || {}
       await prisma.project.update({
         where: { id: job.projectId },
         data: {
           metadata: {
-            ...project.metadata,
+            ...currentMetadata,
             export: {
               jobId,
               status: 'completed',
@@ -149,7 +166,8 @@ class ExportSystem {
       })
 
     } catch (error) {
-      this.updateJobStatus(jobId, 'error', job.progress, error.message)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      this.updateJobStatus(jobId, 'error', job.progress, errorMessage)
       throw error
     }
   }
@@ -179,16 +197,20 @@ class ExportSystem {
     this.exportJobs.set(jobId, job)
   }
 
-  private async prepareExport(job: ExportJob, metadata: any): Promise<void> {
+  private async prepareExport(job: ExportJob, metadata: ProjectMetadata): Promise<void> {
     // Preparar arquivos para exportação
     await new Promise(resolve => setTimeout(resolve, 500))
     console.log('Export prepared for job:', job.id)
   }
 
-  private async processVideo(job: ExportJob, metadata: any): Promise<void> {
+  private async processVideo(job: ExportJob, metadata: ProjectMetadata): Promise<void> {
     // Processar vídeo de acordo com as configurações
-    const renderOutput = metadata.render.outputUrl
+    const renderOutput = metadata.render?.outputUrl
     
+    if (!renderOutput) {
+      throw new Error('Render output URL not found in metadata')
+    }
+
     // Simular processamento com FFmpeg
     await this.simulateVideoProcessing(job, renderOutput)
   }
@@ -281,7 +303,7 @@ class ExportSystem {
     return true
   }
 
-  async getExportFormats(): Promise<any[]> {
+  async getExportFormats(): Promise<ExportFormat[]> {
     return [
       {
         id: 'mp4',
@@ -341,7 +363,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se o projeto foi renderizado
-    if (!project.metadata?.render?.outputUrl) {
+    const metadata = (project.metadata as unknown as ProjectMetadata) || {}
+    if (!metadata.render?.outputUrl) {
       return NextResponse.json({ 
         error: 'Project not rendered yet. Please render the video first.' 
       }, { status: 400 })
@@ -371,10 +394,9 @@ export async function POST(request: NextRequest) {
     console.error('Export API Error:', error)
     
     // Atualizar workflow para "error"
-    const body = await request.json().catch(() => ({}))
-    if (body.projectId) {
-      await workflowManager.updateWorkflowStep(body.projectId, 'export', 'error', { error: error.message })
-    }
+    // Não podemos ler o body novamente aqui, então assumimos erro genérico no workflow se não tivermos projectId
+    // Se o erro ocorreu após o parse do body, validatedData estaria disponível se fosse escopo maior, mas aqui não é.
+    // Vamos apenas retornar o erro.
     
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

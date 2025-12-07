@@ -1,55 +1,56 @@
-/**
- * Storage Abstraction
- * Simplifica acesso a buckets Supabase (videos, avatars, thumbnails, assets).
- * Futuro: mover para '@/lib/services/storage-service.ts' com cache/CDN.
- */
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import path from 'path'
+import { promises as fs } from 'fs'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
-export type BucketName = 'videos' | 'avatars' | 'thumbnails' | 'assets';
+type SaveResult = { url: string }
 
-export interface StoredFileMeta {
-  name: string;
-  bucket: BucketName;
-  size?: number;
-  lastModified?: string;
-  publicUrl?: string;
+interface StorageAdapter {
+  saveFile(buffer: Buffer, key: string, contentType?: string): Promise<SaveResult>
 }
 
-function client() {
-  return supabaseAdmin();
+class LocalStorage implements StorageAdapter {
+  async saveFile(buffer: Buffer, key: string): Promise<SaveResult> {
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads')
+    await fs.mkdir(uploadDir, { recursive: true })
+    const filePath = path.join(uploadDir, key)
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.writeFile(filePath, buffer)
+    const url = `/uploads/${key}`.replace(/\\/g, '/')
+    return { url }
+  }
 }
 
-export async function listFiles(bucket: BucketName, prefix = ''): Promise<StoredFileMeta[]> {
-  const { data, error } = await client().storage.from(bucket).list(prefix, { limit: 100, offset: 0 });
-  if (error) throw error;
-  return (data || []).map(f => ({
-    name: f.name,
-    bucket,
-    size: f.metadata?.size ?? f.size,
-    lastModified: f.updated_at,
-    publicUrl: client().storage.from(bucket).getPublicUrl((prefix ? prefix + '/' : '') + f.name).data.publicUrl
-  }));
+class S3Storage implements StorageAdapter {
+  private client: S3Client
+  private bucket: string
+  private region: string
+  private publicBase?: string
+
+  constructor() {
+    this.region = process.env.AWS_REGION || 'us-east-1'
+    this.bucket = process.env.AWS_S3_BUCKET || ''
+    this.publicBase = process.env.AWS_PUBLIC_BASE || ''
+    this.client = new S3Client({ region: this.region })
+  }
+
+  async saveFile(buffer: Buffer, key: string, contentType = 'application/octet-stream'): Promise<SaveResult> {
+    if (!this.bucket) throw new Error('AWS_S3_BUCKET not configured')
+    await this.client.send(new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType
+    }))
+    const url = this.publicBase
+      ? `${this.publicBase.replace(/\/$/, '')}/${key}`
+      : `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`
+    return { url }
+  }
 }
 
-export async function uploadFile(bucket: BucketName, path: string, contents: Buffer | ArrayBuffer | Blob): Promise<StoredFileMeta> {
-  const { data, error } = await client().storage.from(bucket).upload(path, contents, { upsert: true });
-  if (error) throw error;
-  return {
-    name: data?.path || path,
-    bucket,
-    publicUrl: client().storage.from(bucket).getPublicUrl(data?.path || path).data.publicUrl
-  };
+export function createStorage(): StorageAdapter {
+  const provider = (process.env.STORAGE_PROVIDER || 'local').toLowerCase()
+  if (provider === 's3') return new S3Storage()
+  return new LocalStorage()
 }
 
-export async function getSignedUrl(bucket: BucketName, path: string, expiresInSeconds = 3600): Promise<string> {
-  const { data, error } = await client().storage.from(bucket).createSignedUrl(path, expiresInSeconds);
-  if (error) throw error;
-  return data.signedUrl;
-}
-
-export async function removeFile(bucket: BucketName, paths: string | string[]): Promise<boolean> {
-  const arr = Array.isArray(paths) ? paths : [paths];
-  const { error } = await client().storage.from(bucket).remove(arr);
-  if (error) throw error;
-  return true;
-}

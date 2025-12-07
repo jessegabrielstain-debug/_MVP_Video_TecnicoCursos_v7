@@ -1,5 +1,7 @@
 export interface EditorElement {
   id: string;
+  name: string;
+  layerId: string;
   type: 'text' | 'image' | 'video' | 'audio' | 'shape' | 'avatar';
   position: {
     x: number;
@@ -130,6 +132,7 @@ export interface EditorLayer {
   name: string;
   visible: boolean;
   locked: boolean;
+  expanded: boolean;
   opacity: number;
   blendMode: 'normal' | 'multiply' | 'screen' | 'overlay' | 'soft-light' | 'hard-light';
   elements: string[]; // IDs dos elementos
@@ -161,7 +164,7 @@ export interface TimelineMarker {
 }
 
 export interface EditorState {
-  elements: Record<string, EditorElement>;
+  elements: EditorElement[];
   layers: EditorLayer[];
   timeline: EditorTimeline;
   selectedElements: string[];
@@ -196,7 +199,7 @@ export interface EditorHistoryEntry {
   id: string;
   timestamp: Date;
   action: string;
-  data: any;
+  data: Record<string, unknown>;
   description: string;
 }
 
@@ -239,7 +242,7 @@ export interface EditorProject {
 export interface DragDropItem {
   id: string;
   type: string;
-  data: any;
+  data: Record<string, unknown>;
   preview?: string;
 }
 
@@ -271,7 +274,7 @@ export interface EditorPanel {
   visible: boolean;
   collapsible: boolean;
   resizable: boolean;
-  content: React.ComponentType<any>;
+  content: React.ComponentType<Record<string, unknown>>;
 }
 
 export interface EditorCommand {
@@ -280,7 +283,7 @@ export interface EditorCommand {
   description: string;
   shortcut?: string;
   category: string;
-  execute: (state: EditorState, ...args: any[]) => EditorState;
+  execute: (state: EditorState, ...args: unknown[]) => EditorState;
   canExecute?: (state: EditorState) => boolean;
   icon?: string;
 }

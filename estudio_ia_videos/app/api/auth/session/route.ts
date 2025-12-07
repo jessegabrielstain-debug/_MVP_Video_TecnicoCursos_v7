@@ -1,10 +1,12 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authConfig } from '@/lib/auth/auth-config'
+import { authOptions } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig)
+    const session = await getServerSession(authOptions)
     
     return NextResponse.json({
       user: session?.user || null,
@@ -18,3 +20,4 @@ export async function GET(request: NextRequest) {
     })
   }
 }
+

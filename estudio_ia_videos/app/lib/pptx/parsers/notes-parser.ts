@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
+import { PPTXNotesData, PPTXParagraph, PPTXRun, getString, ensureArray } from './types';
 
 export interface SpeakerNotesResult {
   success: boolean;
@@ -16,7 +17,6 @@ export class PPTXNotesParser {
     this.xmlParser = new XMLParser({
       ignoreAttributes: false,
       attributeNamePrefix: '@_',
-      parseNodeValue: true,
       parseAttributeValue: true,
       trimValues: true,
     });
@@ -59,7 +59,7 @@ export class PPTXNotesParser {
     }
   }
 
-  private extractTextFromNotes(notesData: any): string {
+  private extractTextFromNotes(notesData: PPTXNotesData): string {
     try {
       const texts: string[] = [];
       const spTree = notesData?.['p:notes']?.['p:cSld']?.['p:spTree'];
@@ -67,23 +67,23 @@ export class PPTXNotesParser {
       if (!spTree) return '';
 
       // Processar shapes que contêm texto
-      const shapes = this.toArray(spTree['p:sp']);
+      const shapes = ensureArray(spTree['p:sp']);
       
       for (const shape of shapes) {
         if (!shape?.['p:txBody']) continue;
 
-        const paragraphs = this.toArray(shape['p:txBody']['a:p']);
+        const paragraphs = ensureArray<PPTXParagraph>(shape['p:txBody']['a:p']);
         
         for (const paragraph of paragraphs) {
           if (!paragraph) continue;
           
-          const runs = this.toArray(paragraph['a:r']);
+          const runs = ensureArray<PPTXRun>(paragraph['a:r']);
           
           for (const run of runs) {
             if (!run) continue;
             
-            const text = run['a:t'];
-            if (typeof text === 'string') {
+            const text = getString(run['a:t']);
+            if (text) {
               texts.push(text);
             }
           }
@@ -94,11 +94,6 @@ export class PPTXNotesParser {
     } catch {
       return '';
     }
-  }
-
-  private toArray<T>(value: T | T[] | undefined): T[] {
-    if (value === undefined) return [];
-    return Array.isArray(value) ? value : [value];
   }
 
   /**

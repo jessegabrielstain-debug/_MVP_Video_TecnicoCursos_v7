@@ -1,3 +1,4 @@
+// TODO: Script - fix types
 // 🧪 Script de Teste - PPTX Processing Real
 // FASE 1: Validação completa do sistema de processamento PPTX
 
@@ -5,7 +6,7 @@ import fs from 'fs'
 import path from 'path'
 import PptxGenJS from 'pptxgenjs'
 import { parsePPTXAdvanced } from '../lib/pptx-parser-advanced'
-import { PPTXProcessor } from '../lib/pptx/pptx-processor'
+import { PPTXProcessorReal } from '../lib/pptx/pptx-processor-real'
 
 // Criar um PPTX de teste simples
 async function createTestPPTX(): Promise<Buffer> {
@@ -105,7 +106,7 @@ async function createTestPPTX(): Promise<Buffer> {
   })
 
   // Gerar buffer
-  const buffer = await pptx.write('nodebuffer') as Buffer
+  const buffer = await pptx.write({ outputType: 'nodebuffer' }) as Buffer
   console.log(`✅ PPTX de teste criado: ${buffer.length} bytes`)
   
   return buffer
@@ -120,17 +121,18 @@ async function testAdvancedParser(buffer: Buffer) {
     
     console.log('📊 Resultados do Parser:')
     console.log(`- Slides extraídos: ${result.slides.length}`)
-    console.log(`- Imagens encontradas: ${result.images.length}`)
-    console.log(`- Título: ${result.metadata.title}`)
-    console.log(`- Autor: ${result.metadata.author}`)
-    console.log(`- Data criação: ${result.metadata.created}`)
+    // console.log(`- Imagens encontradas: ${result.images.length}`)
+    console.log(`- Título: ${result.metadata.title || 'N/A'}`)
+    console.log(`- Autor: ${result.metadata.author || 'N/A'}`)
+    console.log(`- Data criação: ${result.metadata.createdAt || 'N/A'}`)
     
     // Mostrar conteúdo dos slides
     result.slides.forEach((slide, index) => {
-      console.log(`\n📄 Slide ${slide.slideNumber}:`)
+      console.log(`\n📄 Slide ${slide.index}:`)
       console.log(`  Título: ${slide.title}`)
-      console.log(`  Conteúdo: ${slide.content.slice(0, 100)}...`)
-      console.log(`  Layout: ${slide.layout}`)
+      const content = Array.isArray(slide.content) ? slide.content.join(' ') : slide.content
+      console.log(`  Conteúdo: ${content.slice(0, 100)}...`)
+      // console.log(`  Layout: ${slide.layout}`)
       console.log(`  Imagens: ${slide.images.length}`)
     })
     
@@ -149,29 +151,15 @@ async function testCompleteProcessor(buffer: Buffer) {
   try {
     const projectId = `test-${Date.now()}`
     
-    const result = await PPTXProcessor.processFile(
-      buffer,
-      projectId,
-      {
-        extractImages: true,
-        uploadToS3: false, // Desabilitar S3 para teste local
-        generateThumbnails: true,
-        extractNotes: true,
-        detectLayouts: true,
-        estimateDurations: true
-      },
-      (progress) => {
-        console.log(`📈 Progresso: ${progress.stage} - ${progress.progress}% - ${progress.message}`)
-      }
-    )
+    const result = await PPTXProcessorReal.extract(buffer)
     
     console.log('\n📊 Resultados do Processador Completo:')
     console.log(`- Sucesso: ${result.success}`)
     console.log(`- Total de slides: ${result.slides.length}`)
-    console.log(`- Duração estimada: ${result.timeline.totalDuration}s`)
-    console.log(`- Blocos de texto: ${result.extractionStats.textBlocks}`)
-    console.log(`- Imagens processadas: ${result.extractionStats.images}`)
-    console.log(`- Tempo de processamento: ${result.extractionStats.processingTime}ms`)
+    console.log(`- Duração estimada: ${result.timeline?.totalDuration || 0}s`)
+    console.log(`- Blocos de texto: ${result.extractionStats?.textBlocks || 0}`)
+    console.log(`- Imagens processadas: ${result.extractionStats?.images || 0}`)
+    // console.log(`- Tempo de processamento: ${result.extractionStats.processingTime}ms`)
     
     // Mostrar detalhes dos slides
     result.slides.forEach((slide, index) => {
@@ -225,21 +213,21 @@ async function runTests() {
       },
       {
         test: 'Metadados extraídos',
-        result: parserResult.metadata.title.length > 0,
+        result: (parserResult.metadata.title?.length || 0) > 0,
         expected: 'string',
         actual: typeof parserResult.metadata.title
       },
       {
         test: 'Textos extraídos',
-        result: processorResult.extractionStats.textBlocks > 0,
+        result: (processorResult.extractionStats?.textBlocks || 0) > 0,
         expected: '> 0',
-        actual: processorResult.extractionStats.textBlocks
+        actual: processorResult.extractionStats?.textBlocks
       },
       {
         test: 'Timeline gerada',
-        result: processorResult.timeline.totalDuration > 0,
+        result: (processorResult.timeline?.totalDuration || 0) > 0,
         expected: '> 0',
-        actual: processorResult.timeline.totalDuration
+        actual: processorResult.timeline?.totalDuration
       }
     ]
     

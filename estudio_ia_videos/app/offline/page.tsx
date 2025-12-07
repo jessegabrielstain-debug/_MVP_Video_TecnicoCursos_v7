@@ -15,7 +15,6 @@ import {
   Wifi,
   Download,
   Upload,
-  Sync,
   HardDrive,
   Clock,
   CheckCircle,
@@ -226,7 +225,7 @@ export default function OfflinePage() {
                 disabled={!isOnline || syncInProgress}
                 variant={pendingItems > 0 ? "default" : "outline"}
               >
-                <Sync className={`w-4 h-4 mr-2 ${syncInProgress ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 mr-2 ${syncInProgress ? 'animate-spin' : ''}`} />
                 {syncInProgress ? 'Sincronizando...' : 'Sincronizar'}
               </Button>
             </div>

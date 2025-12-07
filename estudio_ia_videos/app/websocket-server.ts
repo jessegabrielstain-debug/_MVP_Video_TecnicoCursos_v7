@@ -42,6 +42,15 @@ const PORT = parseInt(process.env.WS_PORT || '3001')
 // Mapa de conexões por jobId
 const connections = new Map<string, Set<WebSocket>>()
 
+function isRenderTaskResult(value: unknown): value is RenderTaskResult {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'jobId' in value &&
+    'outputUrl' in value
+  )
+}
+
 /**
  * Broadcast para todos os clientes de um job
  */
@@ -111,10 +120,9 @@ export function startWebSocketServer() {
 
     // Validar tipo antes de conversão para evitar erro TS2352
     const returnValue = payload?.returnvalue
-    const result: RenderTaskResult | null = 
-      returnValue && typeof returnValue === 'object' && 'outputPath' in returnValue
-        ? (returnValue as RenderTaskResult)
-        : null
+    const result: RenderTaskResult | null = isRenderTaskResult(returnValue)
+      ? returnValue
+      : null
 
     broadcastToJob(jobId, {
       type: 'completed',

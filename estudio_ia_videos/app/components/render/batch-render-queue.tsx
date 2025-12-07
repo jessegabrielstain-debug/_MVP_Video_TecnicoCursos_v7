@@ -64,10 +64,14 @@ export default function BatchRenderQueue() {
   const [renderQueue, setRenderQueue] = useState<BatchRenderJob[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [currentlyRendering, setCurrentlyRendering] = useState<string | null>(null)
-  const [queueSettings, setQueueSettings] = useState({
+  const [queueSettings, setQueueSettings] = useState<{
+    maxConcurrent: number
+    autoStart: boolean
+    priority: 'low' | 'normal' | 'high' | 'urgent'
+  }>({
     maxConcurrent: 2,
     autoStart: true,
-    priority: 'normal' as const
+    priority: 'normal'
   })
 
   const addToQueue = useCallback((projectData: any) => {
@@ -449,7 +453,7 @@ export default function BatchRenderQueue() {
                 <Select
                   value={queueSettings.priority}
                   onValueChange={(value: string) => 
-                    setQueueSettings(prev => ({ ...prev, priority: value }))
+                    setQueueSettings(prev => ({ ...prev, priority: value as 'low' | 'normal' | 'high' | 'urgent' }))
                   }
                 >
                   <SelectTrigger>

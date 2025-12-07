@@ -4,8 +4,9 @@
  * This file should be imported in custom server or middleware
  */
 
-import { Server as SocketIOServer } from 'socket.io'
+import { Server as SocketIOServer, Socket } from 'socket.io'
 import { Server as HTTPServer } from 'http'
+import { SocketUser, CursorMoveData, SelectionChangeData } from '../lib/websocket/types'
 
 export function setupSocketIO(server: HTTPServer) {
   const io = new SocketIOServer(server, {
@@ -19,10 +20,10 @@ export function setupSocketIO(server: HTTPServer) {
 
   const projectRooms = new Map<string, Set<string>>()
 
-  io.on('connection', (socket) => {
+  io.on('connection', (socket: Socket) => {
     console.log('✓ Socket conectado:', socket.id)
 
-    socket.on('join-project', ({ projectId, user }) => {
+    socket.on('join-project', ({ projectId, user }: { projectId: string; user: SocketUser }) => {
       const room = `project:${projectId}`
       socket.join(room)
 
@@ -39,7 +40,7 @@ export function setupSocketIO(server: HTTPServer) {
       io.to(room).emit('room-users-count', userCount)
     })
 
-    socket.on('leave-project', (projectId) => {
+    socket.on('leave-project', (projectId: string) => {
       const room = `project:${projectId}`
       socket.leave(room)
 
@@ -50,7 +51,7 @@ export function setupSocketIO(server: HTTPServer) {
       socket.to(room).emit('user-left', socket.id)
     })
 
-    socket.on('cursor-move', (data) => {
+    socket.on('cursor-move', (data: CursorMoveData & { projectId: string }) => {
       const room = `project:${data.projectId}`
       socket.to(room).emit('cursor-move', {
         ...data,
@@ -58,17 +59,17 @@ export function setupSocketIO(server: HTTPServer) {
       })
     })
 
-    socket.on('selection-change', (data) => {
+    socket.on('selection-change', (data: SelectionChangeData & { projectId: string }) => {
       const room = `project:${data.projectId}`
       socket.to(room).emit('selection-change', data)
     })
 
-    socket.on('comment', (data) => {
+    socket.on('comment', (data: { projectId: string; comment: unknown }) => {
       const room = `project:${data.projectId}`
       io.to(room).emit('new-comment', data.comment)
     })
 
-    socket.on('timeline-update', (data) => {
+    socket.on('timeline-update', (data: { projectId: string; timeline: unknown }) => {
       const room = `project:${data.projectId}`
       socket.to(room).emit('timeline-updated', data.timeline)
     })
