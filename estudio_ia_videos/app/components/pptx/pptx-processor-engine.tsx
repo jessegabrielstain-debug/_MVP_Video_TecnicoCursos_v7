@@ -26,6 +26,9 @@ import {
   ArrowRight
 } from 'lucide-react'
 import Image from 'next/image'
+import { Logger } from '@/lib/logger'
+
+const logger = new Logger('PPTXProcessor')
 
 interface ProcessingResult {
   id: string
@@ -115,7 +118,7 @@ export default function PPTXProcessorEngine({
         onProcessingUpdate?.(updatedResults)
       }
     } catch (error) {
-      console.error('Erro no reprocessamento:', error)
+      logger.error('Erro no reprocessamento', error instanceof Error ? error : undefined)
     } finally {
       setProcessing(false)
     }
@@ -135,10 +138,10 @@ export default function PPTXProcessorEngine({
       
       if (response.ok) {
         const timelineData = await response.json()
-        console.log('Timeline gerada:', timelineData)
+        logger.info('Timeline gerada', timelineData)
       }
     } catch (error) {
-      console.error('Erro na geração de timeline:', error)
+      logger.error('Erro na geração de timeline', error instanceof Error ? error : undefined)
     }
   }
 

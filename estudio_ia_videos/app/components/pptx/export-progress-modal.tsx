@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'react-hot-toast'
+import { Logger } from '@/lib/logger'
 import { 
   Play, 
   Download, 
@@ -86,7 +87,8 @@ export function ExportProgressModal({ isOpen, onClose, jobId, onComplete }: Prop
           }
         }
       } catch (error) {
-        console.error('Error polling status:', error)
+        const logger = new Logger('ExportProgress')
+        logger.error('Error polling status', error instanceof Error ? error : undefined)
       }
     }
 

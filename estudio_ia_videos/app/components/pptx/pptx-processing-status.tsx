@@ -15,6 +15,9 @@ import {
   Video,
   Zap
 } from 'lucide-react'
+import { Logger } from '@/lib/logger'
+
+const logger = new Logger('PPTXProcessingStatus')
 
 interface ProcessingStage {
   id: string
@@ -145,7 +148,7 @@ export default function PPTXProcessingStatus({
     }
 
     simulateProcessing().catch(error => {
-      console.error('Processing simulation error:', error)
+      logger.error('Processing simulation error', error instanceof Error ? error : undefined)
       if (onError) {
         onError('Erro durante o processamento')
       }

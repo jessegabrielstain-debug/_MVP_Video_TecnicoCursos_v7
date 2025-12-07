@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { toast } from 'react-hot-toast'
+import { Logger } from '@/lib/logger'
 import { 
   Play, 
   Download, 
@@ -90,7 +91,8 @@ export function RealTimeRenderer({ projectId, timeline, onRenderComplete, onRend
           }
         }
       } catch (error) {
-        console.error('Error polling job status:', error)
+        const logger = new Logger('RealTimeRenderer')
+        logger.error('Error polling job status', error instanceof Error ? error : undefined)
       }
     }, 2000) // Check a cada 2 segundos
 
@@ -137,7 +139,8 @@ export function RealTimeRenderer({ projectId, timeline, onRenderComplete, onRend
     } catch (error) {
       setIsRendering(false)
       toast.error('❌ Erro ao iniciar renderização')
-      console.error('Render start error:', error)
+      const logger = new Logger('RealTimeRenderer')
+      logger.error('Render start error', error instanceof Error ? error : undefined)
     }
   }
 

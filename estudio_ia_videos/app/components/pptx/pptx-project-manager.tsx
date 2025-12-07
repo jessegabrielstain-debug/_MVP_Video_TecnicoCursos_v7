@@ -28,6 +28,9 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { useToast } from '../ui/use-toast'
+import { Logger } from '@/lib/logger'
+
+const logger = new Logger('PPTXProjectManager')
 
 /** Slide processado do PPTX */
 interface PPTXSlide {
@@ -105,7 +108,7 @@ export function PPTXProjectManager({ onProjectReady, onBack }: PPTXProjectManage
       const data = await response.json()
       setAvailableTemplates(data.templates || [])
     } catch (error) {
-      console.error('Error loading templates:', error)
+      logger.error('Error loading templates', error instanceof Error ? error : undefined)
       toast({
         title: "Erro ao carregar templates",
         description: "Falha ao carregar templates disponíveis",

@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'react-hot-toast'
+import { Logger } from '@/lib/logger'
 import { 
   Mic, 
   Play, 
@@ -61,7 +62,8 @@ export function TTSVoiceSelector({ onVoiceSelect, onGenerateTTS, selectedSlideTe
         setVoices(data.voices)
       }
     } catch (error) {
-      console.error('Error loading voices:', error)
+      const logger = new Logger('TTSVoiceSelector')
+      logger.error('Error loading voices', error instanceof Error ? error : undefined)
       // Fallback para vozes mock
       setVoices([
         {

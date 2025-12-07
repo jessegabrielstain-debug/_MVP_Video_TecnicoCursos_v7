@@ -22,6 +22,9 @@ import { useDropzone } from 'react-dropzone';
 import { Upload, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Logger } from '@/lib/logger';
+
+const logger = new Logger('PPTXUploadModal');
 
 interface PPTXUploadModalProps {
   open: boolean;
@@ -125,7 +128,7 @@ export function PPTXUploadModal({ open, onOpenChange, onSuccess }: PPTXUploadMod
       }, 1500);
 
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error', error instanceof Error ? error : undefined);
       setStatus('error');
       setErrorMessage(error instanceof Error ? error.message : 'Erro ao processar arquivo');
       

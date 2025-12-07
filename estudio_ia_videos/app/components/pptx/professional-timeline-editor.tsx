@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'react-hot-toast'
+import { Logger } from '@/lib/logger'
 import { 
   Play, 
   Pause, 
@@ -436,7 +437,8 @@ export function ProfessionalTimelineEditor({
         resolution,
         exportTime: new Date().toISOString()
       }
-      console.log('Timeline Export Data:', exportData)
+      const timelineLogger = new Logger('TimelineEditor')
+      timelineLogger.info('Timeline Export Data', exportData)
     }
   }
 

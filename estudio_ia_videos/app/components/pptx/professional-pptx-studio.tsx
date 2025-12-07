@@ -30,6 +30,9 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
+import { Logger } from '@/lib/logger'
+
+const logger = new Logger('PPTXStudio')
 
 // Import components
 import PPTXUploadComponent, { ProcessingResult } from './PPTXUploadComponent'
@@ -92,7 +95,7 @@ export function ProfessionalPPTXStudio() {
   const [exportJobId, setExportJobId] = useState<string | null>(null)
   
   const addLog = (message: string) => {
-    console.log(`🎬 STUDIO LOG: ${message}`)
+    logger.info(message)
     setDebugLogs(prev => [...prev.slice(-9), `${new Date().toLocaleTimeString()}: ${message}`])
   }
 
@@ -182,7 +185,7 @@ export function ProfessionalPPTXStudio() {
       }
       
     } catch (error) {
-      console.error('❌ Error loading project:', error)
+      logger.error('Error loading project', error instanceof Error ? error : undefined)
       addLog(`❌ Erro ao carregar projeto: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
       
       setProjectState(prev => ({ ...prev, loading: false }))
@@ -271,7 +274,7 @@ export function ProfessionalPPTXStudio() {
       loadProjectData(projectState.project.id)
 
     } catch (error) {
-      console.error('Error generating narrations:', error)
+      logger.error('Error generating narrations', error instanceof Error ? error : undefined)
       addLog(`❌ Erro na narração: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
       toast.error('Erro ao gerar narrações', { id: 'batch-tts' })
     } finally {
@@ -312,7 +315,7 @@ export function ProfessionalPPTXStudio() {
       // TODO: Implement polling for job status
 
     } catch (error) {
-      console.error('Error exporting video:', error)
+      logger.error('Error exporting video', error instanceof Error ? error : undefined)
       addLog(`❌ Erro na exportação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
       toast.error('Erro ao iniciar exportação', { id: 'export-video' })
     } finally {

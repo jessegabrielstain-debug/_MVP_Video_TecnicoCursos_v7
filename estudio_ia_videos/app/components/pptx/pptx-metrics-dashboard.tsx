@@ -20,6 +20,9 @@ import {
   Users,
   Activity
 } from 'lucide-react'
+import { Logger } from '@/lib/logger'
+
+const logger = new Logger('PPTXMetricsDashboard')
 
 interface PerformanceStats {
   totalConversions: number
@@ -75,7 +78,7 @@ export function PPTXMetricsDashboard() {
       setQualityMetrics(qualityData.data)
       
     } catch (error) {
-      console.error('Error loading PPTX metrics:', error)
+      logger.error('Error loading PPTX metrics', error instanceof Error ? error : undefined)
     } finally {
       setLoading(false)
     }

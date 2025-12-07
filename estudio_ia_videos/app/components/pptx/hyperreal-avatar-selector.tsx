@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { toast } from 'react-hot-toast'
+import { Logger } from '@/lib/logger'
 import { 
   Search, 
   Play, 
@@ -86,7 +87,8 @@ export function HyperRealAvatarSelector({ onAvatarSelect, selectedCategory = 'bu
         setAvatars(generateMockHyperRealAvatars())
       }
     } catch (error) {
-      console.error('Error loading avatars:', error)
+      const logger = new Logger('HyperrealAvatarSelector')
+      logger.error('Error loading avatars', error instanceof Error ? error : undefined)
       setAvatars(generateMockHyperRealAvatars())
     } finally {
       setLoading(false)
