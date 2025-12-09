@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth-options'
+import { logger } from '@/lib/logger'
 
 /**
  * 🖥️ SYSTEM METRICS API
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(metrics)
   } catch (error) {
-    console.error('Error fetching system metrics:', error)
+    logger.error('Error fetching system metrics', { component: 'API: system/metrics', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

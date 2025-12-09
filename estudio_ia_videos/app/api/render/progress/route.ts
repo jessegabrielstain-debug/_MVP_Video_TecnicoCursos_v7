@@ -5,6 +5,7 @@
 
 import { NextRequest } from 'next/server';
 import { getSupabaseForRequest } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
 
           setTimeout(sendUpdate, 1000);
         } catch (e) {
-          console.error('Error in progress stream:', e);
+          logger.error('Error in progress stream', { component: 'API: render/progress', error: e instanceof Error ? e : new Error(String(e)) });
           controller.close();
         }
       };
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
       sendUpdate();
     },
     cancel() {
-      console.log('Progress stream cancelled by client');
+      logger.info('Progress stream cancelled by client', { component: 'API: render/progress' });
     }
   });
 

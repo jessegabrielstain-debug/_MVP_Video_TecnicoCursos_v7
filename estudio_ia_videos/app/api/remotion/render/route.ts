@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Remotion render error:', error);
+    logger.error('Remotion render error', { component: 'API: remotion/render', error: error instanceof Error ? error : new Error(String(error)) });
     
     return NextResponse.json(
       { 
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Get composition error:', error);
+    logger.error('Get composition error', { component: 'API: remotion/render', error: error instanceof Error ? error : new Error(String(error)) });
     
     return NextResponse.json(
       { 

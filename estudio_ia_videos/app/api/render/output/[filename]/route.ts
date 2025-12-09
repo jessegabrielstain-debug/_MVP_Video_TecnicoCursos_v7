@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jobManager as renderJobManager } from '@/lib/render/job-manager';
 import fs from 'fs/promises';
 import path from 'path';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   request: NextRequest,
@@ -66,7 +67,7 @@ export async function GET(
     }
 
   } catch (error) {
-    console.error('Erro ao fazer download:', error);
+    logger.error('Erro ao fazer download', { component: 'API: render/output', error: error instanceof Error ? error : new Error(String(error)) });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

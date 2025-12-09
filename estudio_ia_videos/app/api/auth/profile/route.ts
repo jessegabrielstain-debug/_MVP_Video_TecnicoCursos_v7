@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth/auth-service';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Profile get error:', error);
+    logger.error('Profile get error', { component: 'API: auth/profile', error: error instanceof Error ? error : new Error(String(error)) });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
