@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { X, Play, Plus, ThumbsUp, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NRTemplate } from '@/lib/services/nr-templates-service';
@@ -89,7 +90,7 @@ export function VideoModal({ template, isOpen, onClose }: VideoModalProps) {
                   <Button 
                     className="gap-2 bg-white text-black hover:bg-white/90" 
                     size="lg"
-                    onClick={() => console.log('Play clicked')}
+                    onClick={() => logger.debug('Play clicked', { component: 'VideoModal' })}
                   >
                     <Play className="h-5 w-5 fill-black" />
                     Play

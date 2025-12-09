@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -136,7 +137,7 @@ const LiveEditingRoom: React.FC<LiveEditingRoomProps> = ({
       setCollaborators(mockCollaborators);
 
     } catch (error) {
-      console.error('Erro ao conectar sala de colaboração:', error);
+      logger.error('Erro ao conectar sala de colaboração', error instanceof Error ? error : new Error(String(error)), { component: 'LiveEditingRoom' });
       setConnectionStatus('disconnected');
       toast.error('Erro ao conectar na sala colaborativa');
     }
@@ -234,7 +235,7 @@ const LiveEditingRoom: React.FC<LiveEditingRoomProps> = ({
       setComments(mockComments);
 
     } catch (error) {
-      console.error('Erro ao carregar dados de colaboração:', error);
+      logger.error('Erro ao carregar dados de colaboração', error instanceof Error ? error : new Error(String(error)), { component: 'LiveEditingRoom' });
     }
   };
 

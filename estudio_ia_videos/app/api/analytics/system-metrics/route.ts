@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 // Validation schema
 const SystemMetricsQuerySchema = z.object({
@@ -48,7 +49,7 @@ async function getSystemResourceUsage() {
       uptime: Math.floor(process.uptime ? process.uptime() : 0)
     }
   } catch (error) {
-    console.error('Error getting system resource usage:', error)
+    logger.error('Error getting system resource usage', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/system-metrics' })
     return {
       cpu_usage: 0,
       memory_usage: 0,
@@ -70,7 +71,7 @@ async function getActiveUsersCount(timeRange: Date) {
     })
     return activeUsers.length
   } catch (error) {
-    console.error('Error getting active users count:', error)
+    logger.error('Error getting active users count', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/system-metrics' })
     return 0
   }
 }
@@ -87,7 +88,7 @@ async function getProjectStats() {
 
     return { total_projects: total, active_projects: active }
   } catch (error) {
-    console.error('Error getting project stats:', error)
+    logger.error('Error getting project stats', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/system-metrics' })
     return { total_projects: 0, active_projects: 0 }
   }
 }
@@ -129,7 +130,7 @@ async function getRenderQueueStats() {
       avg_render_time: Math.round(avgRenderTime)
     }
   } catch (error) {
-    console.error('Error getting render queue stats:', error)
+    logger.error('Error getting render queue stats', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/system-metrics' })
     return {
       active_renders: 0,
       queue_length: 0,
@@ -162,7 +163,7 @@ async function getErrorRate(timeRange: Date) {
 
     return totalEvents > 0 ? (errorEvents / totalEvents) * 100 : 0
   } catch (error) {
-    console.error('Error calculating error rate:', error)
+    logger.error('Error calculating error rate', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/system-metrics' })
     return 0
   }
 }
@@ -260,7 +261,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('System metrics API error:', error)
+    logger.error('System metrics API error', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/system-metrics' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

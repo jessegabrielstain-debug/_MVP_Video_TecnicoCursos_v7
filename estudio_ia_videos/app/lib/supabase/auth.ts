@@ -3,6 +3,7 @@
 import { getBrowserClient } from './browser'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
+import { logger } from '@/lib/logger'
 
 type AppSupabaseClient = SupabaseClient<Database>
 
@@ -116,7 +117,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
       // Trata como sessão inválida/expirada ou perfil inexistente
       return null
     }
-    console.error('Error fetching user profile:', error)
+    logger.error('Error fetching user profile:', error instanceof Error ? error : new Error(String(error)), { component: 'Auth' })
     return null
   }
 

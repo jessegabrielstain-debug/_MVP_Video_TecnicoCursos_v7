@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 export interface RenderSettings {
   resolution: '720p' | '1080p' | '1440p';
   format: 'mp4' | 'mov' | 'webm';
@@ -52,7 +54,7 @@ export class FFmpegService {
   private progressCallback: ((progress: RenderProgress) => void) | null = null;
 
   async initialize(): Promise<void> {
-    console.log('FFmpeg initialized');
+    logger.info('FFmpeg initialized', { component: 'FfmpegService' });
   }
 
   setProgressCallback(callback: (progress: RenderProgress) => void): void {
@@ -60,7 +62,7 @@ export class FFmpegService {
   }
 
   async convert(options: FFmpegOptions): Promise<void> {
-    console.log('FFmpeg conversion:', options);
+    logger.info('FFmpeg conversion: ' + JSON.stringify(options), { component: 'FfmpegService' });
     // Implementação real via fluent-ffmpeg
   }
 
@@ -74,12 +76,12 @@ export class FFmpegService {
     settings: RenderSettings,
     duration: number
   ): Promise<ArrayBuffer> {
-    console.log('FFmpeg renderVideo:', { framesCount: frames.length, hasAudio: !!audio, duration });
+    logger.info('FFmpeg renderVideo: ' + JSON.stringify({ framesCount: frames.length, hasAudio: !!audio, duration }), { component: 'FfmpegService' });
     
     // Placeholder - retorna um buffer vazio
     // Implementação real usaria ffmpeg.wasm para processar os frames
     const dims = getResolutionDimensions(settings.resolution);
-    console.log(`Rendering at ${dims.width}x${dims.height}`);
+    logger.info(`Rendering at ${dims.width}x${dims.height}`, { component: 'FfmpegService' });
     
     return new ArrayBuffer(0);
   }

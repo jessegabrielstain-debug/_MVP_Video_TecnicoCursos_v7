@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Create collaboration session error:', error);
+    logger.error('Create collaboration session error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/collaboration/session' });
     return NextResponse.json(
       { success: false, message: 'Erro ao criar sessão colaborativa' },
       { status: 500 }
@@ -219,7 +220,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get collaboration session error:', error);
+    logger.error('Get collaboration session error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/collaboration/session' });
     return NextResponse.json(
       { success: false, message: 'Erro ao carregar sessão colaborativa' },
       { status: 500 }
@@ -296,7 +297,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Update collaboration session error:', error);
+    logger.error('Update collaboration session error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/collaboration/session' });
     return NextResponse.json(
       { success: false, message: 'Erro ao atualizar sessão colaborativa' },
       { status: 500 }
@@ -336,7 +337,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Delete collaboration session error:', error);
+    logger.error('Delete collaboration session error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/collaboration/session' });
     return NextResponse.json(
       { success: false, message: 'Erro ao encerrar sessão colaborativa' },
       { status: 500 }

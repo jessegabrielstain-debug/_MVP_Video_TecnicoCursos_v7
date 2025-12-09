@@ -8,6 +8,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -71,7 +72,7 @@ export default function NRCasosReais() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar casos reais:', error);
+      logger.error('Erro ao carregar casos reais', error instanceof Error ? error : new Error(String(error)), { component: 'NRCasosReais' });
     }
   };
 

@@ -11,6 +11,7 @@ import {
   NR_TEMPLATES_METADATA,
   NRTemplate as NRTemplateBasic
 } from '@/lib/nr-templates/nr-7-9-11-13-15'
+import { logger } from '@/lib/logger'
 
 // Extended template type that combines both interfaces
 interface ExtendedNRTemplate {
@@ -69,7 +70,7 @@ export async function GET(req: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error('Erro ao buscar templates NR expandidos:', error)
+    logger.error('Erro ao buscar templates NR expandidos', { component: 'API: templates/nr/expanded', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Erro ao buscar templates' },
       { status: 500 }
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
       project: newProject
     })
   } catch (error) {
-    console.error('Erro ao criar projeto a partir do template:', error)
+    logger.error('Erro ao criar projeto a partir do template', { component: 'API: templates/nr/expanded', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Erro ao criar projeto' },
       { status: 500 }

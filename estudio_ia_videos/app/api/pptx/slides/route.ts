@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Schema de validação para criação/atualização de slide
 const slideSchema = z.object({
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
     const { data: slides, error } = await query
 
     if (error) {
-      console.error('Erro ao buscar slides:', error)
+      logger.error('Erro ao buscar slides:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/slides' })
       return NextResponse.json(
         { error: 'Erro interno do servidor' },
         { status: 500 }
@@ -106,7 +107,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ slides: authorizedSlides })
 
   } catch (error) {
-    console.error('Erro na API de slides:', error)
+    logger.error('Erro na API de slides:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/slides' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -195,7 +196,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Erro ao criar slide:', error)
+      logger.error('Erro ao criar slide:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/slides' })
       return NextResponse.json(
         { error: 'Erro ao criar slide' },
         { status: 500 }
@@ -235,7 +236,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error('Erro ao criar slide:', error)
+    logger.error('Erro ao criar slide:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/slides' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -341,7 +342,7 @@ export async function PUT(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Erro ao reordenar slides:', error)
+    logger.error('Erro ao reordenar slides:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/slides' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

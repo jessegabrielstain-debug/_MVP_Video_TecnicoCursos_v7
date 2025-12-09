@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -113,7 +114,7 @@ export default function UnifiedDashboardSimple() {
         setRenderJobs(jobsData.jobs || [])
       }
     } catch (error) {
-      console.error('Error loading dashboard data:', error)
+      logger.error('Error loading dashboard data', error instanceof Error ? error : new Error(String(error)), { component: 'UnifiedDashboardSimple' })
     } finally {
       setLoading(false)
     }

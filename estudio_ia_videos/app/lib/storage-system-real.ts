@@ -4,6 +4,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 export interface StorageUploadOptions {
   bucket: string;
@@ -26,7 +27,7 @@ export class StorageSystemReal {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; // Use Service Role for full access
     
     if (!supabaseUrl || !supabaseKey) {
-      console.warn('⚠️ Supabase credentials not found in StorageSystemReal');
+      logger.warn('⚠️ Supabase credentials not found in StorageSystemReal', { component: 'StorageSystemReal' });
     }
     
     this.supabase = createClient(supabaseUrl, supabaseKey, {
@@ -53,7 +54,7 @@ export class StorageSystemReal {
 
       return this.getPublicUrl(bucket, path);
     } catch (error) {
-      console.error(`[Storage] Upload failed for ${bucket}/${path}:`, error);
+      logger.error(`[Storage] Upload failed for ${bucket}/${path}:`, error instanceof Error ? error : new Error(String(error)), { component: 'StorageSystemReal' });
       throw error;
     }
   }
@@ -71,7 +72,7 @@ export class StorageSystemReal {
 
       return Buffer.from(await data.arrayBuffer());
     } catch (error) {
-      console.error(`[Storage] Download failed for ${bucket}/${path}:`, error);
+      logger.error(`[Storage] Download failed for ${bucket}/${path}:`, error instanceof Error ? error : new Error(String(error)), { component: 'StorageSystemReal' });
       throw error;
     }
   }
@@ -85,7 +86,7 @@ export class StorageSystemReal {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error(`[Storage] Delete failed for ${bucket}/${path}:`, error);
+      logger.error(`[Storage] Delete failed for ${bucket}/${path}:`, error instanceof Error ? error : new Error(String(error)), { component: 'StorageSystemReal' });
       return false;
     }
   }
@@ -119,7 +120,7 @@ export class StorageSystemReal {
       if (error) throw error;
       return data.map(f => f.name);
     } catch (error) {
-      console.error(`[Storage] List failed for ${bucket}/${prefix}:`, error);
+      logger.error(`[Storage] List failed for ${bucket}/${prefix}:`, error instanceof Error ? error : new Error(String(error)), { component: 'StorageSystemReal' });
       return [];
     }
   }
@@ -164,7 +165,7 @@ export class StorageSystemReal {
 
       return { used, limit, percentage };
     } catch (error) {
-      console.error(`[Storage] GetQuota failed for user ${userId}:`, error);
+      logger.error(`[Storage] GetQuota failed for user ${userId}:`, error instanceof Error ? error : new Error(String(error)), { component: 'StorageSystemReal' });
       return { used: 0, limit: 1073741824, percentage: 0 };
     }
   }
@@ -182,7 +183,7 @@ export class StorageSystemReal {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error(`[Storage] SetQuota failed for user ${userId}:`, error);
+      logger.error(`[Storage] SetQuota failed for user ${userId}:`, error instanceof Error ? error : new Error(String(error)), { component: 'StorageSystemReal' });
       return false;
     }
   }
@@ -204,7 +205,7 @@ export class StorageSystemReal {
         id: file.id
       }));
     } catch (error) {
-      console.error(`[Storage] ListUserFiles failed for user ${userId}:`, error);
+      logger.error(`[Storage] ListUserFiles failed for user ${userId}:`, error instanceof Error ? error : new Error(String(error)), { component: 'StorageSystemReal' });
       return [];
     }
   }

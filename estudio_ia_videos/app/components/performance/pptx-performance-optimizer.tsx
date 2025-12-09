@@ -1,6 +1,7 @@
 'use client'
 
 import React, { memo, useMemo, useCallback, useRef, useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
 import { FixedSizeList as List, VariableSizeList } from 'react-window'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -506,7 +507,7 @@ const OptimizedPPTXEditor = memo<OptimizedPPTXEditorProps>(({
         src={item.thumbnail || item.url}
         alt={item.name}
         className="w-full aspect-square object-cover rounded"
-        onLoad={() => console.log(`Asset ${item.id} loaded`)}
+        onLoad={() => logger.debug(`Asset ${item.id} loaded`, { component: 'PPTXPerformanceOptimizer' })}
       />
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded" />
       <div className="absolute bottom-1 left-1 right-1">
@@ -670,8 +671,8 @@ export default function PPTXPerformanceOptimizer({
         slides={data.slides}
         timeline={data.timeline}
         assets={data.assets}
-        onSlideChange={(slideId) => console.log('Slide changed:', slideId)}
-        onTimelineUpdate={(timeline) => console.log('Timeline updated:', timeline.length)}
+        onSlideChange={(slideId) => logger.debug('Slide changed:', { slideId, component: 'PPTXPerformanceOptimizer' })}
+        onTimelineUpdate={(timeline) => logger.debug('Timeline updated:', { length: timeline.length, component: 'PPTXPerformanceOptimizer' })}
       />
 
       {/* Performance Summary */}

@@ -7,6 +7,7 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 // ✅ CORRIGIDO: Removido import direto, usando singleton
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -117,7 +118,7 @@ export default function AdvancedCanvasEditor({
         // Initial state
         saveState();
       } catch (error) {
-        console.error('Failed to load Fabric.js:', error)
+        logger.error('Failed to load Fabric.js', error instanceof Error ? error : new Error(String(error)), { component: 'AdvancedCanvasEditor' });
       }
     }
 

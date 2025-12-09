@@ -3,6 +3,8 @@
  * Processador de sincronização labial para avatares
  */
 
+import { logger } from '@/lib/logger';
+
 export interface LipSyncData {
   phonemes: Array<{
     phoneme: string;
@@ -57,7 +59,7 @@ export interface ProcessOptions {
 
 export class LipSyncProcessor {
   async process(audioBuffer: Buffer, transcript?: string): Promise<LipSyncData> {
-    console.log('[LipSync] Processing audio for lip sync');
+    logger.info('[LipSync] Processing audio for lip sync', { component: 'LipSyncProcessor' });
     
     // Placeholder - implementar com Rhubarb Lip Sync ou similar
     return {
@@ -81,7 +83,7 @@ export class LipSyncProcessor {
     const startTime = Date.now();
     const jobId = `lipsync_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     
-    console.log(`[LipSync] Processing audio for job ${jobId} with options:`, options);
+    logger.info(`[LipSync] Processing audio for job ${jobId} with options`, { component: 'LipSyncProcessor', options });
     
     // Placeholder implementation - replace with actual lip sync processing
     // In production, this would use Rhubarb Lip Sync, Oculus Lipsync, or similar

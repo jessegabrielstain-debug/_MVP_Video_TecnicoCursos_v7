@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateLipSyncVideo, validateLipSyncResources } from '@/lib/services/lip-sync-integration';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/lip-sync
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Erro ao gerar lip sync:', error);
+    logger.error('Erro ao gerar lip sync', { component: 'API: lip-sync', error: error instanceof Error ? error : new Error(String(error)) });
     return NextResponse.json(
       { error: 'Erro ao processar requisição' },
       { status: 500 }
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
     const validation = await validateLipSyncResources();
     return NextResponse.json(validation);
   } catch (error) {
-    console.error('Erro ao validar recursos:', error);
+    logger.error('Erro ao validar recursos', { component: 'API: lip-sync', error: error instanceof Error ? error : new Error(String(error)) });
     return NextResponse.json(
       { error: 'Erro ao validar recursos' },
       { status: 500 }

@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -418,7 +419,7 @@ const MotionGraphicsAIEngine = () => {
   // AI-Powered Features
   const generateMotionGraphics = useCallback(async (category: string) => {
     setIsGenerating(true);
-    console.log(`🤖 Generating motion graphics for category: ${category}`);
+    logger.info('Generating motion graphics', { component: 'MotionGraphicsAIEngine', category });
     
     // Simulate AI generation
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -427,11 +428,11 @@ const MotionGraphicsAIEngine = () => {
   }, []);
 
   const optimizeAnimations = useCallback(() => {
-    console.log('✨ Optimizing animations with AI...');
+    logger.info('Optimizing animations with AI', { component: 'MotionGraphicsAIEngine' });
   }, []);
 
   const applyPreset = useCallback((preset: AIPreset) => {
-    console.log(`Applying preset: ${preset.name}`);
+    logger.debug('Applying preset', { component: 'MotionGraphicsAIEngine', presetName: preset.name });
     // Apply preset elements and particles
   }, []);
 

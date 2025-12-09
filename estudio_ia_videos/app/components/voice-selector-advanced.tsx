@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -82,7 +83,7 @@ export default function AdvancedVoiceSelector({
         toast.error('Erro ao carregar vozes')
       }
     } catch (error) {
-      console.error('Error loading voices:', error)
+      logger.error('Error loading voices', error instanceof Error ? error : new Error(String(error)), { component: 'AdvancedVoiceSelector' })
       toast.error('Erro na conexão')
     } finally {
       setLoading(false)
@@ -102,7 +103,7 @@ export default function AdvancedVoiceSelector({
         setRecommendations(data.recommendations)
       }
     } catch (error) {
-      console.error('Error loading recommendations:', error)
+      logger.error('Error loading recommendations', error instanceof Error ? error : new Error(String(error)), { contentType, nr, component: 'AdvancedVoiceSelector' })
     }
   }
 

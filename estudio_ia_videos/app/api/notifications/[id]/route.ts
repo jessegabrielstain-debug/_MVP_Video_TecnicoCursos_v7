@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/services'
 import { z } from 'zod'
+import { logger } from '@/lib/logger';
 
 // Validation schema for notification actions
 const NotificationActionSchema = z.object({
@@ -54,7 +55,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('Get notification API error:', error)
+    logger.error('Get notification API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: notifications/[id]' })
     
     return NextResponse.json(
       { 
@@ -138,7 +139,7 @@ export async function PATCH(
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      console.warn('Failed to log notification update:', analyticsError)
+      logger.warn('Failed to log notification update:', { error: analyticsError, component: 'API: notifications/[id]' })
     }
 
     return NextResponse.json({
@@ -148,7 +149,7 @@ export async function PATCH(
     })
 
   } catch (error) {
-    console.error('Update notification API error:', error)
+    logger.error('Update notification API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: notifications/[id]' })
     
     return NextResponse.json(
       { 
@@ -200,7 +201,7 @@ export async function DELETE(
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      console.warn('Failed to log notification deletion:', analyticsError)
+      logger.warn('Failed to log notification deletion:', { error: analyticsError, component: 'API: notifications/[id]' })
     }
 
     return NextResponse.json({
@@ -209,7 +210,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error('Delete notification API error:', error)
+    logger.error('Delete notification API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: notifications/[id]' })
     
     return NextResponse.json(
       { 

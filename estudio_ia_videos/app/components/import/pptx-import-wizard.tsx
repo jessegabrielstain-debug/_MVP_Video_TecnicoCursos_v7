@@ -5,6 +5,7 @@
 'use client';
 
 import { useState } from 'react';
+import { logger } from '@/lib/logger';
 import { usePPTXImport } from '@/lib/hooks/use-pptx-import';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,7 +71,7 @@ export function PPTXImportWizard() {
       // Auto-avançar para análise
       await handleAnalyze(data.id);
     } catch (error) {
-      console.error('Erro no upload:', error);
+      logger.error('Erro no upload', error instanceof Error ? error : new Error(String(error)), { component: 'PPTXImportWizard' });
     }
   };
 
@@ -79,7 +80,7 @@ export function PPTXImportWizard() {
     try {
       await analyzeSlides(id);
     } catch (error) {
-      console.error('Erro na análise:', error);
+      logger.error('Erro na análise', error instanceof Error ? error : new Error(String(error)), { component: 'PPTXImportWizard', pptxId: id });
     }
   };
 
@@ -93,7 +94,7 @@ export function PPTXImportWizard() {
     try {
       await convertToTimeline(pptxId, projectName);
     } catch (error) {
-      console.error('Erro na conversão:', error);
+      logger.error('Erro na conversão', error instanceof Error ? error : new Error(String(error)), { component: 'PPTXImportWizard', pptxId, projectName });
     }
   };
 

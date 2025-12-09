@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 // Using inline implementations instead of external modules
 // import { MonitoringService } from '@/lib/monitoring/monitoring-service';
 // import { IntegratedTTSAvatarPipeline } from '@/lib/pipeline/integrated-tts-avatar-pipeline';
@@ -17,7 +18,7 @@ class MonitoringService {
   }
   
   logEvent(event: string, data: Record<string, unknown>) {
-    console.log(`📊 [${event}]`, data);
+    logger.info(`📊 [${event}]`, { component: 'API: monitoring/metrics', ...data });
   }
 }
 
@@ -262,7 +263,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('Erro ao obter métricas:', error);
+    logger.error('Erro ao obter métricas:', error instanceof Error ? error : new Error(String(error)), { component: 'API: monitoring/metrics' });
     
     return NextResponse.json(
       { 
@@ -306,7 +307,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('Erro ao registrar evento:', error);
+    logger.error('Erro ao registrar evento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: monitoring/metrics' });
     
     return NextResponse.json(
       { 
@@ -330,12 +331,12 @@ export async function PUT(request: NextRequest) {
         // Configurar alertas ou thresholds
         if (config.alerts) {
           // Simular configuração de alertas
-          console.log('Configurando alertas:', config.alerts);
+          logger.info('Configurando alertas:', { component: 'API: monitoring/metrics', alerts: config.alerts });
         }
 
         if (config.thresholds) {
           // Simular configuração de thresholds
-          console.log('Configurando thresholds:', config.thresholds);
+          logger.info('Configurando thresholds:', { component: 'API: monitoring/metrics', thresholds: config.thresholds });
         }
 
         return NextResponse.json({
@@ -346,7 +347,7 @@ export async function PUT(request: NextRequest) {
 
       case 'reset':
         // Reset de métricas (simulado)
-        console.log('Reset de métricas solicitado');
+        logger.info('Reset de métricas solicitado', { component: 'API: monitoring/metrics' });
         
         return NextResponse.json({
           success: true,
@@ -361,7 +362,7 @@ export async function PUT(request: NextRequest) {
     }
 
   } catch (error: unknown) {
-    console.error('Erro ao configurar monitoramento:', error);
+    logger.error('Erro ao configurar monitoramento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: monitoring/metrics' });
     
     return NextResponse.json(
       { 

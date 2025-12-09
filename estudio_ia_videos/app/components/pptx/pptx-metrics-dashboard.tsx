@@ -188,7 +188,7 @@ export function PPTXMetricsDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {performanceStats?.mostUsedTemplates?.map((template: any, index: number) => (
+                  {performanceStats?.mostUsedTemplates?.map((template, index) => (
                     <div key={template.templateId} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Layers className="w-4 h-4 text-blue-600" />
@@ -220,7 +220,7 @@ export function PPTXMetricsDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {performanceStats?.mostUsedVoices?.map((voice: any, index: number) => (
+                  {performanceStats?.mostUsedVoices?.map((voice, index) => (
                     <div key={voice.voiceId} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Volume2 className="w-4 h-4 text-purple-600" />
@@ -254,7 +254,7 @@ export function PPTXMetricsDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {performanceStats?.errorBreakdown?.map((error: any, index: number) => (
+                  {performanceStats?.errorBreakdown?.map((error, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950 rounded-lg">
                       <div className="flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 text-red-600" />

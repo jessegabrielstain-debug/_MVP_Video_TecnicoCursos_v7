@@ -6,6 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { logger } from '@/lib/logger';
 
 export type ReportType = 'analytics' | 'security' | 'audit_logs' | 'billing' | 'usage' | 'sso' | 'members';
 
@@ -28,7 +29,7 @@ export class ReportGenerator {
   async generate(options: ReportOptions): Promise<Buffer | string> {
     const { type, title, data } = options;
     
-    console.log(`[Report] Generating ${type} report: ${title}`);
+    logger.info(`[Report] Generating ${type} report: ${title}`, { component: 'ReportGenerator' });
     
     switch (type) {
       case 'json':
@@ -43,7 +44,7 @@ export class ReportGenerator {
   }
   
   async generateReport(options: GenerateReportOptions): Promise<string> {
-    console.log(`[Report] Generating ${options.type} report for org ${options.organizationId}`);
+    logger.info(`[Report] Generating ${options.type} report for org ${options.organizationId}`, { component: 'ReportGenerator' });
     
     // Create a temporary file
     const tmpDir = os.tmpdir();

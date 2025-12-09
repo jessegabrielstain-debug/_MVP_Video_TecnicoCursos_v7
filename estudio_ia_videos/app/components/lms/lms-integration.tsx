@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -221,8 +222,8 @@ export default function LMSIntegration() {
       }
     )
 
-    console.log('xAPI Statements gerados:', statements)
-    alert(`${statements.length} statements xAPI gerados com sucesso! Verifique o console para detalhes.`)
+    logger.info('xAPI Statements gerados', { component: 'LMSIntegration', statements });
+    alert(`${statements.length} statements xAPI gerados com sucesso!`)
   }
 
   return (

@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -205,7 +206,7 @@ const VersionControl: React.FC<VersionControlProps> = ({
       setVersions(mockVersions);
 
     } catch (error) {
-      console.error('Erro ao carregar histórico:', error);
+      logger.error('Erro ao carregar histórico:', error instanceof Error ? error : new Error(String(error)), { component: 'VersionControl' });
     }
   };
 
@@ -250,7 +251,7 @@ const VersionControl: React.FC<VersionControlProps> = ({
       setBranches(mockBranches);
 
     } catch (error) {
-      console.error('Erro ao carregar branches:', error);
+      logger.error('Erro ao carregar branches:', error instanceof Error ? error : new Error(String(error)), { component: 'VersionControl' });
     }
   };
 

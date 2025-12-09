@@ -2,6 +2,7 @@
  * PPTX Real Parser V2
  * Parser aprimorado de arquivos PPTX
  */
+import { logger } from '@/lib/logger';
 
 export interface SlideV2 {
   id: string;
@@ -42,7 +43,7 @@ export interface PresentationV2 {
 
 export class PPTXRealParserV2 {
   async parse(buffer: Buffer): Promise<PresentationV2> {
-    console.log('[PPTXParserV2] Parsing PPTX file');
+    logger.info('[PPTXParserV2] Parsing PPTX file', { component: 'PptxRealParserV2' });
     
     return {
       title: 'Presentation',
@@ -54,17 +55,17 @@ export class PPTXRealParserV2 {
   }
   
   async extractText(buffer: Buffer): Promise<string[]> {
-    console.log('[PPTXParserV2] Extracting text from slides');
+    logger.info('[PPTXParserV2] Extracting text from slides', { component: 'PptxRealParserV2' });
     return [];
   }
   
   async extractImages(buffer: Buffer): Promise<Buffer[]> {
-    console.log('[PPTXParserV2] Extracting images');
+    logger.info('[PPTXParserV2] Extracting images', { component: 'PptxRealParserV2' });
     return [];
   }
 
   async parseFromS3(s3Key: string): Promise<PresentationV2> {
-    console.log('[PPTXParserV2] Parsing from S3:', s3Key);
+    logger.info('[PPTXParserV2] Parsing from S3: ' + s3Key, { component: 'PptxRealParserV2' });
     
     // Placeholder - em produção buscaria do S3 e parsearia
     return {

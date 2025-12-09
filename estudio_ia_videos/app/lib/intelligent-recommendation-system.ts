@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export interface RecommendationItem {
   id: string;
@@ -20,7 +21,7 @@ export class IntelligentRecommendationSystem {
     context?: Record<string, unknown>,
     limit = 10
   ): Promise<RecommendationItem[]> {
-    console.log(`[Recommendations] Getting for user ${userId}`);
+    logger.info(`Getting for user ${userId}`, { component: 'IntelligentRecommendationSystem' });
     
     const recommendations: RecommendationItem[] = [];
 
@@ -60,7 +61,7 @@ export class IntelligentRecommendationSystem {
       });
 
     } catch (error) {
-      console.error('Error fetching recommendations:', error);
+      logger.error('Error fetching recommendations', error instanceof Error ? error : new Error(String(error)), { component: 'IntelligentRecommendationSystem' });
     }
 
     return recommendations.slice(0, limit);
@@ -85,7 +86,7 @@ export class IntelligentRecommendationSystem {
         }
       });
     } catch (error) {
-      console.error('Error tracking interaction:', error);
+      logger.error('Error tracking interaction', error instanceof Error ? error : new Error(String(error)), { component: 'IntelligentRecommendationSystem' });
     }
   }
 }

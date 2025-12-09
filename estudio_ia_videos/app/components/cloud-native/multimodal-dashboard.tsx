@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -185,7 +186,7 @@ export default function MultimodalDashboard() {
 
       setAnalysisHistory(mockHistory);
     } catch (error) {
-      console.error('Erro ao carregar histórico:', error);
+      logger.error('Erro ao carregar histórico:', error instanceof Error ? error : new Error(String(error)), { component: 'MultimodalDashboard' });
     }
   };
 
@@ -319,12 +320,12 @@ export default function MultimodalDashboard() {
   };
 
   const handleCloudNativeAction = (action: string) => {
-    console.log(`Executando ação cloud native: ${action}`);
+    logger.debug(`Executando ação cloud native: ${action}`, { component: 'MultimodalDashboard' });
     toast.success(`Ação ${action} executada com sucesso!`);
   };
 
   const handleMultimodalAction = (action: string) => {
-    console.log(`Executando ação multimodal: ${action}`);
+    logger.debug(`Executando ação multimodal: ${action}`, { component: 'MultimodalDashboard' });
     if (action === 'start_analysis') {
       analyzeFile();
     } else {

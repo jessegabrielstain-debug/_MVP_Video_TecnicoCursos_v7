@@ -10,6 +10,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { checkCompliance, type NRCode } from '@/lib/compliance/nr-engine'
+import { logger } from '@/lib/logger'
 
 export async function POST(req: NextRequest) {
   try {
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (error: unknown) {
-    console.error('[COMPLIANCE_CHECK_ERROR]', error)
+    logger.error('Erro ao verificar conformidade', { component: 'API: compliance/check', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Erro ao verificar conformidade' },
       { status: 500 }

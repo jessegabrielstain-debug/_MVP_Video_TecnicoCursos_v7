@@ -7,6 +7,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -132,7 +133,7 @@ export default function UnifiedControlPanel({ projectId }: { projectId?: string 
       }
 
     } catch (error) {
-      console.error('Erro ao carregar dados:', error)
+      logger.error('Erro ao carregar dados', error instanceof Error ? error : new Error(String(error)), { projectId, component: 'UnifiedControlPanel' })
       toast.error('Erro ao carregar dados do projeto')
     } finally {
       setLoading(false)
@@ -166,7 +167,7 @@ export default function UnifiedControlPanel({ projectId }: { projectId?: string 
         setSelectedVoice(voices[0])
       }
     } catch (error) {
-      console.error('Erro ao carregar vozes:', error)
+      logger.error('Erro ao carregar vozes', error instanceof Error ? error : new Error(String(error)), { component: 'UnifiedControlPanel' })
     }
   }
 
@@ -206,7 +207,7 @@ export default function UnifiedControlPanel({ projectId }: { projectId?: string 
       }
 
     } catch (error) {
-      console.error('Erro ao gerar PPTX:', error)
+      logger.error('Erro ao gerar PPTX', error instanceof Error ? error : new Error(String(error)), { projectId, template: pptxTemplate, component: 'UnifiedControlPanel' })
       toast.error('Erro ao gerar PPTX')
     } finally {
       setLoading(false)
@@ -248,7 +249,7 @@ export default function UnifiedControlPanel({ projectId }: { projectId?: string 
       }
 
     } catch (error) {
-      console.error('Erro ao gerar TTS:', error)
+      logger.error('Erro ao gerar TTS', error instanceof Error ? error : new Error(String(error)), { projectId, voiceId: selectedVoice?.id, component: 'UnifiedControlPanel' })
       toast.error('Erro ao gerar TTS')
     } finally {
       setLoading(false)
@@ -291,7 +292,7 @@ export default function UnifiedControlPanel({ projectId }: { projectId?: string 
       }
 
     } catch (error) {
-      console.error('Erro ao exportar vídeo:', error)
+      logger.error('Erro ao exportar vídeo', error instanceof Error ? error : new Error(String(error)), { projectId, exportOptions, component: 'UnifiedControlPanel' })
       toast.error('Erro ao exportar vídeo')
     } finally {
       setLoading(false)
@@ -319,7 +320,7 @@ export default function UnifiedControlPanel({ projectId }: { projectId?: string 
           }
         }
       } catch (error) {
-        console.error('Erro ao verificar status:', error)
+        logger.error('Erro ao verificar status', error instanceof Error ? error : new Error(String(error)), { jobId, component: 'UnifiedControlPanel' })
       }
     }, 2000)
 
@@ -362,7 +363,7 @@ export default function UnifiedControlPanel({ projectId }: { projectId?: string 
       }
 
     } catch (error) {
-      console.error('Erro ao processar imagens:', error)
+      logger.error('Erro ao processar imagens', error instanceof Error ? error : new Error(String(error)), { projectId, fileCount: files.length, component: 'UnifiedControlPanel' })
       toast.error('Erro ao processar imagens')
     } finally {
       setLoading(false)

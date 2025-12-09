@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { imageProcessor, processProjectImages } from '@/lib/image-processor-real'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +24,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`🖼️ Processando ${files.length} imagens`)
+    logger.info(`Processando ${files.length} imagens`, {
+      component: 'API: v1/images/process-real',
+      context: { count: files.length, projectId }
+    })
 
     // Parse das opções se fornecidas
     const options = optionsStr ? JSON.parse(optionsStr) : {}
@@ -49,7 +53,10 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Erro no processamento de imagens:', error)
+    logger.error('Erro no processamento de imagens', {
+      component: 'API: v1/images/process-real',
+      error: error instanceof Error ? error : new Error(String(error))
+    })
     return NextResponse.json(
       { 
         error: 'Erro no processamento de imagens',
@@ -104,7 +111,10 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Erro na otimização de imagem:', error)
+    logger.error('Erro na otimização de imagem', {
+      component: 'API: v1/images/process-real',
+      error: error instanceof Error ? error : new Error(String(error))
+    })
     return NextResponse.json(
       { 
         error: 'Erro na otimização',

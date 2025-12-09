@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -63,7 +64,7 @@ export default function CompliancePanel({ projectId }: { projectId: string }) {
         setComplianceData(data)
       }
     } catch (error) {
-      console.error('Erro ao carregar compliance:', error)
+      logger.error('Erro ao carregar compliance', error instanceof Error ? error : new Error(String(error)), { component: 'CompliancePanel' });
     } finally {
       setLoading(false)
     }

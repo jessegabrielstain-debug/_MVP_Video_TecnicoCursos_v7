@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export type AlertType = 'performance' | 'error' | 'usage' | 'security' | 'system';
 export type AlertSeverity = 'info' | 'warning' | 'error' | 'critical';
@@ -179,7 +180,7 @@ export class AlertSystem {
         return await this.createAlertFromRule(rule, currentValue);
       }
     } catch (error) {
-      console.error(`Error evaluating rule ${rule.id}:`, error);
+      logger.error(`Error evaluating rule ${rule.id}:`, error instanceof Error ? error : new Error(String(error)), { component: 'AlertSystem' });
     }
 
     return null;

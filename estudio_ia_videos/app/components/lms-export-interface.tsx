@@ -2,6 +2,7 @@
 'use client'
 
 import { useState } from 'react'
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -161,7 +162,7 @@ export default function LMSExportInterface({
         throw new Error(result.error || 'Erro na exportação')
       }
     } catch (error) {
-      console.error('Export error:', error)
+      logger.error('Export error', error instanceof Error ? error : new Error(String(error)), { component: 'LMSExportInterface' });
       toast.error('Erro na exportação: ' + (error instanceof Error ? error.message : 'Erro desconhecido'))
     } finally {
       setIsExporting(false)

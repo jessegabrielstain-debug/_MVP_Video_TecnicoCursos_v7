@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -124,7 +125,7 @@ export default function VoiceCloningStudio() {
       const analysisResult = await VoiceCloningSystem.analyzeAudioSamples(audioData)
       setAnalysis(analysisResult)
     } catch (error) {
-      console.error('Erro ao analisar samples:', error)
+      logger.error('Erro ao analisar samples', error instanceof Error ? error : new Error(String(error)), { component: 'VoiceCloningStudio' })
     } finally {
       setIsAnalyzing(false)
     }
@@ -183,7 +184,7 @@ export default function VoiceCloningStudio() {
       }, 3000)
 
     } catch (error) {
-      console.error('Erro ao iniciar treinamento:', error)
+      logger.error('Erro ao iniciar treinamento', error instanceof Error ? error : new Error(String(error)), { component: 'VoiceCloningStudio' })
     }
   }
 
@@ -204,7 +205,7 @@ export default function VoiceCloningStudio() {
 
       setSynthesizedAudio(synthesis.audio_url)
     } catch (error) {
-      console.error('Erro ao sintetizar voz:', error)
+      logger.error('Erro ao sintetizar voz', error instanceof Error ? error : new Error(String(error)), { component: 'VoiceCloningStudio', profileId: selectedProfile?.id })
     }
   }
 

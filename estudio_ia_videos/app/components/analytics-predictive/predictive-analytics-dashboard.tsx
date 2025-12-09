@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -231,15 +232,15 @@ const PredictiveAnalyticsDashboard = () => {
     // Simular atualização de dados
     await new Promise(resolve => setTimeout(resolve, 2000));
     setIsUpdating(false);
-    console.log('📊 Dados atualizados com IA');
+    logger.debug('Dados atualizados com IA', { component: 'PredictiveAnalyticsDashboard' });
   }, []);
 
   const handleExportReport = useCallback(() => {
-    console.log('📋 Exportando relatório preditivo...');
+    logger.debug('Exportando relatório preditivo', { component: 'PredictiveAnalyticsDashboard' });
   }, []);
 
   const handleApplyRecommendation = useCallback((contentId: string, recommendation: string) => {
-    console.log(`✨ Aplicando recomendação para ${contentId}: ${recommendation}`);
+    logger.debug('Aplicando recomendação', { component: 'PredictiveAnalyticsDashboard', contentId, recommendation });
   }, []);
 
   // Calculation helpers

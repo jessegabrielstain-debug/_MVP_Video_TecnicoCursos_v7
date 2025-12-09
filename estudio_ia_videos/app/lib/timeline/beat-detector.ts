@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs/promises';
+import { logger } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -58,7 +59,7 @@ export class BeatDetectorService {
       
       return classifiedBeats;
     } catch (error) {
-      console.error('Beat detection failed:', error);
+      logger.error('Beat detection failed', error instanceof Error ? error : new Error(String(error)), { component: 'BeatDetector' });
       return [];
     }
   }
@@ -164,7 +165,7 @@ export class BeatDetectorService {
       
       return beats;
     } catch (error) {
-      console.error('FFmpeg beat detection failed:', error);
+      logger.error('FFmpeg beat detection failed', error instanceof Error ? error : new Error(String(error)), { component: 'BeatDetector' });
       return [];
     }
   }
@@ -277,7 +278,7 @@ export class BeatDetectorService {
       
       return classifiedBeats;
     } catch (error) {
-      console.error('Beat classification failed:', error);
+      logger.error('Beat classification failed', error instanceof Error ? error : new Error(String(error)), { component: 'BeatDetector' });
       return beats.map(beat => ({ ...beat, intensity: 'medium' as const }));
     }
   }

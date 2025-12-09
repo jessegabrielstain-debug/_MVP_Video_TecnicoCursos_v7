@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { VideoCompositionProps } from '@/lib/types/remotion-types';
 import path from 'path';
 import fs from 'fs';
+import { logger } from '@/lib/logger';
 
 interface RenderRequest {
   compositionId: string;
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🎬 Starting Remotion render:', body.compositionId);
+    logger.info(`🎬 Starting Remotion render: ${body.compositionId}`, { component: 'API: remotion/render' })
 
     // 1. Bundle the Remotion project (dynamic import)
     const { bundle } = await import('@remotion/bundler');
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       webpackOverride: (config) => config,
     });
 
-    console.log('📦 Bundle created at:', bundleLocation);
+    logger.info(`📦 Bundle created at: ${bundleLocation}`, { component: 'API: remotion/render' })
 
     // 2. Get composition details (dynamic import)
     const { selectComposition, renderMedia } = await import('@remotion/renderer');
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
       inputProps: body.props,
     });
 
-    console.log('🎯 Composition selected:', composition);
+    logger.info('🎯 Composition selected', { component: 'API: remotion/render', composition })
 
     // 3. Generate output path
     const outputDir = path.resolve('./public/renders');
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
       path.join(outputDir, `render-${body.compositionId}-${timestamp}.mp4`);
 
     // 4. Render the video
-    console.log('🎬 Starting render to:', outputPath);
+    logger.info(`🎬 Starting render to: ${outputPath}`, { component: 'API: remotion/render' })
     
     const renderResult = await renderMedia({
       composition,
@@ -72,17 +73,17 @@ export async function POST(request: NextRequest) {
       // quality is deprecated in newer versions, using crf instead
       ...(body.quality ? { crf: body.quality } : {}),
       onProgress: ({ progress }) => {
-        console.log(`🎬 Render progress: ${Math.round(progress * 100)}%`);
+        logger.info(`🎬 Render progress: ${Math.round(progress * 100)}%`, { component: 'API: remotion/render' })
       },
       onStart: () => {
-        console.log('🎬 Render started');
+        logger.info('🎬 Render started', { component: 'API: remotion/render' })
       },
       onDownload: (src) => {
-        console.log('📥 Downloaded:', src);
+        logger.info(`📥 Downloaded: ${src}`, { component: 'API: remotion/render' })
       },
     });
 
-    console.log('✅ Render completed:', renderResult);
+    logger.info('✅ Render completed', { component: 'API: remotion/render', renderResult })
 
     // 5. Return the result
     const publicPath = outputPath.replace(path.resolve('./public'), '');

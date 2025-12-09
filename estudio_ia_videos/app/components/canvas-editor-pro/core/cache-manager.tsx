@@ -9,6 +9,7 @@
  */
 
 import { useRef, useCallback, useState } from 'react'
+import { logger } from '@/lib/logger'
 
 interface CacheEntry {
   id: string
@@ -126,7 +127,7 @@ export function useCanvasCache(maxCacheSize: number = 50 * 1024 * 1024): UseCanv
       }))
       
     } catch (error) {
-      console.warn('Cache object failed:', error)
+      logger.warn('Cache object failed', { component: 'CanvasCache', error: String(error) })
     }
   }, [maxCacheSize, stats.totalSize, evictLRU])
 

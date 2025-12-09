@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -267,11 +268,11 @@ const RealTimeCollaborationHub = () => {
 
   // AI Collaboration features
   const handleAIOptimize = useCallback(() => {
-    console.log('🤖 IA otimizando colaboração...');
+    logger.debug('🤖 IA otimizando colaboração...', { component: 'RealTimeCollaborationHub' });
   }, []);
 
   const handleAutoResolveConflicts = useCallback(() => {
-    console.log('✨ Resolvendo conflitos automaticamente...');
+    logger.debug('✨ Resolvendo conflitos automaticamente...', { component: 'RealTimeCollaborationHub' });
     setAiInsights(prev => prev.map(insight =>
       insight.autoResolve ? { ...insight, type: 'optimization' as const } : insight
     ));
@@ -279,7 +280,7 @@ const RealTimeCollaborationHub = () => {
 
   const handleVoiceChat = useCallback(() => {
     setIsRecording(!isRecording);
-    console.log(isRecording ? 'Parando chat de voz' : 'Iniciando chat de voz');
+    logger.debug(isRecording ? 'Parando chat de voz' : 'Iniciando chat de voz', { component: 'RealTimeCollaborationHub' });
   }, [isRecording]);
 
   // Scroll to bottom of messages

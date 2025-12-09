@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 
 interface RenderSettings {
   resolution: '720p' | '1080p' | '4k';
@@ -29,7 +30,7 @@ export function useTimelineRender() {
     setError(null);
     
     // Mock implementation - in a real app this would call an API
-    console.log('Starting render with params:', params);
+    logger.info('Starting render with params', { component: 'UseTimelineRender', params });
     
     // Simulate render process
     const jobId = `job-${Date.now()}`;
@@ -55,7 +56,7 @@ export function useTimelineRender() {
     setRenderProgress(0);
     setRenderJobId(null);
     // Mock implementation
-    console.log('Cancelling render');
+    logger.info('Cancelling render', { component: 'UseTimelineRender' });
     return Promise.resolve();
   }, []);
 

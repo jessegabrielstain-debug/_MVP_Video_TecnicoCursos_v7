@@ -7,6 +7,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -84,7 +85,7 @@ export default function CommentsPanel({
       const data = await response.json()
       setComments(data.comments || [])
     } catch (error: unknown) {
-      console.error('Erro ao carregar comentários:', error)
+      logger.error('Erro ao carregar comentários', error instanceof Error ? error : new Error(String(error)), { component: 'CommentsPanel', projectId })
       toast.error('Erro ao carregar comentários')
     } finally {
       setIsLoading(false)
@@ -112,7 +113,7 @@ export default function CommentsPanel({
       setNewComment('')
       toast.success('Comentário criado!')
     } catch (error: unknown) {
-      console.error('Erro ao criar comentário:', error)
+      logger.error('Erro ao criar comentário', error instanceof Error ? error : new Error(String(error)), { component: 'CommentsPanel', projectId })
       toast.error('Erro ao criar comentário')
     }
   }
@@ -136,7 +137,7 @@ export default function CommentsPanel({
       setReplyingTo(null)
       toast.success('Resposta enviada!')
     } catch (error: unknown) {
-      console.error('Erro ao responder:', error)
+      logger.error('Erro ao responder comentário', error instanceof Error ? error : new Error(String(error)), { component: 'CommentsPanel', commentId })
       toast.error('Erro ao responder comentário')
     }
   }
@@ -154,7 +155,7 @@ export default function CommentsPanel({
       await loadComments()
       toast.success(resolve ? 'Comentário resolvido!' : 'Comentário reaberto!')
     } catch (error: unknown) {
-      console.error('Erro ao resolver:', error)
+      logger.error('Erro ao resolver comentário', error instanceof Error ? error : new Error(String(error)), { component: 'CommentsPanel', commentId })
       toast.error('Erro ao atualizar comentário')
     }
   }
@@ -171,7 +172,7 @@ export default function CommentsPanel({
 
       await loadComments()
     } catch (error: unknown) {
-      console.error('Erro ao adicionar reação:', error)
+      logger.error('Erro ao adicionar reação', error instanceof Error ? error : new Error(String(error)), { component: 'CommentsPanel', commentId, emoji })
       toast.error('Erro ao adicionar reação')
     }
   }
@@ -189,7 +190,7 @@ export default function CommentsPanel({
       await loadComments()
       toast.success('Comentário deletado!')
     } catch (error: unknown) {
-      console.error('Erro ao deletar:', error)
+      logger.error('Erro ao deletar comentário', error instanceof Error ? error : new Error(String(error)), { component: 'CommentsPanel', commentId })
       toast.error('Erro ao deletar comentário')
     }
   }
@@ -215,7 +216,7 @@ export default function CommentsPanel({
             setMentionSuggestions(data.users || [])
           }
         } catch (error) {
-          console.error('Erro ao buscar usuários:', error)
+          logger.error('Erro ao buscar usuários', error instanceof Error ? error : new Error(String(error)), { component: 'CommentsPanel', query: afterAt })
         }
       } else {
         setShowMentionSuggestions(false)

@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { useAuth } from '@/lib/auth/hooks';
 import {
   getOverallMetrics,
@@ -105,7 +106,7 @@ export default function AnalyticsDashboard() {
         trends,
       });
     } catch (err) {
-      console.error('Error loading dashboard data:', err);
+      logger.error('Error loading dashboard data', err instanceof Error ? err : new Error(String(err)), { component: 'AnalyticsDashboard' });
       setError(err instanceof Error ? err.message : 'Erro ao carregar dashboard');
     } finally {
       setLoading(false);

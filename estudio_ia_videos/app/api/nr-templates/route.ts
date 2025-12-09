@@ -9,6 +9,7 @@ import {
   type NRTemplate 
 } from '@/lib/services/nr-templates-service';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
     const templates = await listNRTemplates();
     return NextResponse.json(templates);
   } catch (error) {
-    console.error('Erro ao listar templates:', error);
+    logger.error('Erro ao listar templates:', error instanceof Error ? error : new Error(String(error)), { component: 'API: nr-templates' });
     return NextResponse.json(
       { error: 'Erro ao listar templates' },
       { status: 500 }
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(template, { status: 201 });
   } catch (error) {
-    console.error('Erro ao criar template:', error);
+    logger.error('Erro ao criar template:', error instanceof Error ? error : new Error(String(error)), { component: 'API: nr-templates' });
     return NextResponse.json(
       { error: 'Erro ao criar template' },
       { status: 500 }
@@ -168,7 +169,7 @@ export async function PATCH(request: NextRequest) {
     const template = await updateNRTemplate(id, updates);
     return NextResponse.json(template);
   } catch (error) {
-    console.error('Erro ao atualizar template:', error);
+    logger.error('Erro ao atualizar template:', error instanceof Error ? error : new Error(String(error)), { component: 'API: nr-templates' });
     return NextResponse.json(
       { error: 'Erro ao atualizar template' },
       { status: 500 }
@@ -233,7 +234,7 @@ export async function DELETE(request: NextRequest) {
     await deleteNRTemplate(id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Erro ao deletar template:', error);
+    logger.error('Erro ao deletar template:', error instanceof Error ? error : new Error(String(error)), { component: 'API: nr-templates' });
     return NextResponse.json(
       { error: 'Erro ao deletar template' },
       { status: 500 }

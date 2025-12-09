@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -45,7 +46,7 @@ export function CostDashboard() {
       setData(dashboardData);
       setProjection(projectionData);
     } catch (error) {
-      console.error('Error fetching costs:', error);
+      logger.error('Error fetching costs', error instanceof Error ? error : new Error(String(error)), { component: 'CostDashboard' });
     } finally {
       setLoading(false);
     }

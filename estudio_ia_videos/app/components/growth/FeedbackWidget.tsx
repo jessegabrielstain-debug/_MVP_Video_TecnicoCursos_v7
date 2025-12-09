@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -54,7 +55,7 @@ export default function FeedbackWidget({ context = 'manual', onSubmit }: Feedbac
         toast.error('Erro ao enviar feedback')
       }
     } catch (error) {
-      console.error('Erro ao enviar feedback:', error)
+      logger.error('Erro ao enviar feedback', error instanceof Error ? error : new Error(String(error)), { component: 'FeedbackWidget', context })
       toast.error('Erro ao enviar feedback')
     }
   }

@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -205,7 +206,7 @@ const EnhancedAssetLibrary: React.FC = () => {
         : a
     ))
     // In real implementation, this would trigger actual download
-    console.log('Downloading asset:', asset.name)
+    logger.info('Downloading asset', { component: 'EnhancedAssetLibrary', assetName: asset.name });
   }
   
   // Format duration

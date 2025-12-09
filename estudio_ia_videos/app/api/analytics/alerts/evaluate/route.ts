@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AlertSystem } from '@/lib/analytics/alert-system';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
+import { logger } from '@/lib/logger';
 
 const DEFAULT_CRON_TOKEN = process.env.CRON_TOKEN || 'default-cron-token';
 
@@ -41,7 +42,7 @@ async function postHandler(req: NextRequest) {
     const result = await alertSystem.evaluateAlerts();
     const executionTime = Date.now() - startTime;
 
-    console.log('[Alert Evaluation] Completed', {
+    logger.info('[Alert Evaluation] Completed', {
       force,
       dryRun,
       organizationId,
@@ -49,15 +50,17 @@ async function postHandler(req: NextRequest) {
       evaluated: result.evaluated,
       triggered: result.triggered,
       durationMs: executionTime,
+      component: 'API: analytics/alerts/evaluate'
     });
 
     if (result.alerts.length > 0) {
-      console.log('[Alert Evaluation] Triggered alerts', {
+      logger.info('[Alert Evaluation] Triggered alerts', {
         alerts: result.alerts.map((alert) => ({
           id: alert.id,
           severity: alert.severity,
           title: alert.title,
         })),
+        component: 'API: analytics/alerts/evaluate'
       });
     }
 
@@ -92,14 +95,15 @@ async function postHandler(req: NextRequest) {
     };
 
     if (response.stats.criticalAlerts > 0) {
-      console.warn('[Alert Evaluation] Critical alerts triggered', {
+      logger.warn('[Alert Evaluation] Critical alerts triggered', {
         count: response.stats.criticalAlerts,
+        component: 'API: analytics/alerts/evaluate'
       });
     }
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('[Alert Evaluation] Critical error', error);
+    logger.error('[Alert Evaluation] Critical error', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/alerts/evaluate' });
 
     return NextResponse.json(
       {
@@ -164,7 +168,7 @@ async function getHandler(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Alert Evaluation Status] Error', error);
+    logger.error('[Alert Evaluation Status] Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/alerts/evaluate' });
 
     return NextResponse.json(
       {

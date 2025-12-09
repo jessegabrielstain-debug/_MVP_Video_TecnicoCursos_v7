@@ -8,6 +8,7 @@ import { promisify } from 'util';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { EventEmitter } from 'events';
+import { logger } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -81,7 +82,7 @@ export class FFmpegExecutor {
       // Construir comando FFmpeg
       const args = await this.buildFFmpegCommand(options);
 
-      console.log('🎬 Executando FFmpeg:', this.ffmpegPath, args.join(' '));
+      logger.info(`🎬 Executando FFmpeg: ${this.ffmpegPath} ${args.join(' ')}`, { component: 'FFmpegExecutor' });
 
       // Executar FFmpeg
       const result = await this.executeFFmpeg(args, options, onProgress);
@@ -99,7 +100,7 @@ export class FFmpegExecutor {
       };
 
     } catch (error) {
-      console.error('❌ Erro ao renderizar vídeo:', error);
+      logger.error('❌ Erro ao renderizar vídeo:', error instanceof Error ? error : new Error(String(error)), { component: 'FFmpegExecutor' });
       return {
         success: false,
         outputPath: options.outputPath,
@@ -261,14 +262,14 @@ export class FFmpegExecutor {
 
           // Log a cada 10 frames
           if (currentFrame % 10 === 0) {
-            console.log(`📹 Frame ${currentFrame}/${totalFrames} (${progressData.progress.toFixed(1)}%) - ${progressData.fps.toFixed(1)} fps`);
+            logger.info(`Frame ${currentFrame}/${totalFrames} (${progressData.progress.toFixed(1)}%) - ${progressData.fps.toFixed(1)} fps`, { component: 'FFmpegExecutor' });
           }
         }
       });
 
       ffmpeg.on('close', (code) => {
         if (code === 0) {
-          console.log('✅ FFmpeg concluído com sucesso');
+          logger.info('FFmpeg concluído com sucesso', { component: 'FFmpegExecutor' });
           resolve({
             stats: {
               totalFrames: currentFrame,
@@ -277,14 +278,14 @@ export class FFmpegExecutor {
             },
           });
         } else {
-          console.error('❌ FFmpeg falhou com código:', code);
-          console.error('Stderr:', stderrData);
+          logger.error(`FFmpeg falhou com código: ${code}`, new Error(`Exit code ${code}`), { component: 'FFmpegExecutor' });
+          logger.error('FFmpeg Stderr', new Error(stderrData), { component: 'FFmpegExecutor' });
           reject(new Error(`FFmpeg falhou com código ${code}`));
         }
       });
 
       ffmpeg.on('error', (error) => {
-        console.error('❌ Erro ao executar FFmpeg:', error);
+        logger.error('Erro ao executar FFmpeg', error instanceof Error ? error : new Error(String(error)), { component: 'FFmpegExecutor' });
         reject(error);
       });
     });

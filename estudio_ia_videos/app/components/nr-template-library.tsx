@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -79,7 +80,7 @@ export default function NRTemplateLibrary({
         toast.error('Erro ao carregar templates')
       }
     } catch (error) {
-      console.error('Error loading templates:', error)
+      logger.error('Error loading templates', error instanceof Error ? error : new Error(String(error)), { component: 'NRTemplateLibrary' })
       toast.error('Erro na conexão')
     } finally {
       setLoading(false)
@@ -124,7 +125,7 @@ export default function NRTemplateLibrary({
         toast.error('Erro ao selecionar template')
       }
     } catch (error) {
-      console.error('Error selecting template:', error)
+      logger.error('Error selecting template', error instanceof Error ? error : new Error(String(error)), { templateId: template.id, component: 'NRTemplateLibrary' })
       toast.error('Erro na conexão')
     }
   }

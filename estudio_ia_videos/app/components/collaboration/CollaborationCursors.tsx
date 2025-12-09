@@ -7,6 +7,7 @@
  */
 
 import React, { useEffect, useState, useRef } from 'react'
+import { logger } from '@/lib/logger';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Badge } from '../ui/badge'
 import { io, Socket } from 'socket.io-client'
@@ -56,7 +57,7 @@ export default function CollaborationCursors({
     })
 
     newSocket.on('connect', () => {
-      console.log('✓ Socket conectado')
+      logger.info('Socket conectado', { component: 'CollaborationCursors' });
       newSocket.emit('join-project', { projectId, user: currentUser })
     })
 

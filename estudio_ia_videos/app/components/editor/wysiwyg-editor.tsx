@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { useAdvancedEditor } from '@/hooks/useAdvancedEditor';
 import type { EditorLayer, Timeline, EditorViewport, MediaLayerContent, TextLayerContent } from '@/hooks/useAdvancedEditor';
 import { Button } from '@/components/ui/button';
@@ -177,7 +178,7 @@ export const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
       URL.revokeObjectURL(url);
       onExport?.(format);
     } catch (error) {
-      console.error('Export failed:', error);
+      logger.error('Export failed', error instanceof Error ? error : new Error(String(error)), { component: 'WYSIWYGEditor', format });
     }
   }, [editor, onExport]);
 
@@ -189,7 +190,7 @@ export const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
       try {
         await editor.importAsset(file);
       } catch (error) {
-        console.error('Import failed:', error);
+        logger.error('Import failed', error instanceof Error ? error : new Error(String(error)), { component: 'WYSIWYGEditor' });
       }
     }
   }, [editor]);

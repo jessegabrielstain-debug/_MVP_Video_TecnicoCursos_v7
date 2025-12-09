@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -145,7 +146,7 @@ export default function ProfessionalVoiceStudioV3() {
                 }
             }
         } catch (e) {
-            console.warn('Failed to fetch user info', e)
+            logger.warn('Failed to fetch user info', { component: 'ProfessionalVoiceStudioV3' })
         }
         
         setVoices(voicesData)
@@ -159,7 +160,7 @@ export default function ProfessionalVoiceStudioV3() {
         
       } catch (err) {
         setError('Erro ao carregar dados do ElevenLabs')
-        console.error(err)
+        logger.error('Erro ao carregar dados do ElevenLabs', err instanceof Error ? err : new Error(String(err)), { component: 'ProfessionalVoiceStudioV3' })
       } finally {
         setIsLoading(false)
       }
@@ -238,7 +239,7 @@ export default function ProfessionalVoiceStudioV3() {
       }))
       
     } catch (err) {
-      console.error('Erro ao gerar TTS:', err)
+      logger.error('Erro ao gerar TTS', err instanceof Error ? err : new Error(String(err)), { component: 'ProfessionalVoiceStudioV3' })
       setError('Erro ao gerar áudio. Tente novamente.')
     } finally {
       setIsGenerating(false)

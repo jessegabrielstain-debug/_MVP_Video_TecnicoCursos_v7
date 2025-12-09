@@ -7,6 +7,7 @@ import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
 import { PPTXCoreParser } from './pptx-core-parser';
 import { PPTXParserAdvanced } from '../pptx-parser-advanced';
+import { logger } from '@/lib/logger';
 
 export interface ProcessedSlide {
   index: number;
@@ -91,7 +92,7 @@ export class PPTXProcessorReal {
   private advancedParser = new PPTXParserAdvanced();
   
   async process(buffer: Buffer): Promise<ProcessedSlide[]> {
-    console.log('[PPTX Processor] Processing presentation');
+    logger.info('[PPTX Processor] Processing presentation', { component: 'PPTXProcessorReal' });
     
     // Parse estrutura
     const structure = await this.coreParser.parseStructure(buffer);

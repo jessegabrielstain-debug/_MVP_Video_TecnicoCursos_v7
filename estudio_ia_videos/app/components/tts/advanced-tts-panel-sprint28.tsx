@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -88,7 +89,7 @@ export default function AdvancedTTSPanelSprint28() {
         setVoices(data)
       }
     } catch (error) {
-      console.error('Failed to load voices:', error)
+      logger.error('Failed to load voices', error instanceof Error ? error : new Error(String(error)), { component: 'AdvancedTTSPanelSprint28' })
     }
   }
 

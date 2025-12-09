@@ -4,6 +4,7 @@
  */
 
 import { UE5AvatarEngine, UE5AvatarOptions } from './engines/ue5-avatar-engine';
+import { logger } from '@/lib/logger';
 import { LocalAvatarRenderer, AvatarConfig } from './local-avatar-renderer';
 import { HeyGenAvatarEngine, HeyGenAvatarOptions } from './engines/heygen-avatar-engine';
 import { LipSyncFrame, audio2FaceService } from './services/audio2face-service';
@@ -122,7 +123,7 @@ export class AvatarEngine {
         audioBuffer = Buffer.from(arrayBuffer);
       } else {
         // Fallback for local paths or data URIs if needed, or keep mock for testing if URL is invalid
-        console.warn('Invalid audio URL for lip sync, using mock data:', audioUrl);
+        logger.warn('Invalid audio URL for lip sync, using mock data', { component: 'AvatarEngine', audioUrl });
         audioBuffer = Buffer.from('mock-audio-data');
       }
 
@@ -138,11 +139,11 @@ export class AvatarEngine {
       } else {
         // TypeScript narrowing should work here, but if not, we cast
         const errorMsg = 'error' in result ? result.error : 'Unknown error';
-        console.error('LipSync generation failed:', errorMsg);
+        logger.error('LipSync generation failed', new Error(String(errorMsg)), { component: 'AvatarEngine' });
         return this.generateFallbackFrames(duration);
       }
     } catch (error) {
-      console.error('Error generating lip sync frames:', error);
+      logger.error('Error generating lip sync frames', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarEngine' });
       return this.generateFallbackFrames(duration);
     }
   }

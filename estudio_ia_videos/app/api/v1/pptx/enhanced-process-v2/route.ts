@@ -8,9 +8,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PPTXRealParserV2 } from '@/lib/pptx-real-parser-v2';
 import { convertRealToUnified } from '@/lib/types-unified-v2';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 [PPTX Parser v2] Iniciando processamento real...');
+  logger.info('🚀 [PPTX Parser v2] Iniciando processamento real...', { component: 'API: v1/pptx/enhanced-process-v2' });
   
   try {
     const body = await request.json();
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('📥 [PPTX Parser v2] Processando arquivo do S3:', s3Key);
+    logger.info(`📥 [PPTX Parser v2] Processando arquivo do S3: ${s3Key}`, { component: 'API: v1/pptx/enhanced-process-v2' });
 
     // Inicializar parser real v2
     const parser = new PPTXRealParserV2();
@@ -44,7 +45,8 @@ export async function POST(request: NextRequest) {
       return acc;
     }, {} as Record<string, number>);
 
-    console.log('✅ [PPTX Parser v2] Processamento real concluído:', {
+    logger.info('✅ [PPTX Parser v2] Processamento real concluído:', {
+      component: 'API: v1/pptx/enhanced-process-v2',
       slides: result.slides.length,
       totalElements: result.slides.reduce((acc: number, slide: any) => acc + (slide.elements?.length || 0), 0),
       elementsByType: elementStats,
@@ -63,7 +65,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (editableElements === 0) {
-      console.warn('⚠️ [PPTX Parser v2] Nenhum elemento editável encontrado!');
+      logger.warn('⚠️ [PPTX Parser v2] Nenhum elemento editável encontrado!', { component: 'API: v1/pptx/enhanced-process-v2' });
     }
 
     return NextResponse.json({
@@ -89,7 +91,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ [PPTX Parser v2] Erro no processamento:', error);
+    logger.error('❌ [PPTX Parser v2] Erro no processamento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/pptx/enhanced-process-v2' });
     
     return NextResponse.json(
       { 

@@ -1,7 +1,7 @@
-// @ts-ignore
 import { parse } from 'csv-parse/sync';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { logger } from '@/lib/logger';
 
 export interface VariableDataRow {
   [key: string]: string | number | boolean;
@@ -93,7 +93,7 @@ export class VariableDataEngine {
     try {
       await fs.mkdir(this.tempDir, { recursive: true });
     } catch (error) {
-      console.error('Error creating temp directory:', error);
+      logger.error('Error creating temp directory:', error instanceof Error ? error : new Error(String(error)), { component: 'VariableDataEngine' });
     }
   }
 
@@ -403,7 +403,7 @@ export class VariableDataEngine {
       
       // Retry if enabled
       if (job.settings.retryFailedVariations) {
-        console.log(`Retrying variation ${variation.id}...`);
+        logger.info(`Retrying variation ${variation.id}...`, { component: 'VariableDataEngine' });
         variation.status = 'pending';
         variation.error = undefined;
         // Implement retry logic here
@@ -425,10 +425,10 @@ export class VariableDataEngine {
     // 3. Apply color changes
     // 4. Generate the final video
 
-    console.log(`Generating video with variables:`, variables);
-    console.log(`Template text:`, templateText);
-    console.log(`Output settings:`, outputSettings);
-    console.log(`Output path:`, outputPath);
+    logger.info(`Generating video with variables:`, { component: 'VariableDataEngine', variables });
+    logger.info(`Template text: ${templateText}`, { component: 'VariableDataEngine' });
+    logger.info(`Output settings:`, { component: 'VariableDataEngine', outputSettings });
+    logger.info(`Output path: ${outputPath}`, { component: 'VariableDataEngine' });
 
     // Simulate video generation
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -450,13 +450,13 @@ export class VariableDataEngine {
         const thumbnailPath = variation.outputPath.replace(/\.[^/.]+$/, '_thumbnail.jpg');
         
         // This would use FFmpeg to extract a frame from the video
-        console.log(`Generating thumbnail for ${variation.id}...`);
+        logger.info(`Generating thumbnail for ${variation.id}...`, { component: 'VariableDataEngine' });
         
         if (variation.metadata) {
           variation.metadata.thumbnailPath = thumbnailPath;
         }
       } catch (error) {
-        console.error(`Error generating thumbnail for ${variation.id}:`, error);
+        logger.error(`Error generating thumbnail for ${variation.id}:`, error instanceof Error ? error : new Error(String(error)), { component: 'VariableDataEngine' });
       }
     }
   }
@@ -464,7 +464,7 @@ export class VariableDataEngine {
   private async createZipArchive(job: VariableDataJob): Promise<void> {
     // Create a zip archive of all generated videos
     const zipPath = path.join(job.outputDirectory, `variations_${job.id}.zip`);
-    console.log(`Creating zip archive: ${zipPath}`);
+    logger.info(`Creating zip archive: ${zipPath}`, { component: 'VariableDataEngine' });
     
     // This would use a library like archiver to create the zip file
     // For now, we'll just log the action
@@ -473,13 +473,13 @@ export class VariableDataEngine {
   private async sendNotifications(job: VariableDataJob): Promise<void> {
     // Send email notification if configured
     if (job.settings.notificationEmail) {
-      console.log(`Sending notification email to ${job.settings.notificationEmail}`);
+      logger.info(`Sending notification email to ${job.settings.notificationEmail}`, { component: 'VariableDataEngine' });
       // Implement email sending logic
     }
 
     // Send webhook notification if configured
     if (job.settings.webhookUrl) {
-      console.log(`Sending webhook notification to ${job.settings.webhookUrl}`);
+      logger.info(`Sending webhook notification to ${job.settings.webhookUrl}`, { component: 'VariableDataEngine' });
       // Implement webhook sending logic
     }
   }
@@ -514,7 +514,7 @@ export class VariableDataEngine {
           }
         }
       } catch (error) {
-        console.error('Error cleaning up job files:', error);
+        logger.error('Error cleaning up job files:', error instanceof Error ? error : new Error(String(error)), { component: 'VariableDataEngine' });
       }
       
       this.jobs.delete(jobId);

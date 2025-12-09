@@ -7,6 +7,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -207,7 +208,7 @@ export default function AssetsManagerPremium({
         performSearch('background corporate')
       }
     } catch (error) {
-      console.error('Erro ao carregar dados:', error)
+      logger.error('Erro ao carregar dados', error instanceof Error ? error : new Error(String(error)), { component: 'AssetsManagerPremium' })
     }
   }
 
@@ -231,7 +232,7 @@ export default function AssetsManagerPremium({
       setCurrentPage(page)
       
     } catch (error) {
-      console.error('Erro na busca:', error)
+      logger.error('Erro na busca', error instanceof Error ? error : new Error(String(error)), { component: 'AssetsManagerPremium', query, page })
     } finally {
       setIsSearching(false)
     }
@@ -279,7 +280,7 @@ export default function AssetsManagerPremium({
       }, 1000)
       
     } catch (error) {
-      console.error('Erro no upload:', error)
+      logger.error('Erro no upload', error instanceof Error ? error : new Error(String(error)), { component: 'AssetsManagerPremium' })
       setIsUploading(false)
       setUploadProgress(0)
     }
@@ -301,7 +302,7 @@ export default function AssetsManagerPremium({
         await audioRef.current.play()
         setCurrentlyPlaying(asset.id)
       } catch (error) {
-        console.error('Erro ao reproduzir áudio:', error)
+        logger.error('Erro ao reproduzir áudio', error instanceof Error ? error : new Error(String(error)), { component: 'AssetsManagerPremium', assetId: asset.id })
       }
     }
   }
@@ -317,7 +318,7 @@ export default function AssetsManagerPremium({
         setFavoriteAssets(prev => [...prev, assetId])
       }
     } catch (error) {
-      console.error('Erro ao alterar favoritos:', error)
+      logger.error('Erro ao alterar favoritos', error instanceof Error ? error : new Error(String(error)), { component: 'AssetsManagerPremium', assetId })
     }
   }
 

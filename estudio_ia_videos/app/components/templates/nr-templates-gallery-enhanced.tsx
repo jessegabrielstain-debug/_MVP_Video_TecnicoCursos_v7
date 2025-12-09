@@ -7,6 +7,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -71,7 +72,7 @@ export default function NRTemplatesGalleryEnhanced() {
       const data = await response.json()
       setTemplates(data.templates || [])
     } catch (error) {
-      console.error('Error fetching templates:', error)
+      logger.error('Error fetching templates', error instanceof Error ? error : new Error(String(error)), { component: 'NRTemplatesGalleryEnhanced' })
       toast.error('Erro ao carregar templates')
     } finally {
       setLoading(false)
@@ -146,9 +147,9 @@ export default function NRTemplatesGalleryEnhanced() {
       toast.success('Projeto criado com sucesso!')
       
       // Redirecionar para o editor (simulado)
-      console.log('Redirecionando para:', `/projects/${data.project.id}/edit`)
+      logger.info('Redirecionando para editor', { component: 'NRTemplatesGalleryEnhanced', projectId: data.project.id })
     } catch (error) {
-      console.error('Error using template:', error)
+      logger.error('Error using template', error instanceof Error ? error : new Error(String(error)), { component: 'NRTemplatesGalleryEnhanced' })
       toast.error('Erro ao criar projeto')
     }
   }

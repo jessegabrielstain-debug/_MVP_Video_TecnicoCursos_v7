@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -348,7 +349,7 @@ export default function VidnozTalkingHeadStudio({
         setSelectedClothing(data.avatars[0].clothing[0]?.id || '')
       }
     } catch (error) {
-      console.error('Erro ao carregar avatares:', error)
+      logger.error('Erro ao carregar avatares', error instanceof Error ? error : new Error(String(error)), { component: 'VidnozTalkingHeadStudio' })
       toast.error('Erro ao carregar galeria de avatares')
     }
   }
@@ -499,7 +500,7 @@ export default function VidnozTalkingHeadStudio({
       }
 
     } catch (error: unknown) {
-      console.error('Erro na geração:', error)
+      logger.error('Erro na geração', error instanceof Error ? error : new Error(String(error)), { component: 'VidnozTalkingHeadStudio', avatarId: selectedAvatar?.id })
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
       toast.error(`❌ ${errorMessage}`)
       setIsGenerating(false)
@@ -526,7 +527,7 @@ export default function VidnozTalkingHeadStudio({
           setTimeout(checkProgress, 2000)
         }
       } catch (error) {
-        console.error('Erro ao verificar progresso:', error)
+        logger.error('Erro ao verificar progresso', error instanceof Error ? error : new Error(String(error)), { component: 'VidnozTalkingHeadStudio', jobId })
         setIsGenerating(false)
       }
     }
@@ -536,7 +537,7 @@ export default function VidnozTalkingHeadStudio({
 
   const playVoiceSample = (voiceProfile: VoiceProfile) => {
     const audio = new Audio(voiceProfile.sample)
-    audio.play().catch(console.error)
+    audio.play().catch(err => logger.warn('Erro ao reproduzir sample de voz', { component: 'VidnozTalkingHeadStudio', error: err }))
     toast.success(`Reproduzindo sample de ${voiceProfile.name}`)
   }
 

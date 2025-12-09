@@ -7,6 +7,7 @@
 'use client'
 
 import React, { useState, useRef, useCallback, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -159,7 +160,7 @@ export function AnimakerEditorV2({ projectData, onSave, onExport }: AnimakerEdit
 
   // Event handling
   const handleEditorEvent = useCallback((event: EditorEvent) => {
-    console.log('🎬 Editor Event:', event)
+    logger.debug('Editor Event', { component: 'AnimakerEditorV2', eventType: event.type, data: event.data })
     const data = event.data as { action?: string; elementIds?: string[]; updates?: Partial<UnifiedElement>; settings?: any; jobId?: string };
     
     switch (event.type) {
@@ -408,7 +409,7 @@ export function AnimakerEditorV2({ projectData, onSave, onExport }: AnimakerEdit
       })
 
     } catch (error) {
-      console.error('❌ Erro no export:', error)
+      logger.error('Erro no export', error instanceof Error ? error : new Error(String(error)), { component: 'AnimakerEditorV2' })
       toast.error(`Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, { id: 'export-toast' })
     }
   }, [slides, projectData.timeline, editorConfig.export, onExport, handleEditorEvent])

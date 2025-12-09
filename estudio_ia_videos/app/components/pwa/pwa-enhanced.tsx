@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -257,7 +258,7 @@ export default function PWAEnhanced() {
         battery.addEventListener('levelchange', updateBatteryState)
         battery.addEventListener('chargingchange', updateBatteryState)
       } catch (error) {
-        console.log('Battery API não disponível', error)
+        logger.debug('Battery API não disponível', { component: 'PWAEnhanced', error: String(error) })
       }
     }
 

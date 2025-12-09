@@ -5,6 +5,7 @@ import { S3StorageService } from '@/lib/s3-storage'
 import { videoCache } from '@/lib/video-cache'
 import { notificationManager } from '@/lib/notifications/notification-manager'
 import { unlink } from 'fs/promises'
+import { logger } from '@/lib/logger'
 
 // GET /api/pptx/upload/[id] - Buscar status e metadados de um upload específico
 export const GET = withRateLimit(RATE_LIMITS.AUTH_API, 'user')(async function GET(request: NextRequest, context?: { params: Record<string, string> }) {
@@ -29,7 +30,7 @@ export const GET = withRateLimit(RATE_LIMITS.AUTH_API, 'user')(async function GE
       .single()
 
     if (error) {
-      console.error('Erro ao buscar upload:', error)
+      logger.error('Erro ao buscar upload', { component: 'API: pptx/upload/[id]', error: error instanceof Error ? error : new Error(String(error)) })
       return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
     }
 
@@ -70,7 +71,7 @@ export const GET = withRateLimit(RATE_LIMITS.AUTH_API, 'user')(async function GE
 
     return NextResponse.json({ upload, slides: slides || [] })
   } catch (error) {
-    console.error('Erro na API de upload by id:', error)
+    logger.error('Erro na API de upload by id', { component: 'API: pptx/upload/[id]', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
   }
 })
@@ -143,7 +144,7 @@ export const DELETE = withRateLimit(RATE_LIMITS.AUTH_STRICT, 'user')(async funct
           videoCache.delete(filename)
         }
       } catch (err) {
-        console.warn('Falha ao limpar preview asset:', err)
+        logger.warn('Falha ao limpar preview asset', { component: 'API: pptx/upload/[id]', error: err instanceof Error ? err : new Error(String(err)) })
       }
     }
 
@@ -177,7 +178,7 @@ export const DELETE = withRateLimit(RATE_LIMITS.AUTH_STRICT, 'user')(async funct
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Erro ao excluir upload:', error)
+    logger.error('Erro ao excluir upload', { component: 'API: pptx/upload/[id]', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
   }
 })

@@ -9,6 +9,7 @@
  */
 
 import React, { useRef, useEffect, useState, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import { FabricManager } from '@/lib/fabric-singleton'
 import { useCanvasCache } from './cache-manager'
 import { usePerformanceMonitor } from './performance-monitor'
@@ -92,7 +93,7 @@ export default function CanvasEngine({
             if (fabricCanvas.contextTop) fabricCanvas.contextTop.imageSmoothingQuality = 'high'
           }
         } catch (error) {
-          console.warn('GPU acceleration not available:', error)
+          logger.warn('GPU acceleration not available', { component: 'CanvasEngine', error: String(error) })
         }
       }
 
@@ -139,7 +140,7 @@ export default function CanvasEngine({
       toast.success(`Canvas Engine ${gpuActivated ? 'GPU' : 'CPU'} Ready`)
       
     } catch (error) {
-      console.error('Canvas initialization error:', error)
+      logger.error('Canvas initialization error', error instanceof Error ? error : new Error(String(error)), { component: 'CanvasEngine' })
       setIsLoading(false)
       toast.error('Canvas initialization failed')
     }

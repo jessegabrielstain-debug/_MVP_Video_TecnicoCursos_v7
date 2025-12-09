@@ -1,5 +1,6 @@
 import { offlineDB } from '@/lib/offline/indexeddb-manager'
 import { syncManager } from '@/lib/offline/sync-manager'
+import { logger } from '@/lib/logger'
 
 type OfflineStatus = {
   storageUsedBytes: number
@@ -19,7 +20,7 @@ class PWAManager {
     await syncManager.initialize({ autoSync: true })
 
     if (typeof window !== 'undefined') {
-      console.log('PWA manager initialized (stub)')
+      logger.info('PWA manager initialized (stub)', { component: 'PWAManager' })
       if ('storage' in navigator && 'estimate' in navigator.storage) {
         const estimate = await navigator.storage.estimate()
         this.storageSnapshot = {

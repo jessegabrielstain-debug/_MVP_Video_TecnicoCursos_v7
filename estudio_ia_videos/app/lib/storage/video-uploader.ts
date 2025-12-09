@@ -4,6 +4,7 @@
  */
 
 import { getBrowserClient } from '../supabase/browser';
+import { logger } from '@/lib/logger';
 import fs from 'fs/promises';
 import path from 'path';
 import { createCanvas, loadImage } from 'canvas';
@@ -39,7 +40,7 @@ export class VideoUploader {
    * Upload de vídeo para Supabase Storage
    */
   async uploadVideo(options: VideoUploadOptions): Promise<string> {
-    console.log(`📤 Uploading video: ${options.videoPath}`);
+    logger.info('Uploading video', { videoPath: options.videoPath, projectId: options.projectId, service: 'VideoUploader' });
 
     try {
       // 1. Lê o arquivo de vídeo
@@ -52,7 +53,7 @@ export class VideoUploader {
       const fileName = `${options.projectId}_${options.jobId}_${timestamp}${extension}`;
       const storagePath = `videos/${options.userId}/${fileName}`;
 
-      console.log(`📁 Storage path: ${storagePath}`);
+      logger.debug('Storage path', { storagePath, service: 'VideoUploader' });
 
       // 3. Upload para bucket 'videos'
       const { data: uploadData, error: uploadError } = await this.supabase.storage
@@ -71,7 +72,7 @@ export class VideoUploader {
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
-      console.log(`✅ Video uploaded successfully: ${uploadData.path}`);
+      logger.info('Video uploaded successfully', { path: uploadData.path, service: 'VideoUploader' });
 
       // 4. Obtém URL pública
       const { data: urlData } = this.supabase.storage
@@ -96,11 +97,11 @@ export class VideoUploader {
         completedAt: new Date().toISOString()
       });
 
-      console.log(`🎉 Video upload completed: ${videoUrl}`);
+      logger.info('Video upload completed', { videoUrl, service: 'VideoUploader' });
       return videoUrl;
 
     } catch (error) {
-      console.error('❌ Video upload failed:', error);
+      logger.error('Video upload failed', error instanceof Error ? error : new Error(String(error)), { jobId: options.jobId, service: 'VideoUploader' });
       
       // Atualiza status como erro
       await this.updateRenderJobRecord(options.jobId, {
@@ -122,7 +123,7 @@ export class VideoUploader {
     jobId: string
   ): Promise<string> {
     try {
-      console.log('🖼️ Generating video thumbnail...');
+      logger.info('Generating video thumbnail', { videoPath, service: 'VideoUploader' });
 
       // Extrai primeiro frame do vídeo com FFmpeg
       const thumbnailPath = videoPath.replace(path.extname(videoPath), '_thumb.png');
@@ -155,7 +156,7 @@ export class VideoUploader {
                 });
 
               if (error) {
-                console.warn('Thumbnail upload failed:', error);
+                logger.warn('Thumbnail upload failed', { error: error.message, service: 'VideoUploader' });
                 resolve(''); // Não falha o processo principal
                 return;
               }
@@ -167,27 +168,27 @@ export class VideoUploader {
               // Limpa arquivo temporário
               await fs.unlink(thumbnailPath).catch(() => {});
 
-              console.log('✅ Thumbnail generated and uploaded');
+              logger.info('Thumbnail generated and uploaded', { service: 'VideoUploader' });
               resolve(urlData.publicUrl);
 
             } catch (error) {
-              console.warn('Thumbnail processing failed:', error);
+              logger.warn('Thumbnail processing failed', { error: error instanceof Error ? error.message : String(error), service: 'VideoUploader' });
               resolve(''); // Não falha o processo principal
             }
           } else {
-            console.warn('FFmpeg thumbnail generation failed');
+            logger.warn('FFmpeg thumbnail generation failed', { code, service: 'VideoUploader' });
             resolve(''); // Não falha o processo principal
           }
         });
 
         ffmpeg.on('error', (error) => {
-          console.warn('FFmpeg spawn error:', error);
+          logger.warn('FFmpeg spawn error', { error: error.message, service: 'VideoUploader' });
           resolve(''); // Não falha o processo principal
         });
       });
 
     } catch (error) {
-      console.warn('Thumbnail generation failed:', error);
+      logger.warn('Thumbnail generation failed', { error: error instanceof Error ? error.message : String(error), service: 'VideoUploader' });
       return ''; // Não falha o processo principal
     }
   }
@@ -219,12 +220,12 @@ export class VideoUploader {
         .eq('id', jobId);
 
       if (error) {
-        console.error('Failed to update render_jobs:', error);
+        logger.error('Failed to update render_jobs', new Error(error.message), { jobId, service: 'VideoUploader' });
       } else {
-        console.log(`✅ Updated render_jobs record: ${jobId}`);
+        logger.debug('Updated render_jobs record', { jobId, service: 'VideoUploader' });
       }
     } catch (error) {
-      console.error('Error updating render_jobs:', error);
+      logger.error('Error updating render_jobs', error instanceof Error ? error : new Error(String(error)), { jobId, service: 'VideoUploader' });
     }
   }
 
@@ -255,7 +256,7 @@ export class VideoUploader {
     const chunkSize = 1024 * 1024; // 1MB chunks
     const totalChunks = Math.ceil(fileSize / chunkSize);
 
-    console.log(`📤 Uploading video in ${totalChunks} chunks`);
+    logger.info('Uploading video in chunks', { totalChunks, fileSize, service: 'VideoUploader' });
 
     // Para upload com progresso, usaríamos a API multipart do Supabase
     // Por simplicidade, vamos usar upload direto com callback simulado
@@ -288,7 +289,7 @@ export class VideoUploader {
 
       return data || [];
     } catch (error) {
-      console.error('Failed to list user videos:', error);
+      logger.error('Failed to list user videos', error instanceof Error ? error : new Error(String(error)), { component: 'VideoUploader' });
       return [];
     }
   }
@@ -303,14 +304,14 @@ export class VideoUploader {
         .remove([videoPath]);
 
       if (error) {
-        console.error('Failed to delete video:', error);
+        logger.error('Failed to delete video', error instanceof Error ? error : new Error(String(error)), { component: 'VideoUploader' });
         return false;
       }
 
-      console.log(`🗑️ Video deleted: ${videoPath}`);
+      logger.info(`Video deleted: ${videoPath}`, { component: 'VideoUploader' });
       return true;
     } catch (error) {
-      console.error('Error deleting video:', error);
+      logger.error('Error deleting video', error instanceof Error ? error : new Error(String(error)), { component: 'VideoUploader' });
       return false;
     }
   }
@@ -332,7 +333,7 @@ export class VideoUploader {
 
       return data[0];
     } catch (error) {
-      console.error('Failed to get video info:', error);
+      logger.error('Failed to get video info', error instanceof Error ? error : new Error(String(error)), { component: 'VideoUploader' });
       return null;
     }
   }
@@ -366,7 +367,7 @@ export class VideoUploader {
         percentUsed
       };
     } catch (error) {
-      console.error('Failed to check storage quota:', error);
+      logger.error('Failed to check storage quota', error instanceof Error ? error : new Error(String(error)), { component: 'VideoUploader' });
       return {
         used: 0,
         total: 5 * 1024 * 1024 * 1024,

@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 interface TimelineSlide {
   id: string
@@ -60,7 +61,8 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    console.log('⚡ Starting timeline generation:', { 
+    logger.info('⚡ Starting timeline generation:', { 
+      component: 'API: v1/timeline/generate',
       slideCount: slides.length, 
       jobId 
     })
@@ -107,7 +109,8 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    console.log('✅ Timeline generated:', {
+    logger.info('✅ Timeline generated:', {
+      component: 'API: v1/timeline/generate',
       totalDuration: timeline.totalDuration,
       scenes: scenes.length,
       avgSceneDuration: timeline.totalDuration / scenes.length
@@ -125,8 +128,12 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error: unknown) {
-    console.error('❌ Timeline generation error:', error)
-    const message = error instanceof Error ? error.message : 'Erro interno do servidor';
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    logger.error('❌ Timeline generation error:', {
+      component: 'API: v1/timeline/generate',
+      error: normalizedError
+    })
+    const message = normalizedError.message;
     
     return NextResponse.json(
       { 

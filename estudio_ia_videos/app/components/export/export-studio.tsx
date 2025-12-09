@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -142,7 +143,7 @@ export default function ExportStudio({ projectId, projectData }: ExportStudioPro
       }, 2000)
 
     } catch (error) {
-      console.error('Erro ao iniciar exportação:', error)
+      logger.error('Erro ao iniciar exportação', error instanceof Error ? error : new Error(String(error)), { component: 'ExportStudio' })
     } finally {
       setIsExporting(false)
     }

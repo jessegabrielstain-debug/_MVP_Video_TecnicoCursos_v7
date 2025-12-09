@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -187,11 +188,11 @@ const AudioSyncIASystem = () => {
     }
 
     setIsAnalyzing(false);
-    console.log('🤖 Análise de áudio IA concluída!');
+    logger.info('Análise de áudio IA concluída', { component: 'AudioSyncIASystem' });
   }, []);
 
   const autoSyncTracks = useCallback(async () => {
-    console.log('🎯 Sincronizando tracks automaticamente com IA...');
+    logger.info('Sincronizando tracks automaticamente com IA', { component: 'AudioSyncIASystem' });
     
     // Simular processo de sincronização automática
     setAudioTracks(prev => prev.map(track => ({
@@ -209,7 +210,7 @@ const AudioSyncIASystem = () => {
   }, []);
 
   const optimizeAudioLevels = useCallback(() => {
-    console.log('📊 Otimizando níveis de áudio com IA...');
+    logger.info('Otimizando níveis de áudio com IA', { component: 'AudioSyncIASystem' });
     
     // Simular otimização automática de volumes
     setAudioTracks(prev => prev.map(track => {
@@ -232,7 +233,7 @@ const AudioSyncIASystem = () => {
   }, []);
 
   const detectSpeechPauses = useCallback(() => {
-    console.log('🎤 Detectando pausas na fala com IA...');
+    logger.info('Detectando pausas na fala com IA', { component: 'AudioSyncIASystem' });
     // Implementação de detecção de pausas na fala
   }, []);
 

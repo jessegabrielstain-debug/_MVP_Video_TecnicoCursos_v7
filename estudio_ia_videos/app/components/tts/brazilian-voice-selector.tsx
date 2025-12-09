@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -111,7 +112,7 @@ export default function BrazilianVoiceSelector({
         setPlayingVoice(null)
       }, 3000)
     } catch (error) {
-      console.error('Erro ao reproduzir preview:', error)
+      logger.error('Erro ao reproduzir preview', error instanceof Error ? error : new Error(String(error)), { component: 'BrazilianVoiceSelector' })
       setPlayingVoice(null)
     }
   }

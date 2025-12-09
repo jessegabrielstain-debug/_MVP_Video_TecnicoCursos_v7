@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/services'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Validation schema
 const TTSGenerateSchema = z.object({
@@ -275,7 +276,7 @@ export async function POST(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (usageError) {
-      console.warn('Failed to check TTS usage:', usageError)
+      logger.warn('Failed to check TTS usage:', { component: 'API: external/tts/generate', error: usageError })
     }
 
     // Calculate current usage
@@ -328,7 +329,7 @@ export async function POST(request: NextRequest) {
           }
         })
     } catch (usageLogError) {
-      console.warn('Failed to log TTS usage:', usageLogError)
+      logger.warn('Failed to log TTS usage:', { component: 'API: external/tts/generate', error: usageLogError })
     }
 
     // Log the action for analytics
@@ -350,7 +351,7 @@ export async function POST(request: NextRequest) {
           created_at: new Date().toISOString()
         } as any)
     } catch (analyticsError) {
-      console.warn('Failed to log TTS generation:', analyticsError)
+      logger.warn('Failed to log TTS generation:', { component: 'API: external/tts/generate', error: analyticsError })
     }
 
     return NextResponse.json({
@@ -371,7 +372,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('TTS generation API error:', error)
+    logger.error('TTS generation API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: external/tts/generate' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

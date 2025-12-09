@@ -7,6 +7,7 @@
  */
 
 import React, { useState } from 'react'
+import { logger } from '@/lib/logger'
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -34,7 +35,7 @@ export default function CanvasEditorDemoSprint29() {
 
   const handleSave = (data: Record<string, any>) => {
     setCanvasData(data)
-    console.log('Canvas data saved:', data)
+    logger.debug('Canvas data saved', { component: 'CanvasEditorDemoSprint29', data })
   }
 
   return (

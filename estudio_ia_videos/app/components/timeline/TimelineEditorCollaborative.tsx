@@ -5,6 +5,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
 import { useTimelineSocket, useThrottledCursor } from '@/hooks/useTimelineSocket'
 
 interface TimelineEditorProps {
@@ -32,15 +33,15 @@ export default function TimelineEditorCollaborative({
     userImage,
     autoConnect: true,
     onConnected: () => {
-      console.log('✅ Connected to timeline collaboration')
+      logger.info('Connected to timeline collaboration', { projectId, userId, component: 'TimelineEditorCollaborative' })
       addNotification('success', 'Conectado ao modo colaborativo')
     },
     onDisconnected: () => {
-      console.log('❌ Disconnected from timeline')
+      logger.warn('Disconnected from timeline', { projectId, userId, component: 'TimelineEditorCollaborative' })
       addNotification('warning', 'Desconectado do modo colaborativo')
     },
     onError: (error) => {
-      console.error('WebSocket error:', error)
+      logger.error('WebSocket error', error instanceof Error ? error : new Error(String(error)), { projectId, userId, component: 'TimelineEditorCollaborative' })
       addNotification('error', `Erro: ${error.message}`)
     }
   })
@@ -63,14 +64,14 @@ export default function TimelineEditorCollaborative({
   useEffect(() => {
     // Usuário entrou
     socket.onUserJoined((data) => {
-      console.log(`👤 ${data.userName} entrou no projeto`)
+      logger.info('User joined project', { userName: data.userName, projectId, component: 'TimelineEditorCollaborative' })
       addNotification('info', `${data.userName} entrou no projeto`)
     })
 
     // Usuário saiu
     socket.onUserLeft((data) => {
       const name = data.userName || 'Usuário'
-      console.log(`👋 ${name} saiu do projeto`)
+      logger.info('User left project', { userName: name, userId: data.userId, projectId, component: 'TimelineEditorCollaborative' })
       addNotification('info', `${name} saiu do projeto`)
       
       // Remover locks do usuário que saiu
@@ -87,7 +88,7 @@ export default function TimelineEditorCollaborative({
 
     // Track bloqueada
     socket.onTrackLocked((data) => {
-      console.log(`🔒 Track ${data.trackId} bloqueada por ${data.userName}`)
+      logger.debug('Track locked', { trackId: data.trackId, lockedBy: data.userName, component: 'TimelineEditorCollaborative' })
       setLockedTracks(prev => new Map(prev).set(data.trackId, {
         userId: data.userId,
         userName: data.userName
@@ -100,7 +101,7 @@ export default function TimelineEditorCollaborative({
 
     // Track desbloqueada
     socket.onTrackUnlocked((data) => {
-      console.log(`🔓 Track ${data.trackId} desbloqueada`)
+      logger.debug('Track unlocked', { trackId: data.trackId, component: 'TimelineEditorCollaborative' })
       setLockedTracks(prev => {
         const newMap = new Map(prev)
         newMap.delete(data.trackId)
@@ -127,7 +128,7 @@ export default function TimelineEditorCollaborative({
     // Timeline atualizada
     socket.onTimelineUpdated((data) => {
       if (data.userId !== userId) {
-        console.log(`📝 Timeline atualizada (v${data.version}) por outro usuário`)
+        logger.info('Timeline updated by another user', { version: data.version, updatedBy: data.userId, component: 'TimelineEditorCollaborative' })
         addNotification('info', 'Timeline atualizada por outro usuário')
         
         // Aqui você recarregaria a timeline do servidor

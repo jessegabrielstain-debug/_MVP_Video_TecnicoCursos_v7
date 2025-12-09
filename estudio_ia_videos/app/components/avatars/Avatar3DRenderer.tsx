@@ -11,6 +11,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState, Suspense } from 'react';
+import { logger } from '@/lib/logger';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { 
   OrbitControls, 
@@ -86,7 +87,7 @@ function AvatarModel({
     const gltf = useGLTF(modelUrl as string, true) as any;
     scene = gltf.scene;
   } catch (error) {
-    console.warn('Modelo 3D não encontrado, usando fallback');
+    logger.warn('Modelo 3D não encontrado, usando fallback', { component: 'Avatar3DRenderer' });
   }
 
   // Animação idle e aplicação de blend shapes
@@ -396,7 +397,7 @@ export default function Avatar3DRenderer({
     text,
     audioUrl,
     onComplete: onAnimationComplete,
-    onError: (error) => console.error('Erro no lip sync:', error),
+    onError: (error) => logger.error('Erro no lip sync', error instanceof Error ? error : new Error(String(error)), { component: 'Avatar3DRenderer' }),
     externalAudio
   });
 
@@ -407,7 +408,7 @@ export default function Avatar3DRenderer({
       setAvatar(loadedAvatar);
       setIsLoading(false);
     } else {
-      console.error('Avatar não encontrado:', avatarId);
+      logger.error('Avatar não encontrado', new Error(`Avatar ID: ${avatarId}`), { component: 'Avatar3DRenderer', avatarId });
       setIsLoading(false);
     }
   }, [avatarId]);

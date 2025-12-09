@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { workflowManager } from '@/lib/workflow/unified-workflow-manager'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Schemas de validação
 const CanvasDataSchema = z.object({
@@ -143,7 +144,7 @@ class CanvasEditor {
       }
 
     } catch (error) {
-      console.error('Error saving canvas data:', error)
+      logger.error('Error saving canvas data:', error instanceof Error ? error : new Error(String(error)), { component: 'API: editor/canvas/save' })
       throw new Error('Failed to save canvas data')
     }
   }
@@ -206,7 +207,7 @@ class CanvasEditor {
       return element
 
     } catch (error) {
-      console.error('Error adding element:', error)
+      logger.error('Error adding element:', error instanceof Error ? error : new Error(String(error)), { component: 'API: editor/canvas/save' })
       throw new Error('Failed to add element')
     }
   }
@@ -265,7 +266,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Canvas Editor API Error:', error)
+    logger.error('Canvas Editor API Error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: editor/canvas/save' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -307,7 +308,7 @@ export async function PUT(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Canvas Editor PUT Error:', error)
+    logger.error('Canvas Editor PUT Error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: editor/canvas/save' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -345,7 +346,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Canvas Editor GET Error:', error)
+    logger.error('Canvas Editor GET Error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: editor/canvas/save' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

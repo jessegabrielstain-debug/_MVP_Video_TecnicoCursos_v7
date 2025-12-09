@@ -3,6 +3,7 @@
  * Generates lightweight proxies for browser editing while server renders high quality
  */
 
+import { logger } from '@/lib/logger';
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -106,10 +107,10 @@ export class ProxyGenerator {
         .audioBitrate('128k')
         .outputFormat(config.format)
         .on('start', (commandLine) => {
-          console.log('[ProxyGenerator] FFmpeg command:', commandLine);
+          logger.info('[ProxyGenerator] FFmpeg command', { component: 'ProxyGenerator', commandLine });
         })
         .on('progress', (progress) => {
-          console.log(`[ProxyGenerator] Progress: ${progress.percent}%`);
+          logger.info(`[ProxyGenerator] Progress: ${progress.percent}%`, { component: 'ProxyGenerator' });
         })
         .on('end', async () => {
           try {
@@ -133,7 +134,7 @@ export class ProxyGenerator {
           }
         })
         .on('error', (error) => {
-          console.error('[ProxyGenerator] FFmpeg error:', error);
+          logger.error('[ProxyGenerator] FFmpeg error', error instanceof Error ? error : new Error(String(error)), { component: 'ProxyGenerator' });
           reject(error);
         })
         .save(outputPath);
@@ -209,7 +210,7 @@ export class ProxyGenerator {
           await fs.unlink(metadata.proxyPath);
           this.proxyCache.delete(hash);
         } catch (error) {
-          console.error(`[ProxyGenerator] Failed to delete proxy: ${error}`);
+          logger.error('[ProxyGenerator] Failed to delete proxy', error instanceof Error ? error : new Error(String(error)), { component: 'ProxyGenerator' });
         }
       }
     }

@@ -3,6 +3,8 @@
  * Parser avançado de arquivos PowerPoint
  */
 
+import { logger } from '@/lib/logger';
+
 export interface ParsedPPTX {
   slides: Array<{
     index: number;
@@ -31,7 +33,7 @@ export interface ParsedPPTX {
 
 export class PPTXParserAdvanced {
   async parse(buffer: Buffer): Promise<ParsedPPTX> {
-    console.log('[PPTX Parser] Parsing presentation');
+    logger.info('[PPTX Parser] Parsing presentation', { component: 'PPTXParserAdvanced' });
     
     // Placeholder - implementar parsing real com JSZip + XML parser
     return {

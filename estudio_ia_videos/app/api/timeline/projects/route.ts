@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Schema validation (simplified)
 const TimelineProjectSchema = z.object({
@@ -78,7 +79,10 @@ export async function POST(request: NextRequest) {
                 .insert(slidesToInsert)
             
             if (slidesError) {
-                console.error('Error syncing slides:', slidesError)
+                logger.error('Error syncing slides', {
+                    component: 'API: timeline/projects',
+                    error: slidesError instanceof Error ? slidesError : new Error(String(slidesError))
+                })
                 // We don't fail the request, but log it. 
                 // The project is created, but worker might fail.
             }
@@ -92,7 +96,10 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
-    console.error('Error creating timeline project:', error)
+    logger.error('Error creating timeline project', {
+        component: 'API: timeline/projects',
+        error: error instanceof Error ? error : new Error(String(error))
+    })
     return NextResponse.json({
       success: false,
       error: 'Internal Server Error',
@@ -124,7 +131,10 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching projects:', error)
+    logger.error('Error fetching projects', {
+        component: 'API: timeline/projects',
+        error: error instanceof Error ? error : new Error(String(error))
+    })
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

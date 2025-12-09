@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * WebSocket Server
  * Servidor WebSocket para notificações em tempo real
@@ -13,12 +15,12 @@ export class WebSocketServer {
   private connections: Set<unknown> = new Set();
   
   broadcast(message: WebSocketMessage): void {
-    console.log('[WebSocket] Broadcasting:', message.type);
+    logger.info('[WebSocket] Broadcasting', { component: 'WebSocketServer', type: message.type });
     // Placeholder - implementar WebSocket real
   }
   
   sendToUser(userId: string, message: WebSocketMessage): void {
-    console.log(`[WebSocket] Sending to user ${userId}:`, message.type);
+    logger.info(`[WebSocket] Sending to user ${userId}`, { component: 'WebSocketServer', type: message.type });
     // Placeholder
   }
   
@@ -27,7 +29,7 @@ export class WebSocketServer {
   }
   
   sendNotificationToRoom(roomId: string, notification: Record<string, unknown>): void {
-    console.log(`[WebSocket] Sending to room ${roomId}:`, notification);
+    logger.info(`[WebSocket] Sending to room ${roomId}`, { component: 'WebSocketServer', notification });
     // In a real implementation, this would iterate over connections in the room
   }
   

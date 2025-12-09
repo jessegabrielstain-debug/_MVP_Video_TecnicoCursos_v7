@@ -2,7 +2,8 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs/promises';
-// @ts-ignore
+import { logger } from '@/lib/logger';
+// TODO: Adicionar @types/tesseract.js ou tipar manualmente quando biblioteca estiver estável
 import { createWorker } from 'tesseract.js';
 
 const execAsync = promisify(exec);
@@ -86,7 +87,7 @@ export class TranscriptionService {
     try {
       await fs.mkdir(this.tempDir, { recursive: true });
     } catch (error) {
-      console.error('Error creating temp directory:', error);
+      logger.error('Error creating temp directory:', error instanceof Error ? error : new Error(String(error)), { component: 'TranscriptionService' });
     }
   }
 
@@ -127,7 +128,7 @@ export class TranscriptionService {
 
       return transcription;
     } catch (error) {
-      console.error('Transcription error:', error);
+      logger.error('Transcription error:', error instanceof Error ? error : new Error(String(error)), { component: 'TranscriptionService' });
       throw new Error(`Failed to transcribe audio: ${(error as Error).message}`);
     }
   }
@@ -249,7 +250,7 @@ export class TranscriptionService {
       const { stdout } = await execAsync(command);
       return parseFloat(stdout.trim());
     } catch (error) {
-      console.error('Error getting audio duration:', error);
+      logger.error('Error getting audio duration:', error instanceof Error ? error : new Error(String(error)), { component: 'TranscriptionService' });
       return 0;
     }
   }
@@ -406,7 +407,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         language: targetLanguage
       };
     } catch (error) {
-      console.error('Translation error:', error);
+      logger.error('Translation error', error instanceof Error ? error : new Error(String(error)), { component: 'TranscriptionService' });
       throw new Error(`Failed to translate transcription: ${(error as Error).message}`);
     }
   }
@@ -426,7 +427,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     await Promise.all(
       files.map(file => 
         fs.unlink(file).catch(error => 
-          console.error(`Error deleting temp file ${file}:`, error)
+          logger.error(`Error deleting temp file ${file}`, error instanceof Error ? error : new Error(String(error)), { component: 'TranscriptionService' })
         )
       )
     );

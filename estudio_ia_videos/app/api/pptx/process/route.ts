@@ -13,6 +13,7 @@ import { workflowManager } from '@/lib/workflow/unified-workflow-manager'
 import formidable from 'formidable'
 import fs from 'fs'
 import path from 'path'
+import { logger } from '@/lib/logger';
 
 // Using API route segment config instead of legacy config
 export const maxDuration = 300;
@@ -126,7 +127,7 @@ class PPTXProcessor {
       return slides
 
     } catch (error) {
-      console.error('Error processing PPTX:', error)
+      logger.error('Error processing PPTX', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/process' })
       throw new Error('Failed to process PPTX file')
     }
   }
@@ -156,7 +157,7 @@ class PPTXProcessor {
 
   async generateAutoTTS(slides: PPTXSlide[], projectId: string): Promise<Record<string, unknown>> {
     try {
-      console.log('🎤 Iniciando geração automática de TTS...')
+      logger.info('🎤 Iniciando geração automática de TTS...', { component: 'API: pptx/process' })
       
       // Configuração padrão para TTS automático
       const defaultTTSConfig = {
@@ -208,7 +209,7 @@ class PPTXProcessor {
         }
       })
 
-      console.log('✅ TTS automático gerado com sucesso!')
+      logger.info('✅ TTS automático gerado com sucesso!', { component: 'API: pptx/process' })
       
       return {
         success: true,
@@ -218,7 +219,7 @@ class PPTXProcessor {
       }
 
     } catch (error) {
-      console.error('Error generating auto TTS:', error)
+      logger.error('Error generating auto TTS', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/process' })
       throw new Error('Failed to generate automatic TTS')
     }
   }
@@ -238,7 +239,7 @@ class PPTXProcessor {
 
   async triggerAvatarGeneration(projectId: string, slides: PPTXSlide[]): Promise<Record<string, unknown>> {
     try {
-      console.log('👤 Iniciando geração automática de Avatar...')
+      logger.info('👤 Iniciando geração automática de Avatar...', { component: 'API: pptx/process' })
       
       // Configuração padrão para Avatar 3D
       const defaultAvatarConfig = {
@@ -259,7 +260,7 @@ class PPTXProcessor {
         config: defaultAvatarConfig
       }))
 
-      console.log('✅ Avatar automático configurado!')
+      logger.info('✅ Avatar automático configurado!', { component: 'API: pptx/process' })
       
       return {
         success: true,
@@ -268,7 +269,7 @@ class PPTXProcessor {
       }
 
     } catch (error) {
-      console.error('Error generating auto avatar:', error)
+      logger.error('Error generating auto avatar', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/process' })
       throw new Error('Failed to generate automatic avatar')
     }
   }
@@ -322,7 +323,7 @@ export async function POST(request: NextRequest) {
     const filePath = path.join(uploadDir, `${projectId}-${file.name}`)
     fs.writeFileSync(filePath, buffer)
 
-    console.log('📄 Processando PPTX...')
+    logger.info('📄 Processando PPTX...', { component: 'API: pptx/process' })
     
     // Processar PPTX
     const slides = await pptxProcessor.processPPTX(filePath, projectId)
@@ -333,7 +334,7 @@ export async function POST(request: NextRequest) {
 
     // Gerar TTS automaticamente se solicitado
     if (autoTTS) {
-      console.log('🎤 Gerando TTS automático...')
+      logger.info('🎤 Gerando TTS automático...', { component: 'API: pptx/process' })
       ttsResult = await pptxProcessor.generateAutoTTS(slides, projectId)
       
       // Atualizar workflow para TTS
@@ -342,7 +343,7 @@ export async function POST(request: NextRequest) {
 
     // Gerar Avatar automaticamente se solicitado
     if (autoAvatar) {
-      console.log('👤 Configurando Avatar automático...')
+      logger.info('👤 Configurando Avatar automático...', { component: 'API: pptx/process' })
       avatarResult = await pptxProcessor.triggerAvatarGeneration(projectId, slides)
       
       // Atualizar workflow para Avatar
@@ -361,7 +362,7 @@ export async function POST(request: NextRequest) {
     // Limpar arquivo temporário
     fs.unlinkSync(filePath)
 
-    console.log('✅ PPTX processado com sucesso!')
+    logger.info('✅ PPTX processado com sucesso!', { component: 'API: pptx/process' })
 
     return NextResponse.json({
       success: true,
@@ -378,7 +379,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('PPTX API Error:', error)
+    logger.error('PPTX API Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/process' })
     return NextResponse.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -426,7 +427,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('PPTX GET Error:', error)
+    logger.error('PPTX GET Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/process' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -479,7 +480,7 @@ export async function PUT(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('PPTX PUT Error:', error)
+    logger.error('PPTX PUT Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/process' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

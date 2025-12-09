@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -252,7 +253,7 @@ export const Template3DPreview: React.FC<Template3DPreviewProps> = ({
       setIsLoading(false);
       toast.success('Preview 3D carregado com sucesso!');
     } catch (error) {
-      console.error('Failed to initialize 3D viewer:', error);
+      logger.error('Failed to initialize 3D viewer', error instanceof Error ? error : new Error(String(error)), { component: 'Template3DPreview' });
       toast.error('Erro ao carregar preview 3D');
       setIsLoading(false);
     }

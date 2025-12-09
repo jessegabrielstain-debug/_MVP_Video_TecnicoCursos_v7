@@ -3,6 +3,7 @@ import { S3StorageService } from '@/lib/s3-storage'
 import { prisma } from '@/lib/prisma'
 import { PPTXProcessor, PPTXProcessResult } from '@/lib/pptx/pptx-processor'
 import type { Prisma } from '@prisma/client'
+import { logger } from '@/lib/logger';
 
 interface ProcessingProgress {
   stage: string;
@@ -20,7 +21,7 @@ interface PPTXProcessingResult {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🎯 Iniciando processamento PPTX real - FASE 1...')
+  logger.info('🎯 Iniciando processamento PPTX real - FASE 1...', { component: 'API: v1/pptx/process' })
   const startTime = Date.now()
   let requestBody: { s3Key?: string; projectId?: string } = {}
   
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    console.log(`🔄 Processando projeto: ${projectId}, arquivo: ${s3Key}`)
+    logger.info(`🔄 Processando projeto: ${projectId}, arquivo: ${s3Key}`, { component: 'API: v1/pptx/process' })
 
     // Atualizar status do projeto para processando
     await prisma.project.update({
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Baixar arquivo do S3 para processamento
-    console.log('📥 Baixando arquivo do S3...')
+    logger.info('📥 Baixando arquivo do S3...', { component: 'API: v1/pptx/process' })
     const downloadResult = await S3StorageService.downloadFile(s3Key)
     if (!downloadResult.success || !downloadResult.buffer) {
       const errorMsg = `Erro ao baixar arquivo: ${downloadResult.error}`
@@ -88,10 +89,10 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    console.log(`📦 Arquivo baixado: ${downloadResult.buffer.length} bytes`)
+    logger.info(`📦 Arquivo baixado: ${downloadResult.buffer.length} bytes`, { component: 'API: v1/pptx/process' })
 
     // Validar arquivo PPTX
-    console.log('🔍 Validando arquivo PPTX...')
+    logger.info('🔍 Validando arquivo PPTX...', { component: 'API: v1/pptx/process' })
     const validation = await PPTXProcessor.validatePPTXFile(downloadResult.buffer)
     if (!validation.isValid) {
       const errorMsg = `Arquivo PPTX inválido: ${validation.error || 'Erro desconhecido'}`
@@ -111,14 +112,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (validation.warnings.length > 0) {
-      console.warn('⚠️ Avisos na validação:', validation.warnings)
+      logger.warn('⚠️ Avisos na validação:', { component: 'API: v1/pptx/process', warnings: validation.warnings })
     }
 
     // Processar arquivo PPTX com o novo processador real
-    console.log('🎯 Iniciando processamento real com PPTXProcessor...')
+    logger.info('🎯 Iniciando processamento real com PPTXProcessor...', { component: 'API: v1/pptx/process' })
     
     const progressCallback = (progress: ProcessingProgress) => {
-      console.log(`📊 ${progress.stage}: ${Math.round(progress.progress)}% - ${progress.message}`)
+      logger.info(`📊 ${progress.stage}: ${Math.round(progress.progress)}% - ${progress.message}`, { component: 'API: v1/pptx/process' })
     }
 
     const extractionResult = await PPTXProcessor.processFile(
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    console.log(`✅ Processamento concluído: ${extractionResult.slides.length} slides extraídos`)
+    logger.info(`✅ Processamento concluído: ${extractionResult.slides.length} slides extraídos`, { component: 'API: v1/pptx/process' })
     
     // Gerar thumbnail do primeiro slide se houver imagens
     let thumbnailUrl: string | null = null
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Salvar dados processados no banco
-    console.log('💾 Salvando dados processados no banco...')
+    logger.info('💾 Salvando dados processados no banco...', { component: 'API: v1/pptx/process' })
     
     const processingTime = Date.now() - startTime
     
@@ -197,7 +198,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Criar slides individuais no banco de dados
-    console.log('📄 Criando slides individuais no banco...')
+    logger.info('📄 Criando slides individuais no banco...', { component: 'API: v1/pptx/process' })
     
     for (let i = 0; i < extractionResult.slides.length; i++) {
       const slide = extractionResult.slides[i];
@@ -226,7 +227,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`✅ Processamento PPTX concluído em ${processingTime}ms e salvo no banco`)
+    logger.info(`✅ Processamento PPTX concluído em ${processingTime}ms e salvo no banco`, { component: 'API: v1/pptx/process' })
 
     const result: PPTXProcessingResult = {
       success: true,
@@ -239,7 +240,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result)
 
   } catch (error: unknown) {
-    console.error('❌ Erro no processamento PPTX:', error)
+    logger.error('❌ Erro no processamento PPTX:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/pptx/process' })
     
     const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
     const processingTime = Date.now() - startTime
@@ -258,7 +259,7 @@ export async function POST(request: NextRequest) {
             failedAt: new Date().toISOString()
           } as Prisma.InputJsonValue
         }
-      }).catch(console.error)
+      }).catch((e) => logger.error('Erro ao atualizar status de erro do projeto', e instanceof Error ? e : new Error(String(e)), { component: 'API: v1/pptx/process' }))
     }
     
     return NextResponse.json({

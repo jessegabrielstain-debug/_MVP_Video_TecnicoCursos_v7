@@ -7,6 +7,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -110,7 +111,7 @@ export default function ReviewPanel({
       setApprovalHistory(data.status.approvalHistory || [])
       setCanEdit(data.status.canEdit)
     } catch (error: unknown) {
-      console.error('Erro ao carregar status:', error)
+      logger.error('Erro ao carregar status de revisão', error instanceof Error ? error : new Error(String(error)), { component: 'ReviewPanel', projectId })
       toast.error('Erro ao carregar status de revisão')
     } finally {
       setIsLoading(false)
@@ -127,7 +128,7 @@ export default function ReviewPanel({
         { id: 'user-3', name: 'Maria Oliveira', email: 'maria@empresa.com' },
       ])
     } catch (error) {
-      console.error('Erro ao carregar revisores:', error)
+      logger.error('Erro ao carregar revisores', error instanceof Error ? error : new Error(String(error)), { component: 'ReviewPanel' })
     }
   }
 
@@ -158,7 +159,7 @@ export default function ReviewPanel({
       setReviewDueDate('')
       await loadReviewStatus()
     } catch (error: unknown) {
-      console.error('Erro ao solicitar revisão:', error)
+      logger.error('Erro ao solicitar revisão', error instanceof Error ? error : new Error(String(error)), { component: 'ReviewPanel', projectId, reviewers: selectedReviewers })
       toast.error('Erro ao solicitar revisão')
     }
   }
@@ -189,7 +190,7 @@ export default function ReviewPanel({
       setSelectedDecision(null)
       await loadReviewStatus()
     } catch (error: unknown) {
-      console.error('Erro ao submeter revisão:', error)
+      logger.error('Erro ao submeter revisão', error instanceof Error ? error : new Error(String(error)), { component: 'ReviewPanel', reviewId: currentReview?.id, decision })
       toast.error('Erro ao submeter revisão')
     }
   }
@@ -212,7 +213,7 @@ export default function ReviewPanel({
       toast.success('Projeto reaberto para edição')
       await loadReviewStatus()
     } catch (error: unknown) {
-      console.error('Erro ao reabrir:', error)
+      logger.error('Erro ao reabrir projeto', error instanceof Error ? error : new Error(String(error)), { component: 'ReviewPanel', projectId })
       toast.error('Erro ao reabrir projeto')
     }
   }
@@ -232,7 +233,7 @@ export default function ReviewPanel({
       toast.success('Projeto publicado com sucesso!')
       await loadReviewStatus()
     } catch (error: unknown) {
-      console.error('Erro ao publicar:', error)
+      logger.error('Erro ao publicar projeto', error instanceof Error ? error : new Error(String(error)), { component: 'ReviewPanel', projectId })
       toast.error('Erro ao publicar projeto')
     }
   }

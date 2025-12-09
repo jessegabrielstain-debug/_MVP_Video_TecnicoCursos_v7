@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -120,7 +121,7 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
       const analyticsData = analyticsResults.reduce((acc, curr) => ({ ...acc, ...curr }), {});
       setAnalytics(analyticsData);
     } catch (error) {
-      console.error('Failed to load template data:', error);
+      logger.error('Failed to load template data', error instanceof Error ? error : new Error(String(error)), { component: 'TemplateStudioAdvanced' });
     }
   };
 

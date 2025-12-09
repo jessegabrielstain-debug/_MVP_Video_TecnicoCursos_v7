@@ -7,6 +7,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { logger } from '@/lib/logger'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
@@ -102,7 +103,7 @@ export default function Header({
 
         loadProfile(data.user ?? null)
       } catch (error) {
-        console.error('Erro ao carregar sessão do usuário:', error)
+        logger.error('Erro ao carregar sessão do usuário:', error instanceof Error ? error : new Error(String(error)), { component: 'Header' })
       }
     }
 
@@ -135,7 +136,7 @@ export default function Header({
       router.replace('/login?reason=session_expired')
       router.refresh()
     } catch (error) {
-      console.error('Erro ao fazer logout:', error)
+      logger.error('Erro ao fazer logout:', error instanceof Error ? error : new Error(String(error)), { component: 'Header' })
       toast.error('Não foi possível encerrar a sessão. Tente novamente.')
     } finally {
       setSigningOut(false)

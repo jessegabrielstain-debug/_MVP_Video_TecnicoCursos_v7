@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -173,7 +174,7 @@ const NRComplianceEngine = () => {
     setIsGenerating(false)
     
     // Em produção, faria download do relatório
-    console.log(`Relatório NR-${nr} gerado com sucesso`)
+    logger.info(`Relatório NR-${nr} gerado com sucesso`, { component: 'NRComplianceEngine', nr });
   }
 
   const getStatusColor = (status: string) => {

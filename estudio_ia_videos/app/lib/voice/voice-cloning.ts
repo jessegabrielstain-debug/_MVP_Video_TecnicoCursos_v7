@@ -3,6 +3,8 @@
  * Sistema de clonagem de voz com IA
  */
 
+import { logger } from '@/lib/logger';
+
 export interface VoiceProfile {
   id: string;
   name: string;
@@ -34,7 +36,7 @@ export interface TrainVoiceOptions {
 
 export class VoiceCloning {
   async createProfile(name: string, audioSamples: Buffer[]): Promise<VoiceProfile> {
-    console.log('[VoiceCloning] Creating profile:', name);
+    logger.info('Creating profile', { component: 'VoiceCloning', name });
     
     const id = crypto.randomUUID();
     return {
@@ -53,7 +55,7 @@ export class VoiceCloning {
   }
   
   async synthesize(options: CloneOptions): Promise<Buffer> {
-    console.log('[VoiceCloning] Synthesizing voice:', options);
+    logger.info('Synthesizing voice', { component: 'VoiceCloning', options });
     return Buffer.from([]);
   }
   
@@ -69,7 +71,7 @@ export const voiceCloning = new VoiceCloning();
  * TODO: Implementar treinamento real com serviço de IA
  */
 export async function trainVoice(options: TrainVoiceOptions): Promise<VoiceProfile> {
-  console.log('[trainVoice] Starting training:', options.name);
+  logger.info('Starting training', { component: 'VoiceCloning', name: options.name });
   
   const buffers: Buffer[] = [];
   for (const sample of options.samples) {

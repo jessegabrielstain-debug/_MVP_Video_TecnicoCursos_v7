@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { logger } from '@/lib/logger'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -87,7 +88,7 @@ export default function CreateProjectModal({ open, onOpenChange }: CreateProject
         throw new Error('Project ID not returned')
       }
     } catch (error: unknown) {
-      console.error('Error processing PPTX:', error)
+      logger.error('Error processing PPTX', error instanceof Error ? error : new Error(String(error)), { component: 'CreateProjectModal' })
       const message = error instanceof Error ? error.message : 'Erro ao processar PPTX'
       toast.error(message, { id: 'upload-pptx' })
       setLoading(false)
@@ -121,7 +122,7 @@ export default function CreateProjectModal({ open, onOpenChange }: CreateProject
         throw new Error('Project ID not returned')
       }
     } catch (error: unknown) {
-      console.error('Error creating project:', error)
+      logger.error('Error creating project', error instanceof Error ? error : new Error(String(error)), { component: 'CreateProjectModal' })
       const message = error instanceof Error ? error.message : 'Erro ao criar projeto'
       toast.error(message, { id: 'create-project' })
       setLoading(false)

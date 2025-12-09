@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { logger } from '@/lib/logger';
 
 // Schema de validação para projetos
 const ProjectSchema = z.object({
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
         });
         
         if (sessionError) {
-            console.error('DEBUG: setSession error:', sessionError);
+            logger.error('DEBUG: setSession error:', sessionError instanceof Error ? sessionError : new Error(String(sessionError)), { component: 'API: projects' });
             return NextResponse.json({ 
                 error: 'Unauthorized',
                 debug_error: 'Session set failed',
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
     }
     
     if (authError) {
-        console.error('Projects API Auth Error:', authError);
+        logger.error('Projects API Auth Error:', authError instanceof Error ? authError : new Error(String(authError)), { component: 'API: projects' });
     }
 
     if (!user) {
@@ -136,7 +137,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response)
 
   } catch (error) {
-    console.error('💥 [PROJECTS-API] Erro ao listar projetos:', error)
+    logger.error('💥 [PROJECTS-API] Erro ao listar projetos:', error instanceof Error ? error : new Error(String(error)), { component: 'API: projects' })
     return NextResponse.json({
       success: false,
       error: 'Erro interno do servidor',
@@ -199,7 +200,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Error creating project:', error)
+      logger.error('Error creating project:', error instanceof Error ? error : new Error(String(error)), { component: 'API: projects' })
       // Attempt to extract detailed message
       const errorMessage = error.message || 'Erro ao criar projeto'
       return NextResponse.json({ 
@@ -217,7 +218,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
-    console.error('💥 [PROJECTS-API] Erro ao criar projeto:', error)
+    logger.error('💥 [PROJECTS-API] Erro ao criar projeto:', error instanceof Error ? error : new Error(String(error)), { component: 'API: projects' })
     return NextResponse.json({
       success: false,
       error: 'Erro interno do servidor',

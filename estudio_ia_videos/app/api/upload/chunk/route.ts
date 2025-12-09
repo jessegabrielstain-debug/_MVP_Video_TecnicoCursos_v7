@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import { createHash } from 'crypto';
 import path from 'path';
+import { logger } from '@/lib/logger';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'temp');
 const METADATA_DIR = path.join(process.cwd(), 'uploads', 'metadata');
@@ -25,7 +26,10 @@ async function ensureDirectories() {
     await fs.mkdir(UPLOAD_DIR, { recursive: true });
     await fs.mkdir(METADATA_DIR, { recursive: true });
   } catch (error) {
-    console.error('Error creating directories:', error);
+    logger.error('Error creating directories', {
+      component: 'API: upload/chunk',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
   }
 }
 
@@ -108,7 +112,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Chunk upload error:', error);
+    logger.error('Chunk upload error', {
+      component: 'API: upload/chunk',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -7,6 +7,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -91,7 +92,7 @@ export default function OrchestratorDashboard({ className }: OrchestratorDashboa
             setActiveJob(updatedStatus)
           }
         } catch (error) {
-          console.error('Erro ao atualizar status:', error)
+          logger.error('Erro ao atualizar status', error instanceof Error ? error : new Error(String(error)), { component: 'OrchestratorDashboard' })
         }
       }, 2000)
 
@@ -127,7 +128,7 @@ export default function OrchestratorDashboard({ className }: OrchestratorDashboa
         alert(`Erro: ${error.error}`)
       }
     } catch (error) {
-      console.error('Erro ao criar avatar:', error)
+      logger.error('Erro ao criar avatar', error instanceof Error ? error : new Error(String(error)), { component: 'OrchestratorDashboard' })
       alert('Erro ao criar avatar')
     } finally {
       setIsCreating(false)
@@ -153,7 +154,7 @@ export default function OrchestratorDashboard({ className }: OrchestratorDashboa
         setActiveJob(result.job_status)
       }
     } catch (error) {
-      console.error('Erro ao aprovar checkpoint:', error)
+      logger.error('Erro ao aprovar checkpoint', error instanceof Error ? error : new Error(String(error)), { component: 'OrchestratorDashboard' })
     }
   }
 

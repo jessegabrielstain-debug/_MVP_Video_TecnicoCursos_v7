@@ -30,6 +30,7 @@ import ProfessionalVoiceStudio, { type VoiceConfiguration } from '../tts/profess
 import { SlideNarrationResult } from '../../lib/tts/slide-narration-service'
 import { SyncTimeline, AvatarSyncAction, NarrationSyncSegment } from '../../lib/synchronization/slide-avatar-sync'
 import { toast } from 'react-hot-toast'
+import { logger } from '@/lib/logger'
 
 interface Slide {
   id?: string
@@ -170,14 +171,14 @@ export default function SlideNarrationIntegration({
 
         toast.success(`🎉 Processamento completo! ${result.summary.successfulSlides} slides sincronizados`)
         
-        console.log('📊 Resultado da sincronização:', result.summary)
+        logger.info('Resultado da sincronização', { component: 'SlideNarrationIntegration', summary: result.summary })
 
       } else {
         throw new Error(data.error || 'Erro no processamento')
       }
 
     } catch (error) {
-      console.error('❌ Erro na integração:', error)
+      logger.error('Erro na integração', error instanceof Error ? error : new Error(String(error)), { component: 'SlideNarrationIntegration' })
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
       
       setState(prev => ({
@@ -244,15 +245,15 @@ export default function SlideNarrationIntegration({
 
   // Callbacks do timeline player
   const handleSlideChange = (slideIndex: number, slide: SyncTimeline) => {
-    console.log(`🎬 Player: mudança para slide ${slideIndex + 1}`)
+    logger.debug('Player: mudança de slide', { component: 'SlideNarrationIntegration', slideIndex: slideIndex + 1 })
   }
 
   const handleAvatarAction = (action: AvatarSyncAction) => {
-    console.log('🤖 Player: ação de avatar:', action.type)
+    logger.debug('Player: ação de avatar', { component: 'SlideNarrationIntegration', actionType: action.type })
   }
 
   const handleNarrationSegment = (segment: NarrationSyncSegment) => {
-    console.log('🎤 Player: narração:', segment.text.substring(0, 50) + '...')
+    logger.debug('Player: narração', { component: 'SlideNarrationIntegration', textPreview: segment.text.substring(0, 50) })
   }
 
   return (

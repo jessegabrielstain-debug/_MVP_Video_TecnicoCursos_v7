@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 /**
  * POST - Create snapshot of current timeline
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`📸 Criando snapshot de timeline do projeto ${projectId}...`);
+    logger.info(`📸 Criando snapshot de timeline do projeto ${projectId}...`, { component: 'API: v1/timeline/multi-track/snapshot' });
 
     // Verify project access
     const project = await prisma.project.findFirst({
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`✅ Snapshot criado: ${snapshot.id} (v${snapshot.version})`);
+    logger.info(`✅ Snapshot criado: ${snapshot.id} (v${snapshot.version})`, { component: 'API: v1/timeline/multi-track/snapshot' });
 
     return NextResponse.json({
       success: true,
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('❌ Erro ao criar snapshot:', error);
+    logger.error('❌ Erro ao criar snapshot:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/timeline/multi-track/snapshot' });
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { success: false, message: 'Erro ao criar snapshot', error: message },

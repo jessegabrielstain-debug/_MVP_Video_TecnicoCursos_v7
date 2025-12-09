@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -81,7 +82,7 @@ export default function RealTTSPanel({
         setSelectedVoice(data.voices[0].id)
       }
     } catch (error) {
-      console.error('Error fetching voices:', error)
+      logger.error('Error fetching voices', error instanceof Error ? error : new Error(String(error)), { component: 'RealTTSPanel' })
       toast.error('Erro ao carregar vozes')
     }
   }
@@ -142,7 +143,7 @@ export default function RealTTSPanel({
       }
 
     } catch (error: unknown) {
-      console.error('TTS generation error:', error)
+      logger.error('TTS generation error', error instanceof Error ? error : new Error(String(error)), { component: 'RealTTSPanel' })
       toast.error(`❌ ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     } finally {
       setIsGenerating(false)

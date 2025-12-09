@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -577,7 +578,7 @@ export function EffectsTransitionsLibrary() {
     const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
     
     if (!gl) {
-      console.warn('WebGL não suportado, usando Canvas 2D');
+      logger.warn('WebGL não suportado, usando Canvas 2D', { component: 'EffectsTransitionsLibrary' });
       const ctx = canvas.getContext('2d');
       if (ctx) {
         processorRef.current = {

@@ -5,6 +5,7 @@
 
 import { Queue, QueueEvents } from 'bullmq';
 import { captureException, captureMessage } from '../monitoring/sentry.server';
+import { logger } from '@/lib/logger';
 
 interface QueueMetrics {
   queueName: string;
@@ -58,7 +59,7 @@ export class BullMQMetricsService {
     this.queueEvents.set(queueName, queueEvents);
     this.setupQueueEventListeners(queueName, queueEvents);
     
-    console.log(`✅ BullMQ metrics registrado para fila: ${queueName}`);
+    logger.info(`✅ BullMQ metrics registrado para fila: ${queueName}`, { component: 'BullMQMetricsService' });
   }
 
   /**
@@ -67,13 +68,13 @@ export class BullMQMetricsService {
   private setupQueueEventListeners(queueName: string, queueEvents: QueueEvents) {
     // Job completado
     queueEvents.on('completed', ({ jobId, returnvalue }) => {
-      console.log(`✅ [${queueName}] Job ${jobId} completado`);
+      logger.info(`✅ [${queueName}] Job ${jobId} completado`, { component: 'BullMQMetricsService' });
       captureMessage(`Job completado: ${jobId}`, 'info');
     });
 
     // Job falhou
     queueEvents.on('failed', ({ jobId, failedReason }) => {
-      console.error(`❌ [${queueName}] Job ${jobId} falhou:`, failedReason);
+      logger.error(`❌ [${queueName}] Job ${jobId} falhou:`, new Error(failedReason), { component: 'BullMQMetricsService' });
       captureException(new Error(failedReason || 'Job failed'), {
         queueName,
         jobId,
@@ -85,13 +86,13 @@ export class BullMQMetricsService {
 
     // Job travado (stalled)
     queueEvents.on('stalled', ({ jobId }) => {
-      console.warn(`⚠️ [${queueName}] Job ${jobId} travado`);
+      logger.warn(`⚠️ [${queueName}] Job ${jobId} travado`, { component: 'BullMQMetricsService' });
       captureMessage(`Job travado: ${jobId}`, 'warning');
     });
 
     // Job progresso
     queueEvents.on('progress', ({ jobId, data }) => {
-      console.log(`📊 [${queueName}] Job ${jobId} progresso: ${JSON.stringify(data)}`);
+      logger.info(`📊 [${queueName}] Job ${jobId} progresso: ${JSON.stringify(data)}`, { component: 'BullMQMetricsService' });
     });
   }
 
@@ -122,7 +123,7 @@ export class BullMQMetricsService {
         // Verificar thresholds
         this.checkThresholds(queueMetrics);
       } catch (error) {
-        console.error(`Erro ao coletar métricas da fila ${queueName}:`, error);
+        logger.error(`Erro ao coletar métricas da fila ${queueName}:`, error instanceof Error ? error : new Error(String(error)), { component: 'BullMQMetricsService' });
         captureException(error as Error, { queueName });
       }
     }
@@ -140,7 +141,7 @@ export class BullMQMetricsService {
         `ALERTA: Fila ${metrics.queueName} com ${metrics.waiting} jobs esperando`,
         'warning'
       );
-      console.warn(`⚠️ Threshold de waiting jobs excedido: ${metrics.queueName}`);
+      logger.warn(`⚠️ Threshold de waiting jobs excedido: ${metrics.queueName}`, { component: 'BullMQMetricsService' });
     }
 
     // Alerta: muitos jobs falhando
@@ -149,7 +150,7 @@ export class BullMQMetricsService {
         `ALERTA: Fila ${metrics.queueName} com ${metrics.failed} jobs falhados`,
         'error'
       );
-      console.error(`❌ Threshold de failed jobs excedido: ${metrics.queueName}`);
+      logger.error(`❌ Threshold de failed jobs excedido: ${metrics.queueName}`, new Error(`Threshold exceeded for ${metrics.queueName}`), { component: 'BullMQMetricsService' });
     }
 
     // Alerta: fila pausada
@@ -158,7 +159,7 @@ export class BullMQMetricsService {
         `ALERTA: Fila ${metrics.queueName} está pausada`,
         'warning'
       );
-      console.warn(`⏸️ Fila pausada: ${metrics.queueName}`);
+      logger.warn(`⏸️ Fila pausada: ${metrics.queueName}`, { component: 'BullMQMetricsService' });
     }
   }
 
@@ -192,7 +193,7 @@ export class BullMQMetricsService {
       const metrics = await this.collectMetrics();
       
       // Log das métricas para dashboard
-      console.log('📊 BullMQ Metrics:', JSON.stringify(metrics, null, 2));
+      logger.info('📊 BullMQ Metrics:', { component: 'BullMQMetricsService', metrics });
     }, intervalMs);
   }
 
@@ -208,7 +209,7 @@ export class BullMQMetricsService {
     // Fechar QueueEvents
     for (const [queueName, queueEvents] of this.queueEvents) {
       queueEvents.close();
-      console.log(`🔌 QueueEvents fechado: ${queueName}`);
+      logger.info(`🔌 QueueEvents fechado: ${queueName}`, { component: 'BullmqMetrics' });
     }
   }
 
@@ -265,9 +266,9 @@ export class BullMQMetricsService {
     try {
       await queue.clean(olderThan, 100, 'completed');
       await queue.clean(olderThan, 100, 'failed');
-      console.log(`🧹 Cleanup executado na fila ${queueName}`);
+      logger.info(`🧹 Cleanup executado na fila ${queueName}`, { component: 'BullmqMetrics' });
     } catch (error) {
-      console.error(`Erro ao fazer cleanup da fila ${queueName}:`, error);
+      logger.error(`Erro ao fazer cleanup da fila ${queueName}`, error instanceof Error ? error : new Error(String(error)), { component: 'BullmqMetrics' });
       captureException(error as Error, { queueName });
     }
   }

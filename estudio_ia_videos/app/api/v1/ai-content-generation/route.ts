@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,7 +71,10 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error('Error in AI content generation API:', error)
+    logger.error('Error in AI content generation API', {
+      component: 'API: v1/ai-content-generation',
+      error: error instanceof Error ? error : new Error(String(error))
+    })
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -117,7 +121,10 @@ export async function POST(request: NextRequest) {
     // For now, we'll simulate the process
     setTimeout(() => {
       // This would update the generation status in a database
-      console.log(`Generation ${generationRequest.id} completed`)
+      logger.info(`Generation ${generationRequest.id} completed`, {
+        component: 'API: v1/ai-content-generation',
+        generationId: generationRequest.id
+      })
     }, generationRequest.estimatedTime * 1000)
 
     return NextResponse.json({
@@ -126,7 +133,10 @@ export async function POST(request: NextRequest) {
       data: generationRequest
     })
   } catch (error) {
-    console.error('Error in AI content generation POST:', error)
+    logger.error('Error in AI content generation POST', {
+      component: 'API: v1/ai-content-generation',
+      error: error instanceof Error ? error : new Error(String(error))
+    })
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

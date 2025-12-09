@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { initializeEmergencyFixes } from '../../lib/emergency-fixes';
 
 export default function ProductionProvider({ 
@@ -101,7 +102,7 @@ export default function ProductionProvider({
             
             // Bloquear conexões HMR em qualquer ambiente
             if (urlStr.includes('webpack-hmr') || urlStr.includes('_next/webpack-hmr') || urlStr.includes('preview.abacusai.app')) {
-              console.log('🚨 EMERGENCY: WebSocket HMR blocked');
+              logger.info('EMERGENCY: WebSocket HMR blocked', { component: 'ProductionProvider', url: urlStr });
               
               return new BlockedWebSocket(urlStr);
             }
@@ -114,14 +115,14 @@ export default function ProductionProvider({
 
     // 🚨 EMERGENCY: Global error handler
     const handleGlobalError = (event: ErrorEvent) => {
-      console.warn('🚨 EMERGENCY: Global error caught', event.error);
+      logger.warn('EMERGENCY: Global error caught', { component: 'ProductionProvider', error: String(event.error) });
       // Prevent error from breaking the app
       event.preventDefault();
       return true;
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.warn('🚨 EMERGENCY: Unhandled promise rejection', event.reason);
+      logger.warn('EMERGENCY: Unhandled promise rejection', { component: 'ProductionProvider', reason: String(event.reason) });
       // Prevent unhandled rejection from crashing
       event.preventDefault();
     };

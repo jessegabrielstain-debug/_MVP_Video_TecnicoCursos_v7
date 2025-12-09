@@ -3,6 +3,7 @@
 'use client'
 
 import { useState } from 'react'
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Textarea } from '../ui/textarea'
@@ -67,7 +68,7 @@ export default function ContentOptimizer() {
         throw new Error(result.error || 'Erro na otimização')
       }
     } catch (error) {
-      console.error('Erro:', error)
+      logger.error('Erro ao otimizar conteúdo', error instanceof Error ? error : new Error(String(error)), { component: 'ContentOptimizer' });
       toast.error('Erro ao otimizar conteúdo')
     } finally {
       setLoading(false)

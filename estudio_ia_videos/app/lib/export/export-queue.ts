@@ -1,4 +1,5 @@
 import type { ExportSettings } from '@/types/export.types';
+import { logger } from '@/lib/logger';
 
 /**
  * Export Queue
@@ -32,7 +33,7 @@ export class ExportQueue {
   
   async addJob(videoId: string, format: string): Promise<string> {
     const id = crypto.randomUUID();
-    console.log('[ExportQueue] Adding job:', id);
+    logger.info('[ExportQueue] Adding job', { component: 'ExportQueue', jobId: id });
     
     this.jobs.set(id, {
       id,
@@ -60,7 +61,7 @@ export class ExportQueue {
 
       const processingJobs = Array.from(this.jobs.values()).filter(j => j.status === 'processing').length;
       this.maxConcurrent = Math.max(this.maxConcurrent, processingJobs);
-      console.log('[ExportQueue] Updated job:', id, progress);
+      logger.info('[ExportQueue] Updated job', { component: 'ExportQueue', jobId: id, progress });
     }
   }
   

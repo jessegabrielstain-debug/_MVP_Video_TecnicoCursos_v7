@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 interface TTSRequest {
   text: string;
@@ -17,7 +18,7 @@ interface TTSRequest {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🎙️ Iniciando geração TTS...');
+  logger.info('🎙️ Iniciando geração TTS...', { component: 'API: v1/tts/generate' });
 
   try {
     const body: TTSRequest = await request.json();
@@ -37,7 +38,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`🔊 Gerando TTS com ${provider}:`, {
+    logger.info(`🔊 Gerando TTS com ${provider}:`, {
+      component: 'API: v1/tts/generate',
       textLength: text.length,
       voice,
       language
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro na geração TTS:', error);
+    logger.error('❌ Erro na geração TTS', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/tts/generate' });
     
     return NextResponse.json(
       { 
@@ -139,7 +141,7 @@ async function generateElevenLabsTTS(text: string, voice?: string, speed?: numbe
     };
 
   } catch (error) {
-    console.error('ElevenLabs TTS Error:', error);
+    logger.error('ElevenLabs TTS Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/tts/generate' });
     throw error;
   }
 }
@@ -204,7 +206,7 @@ async function generateAzureTTS(
     };
 
   } catch (error) {
-    console.error('Azure TTS Error:', error);
+    logger.error('Azure TTS Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/tts/generate' });
     throw error;
   }
 }
@@ -267,7 +269,7 @@ async function generateGoogleTTS(
     };
 
   } catch (error) {
-    console.error('Google TTS Error:', error);
+    logger.error('Google TTS Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/tts/generate' });
     throw error;
   }
 }

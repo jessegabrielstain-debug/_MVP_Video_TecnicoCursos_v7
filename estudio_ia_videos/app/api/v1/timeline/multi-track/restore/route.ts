@@ -10,6 +10,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { AnalyticsTracker } from '@/lib/analytics/analytics-tracker';
+import { logger } from '@/lib/logger';
 /**
  * POST - Restore timeline to a specific snapshot version
  */
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`⏪ Restaurando timeline do snapshot ${snapshotId}...`);
+    logger.info(`⏪ Restaurando timeline do snapshot ${snapshotId}...`, { component: 'API: v1/timeline/multi-track/restore' });
 
     // Get snapshot
     const snapshot = await prisma.timelineSnapshot.findUnique({
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`💾 Backup automático criado: ${backupSnapshot.id}`);
+    logger.info(`💾 Backup automático criado: ${backupSnapshot.id}`, { component: 'API: v1/timeline/multi-track/restore' });
 
     // Restore timeline from snapshot
     const restoredTimeline = await prisma.timeline.update({
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`✅ Timeline restaurada para v${snapshot.version} (nova versão: v${restoredTimeline.version})`);
+    logger.info(`✅ Timeline restaurada para v${snapshot.version} (nova versão: v${restoredTimeline.version})`, { component: 'API: v1/timeline/multi-track/restore' });
 
     const orgId = getOrgId(session.user) || (session.user as any).currentOrgId || undefined;
 
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('❌ Erro ao restaurar timeline:', error);
+    logger.error('❌ Erro ao restaurar timeline', { component: 'API: v1/timeline/multi-track/restore', error: error instanceof Error ? error : new Error(String(error)) });
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { success: false, message: 'Erro ao restaurar timeline', error: message },

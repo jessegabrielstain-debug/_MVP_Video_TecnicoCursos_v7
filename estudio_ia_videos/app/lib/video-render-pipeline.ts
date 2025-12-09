@@ -4,6 +4,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 import path from 'path';
 import fs from 'fs/promises';
 import { jobManager } from './render/job-manager';
@@ -73,32 +74,32 @@ export class VideoRenderPipeline {
   }
   
   async prepareAssets(slides: DatabaseSlide[]): Promise<{ ready: boolean }> {
-    console.log('[Pipeline] Preparing assets for', slides.length, 'slides');
+    logger.debug('Preparing assets', { slidesCount: slides.length, service: 'VideoRenderPipeline' });
     // TODO: Download images, fonts, etc.
     return { ready: true };
   }
 
   async renderSlides(slides: DatabaseSlide[], timeline: Timeline): Promise<string[]> {
-    console.log('[Pipeline] Rendering slides...');
+    logger.debug('Rendering slides', { slidesCount: slides.length, service: 'VideoRenderPipeline' });
     // TODO: Implement actual slide rendering logic here or reuse createSlideVideo
     // For now, return mock paths
     return slides.map((_, i) => `slide_${i}.mp4`);
   }
 
   async composeTimeline(renderedSlides: string[], timeline: Timeline): Promise<{ composed: boolean; duration: number }> {
-    console.log('[Pipeline] Composing timeline...');
+    logger.debug('Composing timeline', { slidesCount: renderedSlides.length, duration: timeline.duration, service: 'VideoRenderPipeline' });
     // TODO: Implement concatenation
     return { composed: true, duration: timeline.duration };
   }
 
   async encodeVideo(composedVideo: unknown, settings: RenderPipelineOptions): Promise<string> {
-    console.log('[Pipeline] Encoding video with settings:', settings);
+    logger.debug('Encoding video', { settings, service: 'VideoRenderPipeline' });
     // TODO: Implement encoding
     return `/tmp/output_${Date.now()}.mp4`;
   }
 
   async execute(options: RenderPipelineOptions): Promise<string> {
-    console.log('[Pipeline] Starting render pipeline for project:', options.projectId);
+    logger.info('Starting render pipeline', { projectId: options.projectId, jobId: options.jobId, service: 'VideoRenderPipeline' });
     const { projectId, jobId } = options;
 
     try {
@@ -126,13 +127,13 @@ export class VideoRenderPipeline {
         const progress = 10 + Math.round((i / typedSlides.length) * 60); // 10% to 70%
         await jobManager.updateProgress(jobId, progress);
 
-        console.log(`[Pipeline] Processing slide ${i + 1}/${typedSlides.length}`);
+        logger.debug('Processing slide', { slideIndex: i + 1, totalSlides: typedSlides.length, service: 'VideoRenderPipeline' });
 
         const videoPath = path.join(tempDir, `slide_${i}.mp4`);
 
         // Check for HeyGen Avatar
         if (slide.avatar_config?.engine === 'heygen') {
-          console.log(`[Pipeline] Slide ${i} uses HeyGen avatar. Initiating cloud render...`);
+          logger.info('Slide uses HeyGen avatar, initiating cloud render', { slideIndex: i, service: 'VideoRenderPipeline' });
           await this.processHeyGenSlide(slide, videoPath, options.test);
         } else {
           // 2a. Generate Audio (TTS)
@@ -184,7 +185,7 @@ export class VideoRenderPipeline {
       return publicUrl;
 
     } catch (error) {
-      console.error('[Pipeline] Error:', error);
+      logger.error('Pipeline error', error instanceof Error ? error : new Error(String(error)), { projectId: options.projectId, jobId: options.jobId, service: 'VideoRenderPipeline' });
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       await jobManager.failJob(jobId, errorMessage);
       throw error;
@@ -267,7 +268,7 @@ export class VideoRenderPipeline {
         }
         
         attempts++;
-        console.log(`[Pipeline] Polling HeyGen job ${result.jobId}: ${status.status} (${attempts}/${maxAttempts})`);
+        logger.debug('Polling HeyGen job', { jobId: result.jobId, status: status.status, attempts, maxAttempts, service: 'VideoRenderPipeline' });
       }
 
       if (!videoUrl) {
@@ -275,16 +276,16 @@ export class VideoRenderPipeline {
       }
 
       // Download Video
-      console.log(`[Pipeline] Downloading HeyGen video from ${videoUrl}`);
+      logger.info('Downloading HeyGen video', { videoUrl, service: 'VideoRenderPipeline' });
       const response = await fetch(videoUrl);
       if (!response.ok) throw new Error(`Failed to download video: ${response.statusText}`);
       
       const buffer = await response.arrayBuffer();
       await fs.writeFile(outputPath, Buffer.from(buffer));
-      console.log(`[Pipeline] HeyGen video saved to ${outputPath}`);
+      logger.info(`[Pipeline] HeyGen video saved to ${outputPath}`, { component: 'VideoRenderPipeline' });
 
     } catch (error) {
-      console.error('[Pipeline] Error processing HeyGen slide:', error);
+      logger.error('[Pipeline] Error processing HeyGen slide', error instanceof Error ? error : new Error(String(error)), { component: 'VideoRenderPipeline' });
       throw error;
     }
   }
@@ -319,7 +320,7 @@ export class VideoRenderPipeline {
       ffmpeg.on('error', (err) => reject(err));
       
       // Optional: Log stderr for debug
-      // ffmpeg.stderr.on('data', d => console.log(d.toString()));
+      // ffmpeg.stderr.on('data', d => logger.info(d.toString(), { component: 'VideoRenderPipeline' }));
     });
   }
   

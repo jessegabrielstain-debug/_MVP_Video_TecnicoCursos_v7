@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -229,7 +230,7 @@ const EnterpriseIntegrationSuite = () => {
     setIsSyncing(false)
     setSelectedERP('')
     
-    console.log(`ERP ${erpId} sincronizado com sucesso`)
+    logger.info(`ERP ${erpId} sincronizado com sucesso`, { component: 'EnterpriseIntegrationSuite', erpId })
   }
 
   const getStatusColor = (status: string) => {

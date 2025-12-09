@@ -8,6 +8,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { exec } from 'child_process';
 import util from 'util';
+import { logger } from '@/lib/logger';
 
 const execPromise = util.promisify(exec);
 
@@ -29,7 +30,7 @@ export class EnhancedTTSService {
   async synthesize(options: TTSOptions): Promise<TTSResult> {
     const { text, voice = 'pt-BR-AntonioNeural', speed = 1.0, format = 'mp3' } = options;
     
-    console.log(`[TTS] Synthesizing: "${text}" (voice: ${voice}, speed: ${speed})`);
+    logger.info(`[TTS] Synthesizing: "${text}" (voice: ${voice}, speed: ${speed})`, { component: 'EnhancedTtsService' });
 
     const tempDir = path.join(process.cwd(), 'tmp', 'tts');
     if (!fs.existsSync(tempDir)) {
@@ -56,7 +57,7 @@ export class EnhancedTTSService {
 
       const command = `edge-tts --text "${text.replace(/"/g, '\\"')}" --write-media "${filePath}" --voice ${voice} ${rateArg}`;
       
-      console.log(`[TTS] Executing: ${command}`);
+      logger.info(`[TTS] Executing: ${command}`, { component: 'EnhancedTtsService' });
       await execPromise(command);
 
       if (fs.existsSync(filePath)) {
@@ -79,8 +80,8 @@ export class EnhancedTTSService {
       }
 
     } catch (error) {
-      console.error('[TTS] Error using edge-tts:', error);
-      console.warn('[TTS] Falling back to mock buffer due to error.');
+      logger.error('[TTS] Error using edge-tts:', error instanceof Error ? error : new Error(String(error)), { component: 'EnhancedTtsService' });
+      logger.warn('[TTS] Falling back to mock buffer due to error.', { component: 'EnhancedTtsService' });
       
       // Fallback to mock if edge-tts fails (e.g. not installed)
       return {

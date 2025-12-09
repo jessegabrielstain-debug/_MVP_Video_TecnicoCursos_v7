@@ -7,11 +7,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VideoRenderEngine } from '@/lib/video-render-engine';
 import { PPTXRealParser } from '@/lib/pptx-real-parser';
+import { logger } from '@/lib/logger';
 
 const renderEngine = new VideoRenderEngine();
 
 export async function POST(request: NextRequest) {
-  console.log('🎬 Iniciando renderização de vídeo...');
+  logger.info('🎬 Iniciando renderização de vídeo...', { component: 'API: v1/render/video-production' });
 
   try {
     const body = await request.json();
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Se foi fornecido s3Key, fazer parse primeiro
     if (s3Key && !slides) {
-      console.log('📥 Processando slides do S3 para renderização:', s3Key);
+      logger.info('📥 Processando slides do S3 para renderização:', { s3Key, component: 'API: v1/render/video-production' });
       const parser = new PPTXRealParser();
       const pptxResult = await parser.parseFromS3(s3Key);
       slidesData = pptxResult.slides;
@@ -61,17 +62,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('⚙️ Configurações de renderização:', {
+    logger.info('⚙️ Configurações de renderização:', {
       slides: slidesData.length,
       duration: timelineData.totalDuration,
       quality: settings.quality,
-      format: settings.format
+      format: settings.format,
+      component: 'API: v1/render/video-production'
     });
 
     // Iniciar renderização
     const jobId = await renderEngine.startRender(slidesData, timelineData, settings);
 
-    console.log('✅ Job de renderização iniciado:', jobId);
+    logger.info('✅ Job de renderização iniciado:', { jobId, component: 'API: v1/render/video-production' });
 
     return NextResponse.json({
       success: true,
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro na renderização:', error);
+    logger.error('❌ Erro na renderização:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/render/video-production' });
     
     return NextResponse.json(
       { 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { useTimeline, PPTXSlide } from '@/hooks/useTimeline';
 // import PPTXUploader from '@/app/components/PPTXUploader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,7 +72,7 @@ export function PPTXTimelineIntegration({
     } catch (error) {
       setProcessingStep('idle');
       toast.error('Erro ao criar timeline');
-      console.error('Timeline creation error:', error);
+      logger.error('Timeline creation error', error instanceof Error ? error : new Error(String(error)), { pptxFileName: dataToUse.fileName, slidesCount: dataToUse.slides.length, component: 'PPTXTimelineIntegration' });
     }
   }, [pptxData, uploadedPPTX, timeline, onTimelineCreated]);
 

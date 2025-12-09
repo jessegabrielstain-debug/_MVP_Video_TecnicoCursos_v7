@@ -6,9 +6,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { S3StorageService } from '@/lib/s3-storage'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  console.log('🔄 Iniciando reprocessamento PPTX...')
+  logger.info('Iniciando reprocessamento PPTX', { component: 'API: v1/pptx/reprocess' })
   
   try {
     const { s3Key, options } = await request.json()
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 404 })
     }
 
-    console.log(`🔧 Reprocessando: ${s3Key}`)
+    logger.info(`Reprocessando: ${s3Key}`, { component: 'API: v1/pptx/reprocess' })
 
     // Baixar arquivo novamente
     const downloadResult = await S3StorageService.downloadFile(s3Key)
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Simular reprocessamento com opções melhoradas
     const reprocessedData = await simulateEnhancedProcessing(s3Key, downloadResult.buffer!, options)
 
-    console.log('✅ Reprocessamento concluído')
+    logger.info('Reprocessamento concluído', { component: 'API: v1/pptx/reprocess' })
 
     return NextResponse.json({
       success: true,
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     })
 
   } catch (error) {
-    console.error('❌ Erro no reprocessamento:', error)
+    logger.error('Erro no reprocessamento', { component: 'API: v1/pptx/reprocess', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno'
@@ -70,7 +71,7 @@ async function simulateEnhancedProcessing(s3Key: string, buffer: Buffer, options
     ...options
   }
 
-  console.log('🎯 Opções de reprocessamento:', enhancedOptions)
+  logger.info('Opções de reprocessamento', { component: 'API: v1/pptx/reprocess', options: enhancedOptions })
 
   // Simular dados melhorados
   return {

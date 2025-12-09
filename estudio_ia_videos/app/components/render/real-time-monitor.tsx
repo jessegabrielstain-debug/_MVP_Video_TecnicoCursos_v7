@@ -3,6 +3,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Badge } from '../ui/badge'
 import { Progress } from '../ui/progress'
@@ -72,7 +73,7 @@ export default function RealTimeMonitor() {
         setLastUpdate(new Date())
       }
     } catch (error) {
-      console.error('Error fetching system status:', error)
+      logger.error('Error fetching system status', error instanceof Error ? error : new Error(String(error)), { component: 'RealTimeMonitor' })
     } finally {
       setIsLoading(false)
     }

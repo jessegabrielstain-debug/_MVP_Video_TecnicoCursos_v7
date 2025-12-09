@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -212,7 +213,7 @@ export default function ProfessionalVoiceStudio({
       }
 
     } catch (error) {
-      console.error('Erro no teste de voz:', error)
+      logger.error('Erro no teste de voz', error instanceof Error ? error : new Error(String(error)), { component: 'ProfessionalVoiceStudio' })
       toast.error(`Erro no teste: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     } finally {
       setIsTestingVoice(false)
@@ -245,7 +246,7 @@ export default function ProfessionalVoiceStudio({
       await audio.play()
 
     } catch (error) {
-      console.error('Erro na reprodução:', error)
+      logger.error('Erro na reprodução', error instanceof Error ? error : new Error(String(error)), { component: 'ProfessionalVoiceStudio' })
       toast.error('Erro ao reproduzir áudio de teste')
       setIsPlaying(false)
     }

@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { logger } from '@/lib/logger'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
@@ -315,7 +316,7 @@ const commands: CommandItem[] = [
     title: 'Novo Projeto',
     description: 'Criar um novo projeto',
     icon: Plus,
-    action: () => console.log('Novo projeto'),
+    action: () => logger.debug('Novo projeto action triggered', { component: 'CommandPalette' }),
     group: 'Ações',
     keywords: ['novo', 'new', 'project', 'projeto', 'criar'],
     shortcut: ['⌘', 'N']
@@ -325,7 +326,7 @@ const commands: CommandItem[] = [
     title: 'Buscar Projetos',
     description: 'Encontrar projetos existentes',
     icon: Search,
-    action: () => console.log('Buscar projetos'),
+    action: () => logger.debug('Buscar projetos action triggered', { component: 'CommandPalette' }),
     group: 'Ações',
     keywords: ['buscar', 'search', 'find', 'projetos', 'encontrar'],
     shortcut: ['⌘', 'F']
@@ -335,7 +336,7 @@ const commands: CommandItem[] = [
     title: 'Alternar Tema',
     description: 'Mudar entre claro e escuro',
     icon: Moon,
-    action: () => console.log('Toggle theme'),
+    action: () => logger.debug('Toggle theme action triggered', { component: 'CommandPalette' }),
     group: 'Ações',
     keywords: ['theme', 'tema', 'dark', 'light', 'escuro', 'claro'],
     shortcut: ['⌘', 'T']
@@ -357,7 +358,7 @@ const commands: CommandItem[] = [
     title: 'Atalhos do Teclado',
     description: 'Ver todos os atalhos disponíveis',
     icon: Keyboard,
-    action: () => console.log('Mostrar atalhos'),
+    action: () => logger.debug('Mostrar atalhos action triggered', { component: 'CommandPalette' }),
     group: 'Ajuda',
     keywords: ['keyboard', 'shortcuts', 'atalhos', 'teclas', 'help']
   },

@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs/promises';
+import { logger } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -106,7 +107,7 @@ export class SilenceDetector {
         audioQuality
       };
     } catch (error) {
-      console.error('Error detecting silence:', error);
+      logger.error('Error detecting silence', error instanceof Error ? error : new Error(String(error)), { component: 'SilenceDetector' });
       throw new Error(`Failed to detect silence: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -164,7 +165,7 @@ export class SilenceDetector {
 
       return segments;
     } catch (error) {
-      console.error('Error detecting silence segments:', error);
+      logger.error('Error detecting silence segments', error instanceof Error ? error : new Error(String(error)), { component: 'SilenceDetector' });
       return [];
     }
   }
@@ -218,7 +219,7 @@ export class SilenceDetector {
 
       return segments;
     } catch (error) {
-      console.error('Error detecting breath segments:', error);
+      logger.error('Error detecting breath segments', error instanceof Error ? error : new Error(String(error)), { component: 'SilenceDetector' });
       return [];
     }
   }
@@ -238,7 +239,7 @@ export class SilenceDetector {
       // For now, return empty array - this would need speech-to-text integration
       return segments;
     } catch (error) {
-      console.error('Error detecting filler words:', error);
+      logger.error('Error detecting filler words', error instanceof Error ? error : new Error(String(error)), { component: 'SilenceDetector' });
       return [];
     }
   }
@@ -332,7 +333,7 @@ export class SilenceDetector {
     try {
       await fs.rm(this.tempDir, { recursive: true, force: true });
     } catch (error) {
-      console.error('Error cleaning up temp directory:', error);
+      logger.error('Error cleaning up temp directory', error instanceof Error ? error : new Error(String(error)), { component: 'SilenceDetector' });
     }
   }
 }

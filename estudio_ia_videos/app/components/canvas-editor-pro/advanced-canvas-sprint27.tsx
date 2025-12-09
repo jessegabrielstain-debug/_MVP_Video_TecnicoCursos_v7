@@ -7,6 +7,7 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { 
@@ -81,7 +82,7 @@ export default function AdvancedCanvasEditorSprint27({
         }
         initializeCanvas()
       } catch (error) {
-        console.error('Failed to load Fabric.js:', error)
+        logger.error('Failed to load Fabric.js:', error instanceof Error ? error : new Error(String(error)), { component: 'AdvancedCanvasEditorSprint27' })
         toast.error('Falha ao carregar editor')
       }
     }
@@ -202,7 +203,7 @@ export default function AdvancedCanvasEditorSprint27({
       saveHistory()
       updateLayers()
     } catch (error) {
-      console.error('Error loading slide:', error)
+      logger.error('Error loading slide:', error instanceof Error ? error : new Error(String(error)), { component: 'AdvancedCanvasEditorSprint27' })
       toast.error('Erro ao carregar slide')
     }
   }

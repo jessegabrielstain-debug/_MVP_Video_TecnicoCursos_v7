@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'react-hot-toast'
 import { Logger } from '@/lib/logger'
+import { TimelineEffect } from '@/types/pptx'
 import { 
   Play, 
   Pause, 
@@ -72,8 +73,8 @@ interface TimelineItem {
   startTime: number
   duration: number
   endTime: number
-  content?: any
-  effects?: any[]
+  content?: string | Record<string, unknown>
+  effects?: TimelineEffect[]
   keyframes?: Keyframe[]
   waveform?: number[]
   thumbnail?: string
@@ -85,7 +86,7 @@ interface Keyframe {
   id: string
   time: number
   property: string
-  value: any
+  value: Record<string, unknown>
   ease?: string
 }
 

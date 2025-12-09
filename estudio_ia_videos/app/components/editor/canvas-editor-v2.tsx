@@ -7,6 +7,7 @@
 'use client'
 
 import React, { forwardRef, useImperativeHandle, useRef, useState, useCallback, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { UnifiedSlide, UnifiedElement, EditorState, EditorEvent, EditorConfig } from '@/lib/types-unified-v2'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -364,12 +365,12 @@ const CanvasEditorV2 = forwardRef<CanvasEditorHandle, CanvasEditorProps>(({
 
   const handleCopySelected = () => {
     // TODO: Implementar copy to clipboard
-    console.log('Copying elements:', selectedElements)
+    logger.debug('Copying elements', { component: 'CanvasEditorV2', selectedElements })
   }
 
   const handlePaste = () => {
     // TODO: Implementar paste from clipboard
-    console.log('Pasting elements')
+    logger.debug('Pasting elements', { component: 'CanvasEditorV2' })
   }
 
   const handleSelectAll = () => {
@@ -471,7 +472,7 @@ const CanvasEditorV2 = forwardRef<CanvasEditorHandle, CanvasEditorProps>(({
               className="object-cover"
               draggable={false}
               onError={(e) => {
-                console.error('Erro ao carregar imagem:', element.properties?.src)
+                logger.error('Erro ao carregar imagem', new Error(`Failed to load: ${element.properties?.src}`), { component: 'CanvasEditorV2', src: element.properties?.src })
                 // Fallback para placeholder
                 const target = e.target as HTMLImageElement
                 target.src = '/placeholder-image.png'

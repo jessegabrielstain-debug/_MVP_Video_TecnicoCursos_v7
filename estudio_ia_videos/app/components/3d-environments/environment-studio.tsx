@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -67,7 +68,7 @@ export default function EnvironmentStudio() {
         setSelectedEnvironment(data[0]);
       }
     } catch (error) {
-      console.error('Erro ao carregar ambientes:', error);
+      logger.error('Erro ao carregar ambientes', error instanceof Error ? error : new Error(String(error)), { component: 'EnvironmentStudio' });
       // Mock data para demonstração
       setEnvironments(mockEnvironments);
       setSelectedEnvironment(mockEnvironments[0]);
@@ -170,7 +171,7 @@ export default function EnvironmentStudio() {
         setViewMode('edit');
       }
     } catch (error) {
-      console.error('Erro ao criar cena:', error);
+      logger.error('Erro ao criar cena', error instanceof Error ? error : new Error(String(error)), { component: 'EnvironmentStudio', environmentId: selectedEnvironment?.id });
     } finally {
       setIsLoading(false);
     }
@@ -197,10 +198,10 @@ export default function EnvironmentStudio() {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Renderização iniciada:', result);
+        logger.info('Renderização iniciada', { component: 'EnvironmentStudio', sceneId: currentScene?.id, result });
       }
     } catch (error) {
-      console.error('Erro ao renderizar:', error);
+      logger.error('Erro ao renderizar', error instanceof Error ? error : new Error(String(error)), { component: 'EnvironmentStudio', sceneId: currentScene?.id });
     } finally {
       setIsLoading(false);
     }

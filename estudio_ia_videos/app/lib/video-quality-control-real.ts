@@ -3,6 +3,8 @@
  * Sistema de controle de qualidade de vídeo
  */
 
+import { logger } from '@/lib/logger';
+
 export interface QualityMetrics {
   resolution: string;
   bitrate: number;
@@ -34,7 +36,7 @@ export interface QCReport {
 
 export class VideoQualityControl {
   async analyze(videoPath: string): Promise<QualityMetrics> {
-    console.log('[QualityControl] Analyzing video:', videoPath);
+    logger.info('[QualityControl] Analyzing video', { component: 'VideoQualityControlReal', videoPath });
     
     return {
       resolution: '1920x1080',
@@ -47,12 +49,12 @@ export class VideoQualityControl {
   }
   
   async detectIssues(videoPath: string): Promise<QualityIssue[]> {
-    console.log('[QualityControl] Detecting issues:', videoPath);
+    logger.info('[QualityControl] Detecting issues', { component: 'VideoQualityControlReal', videoPath });
     return [];
   }
   
   async validateOutput(videoPath: string): Promise<boolean> {
-    console.log('[QualityControl] Validating output:', videoPath);
+    logger.info('[QualityControl] Validating output', { component: 'VideoQualityControlReal', videoPath });
     return true;
   }
 

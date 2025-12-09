@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '../ui/use-toast'
 import { Logger } from '@/lib/logger'
+import { SlideLayout, SlideMetadata, NarrationSegment, SceneMapping } from '@/types/pptx'
 
 const logger = new Logger('PPTXProjectManager')
 
@@ -41,8 +42,8 @@ interface PPTXSlide {
   notes?: string;
   background?: string;
   elements?: unknown[];
-  layout?: any;
-  metadata?: any;
+  layout?: SlideLayout;
+  metadata?: SlideMetadata;
   bullets?: string[];
   images?: string[];
 }
@@ -52,7 +53,7 @@ interface NarrationConfig {
   slideNumber: number;
   text: string;
   duration?: number;
-  segments?: any[];
+  segments?: NarrationSegment[];
   totalDuration?: number;
 }
 
@@ -80,7 +81,7 @@ interface ProjectMetadata {
   source?: string;
   totalDuration?: number;
   qualityScore?: number;
-  sceneMappings?: any[];
+  sceneMappings?: SceneMapping[];
   sourceFile?: string;
 }
 
@@ -130,13 +131,23 @@ export function PPTXProjectManager({ onProjectReady, onBack }: PPTXProjectManage
   }
 
   // Handle wizard completion
-  const handleWizardComplete = (data: PPTXProjectData) => {
-    setProjectData(data)
+  const handleWizardComplete = (data: Record<string, unknown>) => {
+    // Transform the wizard data to PPTXProjectData format
+    const projectData: PPTXProjectData = {
+      title: (data.name as string) || 'Projeto Importado',
+      description: '',
+      slides: [],
+      narration: [],
+      voiceConfig: {},
+      avatarConfig: {},
+      metadata: data as ProjectMetadata
+    }
+    setProjectData(projectData)
     setCurrentView('editor')
     
     toast({
       title: "Projeto PPTX criado!",
-      description: `${data.slides.length} slides prontos para edição`,
+      description: `Projeto pronto para edição`,
     })
   }
 
@@ -373,11 +384,11 @@ export function PPTXProjectManager({ onProjectReady, onBack }: PPTXProjectManage
           {projectData.slides.map((slide, index) => (
             <SlideEditor
               key={slide.slideNumber}
-              slide={slide as any}
-              sceneMapping={projectData.metadata.sceneMappings?.[index] || {}}
-              narrationResult={(projectData.narration[index] as any) || {}}
+              slide={slide as unknown as import('@/types/pptx-types').PPTXSlide}
+              sceneMapping={(projectData.metadata.sceneMappings?.[index] as unknown as Record<string, unknown>) || null}
+              narrationResult={(projectData.narration[index] as unknown as Record<string, unknown>) || null}
               availableTemplates={availableTemplates}
-              onSlideUpdate={handleSlideUpdate as any}
+              onSlideUpdate={handleSlideUpdate as unknown as (slideId: string, updates: Partial<import('@/types/pptx-types').PPTXSlide>) => void}
               onTemplateChange={handleTemplateChange}
               onPreview={handleSlidePreview}
             />

@@ -6,6 +6,7 @@ import { AlertSystem, AlertType } from '@/lib/analytics/alert-system';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 interface AlertEventData {
   ruleId?: string;
@@ -243,7 +244,7 @@ async function getHandler(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Analytics Alerts] Error:', error);
+    logger.error('[Analytics Alerts] Error', { component: 'API: analytics/alerts', error: error instanceof Error ? error : new Error(String(error)) });
     
     return NextResponse.json(
       {
@@ -354,7 +355,7 @@ async function postHandler(req: NextRequest) {
     );
 
   } catch (error) {
-    console.error('[Analytics Alerts POST] Error:', error);
+    logger.error('[Analytics Alerts POST] Error', { component: 'API: analytics/alerts', error: error instanceof Error ? error : new Error(String(error)) });
     
     return NextResponse.json(
       {
@@ -441,7 +442,7 @@ async function putHandler(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Analytics Alerts PUT] Error:', error);
+    logger.error('[Analytics Alerts PUT] Error', { component: 'API: analytics/alerts', error: error instanceof Error ? error : new Error(String(error)) });
     
     return NextResponse.json(
       {
@@ -513,7 +514,7 @@ async function deleteHandler(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Analytics Alerts DELETE] Error:', error);
+    logger.error('[Analytics Alerts DELETE] Error', { component: 'API: analytics/alerts', error: error instanceof Error ? error : new Error(String(error)) });
     
     return NextResponse.json(
       {

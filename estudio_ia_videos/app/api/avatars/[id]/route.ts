@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Schema de validação para atualização de avatar
 const updateAvatarSchema = z.object({
@@ -91,7 +92,7 @@ export async function GET(
     return NextResponse.json({ avatar })
 
   } catch (error) {
-    console.error('Erro ao buscar avatar:', error)
+    logger.error('Erro ao buscar avatar', { component: 'API: avatars/[id]', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -232,7 +233,7 @@ export async function PUT(
       .single()
 
     if (updateError) {
-      console.error('Erro ao atualizar avatar:', updateError)
+      logger.error('Erro ao atualizar avatar', { component: 'API: avatars/[id]', error: updateError instanceof Error ? updateError : new Error(String(updateError)) })
       return NextResponse.json(
         { error: 'Erro ao atualizar avatar' },
         { status: 500 }
@@ -262,7 +263,7 @@ export async function PUT(
       )
     }
 
-    console.error('Erro ao atualizar avatar:', error)
+    logger.error('Erro ao atualizar avatar', { component: 'API: avatars/[id]', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -344,7 +345,7 @@ export async function DELETE(
       .eq('id', avatarId)
 
     if (deleteError) {
-      console.error('Erro ao excluir avatar:', deleteError)
+      logger.error('Erro ao excluir avatar', { component: 'API: avatars/[id]', error: deleteError instanceof Error ? deleteError : new Error(String(deleteError)) })
       return NextResponse.json(
         { error: 'Erro ao excluir avatar' },
         { status: 500 }
@@ -375,7 +376,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error('Erro ao excluir avatar:', error)
+    logger.error('Erro ao excluir avatar', { component: 'API: avatars/[id]', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

@@ -6,6 +6,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { toast } from 'react-hot-toast'
 
 export function GlobalButtonFix() {
@@ -23,7 +24,7 @@ export function GlobalButtonFix() {
       // Proteção contra loop infinito
       fixCallCount++
       if (fixCallCount > MAX_FIX_CALLS) {
-        console.warn('🚨 Button fix throttled - too many calls')
+        logger.warn('Button fix throttled - too many calls', { component: 'GlobalButtonFix' })
         return
       }
 

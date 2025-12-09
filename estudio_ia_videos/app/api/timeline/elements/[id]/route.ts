@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger';
 
 // Type for timeline element with track and project info
 interface TimelineElementWithTrack {
@@ -98,7 +99,7 @@ export async function GET(
           { status: 404 }
         )
       }
-      console.error('Erro ao buscar elemento:', error)
+      logger.error('Erro ao buscar elemento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements/[id]' })
       return NextResponse.json(
         { error: 'Erro interno do servidor' },
         { status: 500 }
@@ -130,7 +131,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('Erro na API de elemento:', error)
+    logger.error('Erro na API de elemento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements/[id]' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -242,7 +243,7 @@ export async function PUT(
       .single()
 
     if (error) {
-      console.error('Erro ao atualizar elemento:', error)
+      logger.error('Erro ao atualizar elemento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements/[id]' })
       return NextResponse.json(
         { error: 'Erro ao atualizar elemento' },
         { status: 500 }
@@ -287,7 +288,7 @@ export async function PUT(
       )
     }
 
-    console.error('Erro na atualização de elemento:', error)
+    logger.error('Erro na atualização de elemento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements/[id]' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -362,7 +363,7 @@ export async function DELETE(
       .eq('id', elementId)
 
     if (error) {
-      console.error('Erro ao excluir elemento:', error)
+      logger.error('Erro ao excluir elemento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements/[id]' })
       return NextResponse.json(
         { error: 'Erro ao excluir elemento' },
         { status: 500 }
@@ -395,7 +396,7 @@ export async function DELETE(
     return NextResponse.json({ message: 'Elemento excluído com sucesso' })
 
   } catch (error) {
-    console.error('Erro na exclusão de elemento:', error)
+    logger.error('Erro na exclusão de elemento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements/[id]' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

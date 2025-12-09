@@ -7,6 +7,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -208,12 +209,14 @@ export default function VidnozTalkingPhotoPro({ className }: VidnozTalkingPhotoP
     setGenerationProgress(0)
 
     try {
-      console.log('🎬 Iniciando geração REAL de talking photo PRO')
-      console.log(`📝 Texto: "${inputText.substring(0, 100)}..."`)
-      console.log(`🎭 Avatar: ${selectedAvatar.name}`)
-      console.log(`🗣️ Voz: ${selectedVoice}`)
-      console.log(`💎 Modo PRO: ${isPro}`)
-      console.log(`📦 Formato: ${selectedFormat}`)
+      logger.info('Iniciando geração REAL de talking photo PRO', {
+        textLength: inputText.length,
+        avatar: selectedAvatar.name,
+        voice: selectedVoice,
+        isPro,
+        format: selectedFormat,
+        component: 'VidnozTalkingPhotoPro'
+      })
       
       const jobId = `talking_photo_pro_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
@@ -292,13 +295,15 @@ export default function VidnozTalkingPhotoPro({ className }: VidnozTalkingPhotoP
         
         setTimeout(() => {
           setIsGenerating(false)
-          console.log('✅ Talking photo PRO gerado com SUCESSO!')
-          console.log('🎵 Áudio URL:', result.data.audioUrl)
-          console.log('🎬 Vídeo URL:', result.data.videoUrl)
-          console.log('📊 Duração:', result.data.duration + 'ms')
-          console.log('🔊 Fonemas processados:', result.data.metadata.ttsData.phonemes)
-          console.log('👄 Sincronização labial:', result.data.metadata.ttsData.lipSyncAccuracy, 'pontos')
-          console.log('💎 Qualidade PRO:', isPro ? 'SIM' : 'NÃO')
+          logger.info('Talking photo PRO gerado com SUCESSO', {
+            audioUrl: result.data.audioUrl,
+            videoUrl: result.data.videoUrl,
+            duration: result.data.duration,
+            phonemes: result.data.metadata.ttsData.phonemes,
+            lipSyncAccuracy: result.data.metadata.ttsData.lipSyncAccuracy,
+            isPro,
+            component: 'VidnozTalkingPhotoPro'
+          })
           
           alert(`🎉 Talking Photo PRO Gerado com Sucesso!
           
@@ -321,7 +326,7 @@ O avatar agora está realmente falando com sincronização labial hiper-realista
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      console.error('❌ Erro na geração PRO:', error)
+      logger.error('Erro na geração PRO', error instanceof Error ? error : new Error(String(error)), { avatar: selectedAvatar.name, component: 'VidnozTalkingPhotoPro' })
       alert(`❌ Erro na geração do talking photo PRO:
 
 ${errorMessage}

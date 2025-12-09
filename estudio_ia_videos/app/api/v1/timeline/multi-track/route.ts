@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { AnalyticsTracker } from '@/lib/analytics/analytics-tracker';
+import { logger } from '@/lib/logger';
 
 // Types for Timeline structures
 interface Keyframe {
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`🎬 Salvando timeline para projeto ${projectId}...`);
+    logger.info(`🎬 Salvando timeline para projeto ${projectId}...`, { component: 'API: v1/timeline/multi-track' })
 
     // Verify project exists and user has access
     const { data: project, error: projectError } = await supabase
@@ -186,7 +187,7 @@ export async function POST(request: NextRequest) {
         timeline = data as TimelineRecord;
     }
 
-    console.log(`✅ Timeline salva: ${timeline.id} (v${timeline.version})`);
+    logger.info(`✅ Timeline salva: ${timeline.id} (v${timeline.version})`, { component: 'API: v1/timeline/multi-track' });
 
     // Track analytics event
     await AnalyticsTracker.trackTimelineEdit({
@@ -229,7 +230,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao salvar timeline:', error);
+    logger.error('❌ Erro ao salvar timeline', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/timeline/multi-track' });
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
       { success: false, message: 'Erro ao processar timeline', error: errorMessage },
@@ -274,7 +275,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`🎬 Carregando timeline do projeto ${projectId}...`);
+    logger.info(`🎬 Carregando timeline do projeto ${projectId}...`, { component: 'API: v1/timeline/multi-track' });
 
     // Load timeline from database
     const { data: timelineData, error } = await supabase
@@ -324,7 +325,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`✅ Timeline carregada: ${timeline.id} (v${timeline.version})`);
+    logger.info(`✅ Timeline carregada: ${timeline.id} (v${timeline.version})`, { component: 'API: v1/timeline/multi-track' });
 
     return NextResponse.json({
       success: true,
@@ -343,7 +344,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao carregar timeline:', error);
+    logger.error('❌ Erro ao carregar timeline', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/timeline/multi-track' });
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
       { success: false, message: 'Erro ao carregar timeline', error: errorMessage },
@@ -382,7 +383,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log(`🗑️ Deletando timeline do projeto ${projectId}...`);
+    logger.info(`🗑️ Deletando timeline do projeto ${projectId}...`, { component: 'API: v1/timeline/multi-track' });
 
     // Verify project exists and user has access
     const { data: project } = await supabase
@@ -431,7 +432,7 @@ export async function DELETE(request: NextRequest) {
 
     if (deleteError) throw deleteError;
 
-    console.log(`✅ Timeline deletada para projeto: ${projectId}`);
+    logger.info(`✅ Timeline deletada para projeto: ${projectId}`, { component: 'API: v1/timeline/multi-track' });
 
     return NextResponse.json({
       success: true,
@@ -442,7 +443,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao deletar timeline:', error);
+    logger.error('❌ Erro ao deletar timeline', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/timeline/multi-track' });
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
       { success: false, message: 'Erro ao deletar timeline', error: errorMessage },
@@ -476,7 +477,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    console.log(`🔧 Atualizando parcialmente timeline do projeto ${projectId}...`);
+    logger.info(`🔧 Atualizando parcialmente timeline do projeto ${projectId}...`, { component: 'API: v1/timeline/multi-track' });
 
     // Verify project exists and user has access
     const { data: project } = await supabase
@@ -557,7 +558,7 @@ export async function PATCH(request: NextRequest) {
 
     const timelineRecord = timeline as TimelineRecord;
 
-    console.log(`✅ Timeline parcialmente atualizada: ${timelineRecord.id} (v${timelineRecord.version})`);
+    logger.info(`✅ Timeline parcialmente atualizada: ${timelineRecord.id} (v${timelineRecord.version})`, { component: 'API: v1/timeline/multi-track' });
 
     // Track analytics event
     await AnalyticsTracker.trackTimelineEdit({
@@ -600,7 +601,7 @@ export async function PATCH(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao atualizar parcialmente timeline:', error);
+    logger.error('❌ Erro ao atualizar parcialmente timeline', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/timeline/multi-track' });
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
       { success: false, message: 'Erro ao processar atualização parcial', error: errorMessage },

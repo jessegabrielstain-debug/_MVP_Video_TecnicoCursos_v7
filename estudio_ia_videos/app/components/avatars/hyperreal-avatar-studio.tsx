@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -94,7 +95,7 @@ export default function HyperRealAvatarStudio({
         setSelectedClothing(data.avatars[0].clothing[0]?.id || '')
       }
     } catch (error) {
-      console.error('Erro ao carregar avatares:', error)
+      logger.error('Erro ao carregar avatares', error instanceof Error ? error : new Error(String(error)), { component: 'HyperrealAvatarStudio' })
       toast.error('Erro ao carregar galeria de avatares')
     }
   }
@@ -161,7 +162,7 @@ export default function HyperRealAvatarStudio({
       }
 
     } catch (error: any) {
-      console.error('Erro na geração:', error)
+      logger.error('Erro na geração de avatar', error instanceof Error ? error : new Error(String(error)), { component: 'HyperrealAvatarStudio', avatarId: selectedAvatar?.id })
       toast.error(`❌ ${error.message}`)
       setIsGenerating(false)
     }
@@ -187,7 +188,7 @@ export default function HyperRealAvatarStudio({
           setTimeout(checkProgress, 2000)
         }
       } catch (error) {
-        console.error('Erro ao verificar progresso:', error)
+        logger.error('Erro ao verificar progresso', error instanceof Error ? error : new Error(String(error)), { component: 'HyperrealAvatarStudio', jobId })
         setIsGenerating(false)
       }
     }
@@ -260,7 +261,7 @@ export default function HyperRealAvatarStudio({
                 className="flex items-center space-x-2"
                 onClick={() => {
                   toast.success('Configurações de Output abertas!')
-                  console.log('Tab Output ativada')
+                  logger.debug('Tab Output ativada', { component: 'HyperrealAvatarStudio' })
                 }}
               >
                 <Video className="h-4 w-4" />

@@ -1,11 +1,11 @@
-// @ts-ignore
+// TODO: Adicionar @types/tesseract.js e @types/pdf-parse quando bibliotecas estiverem estáveis
 import { createWorker } from 'tesseract.js';
-// @ts-ignore
 import pdf from 'pdf-parse';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs/promises';
+import { logger } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -83,7 +83,7 @@ export class PDFProcessor {
     try {
       await fs.mkdir(this.tempDir, { recursive: true });
     } catch (error) {
-      console.error('Error creating temp directory:', error);
+      logger.error('Error creating temp directory', error instanceof Error ? error : new Error(String(error)), { component: 'PDFProcessor' });
     }
   }
 
@@ -136,7 +136,7 @@ export class PDFProcessor {
         complexity
       };
     } catch (error) {
-      console.error('PDF processing error:', error);
+      logger.error('PDF processing error', error instanceof Error ? error : new Error(String(error)), { component: 'PDFProcessor' });
       throw new Error(`Failed to process PDF: ${(error as Error).message}`);
     }
   }
@@ -177,13 +177,13 @@ export class PDFProcessor {
         try {
           await fs.unlink(imagePath);
         } catch (cleanupError) {
-          console.warn(`Failed to clean up temp image ${imagePath}:`, cleanupError);
+          logger.warn(`Failed to clean up temp image ${imagePath}`, { component: 'PDFProcessor', error: String(cleanupError) });
         }
       }
 
       return pages;
     } catch (error) {
-      console.error('Page extraction error:', error);
+      logger.error('Page extraction error', error instanceof Error ? error : new Error(String(error)), { component: 'PDFProcessor' });
       throw error;
     }
   }
@@ -366,7 +366,7 @@ export class PDFProcessor {
 
       return images;
     } catch (error) {
-      console.warn(`Failed to extract images from page ${pageNumber}:`, error);
+      logger.warn(`Failed to extract images from page ${pageNumber}`, { component: 'PDFProcessor', error: String(error) });
       return [];
     }
   }
@@ -449,7 +449,7 @@ export class PDFProcessor {
       await Promise.all(files.map(file => fs.unlink(path.join(dirPath, file))));
       await fs.rmdir(dirPath);
     } catch (error) {
-      console.warn(`Failed to cleanup directory ${dirPath}:`, error);
+      logger.warn(`Failed to cleanup directory ${dirPath}`, { component: 'PDFProcessor', error: String(error) });
     }
   }
 
@@ -460,7 +460,7 @@ export class PDFProcessor {
         fs.unlink(path.join(this.tempDir, file)).catch(() => {})
       ));
     } catch (error) {
-      console.warn('Failed to cleanup temp directory:', error);
+      logger.warn('Failed to cleanup temp directory', { component: 'PDFProcessor', error: String(error) });
     }
   }
 }

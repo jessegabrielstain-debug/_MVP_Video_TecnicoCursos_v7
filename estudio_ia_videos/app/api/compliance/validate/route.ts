@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { SmartComplianceValidator } from '@/lib/compliance/smart-validator';
 
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`🔍 Starting compliance validation: ${projectId} - ${nrType}`);
+    logger.info(`🔍 Starting compliance validation: ${projectId} - ${nrType}`, { component: 'API: compliance/validate' });
 
     // Verificar se o projeto existe e pertence ao usuário
     const { data: project, error: projectError } = await supabase
@@ -65,11 +66,11 @@ export async function POST(request: NextRequest) {
       });
 
     if (insertError) {
-        console.error('Error saving compliance record:', insertError);
+        logger.error('Error saving compliance record:', insertError instanceof Error ? insertError : new Error(String(insertError)), { component: 'API: compliance/validate' });
         // We don't fail the request if saving fails, but we should log it.
     }
 
-    console.log(`✅ Compliance validation complete. Score: ${result.score}`);
+    logger.info(`✅ Compliance validation complete. Score: ${result.score}`, { component: 'API: compliance/validate' });
 
     return NextResponse.json({
       success: true,
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('Compliance validation error:', error);
+    logger.error('Compliance validation error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: compliance/validate' });
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -106,7 +107,7 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`⚡ Quick validation for ${nrType}`);
+    logger.info(`⚡ Quick validation for ${nrType}`, { component: 'API: compliance/validate' });
 
     // Validação rápida
     const validator = new SmartComplianceValidator();
@@ -118,7 +119,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('Quick validation error:', error);
+    logger.error('Quick validation error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: compliance/validate' });
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -181,7 +182,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Get validations error:', error);
+    logger.error('Get validations error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: compliance/validate' });
     return NextResponse.json({
       success: false,
       error: error?.message || 'Erro interno do servidor',

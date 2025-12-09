@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,7 +77,7 @@ async function getUserProjectStats(userId: string, timeRange: Date) {
       favorite_project_types: favoriteProjectTypes
     };
   } catch (error) {
-    console.error('Error getting user project stats:', error);
+    logger.error('Error getting user project stats', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/user-metrics' });
     return {
       total_projects: 0,
       completed_projects: 0,
@@ -112,7 +113,7 @@ async function getUserRenderStats(userId: string, timeRange: Date) {
       completed_renders: completedRenders.length
     };
   } catch (error) {
-    console.error('Error getting user render stats:', error);
+    logger.error('Error getting user render stats', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/user-metrics' });
     return {
       total_render_time: 0,
       completed_renders: 0
@@ -148,7 +149,7 @@ async function getCollaborationStats(userId: string) {
       shared_projects: sharedProjectsList.length
     };
   } catch (error) {
-    console.error('Error getting collaboration stats:', error);
+    logger.error('Error getting collaboration stats', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/user-metrics' });
     return {
       owned_projects: 0,
       collaborated_projects: 0,
@@ -187,7 +188,7 @@ async function getRecentActivity(userId: string, timeRange: Date, limit: number 
       };
     });
   } catch (error) {
-    console.error('Error getting recent activity:', error);
+    logger.error('Error getting recent activity', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/user-metrics' });
     return [];
   }
 }
@@ -269,7 +270,7 @@ async function getUsagePatterns(userId: string, timeRange: Date) {
       avg_session_duration: avgSessionDuration
     };
   } catch (error) {
-    console.error('Error getting usage patterns:', error);
+    logger.error('Error getting usage patterns', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/user-metrics' });
     return {
       most_active_hours: [],
       preferred_features: [],
@@ -351,7 +352,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('User metrics API error:', error);
+    logger.error('User metrics API error', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/user-metrics' });
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

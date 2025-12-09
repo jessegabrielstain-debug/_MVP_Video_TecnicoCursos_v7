@@ -3,6 +3,8 @@
  * Motor de upload para armazenamento (S3, Supabase Storage, etc)
  */
 
+import { logger } from '@/lib/logger';
+
 export interface UploadOptions {
   bucket: string;
   key: string;
@@ -23,7 +25,7 @@ export class S3UploadEngine {
     const { bucket, key, buffer, contentType = 'application/octet-stream' } = options;
     
     // Placeholder - integrar com S3 SDK ou Supabase Storage
-    console.log(`[Upload] Uploading to ${bucket}/${key} (${buffer.length} bytes)`);
+    logger.info(`[Upload] Uploading to ${bucket}/${key}`, { component: 'S3UploadEngine', size: buffer.length });
     
     return {
       url: `https://storage.example.com/${bucket}/${key}`,
@@ -37,7 +39,7 @@ export class S3UploadEngine {
   }
   
   async delete(bucket: string, key: string): Promise<boolean> {
-    console.log(`[Upload] Deleting ${bucket}/${key}`);
+    logger.info(`[Upload] Deleting ${bucket}/${key}`, { component: 'S3UploadEngine' });
     return true;
   }
   

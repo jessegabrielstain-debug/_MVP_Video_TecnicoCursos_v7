@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -281,7 +282,7 @@ export default function RealTimeCollaboration() {
       exportedAt: new Date()
     };
     
-    console.log('Exporting session:', sessionData);
+    logger.info('Exporting session', { component: 'RealTimeCollaboration', sessionData });
     toast.success('Sessão de colaboração exportada');
   };
 

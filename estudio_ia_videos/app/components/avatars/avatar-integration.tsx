@@ -8,6 +8,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -109,7 +110,7 @@ export default function AvatarIntegration({ onAvatarImported }: AvatarIntegratio
       }
 
     } catch (error) {
-      console.error('Erro na importação:', error);
+      logger.error('Erro na importação', error instanceof Error ? error : new Error(String(error)), { url: readyPlayerMeUrl, component: 'AvatarIntegration' });
       toast.error('Erro ao importar avatar');
     } finally {
       setIsImporting(false);

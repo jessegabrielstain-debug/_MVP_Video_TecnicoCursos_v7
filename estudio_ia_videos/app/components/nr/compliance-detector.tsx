@@ -8,6 +8,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -103,7 +104,7 @@ export default function ComplianceDetector({
         onComplianceUpdate(mockReport);
       }
     } catch (error) {
-      console.error('Erro na análise de compliance:', error);
+      logger.error('Erro na análise de compliance', error instanceof Error ? error : new Error(String(error)), { component: 'ComplianceDetector' });
     } finally {
       setIsAnalyzing(false);
     }

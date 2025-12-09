@@ -1,5 +1,6 @@
 import { flags } from './flags';
 import { supabaseAdmin } from './supabase/server';
+import { logger } from '@/lib/logger';
 
 export type Permission =
   | 'users.read'
@@ -83,7 +84,7 @@ export async function assignRoleWithAudit(existing: UserContext, role: RoleName,
     });
   } catch (e) {
     // eslint-disable-next-line no-console
-    console.error('[RBAC] Falha ao auditar assignRole:', (e as Error).message);
+    logger.error('[RBAC] Falha ao auditar assignRole:', (e as Error), { component: 'Rbac' });
   }
   return updated;
 }

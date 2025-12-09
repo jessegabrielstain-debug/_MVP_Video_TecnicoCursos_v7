@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -117,7 +118,7 @@ export default function DataExportComponent() {
         setExportHistory(data.exports || []);
       }
     } catch (error) {
-      console.error('Error loading export history:', error);
+      logger.error('Error loading export history:', error instanceof Error ? error : new Error(String(error)), { component: 'DataExport' });
     } finally {
       setLoadingHistory(false);
     }
@@ -169,7 +170,7 @@ export default function DataExportComponent() {
       loadExportHistory();
 
     } catch (error: any) {
-      console.error('Export error:', error);
+      logger.error('Export error:', error instanceof Error ? error : new Error(String(error)), { component: 'DataExport' });
       toast.error(`Erro na exportação: ${error.message}`);
     } finally {
       setIsExporting(false);

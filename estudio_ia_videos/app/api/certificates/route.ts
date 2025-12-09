@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/lib/logger';
 
 // Global mock store for development/testing when DB is down
 declare global {
@@ -84,11 +85,16 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json(certificate, { status: 201 });
     } catch (dbError: any) {
-      console.error('Database error creating certificate:', dbError);
+      logger.error('Database error creating certificate', {
+        component: 'API: certificates',
+        error: dbError instanceof Error ? dbError : new Error(String(dbError))
+      });
       
       // Fallback: Store in memory
       if (dbError.code === 'P2010' || dbError.code === 'P2021' || dbError.message?.includes('does not exist') || dbError.message?.includes('Tenant or user not found')) {
-        console.warn('Certificate table missing or DB error, using in-memory mock');
+        logger.warn('Certificate table missing or DB error, using in-memory mock', {
+          component: 'API: certificates'
+        });
         
         const mockCert = {
           id: uuidv4(),
@@ -115,7 +121,10 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
-    console.error('Error generating certificate:', error);
+    logger.error('Error generating certificate', {
+      component: 'API: certificates',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 }

@@ -6,6 +6,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 import { createCanvas, loadImage } from 'canvas';
+import { logger } from '@/lib/logger';
 
 export interface VideoSettings {
   resolution: { width: number; height: number };
@@ -166,7 +167,7 @@ export async function removeDir(dirPath: string): Promise<void> {
   try {
     await fs.rm(dirPath, { recursive: true, force: true });
   } catch (error) {
-    console.warn(`Failed to remove directory ${dirPath}:`, error);
+    logger.warn(`Failed to remove directory ${dirPath}:`, { component: 'RenderUtils', error });
   }
 }
 

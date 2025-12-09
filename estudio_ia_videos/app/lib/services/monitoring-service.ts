@@ -6,6 +6,8 @@
  *   inicializa Sentry (server-side) sob demanda.
  * - Em desenvolvimento ou sem DSN, mantém comportamento de stub seguro.
  */
+import { logger } from '@/lib/logger';
+
 interface SentryScope {
   setUser: (user: { id: string; email?: string }) => void;
   setContext: (key: string, context: Record<string, unknown>) => void;
@@ -77,7 +79,7 @@ export function recordMetric(metric: MetricData): void {
         level: 'info',
       });
     } else if (process.env.NODE_ENV === 'development') {
-      console.log('[Metric]', metric);
+      logger.info('Metric', { component: 'MonitoringService', metric });
     }
   });
 }
@@ -95,11 +97,7 @@ export function captureError(error: Error, context?: ErrorContext): void {
         return scope; // Sentry expects scope to be returned sometimes or just void, but let's keep it safe
       });
     } else {
-      console.error('[Error Captured]', {
-        message: error.message,
-        stack: error.stack,
-        context,
-      });
+      logger.error('Error Captured', error, { component: 'MonitoringService', context });
     }
   });
 }
@@ -119,7 +117,7 @@ export function captureException(
         return scope;
       });
     } else {
-      console.error(`[${level.toUpperCase()}]`, error);
+      logger.error(`[${level.toUpperCase()}]`, error, { component: 'MonitoringService' });
     }
   });
 }
@@ -132,7 +130,7 @@ export function addBreadcrumb(message: string, category?: string, data?: Record<
     if (ok && sentry) {
       sentry?.addBreadcrumb({ message, category, data });
     } else if (process.env.NODE_ENV === 'development') {
-      console.log('[Breadcrumb]', { message, category, data });
+      logger.info('[Breadcrumb]', { component: 'MonitoringService', message, category, data });
     }
   });
 }

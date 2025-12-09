@@ -19,6 +19,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { workflowManager, StepData } from '@/lib/workflow/unified-workflow-manager'
+import { logger } from '@/lib/logger'
 
 // Schemas de validação
 const ProjectCreateSchema = z.object({
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ workflow })
 
   } catch (error) {
-    console.error('Unified API GET Error:', error)
+    logger.error('Unified API GET Error', { component: 'API: unified', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Unified API POST Error:', error)
+    logger.error('Unified API POST Error', { component: 'API: unified', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -184,7 +185,7 @@ export async function PUT(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Unified API PUT Error:', error)
+    logger.error('Unified API PUT Error', { component: 'API: unified', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -221,7 +222,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: 'Project and workflow deleted' })
 
   } catch (error) {
-    console.error('Unified API DELETE Error:', error)
+    logger.error('Unified API DELETE Error', { component: 'API: unified', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { logger } from '@/lib/logger';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -255,7 +256,7 @@ export function ElementPanel({ onAddElement }: ElementPanelProps) {
               style={{ backgroundColor: color }}
               onClick={() => {
                 // Handle color selection
-                console.log('Selected color:', color);
+                logger.debug('Selected color', { component: 'ElementPanel', color });
               }}
             />
           ))}

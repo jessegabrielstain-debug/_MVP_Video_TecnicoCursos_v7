@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,7 +57,7 @@ export function ComplianceValidator({ projectId }: { projectId?: string }) {
         toast.error('Erro na validação');
       }
     } catch (error) {
-      console.error(error);
+      logger.error('Erro ao validar compliance', error instanceof Error ? error : new Error(String(error)), { component: 'ComplianceValidator' });
       toast.error('Erro ao validar compliance');
     } finally {
       setIsValidating(false);

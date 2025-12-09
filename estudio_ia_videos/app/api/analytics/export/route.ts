@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { withAnalytics } from '@/lib/analytics/middleware';
 import { DataExporter, ExportFormat, ExportDataType } from '@/lib/analytics/data-exporter';
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   return withAnalytics(async (req: NextRequest) => {
@@ -106,7 +107,10 @@ export async function GET(request: NextRequest) {
       });
 
     } catch (error) {
-      console.error('[Export API] Error:', error);
+      logger.error('[Export API] Error', {
+        component: 'API: analytics/export',
+        error: error instanceof Error ? error : new Error(String(error))
+      });
       return NextResponse.json(
         { error: 'Export failed', details: error instanceof Error ? error.message : 'Unknown error' },
         { status: 500 }
@@ -229,7 +233,10 @@ export async function POST(request: NextRequest) {
       });
 
     } catch (error) {
-      console.error('[Export API] POST Error:', error);
+      logger.error('[Export API] POST Error', {
+        component: 'API: analytics/export',
+        error: error instanceof Error ? error : new Error(String(error))
+      });
       return NextResponse.json(
         { error: 'Export failed', details: error instanceof Error ? error.message : 'Unknown error' },
         { status: 500 }
@@ -259,7 +266,10 @@ export async function PUT(request: NextRequest) {
       });
 
     } catch (error) {
-      console.error('[Export API] History Error:', error);
+      logger.error('[Export API] History Error', {
+        component: 'API: analytics/export',
+        error: error instanceof Error ? error : new Error(String(error))
+      });
       return NextResponse.json(
         { error: 'Failed to get export history', details: error instanceof Error ? error.message : 'Unknown error' },
         { status: 500 }

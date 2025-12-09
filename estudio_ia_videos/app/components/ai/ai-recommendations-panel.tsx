@@ -8,6 +8,7 @@
 'use client'
 
 import { useState } from 'react'
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -85,7 +86,7 @@ export function AIRecommendationsPanel({
       
       toast.success(`${data.recommendations.length} recomendações geradas!`)
     } catch (error) {
-      console.error('Error fetching recommendations:', error)
+      logger.error('Error fetching recommendations', error instanceof Error ? error : new Error(String(error)), { component: 'AIRecommendationsPanel' });
       toast.error('Erro ao gerar recomendações')
     } finally {
       setLoading(false)

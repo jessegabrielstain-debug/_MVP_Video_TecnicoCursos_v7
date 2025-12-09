@@ -7,6 +7,7 @@ import { renderMedia, selectComposition, renderStill } from '@remotion/renderer'
 import { promises as fs } from 'fs';
 import path from 'path';
 import { createCanvas, loadImage, Image, CanvasRenderingContext2D } from 'canvas';
+import { logger } from '@/lib/logger';
 
 export interface SlideFrame {
   slideNumber: number;
@@ -114,14 +115,14 @@ export class FrameGenerator {
         return acc + Math.ceil(slide.duration * this.fps);
       }, 0);
 
-      console.log(`🎨 Gerando ${totalFrames} frames para ${slides.length} slides...`);
+      logger.info(`🎨 Gerando ${totalFrames} frames para ${slides.length} slides...`, { component: 'FrameGenerator' });
 
       // Gerar frames para cada slide
       for (let i = 0; i < slides.length; i++) {
         const slide = slides[i];
         const slideFrames = Math.ceil(slide.duration * this.fps);
 
-        console.log(`📄 Processando slide ${i + 1}/${slides.length} (${slideFrames} frames)`);
+        logger.info(`📄 Processando slide ${i + 1}/${slides.length} (${slideFrames} frames)`, { component: 'FrameGenerator' });
 
         try {
           // Gerar frames do slide
@@ -164,7 +165,7 @@ export class FrameGenerator {
           }
         } catch (error) {
           const errorMsg = `Erro ao processar slide ${i + 1}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`;
-          console.error('❌', errorMsg);
+          logger.error('❌', new Error(errorMsg), { component: 'FrameGenerator' });
           errors.push(errorMsg);
         }
       }
@@ -172,7 +173,7 @@ export class FrameGenerator {
       const duration = (Date.now() - startTime) / 1000;
       const totalDuration = slides.reduce((acc, s) => acc + s.duration, 0);
 
-      console.log(`✅ Frames gerados: ${frameIndex} frames em ${duration.toFixed(2)}s`);
+      logger.info(`✅ Frames gerados: ${frameIndex} frames em ${duration.toFixed(2)}s`, { component: 'FrameGenerator' });
 
       return {
         success: errors.length === 0,
@@ -183,7 +184,7 @@ export class FrameGenerator {
       };
 
     } catch (error) {
-      console.error('❌ Erro ao gerar frames:', error);
+      logger.error('❌ Erro ao gerar frames:', error instanceof Error ? error : new Error(String(error)), { component: 'FrameGenerator' });
       return {
         success: false,
         totalFrames: frameIndex,
@@ -231,7 +232,7 @@ export class FrameGenerator {
           ctx.drawImage(image, x, y, scaledWidth, scaledHeight);
         }
       } catch (error) {
-        console.error('❌ Erro ao carregar imagem:', img.url, error);
+        logger.error(`Erro ao carregar imagem: ${img.url}`, error instanceof Error ? error : new Error(String(error)), { component: 'FrameGenerator' });
       }
     }
   }
@@ -416,7 +417,7 @@ export async function generateFramesFromSlides(
     onProgress?: (progress: number) => void;
   }
 ): Promise<number> {
-  console.log(`🎨 Generating frames for ${slides.length} slides`);
+  logger.info(`Generating frames for ${slides.length} slides`, { component: 'FrameGenerator' });
   
   await fs.mkdir(outputDir, { recursive: true });
 
@@ -427,7 +428,7 @@ export async function generateFramesFromSlides(
     const slide = slides[i];
     const slideFrames = Math.ceil(slide.estimatedDuration * options.fps);
     
-    console.log(`📸 Generating ${slideFrames} frames for slide ${i + 1}`);
+    logger.info(`Generating ${slideFrames} frames for slide ${i + 1}`, { component: 'FrameGenerator' });
 
     // Gera frames para o slide usando Canvas
     const framesGenerated = await generateSlideFramesWithCanvas(
@@ -448,7 +449,7 @@ export async function generateFramesFromSlides(
     }
   }
 
-  console.log(`✅ Generated ${totalFrames} total frames`);
+  logger.info(`Generated ${totalFrames} total frames`, { component: 'FrameGenerator' });
   return totalFrames;
 }
 
@@ -483,7 +484,7 @@ async function generateSlideFramesWithCanvas(
           loadedImages[img.id] = await loadImage(img.url);
         }
       } catch (error) {
-        console.warn(`Failed to load image: ${img.url}`, error);
+        logger.warn(`Failed to load image: ${img.url}`, { component: 'FrameGenerator', error: String(error) });
       }
     }
   }

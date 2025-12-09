@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,7 +55,7 @@ export function DomainConfiguration({ organizationId }: Props) {
         }
       }
     } catch (error) {
-      console.error('Failed to load domain info:', error);
+      logger.error('Failed to load domain info', error instanceof Error ? error : new Error(String(error)), { component: 'DomainConfiguration' });
     }
   };
 

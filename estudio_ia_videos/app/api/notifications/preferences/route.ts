@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabase, supabaseAdmin } from '@/lib/services'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Validation schema for preferences
 const NotificationPreferencesSchema = z.object({
@@ -112,7 +113,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Get notification preferences API error:', error)
+    logger.error('Get notification preferences API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: notifications/preferences' })
     
     return NextResponse.json(
       { 
@@ -223,7 +224,7 @@ export async function PATCH(request: NextRequest) {
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      console.warn('Failed to log preference change:', analyticsError)
+      logger.warn('Failed to log preference change:', { error: analyticsError, component: 'API: notifications/preferences' })
     }
 
     return NextResponse.json({
@@ -233,7 +234,7 @@ export async function PATCH(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Update notification preferences API error:', error)
+    logger.error('Update notification preferences API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: notifications/preferences' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -295,7 +296,7 @@ export async function DELETE(request: NextRequest) {
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      console.warn('Failed to log preference reset:', analyticsError)
+      logger.warn('Failed to log preference reset:', { error: analyticsError, component: 'API: notifications/preferences' })
     }
 
     return NextResponse.json({
@@ -305,7 +306,7 @@ export async function DELETE(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Reset notification preferences API error:', error)
+    logger.error('Reset notification preferences API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: notifications/preferences' })
     
     return NextResponse.json(
       { 

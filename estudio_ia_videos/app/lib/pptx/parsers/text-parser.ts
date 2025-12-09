@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
 import { PPTXShape, PPTXParagraph, PPTXRun, getString, getNumber, ensureArray } from './types';
+import { logger } from '@/lib/logger';
 
 export interface SlideTextBoxSummary {
   id: string;
@@ -90,7 +91,7 @@ export class PPTXTextParser {
 
       return results;
     } catch (error) {
-      console.error('Error extracting text from slides:', error);
+      logger.error('Error extracting text from slides:', error instanceof Error ? error : new Error(String(error)), { component: 'TextParser' });
       return [];
     }
   }

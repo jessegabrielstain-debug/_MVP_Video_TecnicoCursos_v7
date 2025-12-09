@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2 } from 'lucide-react'
 
@@ -31,7 +32,7 @@ export function HeyGenVoiceSelector({ value, onChange }: HeyGenVoiceSelectorProp
         const data = await response.json();
         setVoices(data.voices || []);
       } catch (err) {
-        console.error(err);
+        logger.error('Failed to fetch HeyGen voices', err instanceof Error ? err : new Error(String(err)), { component: 'HeyGenVoiceSelector' });
         setError('Failed to load voices');
       } finally {
         setLoading(false);

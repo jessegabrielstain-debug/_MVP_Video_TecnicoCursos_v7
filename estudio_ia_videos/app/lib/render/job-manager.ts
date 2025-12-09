@@ -5,6 +5,7 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { triggerWebhook } from '@/lib/webhooks-system-real';
+import { logger } from '@/lib/logger';
 
 export interface RenderJob {
   id: string;
@@ -27,7 +28,7 @@ export class JobManager {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; // Use Service Role Key for admin tasks
     
     if (!supabaseUrl || !supabaseKey) {
-      console.warn('⚠️ Supabase credentials not found in JobManager');
+      logger.warn('⚠️ Supabase credentials not found in JobManager', { component: 'JobManager' });
     }
     
     this.supabase = createClient(supabaseUrl, supabaseKey, {
@@ -63,7 +64,7 @@ export class JobManager {
         userId: project.user_id
       };
     } catch (error) {
-      console.error('Error fetching job context:', error);
+      logger.error('Error fetching job context:', error instanceof Error ? error : new Error(String(error)), { component: 'JobManager' });
       return null;
     }
   }
@@ -80,7 +81,7 @@ export class JobManager {
       .maybeSingle();
 
     if (existing) {
-      console.log(`[JobManager] Idempotency: Returning existing queued job ${existing.id} for project ${projectId}`);
+      logger.info(`[JobManager] Idempotency: Returning existing queued job ${existing.id} for project ${projectId}`, { component: 'JobManager' });
       return existing.id;
     }
 
@@ -144,7 +145,7 @@ export class JobManager {
       .eq('id', jobId);
 
     if (error) {
-      console.error(`Failed to update progress for job ${jobId}:`, error);
+      logger.error(`Failed to update progress for job ${jobId}:`, new Error(error.message), { component: 'JobManager' });
     }
   }
 
@@ -159,7 +160,7 @@ export class JobManager {
       .eq('id', jobId);
 
     if (error) {
-      console.error(`Failed to start job ${jobId}:`, error);
+      logger.error(`Failed to start job ${jobId}:`, new Error(error.message), { component: 'JobManager' });
     } else {
       // Trigger Webhook
       const context = await this.getJobContext(jobId);
@@ -168,7 +169,7 @@ export class JobManager {
           jobId,
           projectId: context.projectId,
           userId: context.userId
-        }).catch(err => console.error('Webhook trigger failed:', err));
+        }).catch(err => logger.error('Webhook trigger failed:', err instanceof Error ? err : new Error(String(err)), { component: 'JobManager' }));
       }
     }
   }
@@ -185,7 +186,7 @@ export class JobManager {
       .eq('id', jobId);
 
     if (error) {
-      console.error(`Failed to complete job ${jobId}:`, error);
+      logger.error(`Failed to complete job ${jobId}:`, new Error(error.message), { component: 'JobManager' });
     } else {
       // Trigger Webhook
       const context = await this.getJobContext(jobId);
@@ -195,7 +196,7 @@ export class JobManager {
           projectId: context.projectId,
           videoUrl: outputUrl,
           duration: 0 // Duration not currently tracked in job
-        }).catch(err => console.error('Webhook trigger failed:', err));
+        }).catch(err => logger.error('Webhook trigger failed:', err instanceof Error ? err : new Error(String(err)), { component: 'JobManager' }));
       }
     }
   }
@@ -211,7 +212,7 @@ export class JobManager {
       .eq('id', jobId);
 
     if (error) {
-      console.error(`Failed to fail job ${jobId}:`, error);
+      logger.error(`Failed to fail job ${jobId}:`, error instanceof Error ? error : new Error(String(error)), { component: 'JobManager' });
     } else {
       // Trigger Webhook
       const context = await this.getJobContext(jobId);
@@ -220,7 +221,7 @@ export class JobManager {
           jobId,
           projectId: context.projectId,
           error: errorMessage
-        }).catch(err => console.error('Webhook trigger failed:', err));
+        }).catch(err => logger.error('Webhook trigger failed:', err instanceof Error ? err : new Error(String(err)), { component: 'JobManager' }));
       }
     }
   }
@@ -235,7 +236,7 @@ export class JobManager {
     const { data, error } = await query.order('created_at', { ascending: false }).limit(limit);
 
     if (error) {
-      console.error('Failed to list jobs:', error);
+      logger.error('Failed to list jobs:', error instanceof Error ? error : new Error(String(error)), { component: 'JobManager' });
       return [];
     }
 
@@ -260,7 +261,7 @@ export class JobManager {
       .eq('id', jobId);
 
     if (error) {
-      console.error(`Failed to remove job ${jobId}:`, error);
+      logger.error(`Failed to remove job ${jobId}:`, error instanceof Error ? error : new Error(String(error)), { component: 'JobManager' });
     }
   }
 }

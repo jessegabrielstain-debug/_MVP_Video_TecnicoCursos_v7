@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -255,7 +256,7 @@ export default function TimelineMultiTrackEditor() {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       toast.success('Timeline exportada com sucesso!');
-      console.log('Timeline Export:', timelineData);
+      logger.info('Timeline exported', { tracksCount: tracks.length, duration: totalDuration, component: 'TimelineMultiTrackEditor' });
     } catch (error) {
       toast.error('Erro ao exportar timeline');
     } finally {

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateProjectTTS, ttsIntegration } from '@/lib/tts-real-integration'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +23,10 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      console.log('🔊 Iniciando geração TTS real para projeto:', projectId)
+      logger.info('🔊 Iniciando geração TTS real para projeto:', {
+        component: 'API: v1/tts/generate-real',
+        projectId
+      })
 
       // Gerar TTS para todo o projeto
       const result = await generateProjectTTS(projectId, voice)
@@ -86,11 +90,15 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('❌ Erro na API TTS:', error)
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    logger.error('❌ Erro na API TTS:', {
+      component: 'API: v1/tts/generate-real',
+      error: normalizedError
+    })
     return NextResponse.json(
       { 
         error: 'Erro na geração de áudio',
-        details: error instanceof Error ? error.message : 'Erro desconhecido'
+        details: normalizedError.message
       },
       { status: 500 }
     )
@@ -197,11 +205,15 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Erro na API TTS GET:', error)
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    logger.error('❌ Erro na API TTS GET:', {
+      component: 'API: v1/tts/generate-real',
+      error: normalizedError
+    })
     return NextResponse.json(
       { 
         error: 'Erro na consulta TTS',
-        details: error instanceof Error ? error.message : 'Erro desconhecido'
+        details: normalizedError.message
       },
       { status: 500 }
     )

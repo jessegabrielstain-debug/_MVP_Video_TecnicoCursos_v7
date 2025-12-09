@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Schema de validação para atualização de slide
 const updateSlideSchema = z.object({
@@ -90,7 +91,7 @@ export async function GET(
     return NextResponse.json({ slide })
 
   } catch (error) {
-    console.error('Erro ao buscar slide:', error)
+    logger.error('Erro ao buscar slide:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/slides/[id]' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -209,7 +210,7 @@ export async function PUT(
       .single()
 
     if (updateError) {
-      console.error('Erro ao atualizar slide:', updateError)
+      logger.error('Erro ao atualizar slide:', updateError instanceof Error ? updateError : new Error(String(updateError)), { component: 'API: pptx/slides/[id]' })
       return NextResponse.json(
         { error: 'Erro ao atualizar slide' },
         { status: 500 }
@@ -239,7 +240,7 @@ export async function PUT(
       )
     }
 
-    console.error('Erro ao atualizar slide:', error)
+    logger.error('Erro ao atualizar slide:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/slides/[id]' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -322,7 +323,7 @@ export async function DELETE(
       .eq('id', slideId)
 
     if (deleteError) {
-      console.error('Erro ao excluir slide:', deleteError)
+      logger.error('Erro ao excluir slide:', deleteError instanceof Error ? deleteError : new Error(String(deleteError)), { component: 'API: pptx/slides/[id]' })
       return NextResponse.json(
         { error: 'Erro ao excluir slide' },
         { status: 500 }
@@ -381,7 +382,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error('Erro ao excluir slide:', error)
+    logger.error('Erro ao excluir slide:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/slides/[id]' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

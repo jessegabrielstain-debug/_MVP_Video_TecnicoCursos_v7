@@ -7,6 +7,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { logger } from '@/lib/logger';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -108,7 +109,7 @@ export default function RealtimeCollabAdvanced({
     })
 
     newSocket.on('connect', () => {
-      console.log('✅ Conectado ao servidor de colaboração')
+      logger.info('Conectado ao servidor de colaboração', { component: 'RealtimeCollabAdvanced' });
       toast.success('Colaboração ativada')
     })
 

@@ -3,6 +3,8 @@
  * Sistema inteligente de marca d'água
  */
 
+import { logger } from '@/lib/logger';
+
 export interface WatermarkOptions {
   type: 'text' | 'image' | 'logo';
   content?: string;
@@ -20,7 +22,7 @@ export interface WatermarkResult {
 export class WatermarkIntelligentReal {
   async applyToImage(input: Buffer, options: WatermarkOptions): Promise<WatermarkResult> {
     // Placeholder - implementar com Sharp
-    console.log('[Watermark] Applying to image', options);
+    logger.info('[Watermark] Applying to image', { component: 'WatermarkIntelligentReal', options });
     
     return {
       buffer: input,
@@ -30,7 +32,7 @@ export class WatermarkIntelligentReal {
   
   async applyToVideo(input: Buffer, options: WatermarkOptions): Promise<WatermarkResult> {
     // Placeholder - implementar com FFmpeg
-    console.log('[Watermark] Applying to video', options);
+    logger.info('[Watermark] Applying to video', { component: 'WatermarkIntelligentReal', options });
     
     return {
       buffer: input,

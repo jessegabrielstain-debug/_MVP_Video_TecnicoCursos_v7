@@ -6,6 +6,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Loader2, CheckCircle2, XCircle, Download, Play } from 'lucide-react'
 
 export interface RenderStatus {
@@ -48,7 +49,7 @@ export function RenderProgress({
     const socket = new WebSocket(wsUrl)
 
     socket.onopen = () => {
-      console.log('WebSocket connected')
+      logger.debug('WebSocket connected', { component: 'RenderProgress', jobId })
     }
 
     socket.onmessage = (event) => {
@@ -74,12 +75,12 @@ export function RenderProgress({
     }
 
     socket.onerror = (error) => {
-      console.error('WebSocket error:', error)
+      logger.error('WebSocket error', new Error('WebSocket connection failed'), { component: 'RenderProgress', jobId, error })
       setError('Failed to connect to render server')
     }
 
     socket.onclose = () => {
-      console.log('WebSocket disconnected')
+      logger.debug('WebSocket disconnected', { component: 'RenderProgress', jobId })
     }
 
     setWs(socket)
@@ -127,7 +128,7 @@ export function RenderProgress({
         }
       }
     } catch (err) {
-      console.error('Error fetching status:', err)
+      logger.error('Error fetching status', err instanceof Error ? err : new Error(String(err)), { component: 'RenderProgress', jobId })
       setError(err instanceof Error ? err.message : 'Unknown error')
     }
   }
@@ -149,7 +150,7 @@ export function RenderProgress({
         fetchStatus()
       }
     } catch (err) {
-      console.error('Error cancelling render:', err)
+      logger.error('Error cancelling render', err instanceof Error ? err : new Error(String(err)), { component: 'RenderProgress', jobId })
     }
   }
 

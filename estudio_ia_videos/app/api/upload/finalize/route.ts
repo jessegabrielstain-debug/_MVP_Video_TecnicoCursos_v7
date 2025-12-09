@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { logger } from '@/lib/logger';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'temp');
 const METADATA_DIR = path.join(process.cwd(), 'uploads', 'metadata');
@@ -38,7 +39,7 @@ async function ensureDirectories() {
     await fs.mkdir(METADATA_DIR, { recursive: true });
     await fs.mkdir(FINAL_DIR, { recursive: true });
   } catch (error) {
-    console.error('Error creating directories:', error);
+    logger.error('Error creating directories', { component: 'API: upload/finalize', error: error instanceof Error ? error : new Error(String(error)) });
   }
 }
 
@@ -186,12 +187,12 @@ export async function POST(request: NextRequest) {
     };
 
     // Log de sucesso
-    console.log(`Upload completed: ${uploadId} - ${filename} (${stats.size} bytes)`);
+    logger.info(`Upload completed: ${uploadId} - ${filename} (${stats.size} bytes)`, { component: 'API: upload/finalize', uploadId, filename, size: stats.size });
 
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('Upload finalization error:', error);
+    logger.error('Upload finalization error', { component: 'API: upload/finalize', error: error instanceof Error ? error : new Error(String(error)) });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

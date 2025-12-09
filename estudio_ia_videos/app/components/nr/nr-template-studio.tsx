@@ -8,6 +8,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -314,7 +315,7 @@ export default function NRTemplateStudio() {
         }, 500);
       }
     } catch (error) {
-      console.error('Erro na geração:', error);
+      logger.error('Erro na geração de template NR', error instanceof Error ? error : new Error(String(error)), { component: 'NRTemplateStudio' });
       setIsGenerating(false);
     }
   };

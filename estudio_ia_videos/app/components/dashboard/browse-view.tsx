@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
 import { NetflixRow } from './netflix-row'
 import { Play, Info, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -21,7 +22,7 @@ export function BrowseView() {
         const data = await res.json()
         setTemplates(data)
       } catch (error) {
-        console.error(error)
+        logger.error('Failed to fetch templates', error instanceof Error ? error : new Error(String(error)), { component: 'BrowseView' })
       } finally {
         setLoading(false)
       }

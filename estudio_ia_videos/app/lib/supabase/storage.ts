@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/lib/logger';
 
 // Configuração de buckets
 const VIDEOS_BUCKET = 'videos';
@@ -18,7 +19,7 @@ export const initializeStorage = async () => {
         fileSizeLimit: bucket === VIDEOS_BUCKET ? 1024 * 1024 * 500 : 1024 * 1024 * 10, // 500MB para vídeos, 10MB para outros
       });
     } else if (error) {
-      console.error(`Erro ao verificar bucket ${bucket}:`, error);
+      logger.error(`Erro ao verificar bucket ${bucket}:`, error instanceof Error ? error : new Error(String(error)), { component: 'Storage' });
     }
   }
 };

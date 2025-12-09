@@ -3,6 +3,8 @@
  * Parser oficial de PPTX (versão 1)
  */
 
+import { logger } from '@/lib/logger';
+
 export interface ParsedSlide {
   index: number;
   title: string;
@@ -38,7 +40,7 @@ export interface ParsedPresentation {
 
 export class PPTXRealParser {
   async parseFile(filePath: string): Promise<ParsedPresentation> {
-    console.log('[PPTXParser] Parsing file:', filePath);
+    logger.info('Parsing file', { component: 'PPTXRealParser', filePath });
     
     return {
       slides: [],
@@ -48,7 +50,7 @@ export class PPTXRealParser {
   }
   
   async parseBuffer(buffer: Buffer): Promise<ParsedPresentation> {
-    console.log('[PPTXParser] Parsing buffer');
+    logger.info('Parsing buffer', { component: 'PPTXRealParser' });
     
     return {
       slides: [],
@@ -58,7 +60,7 @@ export class PPTXRealParser {
   }
 
   async parseFromS3(s3Key: string): Promise<ParsedPresentation> {
-    console.log('[PPTXParser] Parsing from S3:', s3Key);
+    logger.info('Parsing from S3', { component: 'PPTXRealParser', s3Key });
     
     // Placeholder - em produção buscaria do S3 e parsearia
     return {

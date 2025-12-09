@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 // import { IntegratedTTSAvatarPipeline } from '@/lib/pipeline/integrated-tts-avatar-pipeline';
 // import { MonitoringService } from '@/lib/monitoring/monitoring-service';
 
@@ -39,7 +40,7 @@ class MonitoringService {
   }
   
   logEvent(event: string, data: Record<string, unknown>) {
-    console.log(`📊 [${event}]`, data);
+    logger.info(`📊 [${event}]`, { component: 'API: video/render', data });
   }
 }
 
@@ -226,7 +227,7 @@ export async function POST(request: NextRequest) {
       processingTime: Date.now() - startTime
     });
 
-    console.error('Erro na criação do job de renderização:', error);
+    logger.error('Erro na criação do job de renderização', { component: 'API: video/render', error: error instanceof Error ? error : new Error(String(error)) });
 
     return NextResponse.json(
       { 
@@ -307,7 +308,7 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error: unknown) {
-    console.error('Erro ao obter informações de renderização:', error);
+    logger.error('Erro ao obter informações de renderização', { component: 'API: video/render', error: error instanceof Error ? error : new Error(String(error)) });
     const err = error instanceof Error ? error : new Error(String(error));
     
     return NextResponse.json(
@@ -349,7 +350,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('Erro ao cancelar job:', error);
+    logger.error('Erro ao cancelar job', { component: 'API: video/render', error: error instanceof Error ? error : new Error(String(error)) });
     const err = error instanceof Error ? error : new Error(String(error));
     
     return NextResponse.json(

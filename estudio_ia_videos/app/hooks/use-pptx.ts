@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import {
   PPTXDocument,
   PPTXProcessingJob,
@@ -117,7 +118,7 @@ export function usePPTX(): UsePPTXReturn {
         throw new Error(`Arquivo inválido: ${validation.errors.join(', ')}`);
       }
 
-      console.log(`[usePPTX] Uploading file: ${file.name} (${file.size} bytes)`);
+      logger.info('Uploading file', { fileName: file.name, fileSize: file.size, hook: 'usePPTX' });
 
       // Preparar FormData
       const formData = new FormData();
@@ -138,7 +139,7 @@ export function usePPTX(): UsePPTXReturn {
       const result = await response.json();
       const jobId = result.jobId;
 
-      console.log(`[usePPTX] Upload successful, job ID: ${jobId}`);
+      logger.info('Upload successful', { jobId, hook: 'usePPTX' });
 
       // Iniciar polling do status
       startJobPolling(jobId);
@@ -148,7 +149,7 @@ export function usePPTX(): UsePPTXReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error('[usePPTX] Upload error:', err);
+      logger.error('Upload error', err instanceof Error ? err : new Error(String(err)), { hook: 'usePPTX' });
       throw err;
     } finally {
       setIsUploading(false);
@@ -167,7 +168,7 @@ export function usePPTX(): UsePPTXReturn {
       setIsGenerating(true);
       setError(null);
 
-      console.log(`[usePPTX] Generating PPTX: ${type}`);
+      logger.info('Generating PPTX', { type, hook: 'usePPTX' });
 
       const response = await fetch('/api/pptx/generate', {
         method: 'POST',
@@ -183,14 +184,14 @@ export function usePPTX(): UsePPTXReturn {
       }
 
       const blob = await response.blob();
-      console.log(`[usePPTX] Generation successful (${blob.size} bytes)`);
+      logger.info('Generation successful', { blobSize: blob.size, hook: 'usePPTX' });
 
       return blob;
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro na geração';
       setError(errorMessage);
-      console.error('[usePPTX] Generation error:', err);
+      logger.error('Generation error', err instanceof Error ? err : new Error(String(err)), { hook: 'usePPTX' });
       throw err;
     } finally {
       setIsGenerating(false);
@@ -213,7 +214,7 @@ export function usePPTX(): UsePPTXReturn {
           setUploadProgress(job.progress);
 
           if (job.status === 'completed') {
-            console.log(`[usePPTX] Job ${jobId} completed`);
+            logger.info('Job completed', { jobId, hook: 'usePPTX' });
             
             // Carregar documento processado
             if (job.documentId) {
@@ -235,7 +236,7 @@ export function usePPTX(): UsePPTXReturn {
               jobPollingRef.current = null;
             }
           } else if (job.status === 'failed') {
-            console.error(`[usePPTX] Job ${jobId} failed:`, job.error);
+            logger.error('Job failed', new Error(job.error || 'Unknown error'), { jobId, hook: 'usePPTX' });
             setError(job.error || 'Processamento falhou');
             
             if (jobPollingRef.current) {
@@ -245,7 +246,7 @@ export function usePPTX(): UsePPTXReturn {
           }
         }
       } catch (err) {
-        console.error('[usePPTX] Polling error:', err);
+        logger.error('Polling error', err instanceof Error ? err : new Error(String(err)), { hook: 'usePPTX' });
       }
     }, 2000); // Poll a cada 2 segundos
   }, []);
@@ -261,7 +262,7 @@ export function usePPTX(): UsePPTXReturn {
       const result = await response.json();
       return result.job;
     } catch (err) {
-      console.error('[usePPTX] Error getting job status:', err);
+      logger.error('Error getting job status', err instanceof Error ? err : new Error(String(err)), { jobId, hook: 'usePPTX' });
       return null;
     }
   }, []);
@@ -281,7 +282,7 @@ export function usePPTX(): UsePPTXReturn {
       const result = await response.json();
       return result.jobs || [];
     } catch (err) {
-      console.error('[usePPTX] Error listing jobs:', err);
+      logger.error('Error listing jobs', err instanceof Error ? err : new Error(String(err)), { status, hook: 'usePPTX' });
       return [];
     }
   }, []);
@@ -308,7 +309,7 @@ export function usePPTX(): UsePPTXReturn {
 
       return false;
     } catch (err) {
-      console.error('[usePPTX] Error cancelling job:', err);
+      logger.error('Error cancelling job', err instanceof Error ? err : new Error(String(err)), { jobId, hook: 'usePPTX' });
       return false;
     }
   }, [currentJob]);
@@ -324,7 +325,7 @@ export function usePPTX(): UsePPTXReturn {
       const result = await response.json();
       return result.document;
     } catch (err) {
-      console.error('[usePPTX] Error loading document:', err);
+      logger.error('Error loading document', err instanceof Error ? err : new Error(String(err)), { documentId, hook: 'usePPTX' });
       return null;
     }
   }, []);
@@ -340,7 +341,7 @@ export function usePPTX(): UsePPTXReturn {
       const result = await response.json();
       return (result.preview ?? null) as PPTXDocumentPreview | null;
     } catch (err) {
-      console.error('[usePPTX] Error getting preview:', err);
+      logger.error('Error getting preview', err instanceof Error ? err : new Error(String(err)), { jobId, hook: 'usePPTX' });
       return null;
     }
   }, []);
@@ -353,7 +354,7 @@ export function usePPTX(): UsePPTXReturn {
     settings: PPTXToVideoSettings
   ): Promise<string> => {
     try {
-      console.log(`[usePPTX] Converting document ${documentId} to video`);
+      logger.info('Converting document to video', { documentId, hook: 'usePPTX' });
 
       const response = await fetch('/api/pptx/convert-to-video', {
         method: 'POST',
@@ -374,7 +375,7 @@ export function usePPTX(): UsePPTXReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro na conversão';
       setError(errorMessage);
-      console.error('[usePPTX] Conversion error:', err);
+      logger.error('Conversion error', err instanceof Error ? err : new Error(String(err)), { documentId, hook: 'usePPTX' });
       throw err;
     }
   }, []);
@@ -390,7 +391,7 @@ export function usePPTX(): UsePPTXReturn {
       const result = await response.json();
       return Array.isArray(result.templates) ? (result.templates as PPTXTemplate[]) : [];
     } catch (err) {
-      console.error('[usePPTX] Error getting templates:', err);
+      logger.error('Error getting templates', err instanceof Error ? err : new Error(String(err)), { hook: 'usePPTX' });
       return [];
     }
   }, []);

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
 
 interface Project {
   id: string
@@ -41,7 +42,7 @@ export function ProjectList() {
       const data = await res.json()
       setProjects(data.projects || [])
     } catch (error) {
-      console.error('Erro ao carregar projetos:', error)
+      logger.error('Erro ao carregar projetos', error instanceof Error ? error : new Error(String(error)), { component: 'ProjectList' })
     } finally {
       setLoading(false)
     }
@@ -53,7 +54,7 @@ export function ProjectList() {
       const data = await res.json()
       setSlides(data.slides || [])
     } catch (error) {
-      console.error('Erro ao carregar slides:', error)
+      logger.error('Erro ao carregar slides', error instanceof Error ? error : new Error(String(error)), { component: 'ProjectList', projectId })
     }
   }
 
@@ -81,7 +82,7 @@ export function ProjectList() {
         })
       }
     } catch (error) {
-      console.error('Erro ao criar projeto:', error)
+      logger.error('Erro ao criar projeto', error instanceof Error ? error : new Error(String(error)), { component: 'ProjectList' })
     }
   }
 
@@ -120,7 +121,7 @@ export function ProjectList() {
         })
       }
     } catch (error) {
-      console.error('Erro ao criar slide:', error)
+      logger.error('Erro ao criar slide', error instanceof Error ? error : new Error(String(error)), { component: 'ProjectList', projectId: selectedProject })
     }
   }
 

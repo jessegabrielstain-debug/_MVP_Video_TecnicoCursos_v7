@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { videoCache } from '@/lib/video-cache'
 import { audioCache } from '@/lib/audio-cache'
+import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
@@ -20,7 +21,7 @@ export async function GET(
       return new NextResponse('Filename required', { status: 400 })
     }
 
-    console.log(`📁 Servindo arquivo do cache: ${filename}`)
+    logger.info(`📁 Servindo arquivo do cache: ${filename}`, { component: 'API: files/cache/[filename]' })
 
     // Tentar primeiro no cache de vídeo
     const cachedVideo = videoCache.get(filename)
@@ -29,7 +30,7 @@ export async function GET(
     const cached = cachedVideo || cachedAudio
 
     if (!cached) {
-      console.log(`❌ Arquivo não encontrado em nenhum cache: ${filename}`)
+      logger.info(`❌ Arquivo não encontrado em nenhum cache: ${filename}`, { component: 'API: files/cache/[filename]' })
       return new NextResponse('File not found', { status: 404 })
     }
 
@@ -51,7 +52,7 @@ export async function GET(
       headers.set('Accept-Ranges', 'bytes')
     }
 
-    console.log(`✅ Servindo ${filename} do cache (${cached.buffer.length} bytes)`)
+    logger.info(`✅ Servindo ${filename} do cache (${cached.buffer.length} bytes)`, { component: 'API: files/cache/[filename]' })
 
     return new NextResponse(new Uint8Array(cached.buffer), {
       status: 200,
@@ -59,7 +60,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('❌ Erro ao servir arquivo do cache:', error)
+    logger.error('❌ Erro ao servir arquivo do cache', { component: 'API: files/cache/[filename]', error: error instanceof Error ? error : new Error(String(error)) })
     return new NextResponse('Internal Server Error', { status: 500 })
   }
 }

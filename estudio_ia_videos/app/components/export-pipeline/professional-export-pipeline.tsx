@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, useRef, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -251,7 +252,7 @@ const ProfessionalExportPipeline: React.FC = () => {
   const downloadFile = (job: ExportJob) => {
     if (job.downloadUrl) {
       // In real implementation, this would trigger actual download
-      console.log('Downloading:', job.downloadUrl)
+      logger.debug('Downloading file', { component: 'ProfessionalExportPipeline', downloadUrl: job.downloadUrl })
     }
   }
   

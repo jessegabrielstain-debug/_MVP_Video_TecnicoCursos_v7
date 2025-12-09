@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
@@ -360,7 +361,7 @@ export function useQuickActions(canvas: any) {
       if (!canvas || selectedObjects.length === 0) return
       
       // Implementar alinhamento baseado no tipo
-      console.log('Aligning objects:', type, selectedObjects)
+      logger.debug('Aligning objects', { component: 'QuickActionsBar', type, objectCount: selectedObjects.length })
     },
     onLock: () => {
       selectedObjects.forEach(obj => {
@@ -400,22 +401,22 @@ export function useQuickActions(canvas: any) {
     },
     onCopy: () => {
       // Implementar cópia
-      console.log('Copying objects:', selectedObjects)
+      logger.debug('Copying objects', { component: 'QuickActionsBar', objectCount: selectedObjects.length })
     },
     onCut: () => {
       // Implementar recorte
-      console.log('Cutting objects:', selectedObjects)
+      logger.debug('Cutting objects', { component: 'QuickActionsBar', objectCount: selectedObjects.length })
     },
     onGroup: () => {
       if (canvas?.group && selectedObjects.length > 1) {
         // Implementar agrupamento
-        console.log('Grouping objects:', selectedObjects)
+        logger.debug('Grouping objects', { component: 'QuickActionsBar', objectCount: selectedObjects.length })
       }
     },
     onUngroup: () => {
       if (canvas?.ungroup) {
         // Implementar desagrupamento
-        console.log('Ungrouping objects:', selectedObjects)
+        logger.debug('Ungrouping objects', { component: 'QuickActionsBar', objectCount: selectedObjects.length })
       }
     }
   }

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { logger } from '@/lib/logger'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndProvider, useDrag, useDrop } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
@@ -443,7 +444,7 @@ export default function PPTXIntegratedTimeline({
       accept: ItemTypes.CLIP,
       drop: (item: { id: string; trackId: string }) => {
         // Handle clip movement between tracks
-        console.log('Clip dropped:', item)
+        logger.debug('Clip dropped', { component: 'PPTXIntegratedTimeline', clipId: item.id, trackId: item.trackId })
       },
       collect: (monitor) => ({
         isOver: monitor.isOver(),

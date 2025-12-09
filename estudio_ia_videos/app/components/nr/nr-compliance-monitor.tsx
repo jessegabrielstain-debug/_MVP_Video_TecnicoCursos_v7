@@ -8,6 +8,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -82,7 +83,7 @@ export default function NRComplianceMonitor() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar compliance:', error);
+      logger.error('Erro ao carregar compliance', error instanceof Error ? error : new Error(String(error)), { component: 'NRComplianceMonitor' });
     }
   };
 
@@ -100,7 +101,7 @@ export default function NRComplianceMonitor() {
         }, 5000);
       }
     } catch (error) {
-      console.error('Erro no scan completo:', error);
+      logger.error('Erro no scan completo', error instanceof Error ? error : new Error(String(error)), { component: 'NRComplianceMonitor' });
       setIsScanning(false);
     }
   };

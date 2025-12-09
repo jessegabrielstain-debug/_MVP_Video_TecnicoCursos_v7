@@ -18,6 +18,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import {
   LineChart,
   Line,
@@ -166,7 +167,7 @@ export default function AnalyticsDashboard() {
       setMetrics(data)
       setLastUpdate(new Date())
     } catch (error) {
-      console.error('Erro ao carregar métricas:', error)
+      logger.error('Erro ao carregar métricas', error instanceof Error ? error : new Error(String(error)), { component: 'AnalyticsDashboard' })
     } finally {
       setLoading(false)
     }
@@ -204,7 +205,7 @@ export default function AnalyticsDashboard() {
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
     } catch (error) {
-      console.error('Erro ao exportar:', error)
+      logger.error('Erro ao exportar', error instanceof Error ? error : new Error(String(error)), { component: 'AnalyticsDashboard', format })
     }
   }
 

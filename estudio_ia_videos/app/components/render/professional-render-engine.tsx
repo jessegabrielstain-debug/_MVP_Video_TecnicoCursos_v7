@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, useCallback, useRef, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Progress } from '../ui/progress'
@@ -89,7 +90,7 @@ export default function ProfessionalRenderEngine() {
       setIsInitialized(true)
       toast.success('🎬 Engine de renderização iniciado!')
     } catch (error) {
-      console.error('Failed to initialize FFmpeg:', error)
+      logger.error('Failed to initialize FFmpeg', error instanceof Error ? error : new Error(String(error)), { component: 'ProfessionalRenderEngine' })
       toast.error('❌ Falha ao inicializar o engine de renderização')
     } finally {
       setIsInitializing(false)
@@ -171,7 +172,7 @@ export default function ProfessionalRenderEngine() {
       toast.success('🎉 Renderização concluída com sucesso!')
 
     } catch (error) {
-      console.error('Render failed:', error)
+      logger.error('Render failed', error instanceof Error ? error : new Error(String(error)), { component: 'ProfessionalRenderEngine' })
       
       setRenderJobs(prev => prev.map(job => 
         job.id === jobId ? { ...job, status: 'failed' } : job

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Template } from '@/types/templates';
+import { logger } from '@/lib/logger';
 
 // This would be replaced with actual database operations in production
 // For now, we'll use a simple in-memory store that matches the main route
@@ -26,7 +27,7 @@ export async function GET(
 
     return NextResponse.json(template);
   } catch (error) {
-    console.error('Error fetching template:', error);
+    logger.error('Error fetching template:', { component: 'API: templates/[id]', error: error instanceof Error ? error : new Error(String(error)) });
     return NextResponse.json(
       { error: 'Failed to fetch template' },
       { status: 500 }
@@ -60,7 +61,7 @@ export async function PUT(
 
     return NextResponse.json(templates[templateIndex]);
   } catch (error) {
-    console.error('Error updating template:', error);
+    logger.error('Error updating template:', { component: 'API: templates/[id]', error: error instanceof Error ? error : new Error(String(error)) });
     return NextResponse.json(
       { error: 'Failed to update template' },
       { status: 500 }
@@ -97,7 +98,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting template:', error);
+    logger.error('Error deleting template:', { component: 'API: templates/[id]', error: error instanceof Error ? error : new Error(String(error)) });
     return NextResponse.json(
       { error: 'Failed to delete template' },
       { status: 500 }
@@ -132,7 +133,7 @@ export async function PATCH(
 
     return NextResponse.json(templates[templateIndex]);
   } catch (error) {
-    console.error('Error updating template:', error);
+    logger.error('Error updating template:', { component: 'API: templates/[id]', error: error instanceof Error ? error : new Error(String(error)) });
     return NextResponse.json(
       { error: 'Failed to update template' },
       { status: 500 }

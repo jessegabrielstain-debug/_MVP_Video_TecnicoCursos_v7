@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 // Schema de validação para atualização de projetos
 const UpdateProjectSchema = z.object({
@@ -70,7 +71,11 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error(`💥 [PROJECT-API] Erro ao buscar projeto ${params.id}:`, error)
+    logger.error('Erro ao buscar projeto', {
+      component: 'API: projects/[id]',
+      context: { id: params.id },
+      error: error instanceof Error ? error : new Error(String(error))
+    })
     return NextResponse.json({
       success: false,
       error: 'Erro interno do servidor',
@@ -190,7 +195,11 @@ export async function PUT(
     })
 
   } catch (error) {
-    console.error(`💥 [PROJECT-API] Erro ao atualizar projeto ${params.id}:`, error)
+    logger.error('Erro ao atualizar projeto', {
+      component: 'API: projects/[id]',
+      context: { id: params.id },
+      error: error instanceof Error ? error : new Error(String(error))
+    })
     return NextResponse.json({
       success: false,
       error: 'Erro interno do servidor',

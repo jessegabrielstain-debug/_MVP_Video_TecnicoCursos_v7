@@ -11,6 +11,7 @@ import { EventEmitter } from 'events';
 import { FFmpegExecutor, FFmpegOptions } from '@/lib/render/ffmpeg-executor';
 import { VideoUploader } from '@/lib/storage/video-uploader';
 import type { PPTXSlideData } from '@/lib/render/frame-generator';
+import { logger } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -66,7 +67,7 @@ export class VideoRenderWorker extends EventEmitter {
     try {
       await fs.mkdir(this.tempDir, { recursive: true });
     } catch (error) {
-      console.error('Failed to create temp directory:', error);
+      logger.error('Failed to create temp directory:', error instanceof Error ? error : new Error(String(error)), { component: 'VideoRenderWorker' });
     }
   }
 
@@ -82,7 +83,7 @@ export class VideoRenderWorker extends EventEmitter {
     this.currentJobId = jobData.id;
 
     try {
-      console.log(`🎬 Starting render job: ${jobData.id}`);
+      logger.info(`🎬 Starting render job: ${jobData.id}`, { component: 'VideoRenderWorker' });
       
       // 1. Preparar diretórios e arquivos
       await this.emitProgress({
@@ -150,11 +151,11 @@ export class VideoRenderWorker extends EventEmitter {
         message: 'Renderização concluída!'
       });
 
-      console.log(`✅ Render job completed: ${jobData.id}`);
+      logger.info(`✅ Render job completed: ${jobData.id}`, { component: 'VideoRenderWorker' });
       return videoUrl;
 
     } catch (error) {
-      console.error(`❌ Render job failed: ${jobData.id}`, error);
+      logger.error(`❌ Render job failed: ${jobData.id}`, error instanceof Error ? error : new Error(String(error)), { component: 'VideoRenderWorker' });
       
       await this.emitProgress({
         jobId: jobData.id,
@@ -336,9 +337,9 @@ export class VideoRenderWorker extends EventEmitter {
   private async cleanup(jobDir: string): Promise<void> {
     try {
       await fs.rm(jobDir, { recursive: true, force: true });
-      console.log(`🧹 Cleaned up temp directory: ${jobDir}`);
+      logger.info(`Cleaned up temp directory: ${jobDir}`, { component: 'VideoRenderWorker' });
     } catch (error) {
-      console.error('Failed to cleanup temp directory:', error);
+      logger.error('Failed to cleanup temp directory', error instanceof Error ? error : new Error(String(error)), { component: 'VideoRenderWorker' });
     }
   }
 
@@ -356,7 +357,7 @@ export class VideoRenderWorker extends EventEmitter {
         body: JSON.stringify(progress)
       });
     } catch (error) {
-      console.error('Failed to persist progress:', error);
+      logger.error('Failed to persist progress', error instanceof Error ? error : new Error(String(error)), { component: 'VideoRenderWorker' });
     }
   }
 
@@ -368,7 +369,7 @@ export class VideoRenderWorker extends EventEmitter {
       return;
     }
 
-    console.log(`⏹️ Cancelling job: ${this.currentJobId}`);
+    logger.info(`Cancelling job: ${this.currentJobId}`, { component: 'VideoRenderWorker' });
     
     // Kill processos FFmpeg se estiverem rodando
     await (this.ffmpegExecutor as unknown as { killAllProcesses: () => Promise<void> }).killAllProcesses();

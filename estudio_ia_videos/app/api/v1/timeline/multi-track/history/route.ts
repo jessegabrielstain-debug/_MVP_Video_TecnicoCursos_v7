@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * GET - Retrieve timeline history (all versions)
@@ -36,7 +37,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`📜 Buscando histórico de timeline do projeto ${projectId}...`);
+    logger.info(`📜 Buscando histórico de timeline do projeto ${projectId}...`, {
+      component: 'API: v1/timeline/multi-track/history',
+      projectId
+    });
 
     // Verify project access
     const project = await prisma.project.findFirst({
@@ -77,7 +81,10 @@ export async function GET(request: NextRequest) {
       where: { timelineId: currentTimeline.id },
     });
 
-    console.log(`✅ ${snapshots.length} versões encontradas`);
+    logger.info(`✅ ${snapshots.length} versões encontradas`, {
+      component: 'API: v1/timeline/multi-track/history',
+      count: snapshots.length
+    });
 
     return NextResponse.json({
       success: true,
@@ -103,8 +110,12 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('❌ Erro ao buscar histórico:', error);
-    const message = error instanceof Error ? error.message : String(error);
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    logger.error('❌ Erro ao buscar histórico:', {
+      component: 'API: v1/timeline/multi-track/history',
+      error: normalizedError
+    });
+    const message = normalizedError.message;
     return NextResponse.json(
       { success: false, message: 'Erro ao buscar histórico', error: message },
       { status: 500 }

@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -241,11 +242,11 @@ const AIContentGenerator = () => {
   }, []);
 
   const handleRegenerateContent = useCallback((requestId: string) => {
-    console.log(`🔄 Regenerando conteúdo: ${requestId}`);
+    logger.debug(`🔄 Regenerando conteúdo: ${requestId}`, { component: 'AIContentGenerator', requestId });
   }, []);
 
   const handleOptimizeContent = useCallback((requestId: string) => {
-    console.log(`✨ Otimizando conteúdo com IA: ${requestId}`);
+    logger.debug(`✨ Otimizando conteúdo com IA: ${requestId}`, { component: 'AIContentGenerator', requestId });
   }, []);
 
   const getTypeIcon = (type: GenerationRequest['type']) => {

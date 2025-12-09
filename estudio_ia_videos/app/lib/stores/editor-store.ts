@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { createClient } from '@/lib/supabase/client';
+import { logger } from '@/lib/logger';
 
 // Types
 interface Slide {
@@ -156,7 +157,7 @@ export const useEditorStore = create<EditorState>()(
             set({ slides: [] });
           }
         } catch (error) {
-          console.error('Error loading project:', error);
+          logger.error('Error loading project', error instanceof Error ? error : new Error(String(error)), { component: 'EditorStore' });
           // You might want to set an error state here
         }
       },
@@ -196,7 +197,7 @@ export const useEditorStore = create<EditorState>()(
             .eq('id', projectId);
 
         } catch (error) {
-          console.error('Error saving project:', error);
+          logger.error('Error saving project', error instanceof Error ? error : new Error(String(error)), { component: 'EditorStore' });
           throw error;
         }
       },

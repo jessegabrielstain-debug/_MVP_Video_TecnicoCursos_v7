@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import ElevenLabsService from '@/lib/elevenlabs-service'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 // Schema de validação com Zod
 const TTSRequestSchema = z.object({
@@ -68,7 +69,12 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(audioBuffer)
 
     // Log de uso para analytics
-    console.log(`[TTS] Usuário ${user.id} gerou áudio: ${text.length} chars, voice: ${voice_id}`)
+    logger.info('Usuário gerou áudio TTS', { 
+      component: 'API: tts/elevenlabs', 
+      userId: user.id, 
+      textLength: text.length, 
+      voiceId: voice_id 
+    })
 
     // Retornar o áudio como resposta
     return new NextResponse(buffer, {
@@ -81,7 +87,7 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('[TTS] Erro ao gerar:', error)
+    logger.error('Erro ao gerar áudio TTS', error instanceof Error ? error : new Error(String(error)), { component: 'API: tts/elevenlabs' })
     return NextResponse.json(
       {
         success: false,

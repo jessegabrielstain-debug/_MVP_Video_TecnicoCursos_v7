@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { workflowManager } from '@/lib/workflow/unified-workflow-manager'
 import { z } from 'zod'
+import { logger } from '@/lib/logger';
 
 // Schemas de validação
 const ExportConfigSchema = z.object({
@@ -100,14 +101,14 @@ class ExportSystem {
 
       // Iniciar processo de exportação em background
       this.processExportJob(jobId).catch(error => {
-        console.error('Export job failed:', error)
+        logger.error('Export job failed', error instanceof Error ? error : new Error(String(error)), { component: 'API: export/mp4' })
         this.updateJobStatus(jobId, 'error', 0, error.message)
       })
 
       return exportJob
 
     } catch (error) {
-      console.error('Error starting export:', error)
+      logger.error('Error starting export', error instanceof Error ? error : new Error(String(error)), { component: 'API: export/mp4' })
       throw new Error('Failed to start export job')
     }
   }
@@ -200,7 +201,7 @@ class ExportSystem {
   private async prepareExport(job: ExportJob, metadata: ProjectMetadata): Promise<void> {
     // Preparar arquivos para exportação
     await new Promise(resolve => setTimeout(resolve, 500))
-    console.log('Export prepared for job:', job.id)
+    logger.info(`Export prepared for job: ${job.id}`, { component: 'API: export/mp4' })
   }
 
   private async processVideo(job: ExportJob, metadata: ProjectMetadata): Promise<void> {
@@ -220,7 +221,7 @@ class ExportSystem {
     
     // Simular comando FFmpeg para exportação
     const ffmpegCommand = this.buildExportCommand(inputUrl, job.config)
-    console.log('Export FFmpeg command:', ffmpegCommand)
+    logger.info(`Export FFmpeg command: ${ffmpegCommand}`, { component: 'API: export/mp4' })
     
     // Simular tempo de processamento
     await new Promise(resolve => setTimeout(resolve, 1500))
@@ -270,7 +271,7 @@ class ExportSystem {
 
     // Simular adição de marca d'água
     await new Promise(resolve => setTimeout(resolve, 500))
-    console.log('Watermark added for job:', job.id)
+    logger.info(`Watermark added for job: ${job.id}`, { component: 'API: export/mp4' })
   }
 
   private async finalizeExport(job: ExportJob): Promise<{ outputUrl: string, downloadUrl: string, fileSize: number }> {
@@ -391,7 +392,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Export API Error:', error)
+    logger.error('Export API Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: export/mp4' })
     
     // Atualizar workflow para "error"
     // Não podemos ler o body novamente aqui, então assumimos erro genérico no workflow se não tivermos projectId
@@ -449,7 +450,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Action, Job ID or Project ID required' }, { status: 400 })
 
   } catch (error) {
-    console.error('Export GET Error:', error)
+    logger.error('Export GET Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: export/mp4' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -481,7 +482,7 @@ export async function DELETE(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Export DELETE Error:', error)
+    logger.error('Export DELETE Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: export/mp4' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

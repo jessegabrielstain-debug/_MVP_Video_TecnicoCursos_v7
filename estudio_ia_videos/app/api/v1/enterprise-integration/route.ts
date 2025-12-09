@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error('Error in enterprise integration API:', error)
+    logger.error('Error in enterprise integration API', { component: 'API: v1/enterprise-integration', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
 
       // Simulate async sync completion
       setTimeout(() => {
-        console.log(`ERP sync completed for ${systemId}`)
+        logger.info(`ERP sync completed for ${systemId}`, { component: 'API: v1/enterprise-integration', systemId })
       }, 3000)
 
       return NextResponse.json({
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     )
   } catch (error) {
-    console.error('Error in enterprise integration POST:', error)
+    logger.error('Error in enterprise integration POST', { component: 'API: v1/enterprise-integration', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

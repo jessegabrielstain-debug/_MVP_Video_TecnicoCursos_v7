@@ -7,6 +7,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -85,7 +86,7 @@ export function AIVoiceAvatarPanel({ onContentGenerated, onAddToSlide }: AIVoice
       onContentGenerated(generatedContent)
 
     } catch (error) {
-      console.error('Erro na geração TTS:', error)
+      logger.error('Erro na geração TTS', error instanceof Error ? error : new Error(String(error)), { component: 'AIVoiceAvatarPanel' })
     } finally {
       setIsGenerating(false)
       setGenerationProgress(0)
@@ -124,7 +125,7 @@ export function AIVoiceAvatarPanel({ onContentGenerated, onAddToSlide }: AIVoice
       onContentGenerated(generatedContent)
 
     } catch (error) {
-      console.error('Erro na geração Avatar:', error)
+      logger.error('Erro na geração Avatar', error instanceof Error ? error : new Error(String(error)), { component: 'AIVoiceAvatarPanel' })
     } finally {
       setIsGenerating(false)
       setGenerationProgress(0)

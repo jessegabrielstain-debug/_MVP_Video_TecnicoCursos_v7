@@ -1,11 +1,12 @@
 // TODO: Fix RPC function types in Supabase
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 
 // API para configurar o banco de dados
 export async function POST(request: NextRequest) {
   try {
-    console.log('🚀 [SETUP-DB] Iniciando configuração do banco de dados...')
+    logger.info('🚀 [SETUP-DB] Iniciando configuração do banco de dados...', { component: 'API: setup-database' })
     
     const supabase = getSupabaseForRequest(request)
     
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
       .rpc('check_table_exists' as any, { table_name: 'projects' })
     
     if (checkError) {
-      console.log('⚠️ [SETUP-DB] Não foi possível verificar tabelas existentes, prosseguindo...')
+      logger.info('⚠️ [SETUP-DB] Não foi possível verificar tabelas existentes, prosseguindo...', { component: 'API: setup-database' })
     }
 
     // Criar tabela de projetos
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (createError) {
-      console.error('❌ [SETUP-DB] Erro ao criar tabela projects:', createError)
+      logger.error('❌ [SETUP-DB] Erro ao criar tabela projects:', createError instanceof Error ? createError : new Error(String(createError)), { component: 'API: setup-database' })
       
       // Tentar abordagem alternativa - inserir dados de teste diretamente
       const testProject = {
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log('✅ [SETUP-DB] Banco de dados configurado com sucesso!')
+    logger.info('✅ [SETUP-DB] Banco de dados configurado com sucesso!', { component: 'API: setup-database' })
     
     return NextResponse.json({
       success: true,
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('💥 [SETUP-DB] Erro interno:', error)
+    logger.error('💥 [SETUP-DB] Erro interno:', error instanceof Error ? error : new Error(String(error)), { component: 'API: setup-database' })
     return NextResponse.json({
       success: false,
       error: 'Erro interno do servidor',
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
 // GET para verificar status do banco
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 [SETUP-DB] Verificando status do banco de dados...')
+    logger.info('🔍 [SETUP-DB] Verificando status do banco de dados...', { component: 'API: setup-database' })
     
     const supabase = getSupabaseForRequest(request)
     
@@ -134,7 +135,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('💥 [SETUP-DB] Erro ao verificar banco:', error)
+    logger.error('💥 [SETUP-DB] Erro ao verificar banco:', error instanceof Error ? error : new Error(String(error)), { component: 'API: setup-database' })
     return NextResponse.json({
       success: false,
       database_ready: false,

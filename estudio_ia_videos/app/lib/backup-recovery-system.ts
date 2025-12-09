@@ -3,6 +3,8 @@
  * Sistema de backup e recuperação de dados
  */
 
+import { logger } from '@/lib/logger';
+
 export interface BackupOptions {
   type: 'full' | 'incremental' | 'differential';
   target: string;
@@ -31,7 +33,7 @@ export class BackupRecoverySystem {
   async createBackup(options: BackupOptions): Promise<BackupResult> {
     const { type, target, compression = true } = options;
     
-    console.log(`[Backup] Creating ${type} backup of ${target} (compression: ${compression})`);
+    logger.info(`[Backup] Creating ${type} backup of ${target}`, { component: 'BackupRecoverySystem', compression });
     
     const backup: BackupResult = {
       id: crypto.randomUUID(),
@@ -56,7 +58,7 @@ export class BackupRecoverySystem {
   
   async restore(options: RestoreOptions): Promise<boolean> {
     const { backupId, target, overwrite = false } = options;
-    console.log(`[Restore] Restoring backup ${backupId} to ${target} (overwrite: ${overwrite})`);
+    logger.info(`[Restore] Restoring backup ${backupId} to ${target}`, { component: 'BackupRecoverySystem', overwrite });
     return true;
   }
 

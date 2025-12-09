@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -280,7 +281,7 @@ export default function InteractiveElementsEngine() {
     };
 
     try {
-      console.log('Exporting interactive elements:', exportData);
+      logger.info('Exporting interactive elements', { component: 'InteractiveElementsEngine', exportData });
       toast.success('Elementos interativos exportados com sucesso!');
     } catch (error) {
       toast.error('Erro ao exportar elementos');

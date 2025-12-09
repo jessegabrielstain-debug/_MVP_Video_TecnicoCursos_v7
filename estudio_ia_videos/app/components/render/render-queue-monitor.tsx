@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Progress } from '../ui/progress'
@@ -86,7 +87,7 @@ export default function RenderQueueMonitor() {
         setQueueStats(result.data)
       }
     } catch (error) {
-      console.error('Error fetching queue stats:', error)
+      logger.error('Error fetching queue stats', error instanceof Error ? error : new Error(String(error)), { component: 'RenderQueueMonitor' })
     }
   }
 
@@ -122,7 +123,7 @@ export default function RenderQueueMonitor() {
       
       setJobs(mockJobs)
     } catch (error) {
-      console.error('Error fetching jobs:', error)
+      logger.error('Error fetching jobs', error instanceof Error ? error : new Error(String(error)), { component: 'RenderQueueMonitor' })
     }
   }
 
@@ -141,7 +142,7 @@ export default function RenderQueueMonitor() {
         toast.error(result.error || 'Erro ao cancelar job')
       }
     } catch (error) {
-      console.error('Error cancelling job:', error)
+      logger.error('Error cancelling job', error instanceof Error ? error : new Error(String(error)), { component: 'RenderQueueMonitor' })
       toast.error('Erro ao cancelar job')
     }
   }

@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -306,7 +307,7 @@ function ProfessionalCanvasEditorCore({
         break
         
       default:
-        console.log('Action not handled:', actionId, params)
+        logger.debug('Action not handled', { component: 'ProfessionalCanvasEditorV3', actionId, params })
     }
     
     canvas.renderAll()

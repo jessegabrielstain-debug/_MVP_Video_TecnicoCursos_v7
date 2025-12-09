@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -260,12 +261,12 @@ export default function RenderMonitor({
           setSystemStats(data.data.systemStats);
         }
       } else {
-        console.error('Erro ao carregar jobs:', data.error);
+        logger.error('Erro ao carregar jobs', new Error(data.error || 'Unknown error'), { component: 'RenderMonitor' });
         // Fallback para dados mock
         setJobs(generateMockJobs());
       }
     } catch (error) {
-      console.error('Erro ao carregar jobs de renderização:', error);
+      logger.error('Erro ao carregar jobs de renderização', error instanceof Error ? error : new Error(String(error)), { component: 'RenderMonitor' });
       // Fallback para dados mock
       setJobs(generateMockJobs());
     } finally {
@@ -401,7 +402,7 @@ export default function RenderMonitor({
         setSystemStats(data.systemStats);
       }
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+      logger.error('Erro ao carregar estatísticas', error instanceof Error ? error : new Error(String(error)), { component: 'RenderMonitor' });
     }
   };
 
@@ -430,7 +431,7 @@ export default function RenderMonitor({
         toast.error('Erro ao cancelar job');
       }
     } catch (error) {
-      console.error('Erro ao cancelar job:', error);
+      logger.error('Erro ao cancelar job', error instanceof Error ? error : new Error(String(error)), { jobId, component: 'RenderMonitor' });
       toast.error('Erro ao cancelar job');
     }
   };
@@ -456,7 +457,7 @@ export default function RenderMonitor({
       
       toast.success('Download iniciado');
     } catch (error) {
-      console.error('Erro no download:', error);
+      logger.error('Erro no download', error instanceof Error ? error : new Error(String(error)), { jobId: job.id, component: 'RenderMonitor' });
       toast.error('Erro ao fazer download');
     }
   };
@@ -488,7 +489,7 @@ export default function RenderMonitor({
         toast.error('Erro ao reprocessar job');
       }
     } catch (error) {
-      console.error('Erro ao reprocessar job:', error);
+      logger.error('Erro ao reprocessar job', error instanceof Error ? error : new Error(String(error)), { jobId, component: 'RenderMonitor' });
       toast.error('Erro ao reprocessar job');
     }
   };

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export interface AuditLog {
@@ -17,7 +18,7 @@ export class AuditLoggingService {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     
     if (!supabaseUrl || !supabaseKey) {
-      console.warn('⚠️ Supabase credentials not found in AuditLoggingService');
+      logger.warn('⚠️ Supabase credentials not found in AuditLoggingService', { component: 'AuditLoggingReal' });
     }
     
     this.supabase = createClient(supabaseUrl, supabaseKey, {
@@ -43,10 +44,10 @@ export class AuditLoggingService {
         });
 
       if (error) {
-        console.error('Failed to write audit log:', error);
+        logger.error('Failed to write audit log', error instanceof Error ? error : new Error(String(error)), { component: 'AuditLoggingReal' });
       }
     } catch (error) {
-      console.error('Error in audit logger:', error);
+      logger.error('Error in audit logger', error instanceof Error ? error : new Error(String(error)), { component: 'AuditLoggingReal' });
     }
   }
 
@@ -79,7 +80,7 @@ export class AuditLoggingService {
         metadata: row.event_data
       }));
     } catch (error) {
-      console.error('Failed to query audit logs:', error);
+      logger.error('Failed to query audit logs', error instanceof Error ? error : new Error(String(error)), { component: 'AuditLoggingReal' });
       return [];
     }
   }

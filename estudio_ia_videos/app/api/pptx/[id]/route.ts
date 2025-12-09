@@ -3,6 +3,7 @@ import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { unlink } from 'fs/promises'
 import { existsSync } from 'fs'
+import { logger } from '@/lib/logger';
 
 // Schema de validação para atualização
 const updateSchema = z.object({
@@ -91,7 +92,7 @@ export async function GET(
     return NextResponse.json({ upload })
 
   } catch (error) {
-    console.error('Erro ao buscar upload:', error)
+    logger.error('Erro ao buscar upload:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/[id]' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -175,7 +176,7 @@ export async function PUT(
       .single()
 
     if (updateError) {
-      console.error('Erro ao atualizar upload:', updateError)
+      logger.error('Erro ao atualizar upload:', updateError instanceof Error ? updateError : new Error(String(updateError)), { component: 'API: pptx/[id]' })
       return NextResponse.json(
         { error: 'Erro ao atualizar upload' },
         { status: 500 }
@@ -205,7 +206,7 @@ export async function PUT(
       )
     }
 
-    console.error('Erro ao atualizar upload:', error)
+    logger.error('Erro ao atualizar upload:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/[id]' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -275,7 +276,7 @@ export async function DELETE(
       .eq('id', uploadId)
 
     if (deleteError) {
-      console.error('Erro ao excluir upload:', deleteError)
+      logger.error('Erro ao excluir upload:', deleteError instanceof Error ? deleteError : new Error(String(deleteError)), { component: 'API: pptx/[id]' })
       return NextResponse.json(
         { error: 'Erro ao excluir upload' },
         { status: 500 }
@@ -291,7 +292,7 @@ export async function DELETE(
         await unlink(filePath)
       }
     } catch (fileError) {
-      console.warn('Erro ao excluir arquivo físico:', fileError)
+      logger.warn('Erro ao excluir arquivo físico:', { error: fileError, component: 'API: pptx/[id]' })
       // Não falhar a operação se não conseguir excluir o arquivo
     }
 
@@ -317,7 +318,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error('Erro ao excluir upload:', error)
+    logger.error('Erro ao excluir upload:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/[id]' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

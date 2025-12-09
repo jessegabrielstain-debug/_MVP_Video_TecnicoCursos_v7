@@ -8,6 +8,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -78,7 +79,7 @@ export function AdvancedAnalyticsDashboard() {
         setData(result.data)
       }
     } catch (error) {
-      console.error('Failed to load analytics:', error)
+      logger.error('Failed to load analytics:', error instanceof Error ? error : new Error(String(error)), { component: 'AdvancedAnalyticsDashboard' })
     } finally {
       setLoading(false)
     }
@@ -109,7 +110,7 @@ export function AdvancedAnalyticsDashboard() {
         a.click()
       }
     } catch (error) {
-      console.error('Failed to export analytics:', error)
+      logger.error('Failed to export analytics:', error instanceof Error ? error : new Error(String(error)), { component: 'AdvancedAnalyticsDashboard' })
     }
   }
   

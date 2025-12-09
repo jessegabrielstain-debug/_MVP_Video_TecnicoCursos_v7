@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -74,7 +75,7 @@ export default function Avatar3DSelector({
         throw new Error(result.error)
       }
     } catch (error) {
-      console.error('Error fetching avatars:', error)
+      logger.error('Error fetching avatars:', error instanceof Error ? error : new Error(String(error)), { component: 'Avatar3DSelector' })
       toast.error('Erro ao carregar avatares')
     } finally {
       setLoading(false)
@@ -153,7 +154,7 @@ export default function Avatar3DSelector({
       }
       
     } catch (error) {
-      console.error('Voice preview error:', error)
+      logger.error('Voice preview error:', error instanceof Error ? error : new Error(String(error)), { component: 'Avatar3DSelector' })
       toast.error('Erro ao reproduzir prévia da voz')
       setPreviewAudio(null)
     }

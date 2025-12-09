@@ -35,6 +35,7 @@ import { TemplateImportExport } from './template-import-export';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 
 interface TemplateSystemProps {
   className?: string;
@@ -120,7 +121,7 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
       router.push(`/editor/timeline/${project.id}`);
       
     } catch (error) {
-      console.error('Failed to create project:', error);
+      logger.error('Failed to create project', error instanceof Error ? error : new Error(String(error)), { component: 'TemplateSystem', action: 'handleUseTemplate' });
       toast({
         title: "Error",
         description: "Failed to create project from template",
@@ -156,7 +157,7 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
     try {
       await duplicateTemplate(template.id);
     } catch (error) {
-      console.error('Failed to duplicate template:', error);
+      logger.error('Failed to duplicate template', error instanceof Error ? error : new Error(String(error)), { component: 'TemplateSystem', templateId: template.id });
     }
   };
 
@@ -165,7 +166,7 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
       try {
         await deleteTemplate(template.id);
       } catch (error) {
-        console.error('Failed to delete template:', error);
+        logger.error('Failed to delete template', error instanceof Error ? error : new Error(String(error)), { component: 'TemplateSystem', templateId: template.id });
       }
     }
   };
@@ -417,7 +418,7 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
               }
               setShowEditor(false);
             } catch (error) {
-              console.error('Failed to save template:', error);
+              logger.error('Failed to save template', error instanceof Error ? error : new Error(String(error)), { component: 'TemplateSystem', action: 'saveTemplate' });
             }
           }}
         />
@@ -435,7 +436,7 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
             setImportExportMode(null);
           }}
           onExport={(format, data) => {
-            console.log('Exporting', format, data);
+            logger.debug('Exporting template', { component: 'TemplateSystem', format });
           }}
         />
       )}

@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -307,7 +308,7 @@ export default function AvatarExportSystem({
     try {
       await simulateExportProcess(newJob);
     } catch (error) {
-      console.error('Export failed:', error);
+      logger.error('Export failed', error instanceof Error ? error : new Error(String(error)), { jobId: newJob.id, component: 'AvatarExportSystem' });
       updateJobStatus(newJob.id, 'failed', { error: 'Export failed' });
     }
   };

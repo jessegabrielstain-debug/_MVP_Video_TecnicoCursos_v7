@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { PPTXParser } from '@/lib/pptx/pptx-parser';
 import { PPTXImageParser } from '@/lib/pptx/parsers/image-parser';
@@ -104,7 +105,7 @@ async function retryOperation<T>(
       
       // Aguardar com backoff exponencial
       const delay = delayMs * Math.pow(2, attempt - 1);
-      console.warn(`Tentativa ${attempt} falhou. Retry em ${delay}ms...`);
+      logger.warn(`Tentativa ${attempt} falhou. Retry em ${delay}ms...`, { component: 'PptxProcessor' });
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -226,7 +227,7 @@ async function enrichSlidesWithAdvancedData(
     await Promise.allSettled(extractionTasks);
   } catch (error) {
     const category = categorizeError(error);
-    console.warn(`Erro [${category}] ao enriquecer slides:`, error);
+    logger.warn(`Erro [${category}] ao enriquecer slides`, { component: 'PptxProcessor', error: error instanceof Error ? error : new Error(String(error)) });
     // Continuar com slides básicos em caso de erro
   }
 
@@ -388,7 +389,7 @@ export async function validatePPTXFile(file: File): Promise<{ valid: boolean; er
 
     return { valid: true };
   } catch (error) {
-    console.error("Error validating file:", error);
+    logger.error("Error validating file", error instanceof Error ? error : new Error(String(error)), { component: 'PptxProcessor' });
     return { valid: false, error: 'Formato de arquivo inválido ou corrompido.' };
   }
 }

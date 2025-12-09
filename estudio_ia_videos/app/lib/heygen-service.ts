@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
+import type { HeyGenVoice, HeyGenGenerateVideoResponse } from '@/types/external-apis';
 
 export interface HeyGenAvatar {
   avatar_id: string;
@@ -96,23 +98,23 @@ export class HeyGenService {
         preview_video_url: a.preview_video_url,
       }));
     } catch (error) {
-      console.error('Failed to list HeyGen avatars:', error);
+      logger.error('Failed to list HeyGen avatars:', error instanceof Error ? error : new Error(String(error)), { component: 'HeygenService' });
       return [];
     }
   }
 
-  async listVoices(): Promise<any[]> {
+  async listVoices(): Promise<HeyGenVoice[]> {
     try {
-      const data = await this.request('voices');
+      const data = await this.request('voices') as { data: { voices: HeyGenVoice[] } };
       return data.data.voices;
     } catch (error) {
-      console.error('Failed to list HeyGen voices:', error);
+      logger.error('Failed to list HeyGen voices:', error instanceof Error ? error : new Error(String(error)), { component: 'HeygenService' });
       return [];
     }
   }
 
   async generateVideo(request: HeyGenVideoRequest): Promise<string> {
-    console.log('🎬 Starting HeyGen video generation...');
+    logger.info('🎬 Starting HeyGen video generation...', { component: 'HeygenService' });
     
     const data = await this.request('video/generate', 'POST', request as unknown as Record<string, unknown>);
     
@@ -153,7 +155,7 @@ export class HeyGenService {
         quota_reset_date: data.data.quota_reset_date,
       };
     } catch (error) {
-      console.error('Failed to get HeyGen quota:', error);
+      logger.error('Failed to get HeyGen quota:', error instanceof Error ? error : new Error(String(error)), { component: 'HeygenService' });
       return {
         remaining_quota: 0,
         used_quota: 0,

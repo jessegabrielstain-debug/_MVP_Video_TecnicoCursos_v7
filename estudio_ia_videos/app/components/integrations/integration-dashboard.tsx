@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -146,7 +147,7 @@ export default function IntegrationDashboard() {
         setPublications(data.publications || []);
       }
     } catch (error) {
-      console.error('Erro ao carregar publicações:', error);
+      logger.error('Erro ao carregar publicações', error instanceof Error ? error : new Error(String(error)), { component: 'IntegrationDashboard' });
     }
   };
 
@@ -158,7 +159,7 @@ export default function IntegrationDashboard() {
         setStats(data);
       }
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+      logger.error('Erro ao carregar estatísticas', error instanceof Error ? error : new Error(String(error)), { component: 'IntegrationDashboard' });
     }
   };
 

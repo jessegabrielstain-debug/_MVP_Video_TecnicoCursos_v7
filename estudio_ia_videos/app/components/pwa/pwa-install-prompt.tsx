@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog'
@@ -92,7 +93,7 @@ export default function PWAInstallPrompt() {
       setDeferredPrompt(null)
       setShowPrompt(false)
     } catch (error) {
-      console.error('Erro na instalação:', error)
+      logger.error('Erro na instalação', error instanceof Error ? error : new Error(String(error)), { component: 'PWAInstallPrompt' })
       toast.error('Erro na instalação do app')
     }
   }

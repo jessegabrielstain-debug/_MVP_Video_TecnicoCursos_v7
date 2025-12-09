@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { EventEmitter } from 'events';
+import { logger } from '@/lib/logger';
 
 export interface CacheOptions {
   cacheDir?: string;
@@ -68,7 +69,7 @@ export class RenderingCache extends EventEmitter {
       await this.loadMetadata();
       this.startCleanupTimer();
     } catch (error) {
-      console.error('Failed to initialize cache:', error);
+      logger.error('Failed to initialize cache', error instanceof Error ? error : new Error(String(error)), { component: 'Cache' });
     }
   }
 
@@ -112,7 +113,7 @@ export class RenderingCache extends EventEmitter {
     this.stats.hits++;
     
     // Persist metadata update (async)
-    this.saveMetadata().catch(console.error);
+    this.saveMetadata().catch(err => logger.error('Failed to save metadata', err instanceof Error ? err : new Error(String(err)), { component: 'Cache' }));
 
     return entry;
   }
@@ -244,7 +245,7 @@ export class RenderingCache extends EventEmitter {
     try {
       await fs.writeFile(metadataPath, JSON.stringify(entries, null, 2));
     } catch (error) {
-      console.error('Failed to save cache metadata:', error);
+      logger.error('Failed to save cache metadata', error instanceof Error ? error : new Error(String(error)), { component: 'Cache' });
     }
   }
 

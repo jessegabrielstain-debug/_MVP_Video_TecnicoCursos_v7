@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { useDrag, useDrop, DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import { cn } from '@/lib/utils'
@@ -484,7 +485,7 @@ export default function TimelineEditorReal() {
       })
 
     } catch (error) {
-      console.error('Export failed:', error)
+      logger.error('Export failed', error instanceof Error ? error : new Error(String(error)), { component: 'TimelineEditorReal' })
       toast({
         title: "Erro na Exportação",
         description: error instanceof Error ? error.message : "Não foi possível iniciar a renderização.",

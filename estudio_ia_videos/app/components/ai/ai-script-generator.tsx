@@ -3,6 +3,7 @@
 'use client'
 
 import { useState } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -106,7 +107,7 @@ export default function AIScriptGenerator() {
         throw new Error(result.error || 'Erro na geração')
       }
     } catch (error) {
-      console.error('Erro:', error)
+      logger.error('Erro ao gerar roteiro', error instanceof Error ? error : new Error(String(error)), { component: 'AIScriptGenerator', nr: formData.nr })
       toast.error('Erro ao gerar roteiro')
       setStep('form')
     } finally {

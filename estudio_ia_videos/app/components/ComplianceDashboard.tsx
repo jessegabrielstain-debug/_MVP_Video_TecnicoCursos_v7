@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -79,7 +80,7 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
     try {
       await analyzeProject(projectData);
     } catch (err) {
-      console.error('Error analyzing compliance:', err);
+      logger.error('Error analyzing compliance', err instanceof Error ? err : new Error(String(err)), { component: 'ComplianceDashboard' });
       setError('Falha ao analisar compliance. Tente novamente.');
     }
   };
@@ -107,7 +108,7 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
       // Re-analyze after fix
       await handleAnalyze();
     } catch (err) {
-      console.error('Error applying fix:', err);
+      logger.error('Error applying fix', err instanceof Error ? err : new Error(String(err)), { violationId, component: 'ComplianceDashboard' });
       setError('Falha ao aplicar correção.');
     } finally {
       setAutoFixing(null);
@@ -120,7 +121,7 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
       await implementRecommendation(recommendationId);
       await handleAnalyze();
     } catch (err) {
-      console.error('Error applying suggestion:', err);
+      logger.error('Error applying suggestion', err instanceof Error ? err : new Error(String(err)), { recommendationId, component: 'ComplianceDashboard' });
       setError('Falha ao aplicar sugestão.');
     } finally {
       setApplyingSuggestion(null);
@@ -141,7 +142,7 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } catch (err) {
-        console.error('Error downloading report:', err);
+        logger.error('Error downloading report', err instanceof Error ? err : new Error(String(err)), { templateId: template.id, component: 'ComplianceDashboard' });
         setError('Falha ao gerar relatório.');
       }
     }

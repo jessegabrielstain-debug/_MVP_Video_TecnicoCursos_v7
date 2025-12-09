@@ -18,6 +18,7 @@ import {
   ExportQuality,
 } from '@/types/export.types'
 import { getExportQueue } from '@/lib/export/export-queue'
+import { logger } from '@/lib/logger'
 
 // Helper para validar settings
 function validateExportSettings(settings: Partial<ExportSettings>): ExportSettings {
@@ -83,7 +84,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('[Export API] Error fetching job:', error)
+    logger.error('[Export API] Error fetching job', { component: 'API: v1/export/[id]', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Failed to fetch job status', details: String(error) },
       { status: 500 }
@@ -116,14 +117,14 @@ export async function DELETE(
       )
     }
 
-    console.log(`[Export API] Cancelled job ${jobId}`)
+    logger.info(`[Export API] Cancelled job ${jobId}`, { component: 'API: v1/export/[id]', jobId })
 
     return NextResponse.json({
       success: true,
       message: 'Job cancelled successfully',
     })
   } catch (error) {
-    console.error('[Export API] Error cancelling job:', error)
+    logger.error('[Export API] Error cancelling job', { component: 'API: v1/export/[id]', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Failed to cancel job', details: String(error) },
       { status: 500 }

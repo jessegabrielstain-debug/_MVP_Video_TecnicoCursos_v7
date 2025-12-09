@@ -1,5 +1,6 @@
 // Unified route stub
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function POST() {
   return NextResponse.json({ message: 'Unified route stub' });
@@ -8,11 +9,11 @@ export async function POST() {
 // Workflow manager stub
 export const workflowManager = {
   async process(data: unknown) {
-    console.log('[WorkflowManager] Processing workflow', data);
+    logger.info('Processing workflow', { component: 'API: editor/unified', data });
     return { success: true };
   },
   async getStatus(id: string) {
-    console.log('[WorkflowManager] Getting status for', id);
+    logger.info('Getting status', { component: 'API: editor/unified', id });
     return { status: 'pending' };
   },
 };

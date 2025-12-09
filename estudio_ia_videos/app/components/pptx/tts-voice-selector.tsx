@@ -36,7 +36,7 @@ interface TTSVoice {
 
 interface Props {
   onVoiceSelect?: (voice: string) => void
-  onGenerateTTS?: (config: any) => void
+  onGenerateTTS?: (config: Record<string, unknown>) => void
   selectedSlideText?: string
 }
 

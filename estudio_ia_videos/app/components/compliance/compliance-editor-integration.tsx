@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -96,7 +97,7 @@ export function ComplianceEditorIntegration({
       // Trigger full validation after save
       triggerFullValidation();
     } catch (error) {
-      console.error('Error saving content:', error);
+      logger.error('Error saving content', error instanceof Error ? error : new Error(String(error)), { component: 'ComplianceEditorIntegration' });
     }
   }, [content, nrType, onSave, triggerFullValidation]);
 

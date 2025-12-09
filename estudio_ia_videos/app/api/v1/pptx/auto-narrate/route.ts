@@ -9,9 +9,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { AutoNarrationService } from '@/lib/pptx/auto-narration-service'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
-  console.log('🎙️ [Auto-Narrate] Iniciando geração de narração...')
+  logger.info('🎙️ [Auto-Narrate] Iniciando geração de narração...', { component: 'API: v1/pptx/auto-narrate' })
 
   try {
     const body = await request.json()
@@ -103,8 +104,8 @@ export async function POST(request: NextRequest) {
       preferNotes: options?.preferNotes !== false // default true
     }
 
-    console.log(`📊 Gerando narração para ${slides.length} slides...`)
-    console.log('⚙️ Opções:', narrationOptions)
+    logger.info(`📊 Gerando narração para ${slides.length} slides...`, { component: 'API: v1/pptx/auto-narrate' })
+    logger.info('⚙️ Opções', { component: 'API: v1/pptx/auto-narrate', options: narrationOptions })
 
     // 4. Gerar narrações
     const autoNarrationService = new AutoNarrationService()
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`✅ Narração gerada com sucesso: ${result.narrations.length} slides`)
+    logger.info(`✅ Narração gerada com sucesso: ${result.narrations.length} slides`, { component: 'API: v1/pptx/auto-narrate' })
 
     return NextResponse.json({
       success: true,
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [Auto-Narrate] Erro:', error)
+    logger.error('❌ [Auto-Narrate] Erro', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/pptx/auto-narrate' })
     return NextResponse.json(
       { 
         error: 'Erro ao gerar narração',
@@ -245,7 +246,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [Auto-Narrate] Erro ao buscar status:', error)
+    logger.error('❌ [Auto-Narrate] Erro ao buscar status', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/pptx/auto-narrate' })
     return NextResponse.json(
       { error: 'Erro ao buscar status' },
       { status: 500 }

@@ -11,6 +11,7 @@ import { avatar3DPipeline } from '../../../../lib/avatar-3d-pipeline'
 import { supabaseClient } from '../../../../lib/supabase'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
+import { logger } from '@/lib/logger';
 
 const rateLimiterPost = createRateLimiter(rateLimitPresets.render);
 export async function POST(request: NextRequest) {
@@ -30,12 +31,12 @@ export async function POST(request: NextRequest) {
     const audio2FaceEnabled = formData.get('audio2FaceEnabled') !== 'false'
     const voiceCloning = formData.get('voiceCloning') === 'true'
 
-    console.log('🎬 API v2: Iniciando renderização hiper-realista...')
-    console.log(`🎭 Avatar: ${avatarId}`)
-    console.log(`🎪 Animação: ${animation}`)
-    console.log(`📐 Resolução: ${resolution}`)
-    console.log(`✨ Qualidade: ${quality}`)
-    console.log(`🗣️ Audio2Face: ${audio2FaceEnabled ? 'Ativado' : 'Desativado'}`)
+    logger.info('🎬 API v2: Iniciando renderização hiper-realista...', { component: 'API: v2/avatars/render' })
+    logger.info(`🎭 Avatar: ${avatarId}`, { component: 'API: v2/avatars/render' })
+    logger.info(`🎪 Animação: ${animation}`, { component: 'API: v2/avatars/render' })
+    logger.info(`📐 Resolução: ${resolution}`, { component: 'API: v2/avatars/render' })
+    logger.info(`✨ Qualidade: ${quality}`, { component: 'API: v2/avatars/render' })
+    logger.info(`🗣️ Audio2Face: ${audio2FaceEnabled ? 'Ativado' : 'Desativado'}`, { component: 'API: v2/avatars/render' })
 
     // Validações
     if (!avatarId || !animation) {
@@ -78,9 +79,9 @@ export async function POST(request: NextRequest) {
       try {
         await mkdir(tempDir, { recursive: true })
         await writeFile(audioFilePath, Buffer.from(audioBuffer))
-        console.log(`🎵 Arquivo de áudio salvo: ${audioFilePath}`)
+        logger.info(`🎵 Arquivo de áudio salvo: ${audioFilePath}`, { component: 'API: v2/avatars/render' })
       } catch (fileError) {
-        console.error('Erro ao salvar arquivo de áudio:', fileError)
+        logger.error('Erro ao salvar arquivo de áudio', fileError instanceof Error ? fileError : new Error(String(fileError)), { component: 'API: v2/avatars/render' })
         return NextResponse.json({
           success: false,
           error: {
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    console.log(`✅ Renderização iniciada - Job ID: ${renderResult.jobId}`)
+    logger.info(`✅ Renderização iniciada - Job ID: ${renderResult.jobId}`, { component: 'API: v2/avatars/render' })
 
     const response = {
       success: true,
@@ -172,7 +173,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response)
   } catch (error) {
-    console.error('❌ Erro na renderização:', error)
+    logger.error('❌ Erro na renderização:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v2/avatars/render' })
     
     return NextResponse.json({
       success: false,
@@ -196,7 +197,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    console.log('📊 API v2: Listando jobs de renderização...')
+    logger.info('📊 API v2: Listando jobs de renderização...', { component: 'API: v2/avatars/render' })
 
     // Buscar jobs do Supabase
     let query: any = (supabaseClient
@@ -307,7 +308,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response)
   } catch (error) {
-    console.error('❌ Erro ao listar jobs:', error)
+    logger.error('❌ Erro ao listar jobs:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v2/avatars/render' })
     
     return NextResponse.json({
       success: false,
@@ -329,7 +330,7 @@ export async function DELETE(request: NextRequest) {
     const jobId = searchParams.get('jobId')
     const action = searchParams.get('action')
 
-    console.log(`🗑️ API v2: ${action === 'cancel' ? 'Cancelando' : 'Removendo'} job ${jobId}`)
+    logger.info(`🗑️ API v2: ${action === 'cancel' ? 'Cancelando' : 'Removendo'} job ${jobId}`, { component: 'API: v2/avatars/render' })
 
     if (action === 'cancel') {
       if (!jobId) {
@@ -395,7 +396,7 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 })
     }
   } catch (error) {
-    console.error('❌ Erro ao gerenciar job:', error)
+    logger.error('❌ Erro ao gerenciar job:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v2/avatars/render' })
     
     return NextResponse.json({
       success: false,

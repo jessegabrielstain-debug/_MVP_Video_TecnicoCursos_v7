@@ -14,6 +14,7 @@ import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
+import { logger } from '@/lib/logger';
 import {
   Upload,
   Mic,
@@ -98,7 +99,7 @@ export default function VoiceCloningStudio({ onVoiceCreated }: VoiceCloningStudi
       const data = await response.json();
       setVoiceProfiles(data);
     } catch (error) {
-      console.error('Erro ao carregar perfis:', error);
+      logger.error('Erro ao carregar perfis', error instanceof Error ? error : new Error(String(error)), { component: 'VoiceCloningStudio' });
       // Mock data para demonstração
       setVoiceProfiles([
         {
@@ -145,7 +146,7 @@ export default function VoiceCloningStudio({ onVoiceCreated }: VoiceCloningStudi
         setCurrentTab('train');
       }
     } catch (error) {
-      console.error('Erro ao criar perfil:', error);
+      logger.error('Erro ao criar perfil', error instanceof Error ? error : new Error(String(error)), { component: 'VoiceCloningStudio' });
     }
   };
 
@@ -165,11 +166,11 @@ export default function VoiceCloningStudio({ onVoiceCreated }: VoiceCloningStudi
       });
 
       if (response.ok) {
-        console.log('✅ Amostra enviada com sucesso');
+        logger.info('Amostra enviada com sucesso', { component: 'VoiceCloningStudio', profileId: selectedProfile.id });
         loadVoiceProfiles(); // Recarrega para atualizar progresso
       }
     } catch (error) {
-      console.error('Erro ao enviar amostra:', error);
+      logger.error('Erro ao enviar amostra', error instanceof Error ? error : new Error(String(error)), { component: 'VoiceCloningStudio' });
     }
   };
 
@@ -214,7 +215,7 @@ export default function VoiceCloningStudio({ onVoiceCreated }: VoiceCloningStudi
         }, 3000);
       }
     } catch (error) {
-      console.error('Erro ao gerar voz:', error);
+      logger.error('Erro ao gerar voz', error instanceof Error ? error : new Error(String(error)), { component: 'VoiceCloningStudio', profileId: selectedProfile?.id });
     }
   };
 

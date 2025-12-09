@@ -4,6 +4,7 @@ import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { RenderService } from '@/lib/services/render-service';
 import { Slide } from '@/lib/types';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
     // But since we are running locally/VPS, we can try to await it or fire-and-forget.
     // Let's await it for now to see the result, but handle timeout risk.
     
-    console.log(`Starting render for project ${projectId} with ${slidesForRender.length} slides`);
+    logger.info(`Starting render for project ${projectId} with ${slidesForRender.length} slides`, { component: 'API: v1/export' });
     
     // Update status to processing immediately
     await prisma.project.update({
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
     // For this MVP/VPS setup, it should persist long enough or we should use a queue.
     RenderService.renderVideo(projectId, slidesForRender)
       .then(async (result) => {
-        console.log(`Render success for ${projectId}`);
+        logger.info(`Render success for ${projectId}`, { component: 'API: v1/export' });
         await prisma.project.update({
           where: { id: projectId },
           data: {
@@ -99,7 +100,10 @@ export async function POST(request: NextRequest) {
         });
       })
       .catch(async (error) => {
-        console.error(`Render failed for ${projectId}:`, error);
+        logger.error(`Render failed for ${projectId}`, { 
+          component: 'API: v1/export', 
+          error: error instanceof Error ? error : new Error(String(error)) 
+        });
         await prisma.project.update({
           where: { id: projectId },
           data: {
@@ -119,7 +123,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Export error:', error);
+    logger.error('Export error', { 
+      component: 'API: v1/export', 
+      error: error instanceof Error ? error : new Error(String(error)) 
+    });
     return NextResponse.json(
       { error: 'Export failed', details: error instanceof Error ? error.message : 'Unknown' },
       { status: 500 }

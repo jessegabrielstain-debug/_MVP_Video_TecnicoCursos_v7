@@ -8,6 +8,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -58,7 +59,7 @@ export function NRTemplatesGallery() {
       setFilteredTemplates(data.templates || [])
       setCategories(data.categories || [])
     } catch (error) {
-      console.error('Error fetching templates:', error)
+      logger.error('Error fetching templates', error instanceof Error ? error : new Error(String(error)), { component: 'NRTemplatesGallery' })
       toast.error('Erro ao carregar templates')
     } finally {
       setLoading(false)

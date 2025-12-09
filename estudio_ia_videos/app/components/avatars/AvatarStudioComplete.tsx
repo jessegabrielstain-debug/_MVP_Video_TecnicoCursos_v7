@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -602,7 +603,7 @@ export default function AvatarStudioComplete({
               <TabsContent value="render" className="h-full m-0 p-6">
                 <RealTimeRenderer
                   avatarId={currentProject?.avatar?.id || 'default'}
-                  onRenderComplete={(url) => console.log('Render complete:', url)}
+                  onRenderComplete={(url) => logger.info('Render complete', { component: 'AvatarStudioComplete', url })}
                 />
               </TabsContent>
 
@@ -611,7 +612,7 @@ export default function AvatarStudioComplete({
                   avatarId={currentProject?.avatar?.id || 'default'}
                   avatarData={currentProject}
                   onExportComplete={(format: any) => {
-                    console.log('Exporting format:', format);
+                    logger.info('Exporting format', { component: 'AvatarStudioComplete', format });
                     toast.success(`Exportando em ${format}...`);
                   }}
                 />

@@ -8,6 +8,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Progress } from '../ui/progress'
@@ -85,7 +86,7 @@ export function CacheMonitor() {
       setPerformanceData(data.performanceInsights)
       
     } catch (error) {
-      console.error('Error loading cache stats:', error)
+      logger.error('Error loading cache stats', error instanceof Error ? error : new Error(String(error)), { component: 'CacheMonitor' })
       
       // Mock data for demonstration
       setCacheStats({
@@ -190,7 +191,7 @@ export function CacheMonitor() {
       
     } catch (error) {
       toast.error('Erro ao limpar cache')
-      console.error('Error clearing cache:', error)
+      logger.error('Error clearing cache', error instanceof Error ? error : new Error(String(error)), { component: 'CacheMonitor', cacheType })
     }
   }
 

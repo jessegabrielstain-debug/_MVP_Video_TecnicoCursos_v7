@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 // Type for project metadata
 interface ProjectMetadata {
@@ -72,7 +73,10 @@ export async function GET(
     return NextResponse.json(timelineData)
 
   } catch (error) {
-    console.error('Error loading project:', error)
+    logger.error('Error loading project', { 
+      component: 'API: timeline/projects/[id]', 
+      error: error instanceof Error ? error : new Error(String(error)) 
+    })
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
@@ -139,7 +143,10 @@ export async function PUT(
                 .insert(slidesToInsert)
             
             if (slidesError) {
-                console.error('Error syncing slides:', slidesError)
+                logger.error('Error syncing slides', { 
+                  component: 'API: timeline/projects/[id]', 
+                  error: slidesError instanceof Error ? slidesError : new Error(String(slidesError)) 
+                })
             }
         }
     }
@@ -150,7 +157,10 @@ export async function PUT(
     })
 
   } catch (error) {
-    console.error('Error saving project:', error)
+    logger.error('Error saving project', { 
+      component: 'API: timeline/projects/[id]', 
+      error: error instanceof Error ? error : new Error(String(error)) 
+    })
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
@@ -181,7 +191,10 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error('Error deleting project:', error)
+    logger.error('Error deleting project', { 
+      component: 'API: timeline/projects/[id]', 
+      error: error instanceof Error ? error : new Error(String(error)) 
+    })
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

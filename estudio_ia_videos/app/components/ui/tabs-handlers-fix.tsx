@@ -8,6 +8,7 @@
 
 import { useEffect } from 'react'
 import { toast } from 'react-hot-toast'
+import { logger } from '@/lib/logger'
 
 export default function TabsHandlersFix() {
   useEffect(() => {
@@ -90,7 +91,7 @@ export default function TabsHandlersFix() {
               toast.success(`Seção "${tabText}" carregada!`)
               
               // Log para debug
-              console.log(`Avatar Studio Tab activated: ${tabValue}`)
+              logger.debug('Avatar Studio Tab activated', { component: 'TabsHandlersFix', tabValue })
             })
             
             tab.setAttribute('data-tab-fixed', 'true')

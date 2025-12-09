@@ -7,6 +7,7 @@
 */
 
 import { useEffect, useMemo, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { pwaManager } from '@/lib/pwa/pwa-manager';
 import { PublicOnboarding } from '@/components/onboarding/public-onboarding';
 import { ProductTour, editorTourSteps } from '@/components/tour/product-tour';
@@ -28,7 +29,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         if (!isMounted) return;
         setUser(data.user ?? null);
       } catch (error) {
-        console.error('Erro ao carregar sessão do usuário:', error);
+        logger.error('Erro ao carregar sessão do usuário', error instanceof Error ? error : new Error(String(error)), { component: 'PWAProvider' });
       }
     };
 
@@ -63,7 +64,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (error) {
-        console.error('Erro ao inicializar PWA:', error);
+        logger.error('Erro ao inicializar PWA', error instanceof Error ? error : new Error(String(error)), { component: 'PWAProvider' });
       }
     };
 

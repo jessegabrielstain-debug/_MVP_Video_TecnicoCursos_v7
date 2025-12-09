@@ -7,6 +7,7 @@
 
 import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -60,7 +61,7 @@ export function AnimakerPPTXUploader({ onProjectCreated, onCancel }: AnimakerPPT
     const file = acceptedFiles[0]
     if (!file) return
 
-    console.log('📁 Arquivo selecionado:', file.name, file.size)
+    logger.debug('Arquivo selecionado', { component: 'AnimakerPPTXUploader', fileName: file.name, fileSize: file.size })
     await processFile(file)
   }, [])
 
@@ -133,7 +134,7 @@ export function AnimakerPPTXUploader({ onProjectCreated, onCancel }: AnimakerPPT
       }
 
     } catch (error) {
-      console.error('❌ Erro no processamento:', error)
+      logger.error('Erro no processamento PPTX', error instanceof Error ? error : new Error(String(error)), { component: 'AnimakerPPTXUploader' })
       
       setUploadState({
         status: 'error',

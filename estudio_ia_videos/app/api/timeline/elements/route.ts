@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger';
 
 // Type interfaces for Supabase query results
 interface ProjectPermissions {
@@ -158,20 +159,20 @@ export async function GET(request: NextRequest) {
       query = query.lte('end_time', parseFloat(endTime))
     }
 
-    const { data: elements, error } = await query
+    const { data: elementsData, error } = await query
 
     if (error) {
-      console.error('Erro ao buscar elementos:', error)
+      logger.error('Erro ao buscar elementos:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements' })
       return NextResponse.json(
         { error: 'Erro interno do servidor' },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ elements: elements || [] })
+    return NextResponse.json({ elements: authorizedElements })
 
   } catch (error) {
-    console.error('Erro na API de elementos:', error)
+    logger.error('Erro na API de elementos:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -285,7 +286,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Erro ao criar elemento:', error)
+      logger.error('Erro ao criar elemento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements' })
       return NextResponse.json(
         { error: 'Erro ao criar elemento' },
         { status: 500 }
@@ -319,7 +320,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error('Erro na criação de elemento:', error)
+    logger.error('Erro na criação de elemento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -434,7 +435,7 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Erro ao mover elemento:', error)
+      logger.error('Erro ao mover elemento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements' })
       return NextResponse.json(
         { error: 'Erro ao mover elemento' },
         { status: 500 }
@@ -475,7 +476,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.error('Erro ao mover elemento:', error)
+    logger.error('Erro ao mover elemento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { logger } from '@/lib/logger';
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -263,7 +264,7 @@ export default function PPTXCollaborationHub({
       toast.success('Conectado ao sistema de colaboração')
     } catch (error) {
       toast.error('Erro ao conectar sistema de colaboração')
-      console.error('Collaboration initialization error:', error)
+      logger.error('Collaboration initialization error', error instanceof Error ? error : new Error(String(error)), { component: 'PPTXCollaborationHub' });
     }
   }, [projectId, currentUser])
 

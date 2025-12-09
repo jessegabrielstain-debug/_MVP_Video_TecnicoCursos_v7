@@ -1,5 +1,5 @@
 import { ElevenLabsClient } from "elevenlabs";
-import { logger } from '@/lib/services/logger-service';
+import { logger } from '@/lib/logger';
 import { createClient } from "@supabase/supabase-js";
 import { trackUsage } from '@/lib/analytics/usage-tracker';
 
@@ -8,11 +8,11 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!elevenLabsApiKey) {
-  logger.warn('ElevenLabsService', "A chave da API da ElevenLabs (ELEVENLABS_API_KEY) não está configurada. O serviço de TTS não funcionará.");
+  logger.warn("A chave da API da ElevenLabs (ELEVENLABS_API_KEY) não está configurada. O serviço de TTS não funcionará.", { component: 'ElevenlabsService' });
 }
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  logger.warn('ElevenLabsService', "Credenciais do Supabase não configuradas. Upload de áudio não funcionará.");
+  logger.warn("Credenciais do Supabase não configuradas. Upload de áudio não funcionará.", { component: 'ElevenlabsService' });
 }
 
 const elevenlabs = new ElevenLabsClient({
@@ -62,7 +62,7 @@ export async function generateTTSAudio(
   }
 
   try {
-    logger.info('ElevenLabsService', "Iniciando geração de áudio TTS com ElevenLabs.", { voiceId, modelId, textLength: text.length });
+    logger.info("Iniciando geração de áudio TTS com ElevenLabs.", { component: 'ElevenlabsService', voiceId, modelId, textLength: text.length });
 
     // Retry logic with exponential backoff
     let attempts = 0;
@@ -79,7 +79,7 @@ export async function generateTTSAudio(
         break; // Success
       } catch (err) {
         attempts++;
-        logger.warn('ElevenLabsService', `Tentativa ${attempts} falhou.`, { error: err });
+        logger.warn(`Tentativa ${attempts} falhou.`, { component: 'ElevenlabsService', error: err });
         if (attempts >= maxAttempts) throw err;
         await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts))); // 2s, 4s, 8s
       }
@@ -93,7 +93,7 @@ export async function generateTTSAudio(
     }
 
     const audioBuffer = Buffer.concat(chunks);
-    logger.info('ElevenLabsService', "Áudio TTS gerado com sucesso.", { audioSize: audioBuffer.length });
+    logger.info("Áudio TTS gerado com sucesso.", { component: 'ElevenlabsService', audioSize: audioBuffer.length });
 
     // Track usage
     await trackUsage('tts_generated', null, {
@@ -107,7 +107,7 @@ export async function generateTTSAudio(
 
     return audioBuffer;
   } catch (error) {
-    logger.error('ElevenLabsService', "Falha ao gerar áudio TTS com ElevenLabs.", error as Error);
+    logger.error("Falha ao gerar áudio TTS com ElevenLabs.", error as Error, { component: 'ElevenLabsService' });
     throw new Error("Falha na comunicação com a API da ElevenLabs.");
   }
 }
@@ -145,7 +145,7 @@ export async function generateAndUploadTTSAudio(
       });
 
     if (error) {
-      logger.error('ElevenLabsService', "Falha ao fazer upload de áudio para o Storage.", error as Error);
+      logger.error("Falha ao fazer upload de áudio para o Storage.", error as Error, { component: 'ElevenLabsService' });
       throw error;
     }
 
@@ -154,10 +154,10 @@ export async function generateAndUploadTTSAudio(
       .from('assets')
       .getPublicUrl(filePath);
 
-    logger.info('ElevenLabsService', "Áudio TTS enviado com sucesso para o Storage.", { publicUrl: publicUrlData.publicUrl });
+    logger.info("Áudio TTS enviado com sucesso para o Storage.", { component: 'ElevenLabsService', publicUrl: publicUrlData.publicUrl });
     return publicUrlData.publicUrl;
   } catch (error) {
-    logger.error('ElevenLabsService', "Falha ao gerar e enviar áudio TTS.", error as Error);
+    logger.error("Falha ao gerar e enviar áudio TTS.", error as Error, { component: 'ElevenLabsService' });
     throw error;
   }
 }
@@ -180,7 +180,7 @@ export async function cloneVoice(
   }
 
   try {
-    logger.info('ElevenLabsService', "Iniciando clonagem de voz.", { name, filesCount: audioFiles.length });
+    logger.info("Iniciando clonagem de voz.", { component: 'ElevenLabsService', name, filesCount: audioFiles.length });
 
     // A API da ElevenLabs requer FormData para upload
     const formData = new FormData();
@@ -207,16 +207,16 @@ export async function cloneVoice(
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error('ElevenLabsService', "Falha ao clonar voz.", new Error(errorText), { status: response.status });
+      logger.error("Falha ao clonar voz.", new Error(errorText), { component: 'ElevenLabsService', status: response.status });
       throw new Error(`Falha ao clonar voz: ${response.status}`);
     }
 
     const result = await response.json();
-    logger.info('ElevenLabsService', "Voz clonada com sucesso.", { voiceId: result.voice_id });
+    logger.info("Voz clonada com sucesso.", { component: 'ElevenLabsService', voiceId: result.voice_id });
 
     return result.voice_id;
   } catch (error) {
-    logger.error('ElevenLabsService', "Falha ao clonar voz.", error as Error);
+    logger.error("Falha ao clonar voz.", error as Error, { component: 'ElevenLabsService' });
     throw error;
   }
 }
@@ -245,7 +245,7 @@ export async function listVoices(): Promise<ElevenLabsVoice[]> {
     const result = await response.json();
     return result.voices as ElevenLabsVoice[];
   } catch (error) {
-    logger.error('ElevenLabsService', "Falha ao listar vozes.", error as Error);
+    logger.error("Falha ao listar vozes.", error as Error, { component: 'ElevenLabsService' });
     throw error;
   }
 }
@@ -272,9 +272,9 @@ export async function deleteVoice(voiceId: string): Promise<void> {
       throw new Error(`Falha ao deletar voz: ${response.status}`);
     }
 
-    logger.info('ElevenLabsService', "Voz deletada com sucesso.", { voiceId });
+    logger.info("Voz deletada com sucesso.", { component: 'ElevenLabsService', voiceId });
   } catch (error) {
-    logger.error('ElevenLabsService', "Falha ao deletar voz.", error as Error, { voiceId });
+    logger.error("Falha ao deletar voz.", error as Error, { component: 'ElevenLabsService', voiceId });
     throw error;
   }
 }

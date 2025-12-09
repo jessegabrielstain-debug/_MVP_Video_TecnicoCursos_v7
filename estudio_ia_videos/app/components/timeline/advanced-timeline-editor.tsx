@@ -6,6 +6,7 @@
 'use client'
 
 import React, { useEffect, useRef, useCallback, useState } from 'react'
+import { logger } from '@/lib/logger'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   DndContext,
@@ -255,7 +256,7 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     // Handle drag over for visual feedback
-    console.log('Drag over:', event)
+    logger.debug('Drag over event', { component: 'AdvancedTimelineEditor', eventId: event.active.id })
   }, [])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {

@@ -40,6 +40,7 @@ import { AvatarService } from '../../lib/avatar-service'
 import { TTSService } from '../../lib/tts-service'
 import { Analytics } from '../../lib/analytics'
 import { toast } from 'react-hot-toast'
+import { logger } from '@/lib/logger'
 
 interface VideoEditorProps {
   initialSlides?: SlideData[]
@@ -104,7 +105,7 @@ export default function VideoEditor({
       })
       setScenes(newScenes)
     } catch (error) {
-      console.error('Erro ao converter slides em cenas:', error)
+      logger.error('Erro ao converter slides em cenas', error instanceof Error ? error : new Error(String(error)), { component: 'VideoEditor' })
     }
   }, [slides, videoConfig, selectedAvatar, selectedVoice])
 
@@ -161,7 +162,7 @@ export default function VideoEditor({
         throw new Error(data.error)
       }
     } catch (error) {
-      console.error('Erro no preview:', error)
+      logger.error('Erro no preview', error instanceof Error ? error : new Error(String(error)), { component: 'VideoEditor', action: 'generatePreview' })
       toast.error('Erro ao gerar preview')
       setIsGeneratingPreview(false)
     }
@@ -202,7 +203,7 @@ export default function VideoEditor({
         attempts++
         setTimeout(poll, 1000) // Poll a cada 1 segundo
       } catch (error) {
-        console.error('Erro ao verificar status:', error)
+        logger.error('Erro ao verificar status preview', error instanceof Error ? error : new Error(String(error)), { component: 'VideoEditor', action: 'pollPreviewStatus' })
         attempts++
         setTimeout(poll, 1000)
       }
@@ -260,7 +261,7 @@ export default function VideoEditor({
         throw new Error(data.error)
       }
     } catch (error) {
-      console.error('Erro na renderização:', error)
+      logger.error('Erro na renderização', error instanceof Error ? error : new Error(String(error)), { component: 'VideoEditor', action: 'generateFinalVideo' })
       toast.error('Erro ao iniciar renderização')
       setIsGeneratingFinal(false)
     }
@@ -301,7 +302,7 @@ export default function VideoEditor({
         attempts++
         setTimeout(poll, 1000) // Poll a cada 1 segundo
       } catch (error) {
-        console.error('Erro ao verificar status:', error)
+        logger.error('Erro ao verificar status render', error instanceof Error ? error : new Error(String(error)), { component: 'VideoEditor', action: 'pollRenderStatus' })
         attempts++
         setTimeout(poll, 1000)
       }

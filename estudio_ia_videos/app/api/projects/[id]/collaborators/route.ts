@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger';
 
 // Schema para adicionar colaborador
 const addCollaboratorSchema = z.object({
@@ -77,7 +78,7 @@ export async function GET(
       .eq('project_id', projectId)
 
     if (error) {
-      console.error('Erro ao buscar colaboradores:', error)
+      logger.error('Erro ao buscar colaboradores:', error instanceof Error ? error : new Error(String(error)), { component: 'API: projects/[id]/collaborators' })
       return NextResponse.json(
         { error: 'Erro ao buscar colaboradores' },
         { status: 500 }
@@ -136,7 +137,7 @@ export async function GET(
     return NextResponse.json({ collaborators: formattedCollaborators })
 
   } catch (error) {
-    console.error('Erro na API de colaboradores:', error)
+    logger.error('Erro na API de colaboradores:', error instanceof Error ? error : new Error(String(error)), { component: 'API: projects/[id]/collaborators' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -226,7 +227,7 @@ export async function POST(
       })
 
     if (insertError) {
-      console.error('Erro ao adicionar colaborador:', insertError)
+      logger.error('Erro ao adicionar colaborador:', insertError instanceof Error ? insertError : new Error(String(insertError)), { component: 'API: projects/[id]/collaborators' })
       return NextResponse.json(
         { error: 'Erro ao adicionar colaborador' },
         { status: 500 }
@@ -268,7 +269,7 @@ export async function POST(
       )
     }
 
-    console.error('Erro ao adicionar colaborador:', error)
+    logger.error('Erro ao adicionar colaborador:', error instanceof Error ? error : new Error(String(error)), { component: 'API: projects/[id]/collaborators' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -343,7 +344,7 @@ export async function DELETE(
       .eq('user_id', collaboratorId)
 
     if (error) {
-      console.error('Erro ao remover colaborador:', error)
+      logger.error('Erro ao remover colaborador:', error instanceof Error ? error : new Error(String(error)), { component: 'API: projects/[id]/collaborators' })
       return NextResponse.json(
         { error: 'Erro ao remover colaborador' },
         { status: 500 }
@@ -370,7 +371,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error('Erro ao remover colaborador:', error)
+    logger.error('Erro ao remover colaborador:', error instanceof Error ? error : new Error(String(error)), { component: 'API: projects/[id]/collaborators' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

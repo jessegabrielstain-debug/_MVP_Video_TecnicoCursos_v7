@@ -4,7 +4,7 @@
  */
 
 import { generateAndUploadTTSAudio } from '@/lib/services/tts/elevenlabs-service';
-import { logger } from '@/lib/services/logger-service';
+import { logger } from '@/lib/logger';
 
 export interface NarrationOptions {
   provider?: string;
@@ -46,7 +46,7 @@ export interface BatchNarrationResult {
 
 export class AutoNarrationService {
   async generateForSlide(slideText: string, options?: NarrationOptions): Promise<NarrationResult> {
-    console.log('[AutoNarration] Generating narration for slide');
+    logger.info('[AutoNarration] Generating narration for slide', { component: 'AutoNarrationService' });
     
     // TODO: Implement single slide generation if needed
     return {
@@ -57,7 +57,7 @@ export class AutoNarrationService {
   }
   
   async generateForPresentation(slides: string[], options?: NarrationOptions): Promise<NarrationResult[]> {
-    console.log('[AutoNarration] Generating narration for presentation');
+    logger.info('[AutoNarration] Generating narration for presentation', { component: 'AutoNarrationService' });
     return slides.map(text => ({
       audioBuffer: Buffer.from([]),
       duration: 0,
@@ -74,7 +74,7 @@ export class AutoNarrationService {
     options: NarrationOptions
   ): Promise<BatchNarrationResult> {
     try {
-      logger.info('AutoNarration', `Iniciando geração de narração para projeto ${projectId}`, { slideCount: slides.length });
+      logger.info(`Iniciando geração de narração para projeto ${projectId}`, { component: 'AutoNarrationService', slideCount: slides.length });
       
       const narrations: NarrationOutput[] = [];
       let totalDuration = 0;
@@ -96,7 +96,7 @@ export class AutoNarrationService {
         }
 
         if (!textToNarrate || textToNarrate.trim().length === 0) {
-          logger.warn('AutoNarration', `Slide ${slide.slideNumber} sem texto para narrar. Pulando.`);
+          logger.warn(`Slide ${slide.slideNumber} sem texto para narrar. Pulando.`, { component: 'AutoNarrationService' });
           continue;
         }
 
@@ -139,10 +139,10 @@ export class AutoNarrationService {
 
           totalDuration += estimatedDuration;
           
-          logger.info('AutoNarration', `Narração gerada para slide ${slide.slideNumber}`);
+          logger.info(`Narração gerada para slide ${slide.slideNumber}`, { component: 'AutoNarrationService' });
 
         } catch (err) {
-          logger.error('AutoNarration', `Erro ao gerar narração para slide ${slide.slideNumber}`, err as Error);
+          logger.error(`Erro ao gerar narração para slide ${slide.slideNumber}`, err instanceof Error ? err : new Error(String(err)), { component: 'AutoNarrationService' });
           // Continuar para o próximo slide mesmo com erro
         }
       }
@@ -154,7 +154,7 @@ export class AutoNarrationService {
       };
 
     } catch (error) {
-      logger.error('AutoNarration', 'Erro fatal na geração de narrações', error as Error);
+      logger.error('Erro fatal na geração de narrações', error instanceof Error ? error : new Error(String(error)), { component: 'AutoNarrationService' });
       return {
         success: false,
         narrations: [],

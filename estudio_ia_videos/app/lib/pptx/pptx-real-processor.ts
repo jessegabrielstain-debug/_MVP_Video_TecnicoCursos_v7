@@ -4,6 +4,7 @@
  */
 
 import { PPTXRealParser } from '@/lib/pptx-real-parser';
+import { logger } from '@/lib/logger';
 
 export interface ProcessOptions {
   extractImages?: boolean;
@@ -26,7 +27,7 @@ export class PPTXRealProcessor {
   private parser = new PPTXRealParser();
   
   async process(buffer: Buffer, options?: ProcessOptions): Promise<ProcessedPPTX> {
-    console.log('[PPTXProcessor] Processing PPTX with options:', options);
+    logger.info('[PPTXProcessor] Processing PPTX with options:', { component: 'PPTXRealProcessor', options });
     
     const parsed = await this.parser.parseBuffer(buffer);
     

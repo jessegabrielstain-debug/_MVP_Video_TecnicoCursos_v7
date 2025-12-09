@@ -3,6 +3,8 @@
  * Cliente para interação com S3 ou storage compatível
  */
 
+import { logger } from '@/lib/logger';
+
 export interface S3UploadOptions {
   bucket: string;
   key: string;
@@ -14,19 +16,19 @@ export interface S3UploadOptions {
 export class S3Client {
   async upload(options: S3UploadOptions): Promise<string> {
     const { bucket, key } = options;
-    console.log(`[S3] Uploading to ${bucket}/${key}`);
+    logger.info(`Uploading to ${bucket}/${key}`, { component: 'S3' });
     
     // Placeholder - implementar com AWS SDK ou Supabase Storage
     return `https://storage.example.com/${bucket}/${key}`;
   }
   
   async download(bucket: string, key: string): Promise<Buffer> {
-    console.log(`[S3] Downloading from ${bucket}/${key}`);
+    logger.info(`Downloading from ${bucket}/${key}`, { component: 'S3' });
     return Buffer.from('');
   }
   
   async delete(bucket: string, key: string): Promise<boolean> {
-    console.log(`[S3] Deleting ${bucket}/${key}`);
+    logger.info(`Deleting ${bucket}/${key}`, { component: 'S3' });
     return true;
   }
   

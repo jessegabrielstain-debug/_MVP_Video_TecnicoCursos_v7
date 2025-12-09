@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * POST - Lock/Unlock track for editing
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`🔒 ${action.toUpperCase()} track ${trackId} no projeto ${projectId}...`);
+    logger.info(`🔒 ${action.toUpperCase()} track ${trackId} no projeto ${projectId}...`, { component: 'API: v1/timeline/multi-track/collaborate' });
 
     // Verify project access
     const project = await prisma.project.findFirst({
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      console.log(`✅ Track bloqueada: ${lock.id}`);
+      logger.info(`✅ Track bloqueada: ${lock.id}`, { component: 'API: v1/timeline/multi-track/collaborate' });
 
       return NextResponse.json({
         success: true,
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      console.log(`✅ Track desbloqueada: ${trackId}`);
+      logger.info(`✅ Track desbloqueada: ${trackId}`, { component: 'API: v1/timeline/multi-track/collaborate' });
 
       return NextResponse.json({
         success: true,
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: unknown) {
-    console.error('❌ Erro ao gerenciar lock:', error);
+    logger.error('❌ Erro ao gerenciar lock:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/timeline/multi-track/collaborate' });
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { success: false, message: 'Erro ao processar lock', error: message },
@@ -223,7 +224,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('❌ Erro ao buscar locks:', error);
+    logger.error('❌ Erro ao buscar locks:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/timeline/multi-track/collaborate' });
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { success: false, message: 'Erro ao buscar informações de colaboração', error: message },
@@ -285,7 +286,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('❌ Erro ao atualizar presença:', error);
+    logger.error('❌ Erro ao atualizar presença:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/timeline/multi-track/collaborate' });
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { success: false, message: 'Erro ao atualizar presença', error: message },

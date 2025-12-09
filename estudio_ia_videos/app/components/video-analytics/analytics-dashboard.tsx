@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -142,7 +143,7 @@ export default function VideoAnalyticsDashboard({ videoId }: VideoAnalyticsDashb
       const data: AnalyticsMetrics = await response.json();
       setMetrics(data);
     } catch (error) {
-      console.error('Erro ao carregar analytics:', error);
+      logger.error('Erro ao carregar analytics', error instanceof Error ? error : new Error(String(error)), { component: 'AnalyticsDashboard', videoId });
       setMetrics(mockAnalyticsData);
     }
   };
@@ -153,7 +154,7 @@ export default function VideoAnalyticsDashboard({ videoId }: VideoAnalyticsDashb
       const data: RealtimeMetrics = await response.json();
       setRealtime(data);
     } catch (error) {
-      console.error('Erro ao carregar dados em tempo real:', error);
+      logger.error('Erro ao carregar dados em tempo real', error instanceof Error ? error : new Error(String(error)), { component: 'AnalyticsDashboard', videoId });
       setRealtime(mockRealtimeData);
     }
   };

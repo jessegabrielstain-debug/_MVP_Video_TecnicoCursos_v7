@@ -6,6 +6,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { logger } from '@/lib/logger'
 import { 
   Mic, 
   Play, 
@@ -220,7 +221,7 @@ export default function TTSModule({
       toast.success('Preview gerado!')
 
     } catch (error: any) {
-      console.error('Preview generation error:', error)
+      logger.error('Preview generation error', error instanceof Error ? error : new Error(String(error)), { component: 'TTSModule' })
       toast.error('Erro ao gerar preview: ' + error.message)
     }
   }
@@ -286,7 +287,7 @@ export default function TTSModule({
       toast.success(`Áudio gerado para slide ${slide.slideNumber}`)
 
     } catch (error: any) {
-      console.error('Audio generation error:', error)
+      logger.error('Audio generation error', error instanceof Error ? error : new Error(String(error)), { component: 'TTSModule', slideId: slide.id })
       setAudioGenerations(prev => ({
         ...prev,
         [slide.id]: {

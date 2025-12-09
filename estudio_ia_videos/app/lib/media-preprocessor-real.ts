@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * Media Preprocessor Real
  * Pré-processamento real de mídia (imagens, vídeos, áudio)
@@ -21,7 +23,7 @@ export interface PreprocessResult {
 export class MediaPreprocessorReal {
   async preprocessImage(input: Buffer, options: PreprocessOptions): Promise<PreprocessResult> {
     // Placeholder - implementar com Sharp ou similar
-    console.log('[Preprocessor] Processing image', options);
+    logger.info('[Preprocessor] Processing image', { component: 'MediaPreprocessorReal', options });
     
     return {
       buffer: input,
@@ -33,7 +35,7 @@ export class MediaPreprocessorReal {
   
   async preprocessVideo(input: Buffer, options: PreprocessOptions): Promise<PreprocessResult> {
     // Placeholder - implementar com FFmpeg
-    console.log('[Preprocessor] Processing video', options);
+    logger.info('[Preprocessor] Processing video', { component: 'MediaPreprocessorReal', options });
     
     return {
       buffer: input,
@@ -44,7 +46,7 @@ export class MediaPreprocessorReal {
   
   async preprocessAudio(input: Buffer, options: PreprocessOptions): Promise<PreprocessResult> {
     // Placeholder - implementar com FFmpeg
-    console.log('[Preprocessor] Processing audio', options);
+    logger.info('[Preprocessor] Processing audio', { component: 'MediaPreprocessorReal', options });
     
     return {
       buffer: input,

@@ -7,9 +7,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PPTXRealParser } from '@/lib/pptx-real-parser';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 Iniciando processamento PPTX real...');
+  logger.info('🚀 Iniciando processamento PPTX real...', { component: 'API: v1/pptx/enhanced-process' });
   
   try {
     const body = await request.json();
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('📥 Processando arquivo do S3:', s3Key);
+    logger.info('📥 Processando arquivo do S3:', { component: 'API: v1/pptx/enhanced-process', s3Key });
 
     // Inicializar parser real
     const parser = new PPTXRealParser();
@@ -30,7 +31,8 @@ export async function POST(request: NextRequest) {
     // Processar arquivo do S3
     const result = await parser.parseFromS3(s3Key);
     
-    console.log('✅ Processamento concluído:', {
+    logger.info('✅ Processamento concluído:', {
+      component: 'API: v1/pptx/enhanced-process',
       slides: result.slides.length,
       elements: result.slides.reduce((acc: any, slide: any) => acc + (slide.elements?.length || 0), 0),
       assets: (result.assets?.images.length || 0) + (result.assets?.videos.length || 0) + (result.assets?.audio.length || 0),
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro no processamento PPTX:', error);
+    logger.error('❌ Erro no processamento PPTX:', { component: 'API: v1/pptx/enhanced-process', error: error instanceof Error ? error : new Error(String(error)) });
     
     return NextResponse.json(
       { 

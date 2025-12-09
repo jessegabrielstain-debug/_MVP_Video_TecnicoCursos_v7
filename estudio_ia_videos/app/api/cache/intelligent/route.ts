@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 // import { MonitoringService } from '@/lib/monitoring/monitoring-service';
 
 // Inline monitoring service
@@ -13,7 +14,7 @@ class MonitoringService {
   }
   
   logEvent(event: string, data: Record<string, unknown>) {
-    console.log(`📊 [${event}]`, data);
+    logger.info(`📊 [${event}]`, { component: 'API: cache/intelligent', ...data });
   }
 }
 
@@ -272,7 +273,7 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Erro ao consultar cache:', error);
+    logger.error('Erro ao consultar cache:', error instanceof Error ? error : new Error(String(error)), { component: 'API: cache/intelligent' });
     
     return NextResponse.json(
       { 
@@ -334,7 +335,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Erro ao armazenar no cache:', error);
+    logger.error('Erro ao armazenar no cache:', error instanceof Error ? error : new Error(String(error)), { component: 'API: cache/intelligent' });
     
     return NextResponse.json(
       { 
@@ -404,7 +405,7 @@ export async function DELETE(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Erro ao deletar do cache:', error);
+    logger.error('Erro ao deletar do cache:', error instanceof Error ? error : new Error(String(error)), { component: 'API: cache/intelligent' });
     
     return NextResponse.json(
       { 
@@ -426,7 +427,7 @@ export async function PUT(request: NextRequest) {
     switch (action) {
       case 'configure':
         // Configurar parâmetros do cache
-        console.log('Configurando cache:', config);
+        logger.info('Configurando cache:', { component: 'API: cache/intelligent', config });
 
         monitoring.logEvent('cache_configure', {
           config,
@@ -444,7 +445,7 @@ export async function PUT(request: NextRequest) {
 
       case 'optimize':
         // Otimizar cache (limpeza, compactação, etc.)
-        console.log('Otimizando cache...');
+        logger.info('Otimizando cache...', { component: 'API: cache/intelligent' });
 
         monitoring.logEvent('cache_optimize', {
           timestamp: new Date().toISOString()
@@ -467,7 +468,7 @@ export async function PUT(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Erro ao configurar cache:', error);
+    logger.error('Erro ao configurar cache:', error instanceof Error ? error : new Error(String(error)), { component: 'API: cache/intelligent' });
     
     return NextResponse.json(
       { 

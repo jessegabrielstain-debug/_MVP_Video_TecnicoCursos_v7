@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,7 +65,7 @@ export function SSOConfigurationPanel({ organizationId }: Props) {
         }
       }
     } catch (error) {
-      console.error('Failed to load SSO config:', error);
+      logger.error('Failed to load SSO config', error instanceof Error ? error : new Error(String(error)), { component: 'SSOConfigurationPanel' });
     }
   };
 

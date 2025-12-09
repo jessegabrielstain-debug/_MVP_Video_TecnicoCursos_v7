@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react'
+import { logger } from '@/lib/logger'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
@@ -147,7 +148,7 @@ export default function UnifiedDashboardReal() {
           if (!isMounted) return
 
           if (error) {
-            console.warn('Erro ao carregar perfil:', error)
+            logger.warn('Erro ao carregar perfil', { component: 'UnifiedDashboardReal', userId: authUser.id, error })
           }
 
           setDisplayName(profile?.name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
@@ -157,7 +158,7 @@ export default function UnifiedDashboardReal() {
           setAvatarUrl(null)
         }
       } catch (error) {
-        console.error('Erro ao carregar sessão do usuário:', error)
+        logger.error('Erro ao carregar sessão do usuário', error instanceof Error ? error : new Error(String(error)), { component: 'UnifiedDashboardReal' })
       }
     }
 
@@ -277,7 +278,7 @@ export default function UnifiedDashboardReal() {
       setStats(mockStats)
       setNotifications(3) // Mock de notificações
     } catch (error) {
-      console.error('Erro ao carregar dashboard:', error)
+      logger.error('Erro ao carregar dashboard', error instanceof Error ? error : new Error(String(error)), { component: 'UnifiedDashboardReal' })
       toast.error('Erro ao carregar dashboard')
     } finally {
       setLoading(false)
@@ -342,7 +343,7 @@ export default function UnifiedDashboardReal() {
       router.replace('/login?reason=session_expired')
       router.refresh()
     } catch (error) {
-      console.error('Erro no logout:', error)
+      logger.error('Erro no logout', error instanceof Error ? error : new Error(String(error)), { component: 'UnifiedDashboardReal' })
       toast.error('Erro ao encerrar a sessão')
     } finally {
       setSigningOut(false)

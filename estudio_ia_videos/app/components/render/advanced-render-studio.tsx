@@ -3,6 +3,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Progress } from '../ui/progress'
@@ -204,7 +205,7 @@ export default function AdvancedRenderStudio() {
       pollJobStatus(newJob.id)
 
     } catch (error) {
-      console.error('Render start error:', error)
+      logger.error('Render start error', error instanceof Error ? error : new Error(String(error)), { component: 'AdvancedRenderStudio' })
       toast.error('Erro ao iniciar renderização')
       setIsRendering(false)
     }
@@ -244,7 +245,7 @@ export default function AdvancedRenderStudio() {
           }
         }
       } catch (error) {
-        console.error('Polling error:', error)
+        logger.error('Polling error', error instanceof Error ? error : new Error(String(error)), { component: 'AdvancedRenderStudio', jobId })
       }
 
       // Continue polling if job is still active

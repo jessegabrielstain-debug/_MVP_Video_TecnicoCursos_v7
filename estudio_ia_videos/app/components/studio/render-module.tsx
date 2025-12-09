@@ -6,6 +6,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { 
   Play, 
   Pause, 
@@ -257,7 +258,7 @@ export default function RenderModule({
       toast.success('Vídeo renderizado com sucesso!')
 
     } catch (error: any) {
-      console.error('Render error:', error)
+      logger.error('Render error', error instanceof Error ? error : new Error(String(error)), { component: 'RenderModule' })
       setRenderJob(prev => prev ? {
         ...prev,
         status: 'error',

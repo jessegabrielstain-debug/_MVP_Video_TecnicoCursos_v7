@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 
 export interface SCORMPackage {
   id: string;
@@ -33,7 +34,7 @@ export interface xAPIOptions {
 export class SCORMEngine {
   static async generateSCORMPackage(project: Record<string, unknown>, options: SCORMOptions): Promise<SCORMPackage> {
     // Mock implementation
-    console.log('Generating SCORM package for project:', project.title, 'with options:', options);
+    logger.info('Generating SCORM package for project', { component: 'ScormEngine', projectTitle: project.title, options });
     
     // Create a dummy blob
     const blob = new Blob(['dummy scorm content'], { type: 'application/zip' });
@@ -48,7 +49,7 @@ export class SCORMEngine {
 
   static generatexAPIStatements(actorId: string, project: Record<string, unknown>, options: xAPIOptions): Record<string, unknown>[] {
     // Mock implementation
-    console.log('Generating xAPI statements for actor:', actorId, 'project:', project.title);
+    logger.info('Generating xAPI statements for actor', { component: 'ScormEngine', actorId, projectTitle: project.title });
     
     return [
       {

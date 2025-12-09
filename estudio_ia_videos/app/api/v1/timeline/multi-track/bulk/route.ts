@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // Types for Timeline structures
 interface Clip {
@@ -78,7 +79,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`⚡ Executando operação em lote: ${operation}...`);
+    logger.info(`⚡ Executando operação em lote: ${operation}...`, {
+      component: 'API: v1/timeline/multi-track/bulk',
+      projectId,
+      operation
+    });
 
     // Verify project access
     const project = await prisma.project.findFirst({
@@ -281,7 +286,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`✅ Operação em lote concluída: ${operation}`);
+    logger.info(`✅ Operação em lote concluída: ${operation}`, {
+      component: 'API: v1/timeline/multi-track/bulk',
+      projectId,
+      operation
+    });
 
     return NextResponse.json({
       success: true,
@@ -299,8 +308,12 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro em operação em lote:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    logger.error('❌ Erro em operação em lote:', {
+      component: 'API: v1/timeline/multi-track/bulk',
+      error: normalizedError
+    });
+    const errorMessage = normalizedError.message;
     return NextResponse.json(
       { success: false, message: 'Erro ao executar operação em lote', error: errorMessage },
       { status: 500 }

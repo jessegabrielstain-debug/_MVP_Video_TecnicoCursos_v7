@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 interface AvatarConfig {
   id: string;
@@ -31,7 +32,7 @@ interface AvatarRequest {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🧑‍💼 Iniciando geração de avatar...');
+  logger.info('🧑‍💼 Iniciando geração de avatar...', { component: 'API: v1/avatar/generate' });
 
   try {
     const body: AvatarRequest = await request.json();
@@ -44,7 +45,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('👤 Gerando avatar:', {
+    logger.info('👤 Gerando avatar', {
+      component: 'API: v1/avatar/generate',
       type,
       hasText: !!text,
       hasAudio: !!audioUrl,
@@ -84,7 +86,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro na geração de avatar:', error);
+    logger.error('❌ Erro na geração de avatar', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/avatar/generate' });
     
     return NextResponse.json(
       { 
@@ -102,7 +104,7 @@ async function generateTalkingPhoto(
   avatar?: AvatarConfig,
   settings?: AvatarSettings
 ) {
-  console.log('📸 Gerando Talking Photo...');
+  logger.info('📸 Gerando Talking Photo...', { component: 'API: v1/avatar/generate' });
 
   // Em produção, isso integraria com serviços como:
   // - D-ID, HeyGen, Synthesia, etc.
@@ -130,7 +132,7 @@ async function generate3DAvatar(
   avatar?: AvatarConfig,
   settings?: AvatarSettings
 ) {
-  console.log('🧑‍💻 Gerando Avatar 3D...');
+  logger.info('🧑‍💻 Gerando Avatar 3D...', { component: 'API: v1/avatar/generate' });
 
   // Em produção, integraria com:
   // - Ready Player Me
@@ -158,7 +160,7 @@ async function generateAnimatedCharacter(
   avatar?: AvatarConfig,
   settings?: AvatarSettings
 ) {
-  console.log('🎭 Gerando Personagem Animado...');
+  logger.info('🎭 Gerando Personagem Animado...', { component: 'API: v1/avatar/generate' });
 
   // Em produção, integraria com:
   // - Adobe Character Animator

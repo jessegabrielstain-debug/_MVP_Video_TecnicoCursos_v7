@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -148,7 +149,7 @@ export default function RealtimeCollaboration({ projectId }: { projectId: string
         if (!isMounted) return
         setUser(data.user ?? null)
       } catch (error) {
-        console.error('Erro ao carregar sessão do usuário:', error)
+        logger.error('Erro ao carregar sessão do usuário', error instanceof Error ? error : new Error(String(error)), { component: 'RealtimeCollaboration' });
       }
     }
 

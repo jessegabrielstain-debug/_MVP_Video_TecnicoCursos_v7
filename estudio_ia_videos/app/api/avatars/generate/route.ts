@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -125,7 +126,7 @@ class Avatar3DGenerator {
       }
 
     } catch (error) {
-      console.error('Error generating avatar:', error)
+      logger.error('Error generating avatar:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/generate' })
       throw new Error('Failed to generate avatar')
     }
   }
@@ -140,7 +141,7 @@ class Avatar3DGenerator {
     // - Three.js para visualização web
     // - FFmpeg para composição final
     
-    console.log('Avatar generation completed:', avatarData.id)
+    logger.info('Avatar generation completed:', { component: 'API: avatars/generate', avatarId: avatarData.id })
   }
 
   async generateLipSync(audioUrl: string, avatarModel: string): Promise<LipSyncData> {
@@ -161,7 +162,7 @@ class Avatar3DGenerator {
       return lipSyncData
 
     } catch (error) {
-      console.error('Error generating lip sync:', error)
+      logger.error('Error generating lip sync:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/generate' })
       throw new Error('Failed to generate lip sync')
     }
   }
@@ -185,7 +186,7 @@ class Avatar3DGenerator {
       return videoUrl
 
     } catch (error) {
-      console.error('Error rendering avatar video:', error)
+      logger.error('Error rendering avatar video:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/generate' })
       throw new Error('Failed to render avatar video')
     }
   }
@@ -263,7 +264,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Avatar 3D API Error:', error)
+    logger.error('Avatar 3D API Error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/generate' })
     
     // Atualizar workflow para "error"
     const body = await request.json().catch(() => ({}))
@@ -312,7 +313,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
 
   } catch (error) {
-    console.error('Avatar 3D GET Error:', error)
+    logger.error('Avatar 3D GET Error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/generate' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -365,7 +366,7 @@ export async function PUT(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Avatar 3D PUT Error:', error)
+    logger.error('Avatar 3D PUT Error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/generate' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

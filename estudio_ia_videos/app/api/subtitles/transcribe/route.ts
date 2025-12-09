@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { TranscriptionService } from '@/lib/subtitles/transcription-service';
 import { createClient } from '@supabase/supabase-js';
 import { promises as fs } from 'fs';
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (dbError) {
-      console.error('Database error:', dbError);
+      logger.error('Database error:', dbError instanceof Error ? dbError : new Error(String(dbError)), { component: 'API: subtitles/transcribe' });
       throw new Error(`Failed to save transcription: ${dbError.message}`);
     }
 
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
       try {
         await fs.unlink(finalAudioPath);
       } catch (cleanupError) {
-        console.warn('Failed to clean up temp file:', cleanupError);
+        logger.warn('Failed to clean up temp file:', { component: 'API: subtitles/transcribe', error: cleanupError });
       }
     }
 
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Transcription API error:', error);
+    logger.error('Transcription API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: subtitles/transcribe' });
     return NextResponse.json(
       { 
         error: 'Failed to transcribe audio',
@@ -145,7 +146,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Database error:', error);
+      logger.error('Database error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: subtitles/transcribe' });
       return NextResponse.json(
         { error: `Failed to fetch transcriptions: ${error.message}` },
         { status: 500 }
@@ -158,7 +159,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get transcriptions API error:', error);
+    logger.error('Get transcriptions API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: subtitles/transcribe' });
     return NextResponse.json(
       { 
         error: 'Failed to fetch transcriptions',
@@ -189,7 +190,7 @@ export async function DELETE(request: NextRequest) {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Database error:', error);
+      logger.error('Database error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: subtitles/transcribe' });
       return NextResponse.json(
         { error: `Failed to delete transcription: ${error.message}` },
         { status: 500 }
@@ -202,7 +203,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Delete transcription API error:', error);
+    logger.error('Delete transcription API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: subtitles/transcribe' });
     return NextResponse.json(
       { 
         error: 'Failed to delete transcription',

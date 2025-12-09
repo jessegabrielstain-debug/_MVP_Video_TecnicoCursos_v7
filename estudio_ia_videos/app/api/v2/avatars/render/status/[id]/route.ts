@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRateLimiter, rateLimitPresets } from '@/lib/utils/rate-limit-middleware';
 import { avatar3DPipeline } from '@/lib/avatar-3d-pipeline'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 // Interface para tipagem do avatar
 interface AvatarModelInfo {
@@ -38,7 +39,7 @@ export async function GET(
     const jobId = params.id
     const supabase = getSupabaseForRequest(request);
     
-    console.log(`📊 API v2: Verificando status do job ${jobId}`)
+    logger.info(`📊 API v2: Verificando status do job ${jobId}`, { component: 'API: v2/avatars/render/status/[id]' })
 
     // Buscar job do Supabase primeiro, depois da memória
     let job = await avatar3DPipeline.getRenderJobStatus(jobId)
@@ -163,7 +164,7 @@ export async function GET(
 
     return NextResponse.json(response, { headers })
   } catch (error) {
-    console.error('❌ Erro ao verificar status:', error)
+    logger.error('Erro ao verificar status', { component: 'API: v2/avatars/render/status/[id]', error: error instanceof Error ? error : new Error(String(error)) })
     
     return NextResponse.json({
       success: false,
@@ -189,7 +190,7 @@ export async function POST(
     const { action } = body
     const supabase = getSupabaseForRequest(request);
 
-    console.log(`🎬 API v2: Ação ${action} no job ${jobId}`)
+    logger.info(`API v2: Ação ${action} no job ${jobId}`, { component: 'API: v2/avatars/render/status/[id]' })
 
     const job = await avatar3DPipeline.getRenderJobStatus(jobId)
     
@@ -299,7 +300,7 @@ export async function POST(
         }, { status: 400 })
     }
   } catch (error) {
-    console.error('❌ Erro na ação do job:', error)
+    logger.error('Erro na ação do job', { component: 'API: v2/avatars/render/status/[id]', error: error instanceof Error ? error : new Error(String(error)) })
     
     return NextResponse.json({
       success: false,
@@ -323,7 +324,7 @@ export async function DELETE(
     const jobId = params.id
     const supabase = getSupabaseForRequest(request);
     
-    console.log(`🗑️ API v2: Removendo job ${jobId}`)
+    logger.info(`API v2: Removendo job ${jobId}`, { component: 'API: v2/avatars/render/status/[id]' })
 
     const job = await avatar3DPipeline.getRenderJobStatus(jobId)
     
@@ -370,7 +371,7 @@ export async function DELETE(
       }
     })
   } catch (error) {
-    console.error('❌ Erro ao remover job:', error)
+    logger.error('Erro ao remover job', { component: 'API: v2/avatars/render/status/[id]', error: error instanceof Error ? error : new Error(String(error)) })
     
     return NextResponse.json({
       success: false,

@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,7 +57,7 @@ export default function NRTemplateSelector({ open, onClose }: NRTemplateSelector
       const data = await response.json();
       setTemplates(data.templates || []);
     } catch (error) {
-      console.error('Error loading templates:', error);
+      logger.error('Error loading templates', error instanceof Error ? error : new Error(String(error)), { component: 'NRTemplateSelector' });
       toast.error('Erro ao carregar templates');
     } finally {
       setLoading(false);
@@ -93,7 +94,7 @@ export default function NRTemplateSelector({ open, onClose }: NRTemplateSelector
       router.push(`/editor/${data.project.id}`);
       onClose();
     } catch (error) {
-      console.error('Error creating project:', error);
+      logger.error('Error creating project', error instanceof Error ? error : new Error(String(error)), { component: 'NRTemplateSelector' });
       toast.error('Erro ao criar projeto');
     } finally {
       setCreating(false);

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -275,7 +276,7 @@ export function UndoRedoSystem() {
     const currentAction = undoRedoState.history[undoRedoState.currentIndex];
     
     if (!currentAction.reversible) {
-      console.warn('Ação não reversível:', currentAction.description);
+      logger.warn('Ação não reversível', { description: currentAction.description, component: 'UndoRedoSystem' });
       setIsProcessing(false);
       return;
     }
@@ -295,7 +296,7 @@ export function UndoRedoSystem() {
       }));
 
     } catch (error) {
-      console.error('Erro ao executar undo:', error);
+      logger.error('Erro ao executar undo', error instanceof Error ? error : new Error(String(error)), { actionType: currentAction.type, component: 'UndoRedoSystem' });
     } finally {
       setIsProcessing(false);
     }
@@ -323,7 +324,7 @@ export function UndoRedoSystem() {
       }));
 
     } catch (error) {
-      console.error('Erro ao executar redo:', error);
+      logger.error('Erro ao executar redo', error instanceof Error ? error : new Error(String(error)), { actionType: nextAction.type, component: 'UndoRedoSystem' });
     } finally {
       setIsProcessing(false);
     }
@@ -343,36 +344,36 @@ export function UndoRedoSystem() {
     switch (action.type) {
       case 'add_track':
         // Remover track adicionada
-        console.log('Undo: Removendo track', action.data.target.id);
+        logger.debug('Undo: Removendo track', { trackId: action.data.target.id, component: 'UndoRedoSystem' });
         break;
       
       case 'remove_track':
         // Restaurar track removida
-        console.log('Undo: Restaurando track', action.data.before);
+        logger.debug('Undo: Restaurando track', { before: action.data.before, component: 'UndoRedoSystem' });
         break;
       
       case 'add_clip':
         // Remover clip adicionado
-        console.log('Undo: Removendo clip', action.data.target.id);
+        logger.debug('Undo: Removendo clip', { clipId: action.data.target.id, component: 'UndoRedoSystem' });
         break;
       
       case 'move_clip':
         // Restaurar posição anterior do clip
-        console.log('Undo: Movendo clip para posição anterior', action.data.before);
+        logger.debug('Undo: Movendo clip para posição anterior', { before: action.data.before, component: 'UndoRedoSystem' });
         break;
       
       case 'add_effect':
         // Remover efeito adicionado
-        console.log('Undo: Removendo efeito', action.data.target.id);
+        logger.debug('Undo: Removendo efeito', { effectId: action.data.target.id, component: 'UndoRedoSystem' });
         break;
       
       case 'modify_effect':
         // Restaurar parâmetros anteriores do efeito
-        console.log('Undo: Restaurando parâmetros do efeito', action.data.before);
+        logger.debug('Undo: Restaurando parâmetros do efeito', { before: action.data.before, component: 'UndoRedoSystem' });
         break;
       
       default:
-        console.log('Undo genérico para:', action.type);
+        logger.debug('Undo genérico', { actionType: action.type, component: 'UndoRedoSystem' });
     }
   }, []);
 
@@ -380,36 +381,36 @@ export function UndoRedoSystem() {
     switch (action.type) {
       case 'add_track':
         // Adicionar track novamente
-        console.log('Redo: Adicionando track', action.data.after);
+        logger.debug('Redo: Adicionando track', { after: action.data.after, component: 'UndoRedoSystem' });
         break;
       
       case 'remove_track':
         // Remover track novamente
-        console.log('Redo: Removendo track', action.data.target.id);
+        logger.debug('Redo: Removendo track', { trackId: action.data.target.id, component: 'UndoRedoSystem' });
         break;
       
       case 'add_clip':
         // Adicionar clip novamente
-        console.log('Redo: Adicionando clip', action.data.after);
+        logger.debug('Redo: Adicionando clip', { after: action.data.after, component: 'UndoRedoSystem' });
         break;
       
       case 'move_clip':
         // Mover clip para nova posição
-        console.log('Redo: Movendo clip para nova posição', action.data.after);
+        logger.debug('Redo: Movendo clip para nova posição', { after: action.data.after, component: 'UndoRedoSystem' });
         break;
       
       case 'add_effect':
         // Adicionar efeito novamente
-        console.log('Redo: Adicionando efeito', action.data.after);
+        logger.debug('Redo: Adicionando efeito', { after: action.data.after, component: 'UndoRedoSystem' });
         break;
       
       case 'modify_effect':
         // Aplicar novos parâmetros do efeito
-        console.log('Redo: Aplicando novos parâmetros do efeito', action.data.after);
+        logger.debug('Redo: Aplicando novos parâmetros do efeito', { after: action.data.after, component: 'UndoRedoSystem' });
         break;
       
       default:
-        console.log('Redo genérico para:', action.type);
+        logger.debug('Redo genérico', { actionType: action.type, component: 'UndoRedoSystem' });
     }
   }, []);
 
@@ -486,7 +487,7 @@ export function UndoRedoSystem() {
           savedStateIndex: undoRedoState.currentIndex
         }));
       } catch (error) {
-        console.error('Erro ao salvar histórico:', error);
+        logger.error('Erro ao salvar histórico', error instanceof Error ? error : new Error(String(error)), { component: 'UndoRedoSystem' });
       }
     }
   }, [undoRedoState.history, undoRedoState.currentIndex, settings.persistHistory]);
@@ -628,7 +629,7 @@ export function UndoRedoSystem() {
           setSettings(importData.settings);
         }
       } catch (error) {
-        console.error('Erro ao importar histórico:', error);
+        logger.error('Erro ao importar histórico', error instanceof Error ? error : new Error(String(error)), { component: 'UndoRedoSystem' });
       }
     };
     reader.readAsText(file);
@@ -694,7 +695,7 @@ export function UndoRedoSystem() {
           }));
         }
       } catch (error) {
-        console.error('Erro ao carregar histórico:', error);
+        logger.error('Erro ao carregar histórico', error instanceof Error ? error : new Error(String(error)), { component: 'UndoRedoSystem' });
       }
     }
   }, [settings.persistHistory]);
@@ -1230,7 +1231,7 @@ export function UndoRedoSystem() {
                         <Button
                           onClick={() => {
                             // Simular execução da ação
-                            console.log('Executando ação:', selectedAction.description);
+                            logger.info('Executando ação', { description: selectedAction.description, component: 'UndoRedoSystem' });
                           }}
                           size="sm"
                           className="bg-green-600 hover:bg-green-700"

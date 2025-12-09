@@ -8,6 +8,7 @@ import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { addVideoJob } from '@/lib/queue/render-queue'
 import { randomUUID } from 'crypto'
+import { logger } from '@/lib/logger'
 
 // Validation schemas
 const RenderJobCreateSchema = z.object({
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Get render jobs API error:', error)
+    logger.error('Get render jobs API error', { component: 'API: render/jobs', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { success: false, error: 'Failed to retrieve render jobs', jobs: [] },
       { status: 500 }
@@ -214,7 +215,7 @@ export async function POST(request: NextRequest) {
         webhookUrl: jobData.webhook_url
       })
     } catch (queueError) {
-      console.error('Failed to add job to queue:', queueError)
+      logger.error('Failed to add job to queue', { component: 'API: render/jobs', error: queueError instanceof Error ? queueError : new Error(String(queueError)) })
       await (supabase as any).from('render_jobs').update({ status: 'failed', error_message: 'Failed to queue job' }).eq('id', createdJob.id)
       throw new Error('Failed to queue render job')
     }
@@ -234,7 +235,7 @@ export async function POST(request: NextRequest) {
           }
         })
     } catch (historyError) {
-      console.warn('Failed to log project history:', historyError)
+      logger.warn('Failed to log project history', { component: 'API: render/jobs', error: historyError instanceof Error ? historyError : new Error(String(historyError)) })
     }
 
     return NextResponse.json({
@@ -244,7 +245,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
-    console.error('Create render job API error:', error)
+    logger.error('Create render job API error', { component: 'API: render/jobs', error: error instanceof Error ? error : new Error(String(error)) })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

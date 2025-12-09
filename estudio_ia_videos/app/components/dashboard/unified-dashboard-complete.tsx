@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { logger } from '@/lib/logger'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 import { cn } from '@/lib/utils'
@@ -158,7 +159,7 @@ function useUnifiedWorkflow() {
       return result.workflow
 
     } catch (error) {
-      console.error('Error getting workflow:', error)
+      logger.error('Error getting workflow', error instanceof Error ? error : new Error(String(error)), { component: 'UnifiedDashboard', projectId })
       return null
     }
   }, [])
@@ -224,7 +225,7 @@ export default function UnifiedDashboard() {
         if (!isMounted) return
         setUser(data.user ?? null)
       } catch (error) {
-        console.error('Erro ao carregar sessão do usuário:', error)
+        logger.error('Erro ao carregar sessão do usuário', error instanceof Error ? error : new Error(String(error)), { component: 'UnifiedDashboard' })
       } finally {
         if (isMounted) {
           setAuthLoading(false)
@@ -259,7 +260,7 @@ export default function UnifiedDashboard() {
         setProjects(data.projects || [])
       }
     } catch (error) {
-      console.error('Error loading projects:', error)
+      logger.error('Error loading projects', error instanceof Error ? error : new Error(String(error)), { component: 'UnifiedDashboard' })
     }
   }
 
@@ -276,7 +277,7 @@ export default function UnifiedDashboard() {
       setShowCreateDialog(false)
       setNewProject({ name: '', type: 'pptx', source: { type: 'blank', data: null } })
     } catch (error) {
-      console.error('Error creating project:', error)
+      logger.error('Error creating project', error instanceof Error ? error : new Error(String(error)), { component: 'UnifiedDashboard', projectName: newProject.name })
     }
   }
 
@@ -320,7 +321,7 @@ export default function UnifiedDashboard() {
       await updateProject(projectId, step, data)
       await getWorkflow(projectId) // Refresh workflow status
     } catch (error) {
-      console.error(`Error executing ${step}:`, error)
+      logger.error('Error executing step', error instanceof Error ? error : new Error(String(error)), { component: 'UnifiedDashboard', projectId, step })
     }
   }
 

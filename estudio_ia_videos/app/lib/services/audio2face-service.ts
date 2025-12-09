@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 export interface Audio2FaceSessionOptions {
   instanceName?: string;
   avatarPath?: string;
@@ -68,11 +70,12 @@ export interface JobStatusResult {
   error?: string;
 }
 
+
 export const audio2FaceService = {
   createSession: async (options: Audio2FaceSessionOptions = {}): Promise<string> => {
     const apiUrl = process.env.AUDIO2FACE_API_URL;
     if (!apiUrl) {
-      console.warn('⚠️ AUDIO2FACE_API_URL not set, using mock session');
+      logger.warn('⚠️ AUDIO2FACE_API_URL not set, using mock session', { component: 'Audio2FaceService' });
       return `session_${Date.now()}`;
     }
 
@@ -87,7 +90,7 @@ export const audio2FaceService = {
       const data = await response.json();
       return data.sessionId;
     } catch (error) {
-      console.error('Error creating Audio2Face session:', error);
+      logger.error('Error creating Audio2Face session:', error instanceof Error ? error : new Error(String(error)), { component: 'Audio2FaceService' });
       throw error;
     }
   },
@@ -97,7 +100,7 @@ export const audio2FaceService = {
     audio: Buffer,
     options: Audio2FaceProcessOptions = {},
   ): Promise<ProcessAudioResult> => {
-    console.log('DEBUG: processAudio called with audio length:', audio.byteLength);
+    logger.debug('DEBUG: processAudio called with audio length:', { component: 'Audio2FaceService', length: audio.byteLength });
     // throw new Error("I AM HERE"); // Uncomment to test
 
     const apiUrl = process.env.AUDIO2FACE_API_URL;
@@ -117,7 +120,7 @@ export const audio2FaceService = {
     }
 
     if (!apiUrl) {
-      console.log('Mocked audio2FaceService.processAudio called for session:', sessionId);
+      logger.info('Mocked audio2FaceService.processAudio called for session:', { component: 'Audio2FaceService', sessionId });
       // Simulate varying accuracy based on quality option
       let accuracy = 95.0;
       if (options.quality === 'low') accuracy = 93.5;
@@ -181,7 +184,7 @@ export const audio2FaceService = {
         qualityMetrics: result.qualityMetrics
       };
     } catch (error) {
-      console.error('Error processing audio with Audio2Face:', error);
+      logger.error('Error processing audio with Audio2Face:', error instanceof Error ? error : new Error(String(error)), { component: 'Audio2FaceService' });
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   },
@@ -189,7 +192,7 @@ export const audio2FaceService = {
   destroySession: async (sessionId: string): Promise<{ success: boolean }> => {
     const apiUrl = process.env.AUDIO2FACE_API_URL;
     if (!apiUrl) {
-      console.log('Mocked audio2FaceService.destroySession called for session:', sessionId);
+      logger.info('Mocked audio2FaceService.destroySession called for session:', { component: 'Audio2FaceService', sessionId });
       return { success: true };
     }
 
@@ -199,7 +202,7 @@ export const audio2FaceService = {
       });
       return { success: response.ok };
     } catch (error) {
-      console.error('Error destroying session:', error);
+      logger.error('Error destroying session', error instanceof Error ? error : new Error(String(error)), { component: 'Audio2FaceService' });
       return { success: false };
     }
   },  checkHealth: async (): Promise<{ isHealthy: boolean; version: string; responseTime: number }> => {
@@ -211,7 +214,7 @@ export const audio2FaceService = {
   },
 
   generateLipSync: async (audio: Buffer, avatarId: string): Promise<LipSyncGenerationResult> => {
-    console.log('Mocked audio2FaceService.generateLipSync called');
+    logger.info('Mocked audio2FaceService.generateLipSync called', { component: 'Audio2FaceService' });
     if (!audio || !avatarId) {
       return { success: false, error: 'Invalid input' };
     }
@@ -219,7 +222,7 @@ export const audio2FaceService = {
   },
 
   getJobStatus: async (jobId: string): Promise<JobStatusResult> => {
-    console.log('Mocked audio2FaceService.getJobStatus called');
+    logger.info('Mocked audio2FaceService.getJobStatus called', { component: 'Audio2FaceService' });
     return { success: true, status: 'completed' };
   }
 };

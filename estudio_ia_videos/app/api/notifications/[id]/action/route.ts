@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/services'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Validation schema for notification actions
 const NotificationActionSchema = z.object({
@@ -193,7 +194,7 @@ export async function POST(
       .eq('id', notificationId)
 
     if (updateError) {
-      console.warn('Failed to mark notification as read after action:', updateError)
+      logger.warn('Failed to mark notification as read after action', { component: 'API: notifications/[id]/action', error: updateError })
     }
 
     // Log the action for analytics
@@ -212,7 +213,7 @@ export async function POST(
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      console.warn('Failed to log notification action:', analyticsError)
+      logger.warn('Failed to log notification action', { component: 'API: notifications/[id]/action', error: analyticsError })
     }
 
     return NextResponse.json({
@@ -222,7 +223,7 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error('Notification action API error:', error)
+    logger.error('Notification action API error', { component: 'API: notifications/[id]/action', error: error instanceof Error ? error : new Error(String(error)) })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

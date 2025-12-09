@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * POST - Create template from timeline
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`📋 Criando template "${name}" do projeto ${projectId}...`);
+    logger.info(`📋 Criando template "${name}" do projeto ${projectId}...`, { component: 'API: v1/timeline/multi-track/templates' })
 
     // Get timeline from project
     const timeline = await prisma.timeline.findUnique({
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`✅ Template criado: ${template.id}`);
+    logger.info(`✅ Template criado: ${template.id}`, { component: 'API: v1/timeline/multi-track/templates' })
 
     return NextResponse.json({
       success: true,
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('❌ Erro ao criar template:', error);
+    logger.error('❌ Erro ao criar template', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/timeline/multi-track/templates' })
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { success: false, message: 'Erro ao criar template', error: message },
@@ -236,7 +237,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('❌ Erro ao buscar templates:', error);
+    logger.error('❌ Erro ao buscar templates', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/timeline/multi-track/templates' })
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { success: false, message: 'Erro ao buscar templates', error: message },
@@ -268,7 +269,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.log(`📋 Aplicando template ${templateId} ao projeto ${projectId}...`);
+    logger.info(`📋 Aplicando template ${templateId} ao projeto ${projectId}...`, { component: 'API: v1/timeline/multi-track/templates' })
 
     // Get template
     const template = await prisma.timelineTemplate.findUnique({
@@ -332,7 +333,7 @@ export async function PUT(request: NextRequest) {
       },
     });
 
-    console.log(`✅ Template aplicado à timeline ${timeline.id}`);
+    logger.info(`✅ Template aplicado à timeline ${timeline.id}`, { component: 'API: v1/timeline/multi-track/templates' })
 
     return NextResponse.json({
       success: true,
@@ -349,7 +350,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('❌ Erro ao aplicar template:', error);
+    logger.error('❌ Erro ao aplicar template', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/timeline/multi-track/templates' })
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { success: false, message: 'Erro ao aplicar template', error: message },
@@ -405,7 +406,7 @@ export async function DELETE(request: NextRequest) {
       where: { id: templateId },
     });
 
-    console.log(`✅ Template deletado: ${templateId}`);
+    logger.info(`✅ Template deletado: ${templateId}`, { component: 'API: v1/timeline/multi-track/templates' })
 
     return NextResponse.json({
       success: true,
@@ -413,7 +414,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('❌ Erro ao deletar template:', error);
+    logger.error('❌ Erro ao deletar template', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/timeline/multi-track/templates' })
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { success: false, message: 'Erro ao deletar template', error: message },

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '@/lib/services';
+import { logger } from '@/lib/logger';
 
 /**
  * POST - Upload e parse de arquivo PPTX
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
       throw new Error(`Failed to create project: ${projectError?.message}`);
     }
 
-    console.log(`[PPTX API] Project created: ${project.id}`);
+    logger.info(`[PPTX API] Project created: ${project.id}`, { component: 'API: pptx' });
 
     // 3. Parse PPTX (Using Advanced Parser)
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
     // Dynamically import the advanced parser
     const { parseCompletePPTX } = await import('@/lib/pptx/parsers/advanced-parser');
     
-    console.log(`[PPTX API] Starting Advanced Parse for project: ${project.id}`);
+    logger.info(`[PPTX API] Starting Advanced Parse for project: ${project.id}`, { component: 'API: pptx' });
     
     // Parse with all features enabled
     const parsedData = await parseCompletePPTX(fileBuffer, project.id, {
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!parsedData.success) {
-        console.error('[PPTX API] Parse errors:', parsedData.errors);
+        logger.error('[PPTX API] Parse errors:', new Error(parsedData.errors.join(', ')), { component: 'API: pptx' });
         throw new Error(`PPTX Parse failed: ${parsedData.errors.join(', ')}`);
     }
 
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
         .insert(slidesToInsert);
 
       if (slidesError) {
-        console.error('Failed to insert slides:', slidesError);
+        logger.error('Failed to insert slides:', new Error(slidesError.message), { component: 'API: pptx' });
         // Don't fail the whole request, but log it. 
         // Actually, if slides fail, the project is empty. We should probably fail.
         throw new Error(`Failed to save slides: ${slidesError.message}`);
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[PPTX API] Upload error:', error);
+    logger.error('[PPTX API] Upload error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erro interno' },
       { status: 500 }

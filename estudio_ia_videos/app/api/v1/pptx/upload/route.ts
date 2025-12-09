@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { PPTXProcessorReal, PPTXExtractionResult } from '@/lib/pptx/pptx-processor-real';
 
 // Configuração do endpoint - Next.js 14 format
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const startTime = Date.now();
   
   try {
-    console.log('📤 Iniciando upload e processamento PPTX...');
+    logger.info('📤 Iniciando upload e processamento PPTX...', { component: 'API: v1/pptx/upload' });
     
     // Verifica Content-Type
     const contentType = request.headers.get('content-type') || '';
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 400 });
     }
     
-    console.log(`📄 Arquivo válido: ${file.name} (${file.size} bytes)`);
+    logger.info(`📄 Arquivo válido: ${file.name} (${file.size} bytes)`, { component: 'API: v1/pptx/upload' });
     
     // Converte para buffer
     const arrayBuffer = await file.arrayBuffer();
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const processingId = generateProcessingId();
     
     // Processa PPTX
-    console.log(`⚙️ Iniciando processamento com ID: ${processingId}`);
+    logger.info(`⚙️ Iniciando processamento com ID: ${processingId}`, { component: 'API: v1/pptx/upload' });
     const result = await PPTXProcessorReal.extract(buffer);
     
     // Armazena resultado no cache
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     cleanupCache();
     
     const processingTime = Date.now() - startTime;
-    console.log(`✅ Processamento concluído em ${processingTime}ms`);
+    logger.info(`✅ Processamento concluído em ${processingTime}ms`, { component: 'API: v1/pptx/upload' });
     
     // Retorna resposta de sucesso
     const response: UploadResponse = {
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(response, { status: 200 });
     
   } catch (error) {
-    console.error('❌ Erro no upload/processamento:', error);
+    logger.error('❌ Erro no upload/processamento:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/pptx/upload' });
     
     return NextResponse.json<UploadResponse>({
       success: false,
@@ -158,7 +159,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }, { status: 200 });
     
   } catch (error) {
-    console.error('❌ Erro ao consultar resultado:', error);
+    logger.error('❌ Erro ao consultar resultado:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/pptx/upload' });
     
     return NextResponse.json({
       success: false,
@@ -241,6 +242,6 @@ function cleanupCache(): void {
       processingCache.delete(key);
     });
     
-    console.log(`🧹 Cache limpo: removidos ${oldKeys.length} resultados antigos`);
+    logger.info(`🧹 Cache limpo: removidos ${oldKeys.length} resultados antigos`, { component: 'API: v1/pptx/upload' });
   }
 }

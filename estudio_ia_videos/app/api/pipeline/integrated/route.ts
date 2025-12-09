@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 // Using inline implementations instead of external modules
 // import { IntegratedTTSAvatarPipeline } from '@/lib/pipeline/integrated-tts-avatar-pipeline';
 // import { MonitoringService } from '@/lib/monitoring/monitoring-service';
@@ -15,7 +16,7 @@ class MonitoringService {
   }
   
   logEvent(event: string, data: Record<string, unknown>) {
-    console.log(`📊 [${event}]`, data);
+    logger.info(`📊 [${event}]`, { component: 'API: pipeline/integrated', ...data });
   }
 }
 
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest) {
       processingTime: Date.now() - startTime
     });
 
-    console.error('Erro no pipeline integrado:', error);
+    logger.error('Erro no pipeline integrado:', { component: 'API: pipeline/integrated', error: error instanceof Error ? error : new Error(String(error)) });
 
     return NextResponse.json(
       { 
@@ -297,7 +298,7 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error: unknown) {
-    console.error('Erro ao consultar pipeline:', error);
+    logger.error('Erro ao consultar pipeline:', { component: 'API: pipeline/integrated', error: error instanceof Error ? error : new Error(String(error)) });
     
     return NextResponse.json(
       { 
@@ -374,7 +375,7 @@ export async function PUT(request: NextRequest) {
     }
 
   } catch (error: unknown) {
-    console.error('Erro ao atualizar job:', error);
+    logger.error('Erro ao atualizar job:', { component: 'API: pipeline/integrated', error: error instanceof Error ? error : new Error(String(error)) });
     
     return NextResponse.json(
       { 

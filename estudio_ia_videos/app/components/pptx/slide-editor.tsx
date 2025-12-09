@@ -29,11 +29,32 @@ import {
 import { CanvasEditor } from './canvas-editor'
 import { PPTXSlide } from '@/types/pptx-types'
 
+interface AvailableTemplate {
+  id: string
+  name: string
+  layout?: string
+}
+
+interface SlideSceneMapping {
+  templateId?: string
+  customizations?: {
+    avatarEnabled?: boolean
+    [key: string]: unknown
+  }
+  [key: string]: unknown
+}
+
+interface SlideNarrationResult {
+  totalDuration?: number
+  segments?: Array<{ text: string; [key: string]: unknown }>
+  [key: string]: unknown
+}
+
 interface SlideEditorProps {
   slide: PPTXSlide
-  sceneMapping: any
-  narrationResult: any
-  availableTemplates: any[]
+  sceneMapping: SlideSceneMapping | null
+  narrationResult: SlideNarrationResult | null
+  availableTemplates: AvailableTemplate[]
   onSlideUpdate: (slideId: string, updates: Partial<PPTXSlide>) => void
   onTemplateChange: (slideId: string, templateId: string) => void
   onPreview: (slideId: string) => void
@@ -152,8 +173,8 @@ export function SlideEditor({
                         ...sceneMapping?.customizations,
                         avatarEnabled: checked
                       }
-                    }
-                    onSlideUpdate(slide.slideNumber.toString(), updates)
+                    } as Record<string, unknown>
+                    onSlideUpdate(slide.slideNumber.toString(), updates as Partial<PPTXSlide>)
                   }}
                 />
                 <Label className="text-sm">Avatar</Label>
@@ -262,7 +283,7 @@ export function SlideEditor({
               </Badge>
             </div>
             <p className="text-sm text-gray-700 dark:text-gray-300">
-              {(narrationResult.segments as Record<string, unknown>[])?.map((seg) => seg.text as string).join(' ') || 'Processando narração...'}
+              {narrationResult.segments?.map((seg) => seg.text).join(' ') || 'Processando narração...'}
             </p>
           </div>
         )}

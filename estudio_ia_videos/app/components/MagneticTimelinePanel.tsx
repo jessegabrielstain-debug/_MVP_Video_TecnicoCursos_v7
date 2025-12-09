@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -58,7 +59,7 @@ export const MagneticTimelinePanel: React.FC<MagneticTimelinePanelProps> = ({
   }: UseMagneticTimelineReturn = useMagneticTimeline({
     initialState,
     onRippleCompleted: (affectedClips) => {
-      console.log('Ripple completed, affected clips:', affectedClips);
+      logger.debug('Ripple completed', { component: 'MagneticTimelinePanel', affectedClips });
     }
   });
 

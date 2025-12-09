@@ -29,7 +29,7 @@ interface ProcessingStage {
 
 interface ProcessingStatusProps {
   uploadId?: string
-  onComplete?: (result: any) => void
+  onComplete?: (result: Record<string, unknown>) => void
   onError?: (error: string) => void
 }
 

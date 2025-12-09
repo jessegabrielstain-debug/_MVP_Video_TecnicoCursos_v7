@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { logger } from '@/lib/logger';
 import { Video, Menu, X, User, LogOut, LayoutDashboard } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getBrowserClient } from '@/lib/supabase/browser';
@@ -44,7 +45,7 @@ export function Navbar() {
             // O middleware cuidará do redirecionamento
             window.location.href = '/login';
         } catch (error) {
-            console.error('Error signing out:', error);
+            logger.error('Error signing out:', error instanceof Error ? error : new Error(String(error)), { component: 'Navbar' });
             toast.error('Erro ao sair');
         }
     };

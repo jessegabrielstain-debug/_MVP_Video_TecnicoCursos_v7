@@ -6,6 +6,7 @@
 'use client'
 
 import { useState } from 'react'
+import { logger } from '@/lib/logger'
 import { RenderProgress } from './render-progress'
 import { Film, Settings2, Loader2 } from 'lucide-react'
 
@@ -70,7 +71,7 @@ export function RenderPanel({
       setJobId(data.data.jobId)
 
     } catch (err) {
-      console.error('Error starting render:', err)
+      logger.error('Error starting render', err instanceof Error ? err : new Error(String(err)), { component: 'RenderPanel', projectId })
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setIsStarting(false)

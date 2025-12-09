@@ -1,4 +1,6 @@
 // Classe para tratamento de erros do Supabase
+import { logger } from '@/lib/logger';
+
 interface SupabaseErrorPayload {
   message?: string;
   code?: string;
@@ -114,7 +116,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 // Função para tratar erros do Supabase
 export const handleSupabaseError = (error: unknown): SupabaseError => {
   const payload = toSupabaseErrorPayload(error);
-  console.error('Erro do Supabase:', payload);
+  logger.error('Erro do Supabase', new Error(payload.message || 'Unknown error'), { component: 'ErrorHandler', payload });
 
   if (!payload.code || payload.code === 'unknown') {
     payload.code = getErrorCode(error);
@@ -171,7 +173,8 @@ export const logError = (
 ): void => {
   const payload = toSupabaseErrorPayload(error);
 
-  console.error(`[${context}] Erro:`, {
+  logger.error(`[${context}] Erro`, new Error(payload.message || 'Unknown error'), {
+    component: 'ErrorHandler',
     message: payload.message,
     code: payload.code ?? getErrorCode(error),
     details: payload.details,

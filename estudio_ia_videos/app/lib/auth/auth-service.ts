@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 export interface AuthUser {
   id: string;
@@ -47,7 +48,7 @@ export class AuthService {
       const session = await getServerSession(authOptions);
       return session?.user as AuthUser || null;
     } catch (error) {
-      console.error('Error getting user from token:', error);
+      logger.error('Error getting user from token:', error instanceof Error ? error : new Error(String(error)), { component: 'AuthService' });
       return null;
     }
   }
@@ -98,7 +99,7 @@ export class AuthService {
            // This is optional but good for consistency
        }
     } catch (e) {
-        console.warn("Could not fetch user details from DB during login", e);
+        logger.warn("Could not fetch user details from DB during login", { component: 'AuthService' });
     }
     
     return {
@@ -111,7 +112,7 @@ export class AuthService {
   
   async logout(userId: string): Promise<void> {
     // Mock implementation - in production, invalidate tokens
-    console.log('Logout user:', userId);
+    logger.info('Logout user: ' + userId, { component: 'AuthService' });
   }
   
   async refreshTokens(refreshToken: string): Promise<AuthTokens> {
@@ -142,7 +143,7 @@ export class AuthService {
       // In production: verify oldPassword, hash newPassword, update DB
       return true;
     } catch (error) {
-      console.error('Error changing password:', error);
+      logger.error('Error changing password:', error instanceof Error ? error : new Error(String(error)), { component: 'AuthService' });
       return false;
     }
   }
@@ -166,7 +167,7 @@ export class AuthService {
       
       return false;
     } catch (error) {
-      console.error('Error verifying permission:', error);
+      logger.error('Error verifying permission:', error instanceof Error ? error : new Error(String(error)), { component: 'AuthService' });
       return false;
     }
   }

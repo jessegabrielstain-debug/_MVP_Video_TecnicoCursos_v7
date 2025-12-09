@@ -10,6 +10,7 @@ import { S3StorageService } from '@/lib/s3-storage';
 import { VideoRenderPipeline } from '@/lib/video-render-pipeline';
 import crypto from 'crypto';
 import fs from 'fs';
+import { logger } from '@/lib/logger';
 
 interface RenderJob {
   jobId: string;
@@ -37,7 +38,7 @@ interface RenderSettings {
 const renderJobs = new Map<string, RenderJob>();
 
 export async function POST(request: NextRequest) {
-  console.log('🎬 [Video Render v2] Iniciando renderização de produção...');
+  logger.info('🎬 [Video Render v2] Iniciando renderização de produção...', { component: 'API: v1/render/video-production-v2' })
   
   try {
     const body = await request.json();
@@ -84,7 +85,8 @@ export async function POST(request: NextRequest) {
 
     renderJobs.set(jobId, job);
 
-    console.log('📋 [Video Render v2] Job criado:', {
+    logger.info('📋 [Video Render v2] Job criado', { 
+      component: 'API: v1/render/video-production-v2',
       jobId,
       slides: slides.length,
       duration: timeline.totalDuration,
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     // Iniciar renderização assíncrona
     processRenderJob(jobId, slides, timeline, renderSettings).catch(error => {
-      console.error(`❌ [Video Render v2] Erro no job ${jobId}:`, error);
+      logger.error(`❌ [Video Render v2] Erro no job ${jobId}`, error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/render/video-production-v2' })
       
       const failedJob = renderJobs.get(jobId);
       if (failedJob) {
@@ -113,7 +115,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ [Video Render v2] Erro na criação do job:', error);
+    logger.error('❌ [Video Render v2] Erro na criação do job:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/render/video-production-v2' });
     
     return NextResponse.json(
       { 
@@ -168,7 +170,7 @@ async function processRenderJob(
   timeline: { totalDuration: number; [key: string]: unknown }, 
   settings: RenderSettings
 ) {
-  console.log(`🔄 [Video Render v2] Processando job ${jobId}...`);
+  logger.info(`🔄 [Video Render v2] Processando job ${jobId}...`, { component: 'API: v1/render/video-production-v2' });
 
   const job = renderJobs.get(jobId);
   if (!job) return;
@@ -184,28 +186,28 @@ async function processRenderJob(
     const pipeline = new VideoRenderPipeline(settings);
     
     // Fase 1: Preparar assets
-    console.log(`📦 [Video Render v2] Preparando assets para job ${jobId}...`);
+    logger.info(`📦 [Video Render v2] Preparando assets para job ${jobId}...`, { component: 'API: v1/render/video-production-v2' });
     // @ts-ignore
     const assets = await pipeline.prepareAssets(slides);
     job.progress = 30;
     renderJobs.set(jobId, job);
 
     // Fase 2: Renderizar slides individuais
-    console.log(`🎨 [Video Render v2] Renderizando slides para job ${jobId}...`);
+    logger.info(`🎨 [Video Render v2] Renderizando slides para job ${jobId}...`, { component: 'API: v1/render/video-production-v2' });
     // @ts-ignore
     const renderedSlides = await pipeline.renderSlides(slides, timeline);
     job.progress = 60;
     renderJobs.set(jobId, job);
 
     // Fase 3: Compor timeline final
-    console.log(`🎞️ [Video Render v2] Compondo timeline para job ${jobId}...`);
+    logger.info(`🎞️ [Video Render v2] Compondo timeline para job ${jobId}...`, { component: 'API: v1/render/video-production-v2' });
     // @ts-ignore
     const composedVideo = await pipeline.composeTimeline(renderedSlides, timeline);
     job.progress = 80;
     renderJobs.set(jobId, job);
 
     // Fase 4: Encoding final
-    console.log(`📹 [Video Render v2] Codificando vídeo final para job ${jobId}...`);
+    logger.info(`📹 [Video Render v2] Codificando vídeo final para job ${jobId}...`, { component: 'API: v1/render/video-production-v2' });
     // @ts-ignore
     const outputPath = await pipeline.encodeVideo(composedVideo, settings);
     job.progress = 95;
@@ -214,7 +216,7 @@ async function processRenderJob(
     // Fase 5: Upload para S3 (se disponível)
     let finalPath = outputPath;
     try {
-      console.log(`☁️ [Video Render v2] Fazendo upload para S3 do job ${jobId}...`);
+      logger.info(`☁️ [Video Render v2] Fazendo upload para S3 do job ${jobId}...`, { component: 'API: v1/render/video-production-v2' });
       const s3Key = `rendered-videos/${jobId}.${settings.format}`;
       
       // Ler arquivo do disco
@@ -230,7 +232,7 @@ async function processRenderJob(
         finalPath = uploadUrl;
       }
     } catch (s3Error) {
-      console.warn(`⚠️ [Video Render v2] Upload S3 falhou para job ${jobId}:`, s3Error);
+      logger.warn(`⚠️ [Video Render v2] Upload S3 falhou para job ${jobId}:`, { component: 'API: v1/render/video-production-v2', error: s3Error });
     }
 
     // Finalizar job
@@ -240,10 +242,10 @@ async function processRenderJob(
     job.completedAt = new Date().toISOString();
     renderJobs.set(jobId, job);
 
-    console.log(`✅ [Video Render v2] Job ${jobId} concluído com sucesso!`);
+    logger.info(`✅ [Video Render v2] Job ${jobId} concluído com sucesso!`, { component: 'API: v1/render/video-production-v2' });
 
   } catch (error) {
-    console.error(`❌ [Video Render v2] Erro no job ${jobId}:`, error);
+    logger.error(`❌ [Video Render v2] Erro no job ${jobId}:`, error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/render/video-production-v2' });
     
     job.status = 'failed';
     job.errorMessage = error instanceof Error ? error.message : 'Erro desconhecido na renderização';

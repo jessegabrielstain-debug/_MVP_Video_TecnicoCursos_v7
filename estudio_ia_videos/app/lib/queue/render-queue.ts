@@ -9,6 +9,7 @@ import {
   type WorkerOptions,
   Job
 } from 'bullmq'
+import { logger } from '@/lib/logger';
 import { getQueueConfig } from './config'
 import type { RenderTaskPayload, RenderTaskResult } from './types'
 import { videoRenderPipeline } from '@/lib/video-render-pipeline'
@@ -77,16 +78,16 @@ export function getRenderQueue(options?: QueueOptions) {
   if (redisUrl === 'redis://mock:6379') {
     // Return a mock queue object that satisfies the interface partially
     // @deprecated-any: Mock object for development without Redis
-    console.warn('⚠️ Using MOCK RenderQueue (No Redis configured)')
+    logger.warn('⚠️ Using MOCK RenderQueue (No Redis configured)', { component: 'RenderQueue' })
     cachedQueue = {
       add: async (name: string, data: RenderTaskPayload) => {
         const jobId = data.jobId || `mock-job-${Date.now()}`;
-        console.log('MOCK Queue: Adding job', name, jobId)
+        logger.info('MOCK Queue: Adding job', { component: 'RenderQueue', name, jobId })
         
         // In Real Implementation with Postgres Worker (scripts/render-worker.js),
         // we do NOT want to trigger the Node.js pipeline here, as it would cause double execution.
         // The worker will pick up the job from the database.
-        console.log('MOCK Queue: Job added. Waiting for Postgres Worker to pick it up from DB.');
+        logger.info('MOCK Queue: Job added. Waiting for Postgres Worker to pick it up from DB.', { component: 'RenderQueue' });
         
         return {
           id: jobId,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backupRecoverySystem as backupSystem } from '@/lib/backup-recovery-system';
+import { logger } from '@/lib/logger';
 
 /**
  * API de Backup e Recuperação
@@ -48,7 +49,10 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Erro ao listar backups:', error);
+    logger.error('Erro ao listar backups:', {
+      component: 'API: backup',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
     return NextResponse.json(
       { error: 'Erro ao listar backups' },
       { status: 500 }
@@ -87,9 +91,13 @@ export async function POST(request: NextRequest) {
       backup: metadata
     });
   } catch (error) {
-    console.error('Erro ao processar backup:', error);
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao processar backup:', {
+      component: 'API: backup',
+      error: normalizedError
+    });
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Erro ao processar backup' },
+      { error: normalizedError.message },
       { status: 500 }
     );
   }
@@ -108,7 +116,10 @@ export async function DELETE() {
       deleted
     });
   } catch (error) {
-    console.error('Erro ao limpar backups:', error);
+    logger.error('Erro ao limpar backups:', {
+      component: 'API: backup',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
     return NextResponse.json(
       { error: 'Erro ao limpar backups' },
       { status: 500 }

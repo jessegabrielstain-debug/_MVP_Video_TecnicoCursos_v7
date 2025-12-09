@@ -3,6 +3,8 @@
  * Gerencia uploads de arquivos com validação e chunking
  */
 
+import { logger } from '@/lib/logger';
+
 export interface UploadOptions {
   maxSizeMB?: number;
   allowedTypes?: string[];
@@ -64,7 +66,7 @@ export class UploadManager {
   private activeUploads: Map<string, ActiveUpload> = new Map();
   
   async upload(file: File | Buffer, options?: UploadOptions): Promise<UploadResult> {
-    console.log('[Upload] Processing file upload');
+    logger.info('Processing file upload', { component: 'UploadManager' });
     
     // Placeholder - retornar resultado fake
     return {
@@ -81,12 +83,12 @@ export class UploadManager {
     onProgress?: (percent: number) => void,
     options?: UploadOptions
   ): Promise<UploadResult> {
-    console.log('[Upload] Processing chunked upload');
+    logger.info('Processing chunked upload', { component: 'UploadManager' });
     return this.upload(file, options);
   }
   
   validateFile(file: File | Buffer, options?: UploadOptions): boolean {
-    console.log('[Upload] Validating file');
+    logger.info('Validating file', { component: 'UploadManager' });
     return true;
   }
 

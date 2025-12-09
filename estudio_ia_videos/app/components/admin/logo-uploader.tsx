@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { logger } from '@/lib/logger';
 import { useDropzone } from 'react-dropzone'
 import { Upload, X, Image as ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -67,7 +68,7 @@ export default function LogoUploader({
       onLogoChange(data.url)
       
     } catch (error) {
-      console.error('Upload error:', error)
+      logger.error('Upload error', error instanceof Error ? error : new Error(String(error)), { component: 'LogoUploader' });
       setError(error instanceof Error ? error.message : 'Erro no upload')
     } finally {
       setIsUploading(false)

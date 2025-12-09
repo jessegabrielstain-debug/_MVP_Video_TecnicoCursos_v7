@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * Avatar Render Engine
  * Renderiza avatares para vídeos
@@ -142,12 +144,12 @@ export interface RenderResult {
 
 export class Avatar3DRenderEngine {
   async loadAvatar(config: Avatar3DConfig): Promise<void> {
-    console.log('Loading avatar with config:', config);
+    logger.info('Loading avatar with config', { component: 'RenderEngine', config });
   }
 
   async renderVideo(sequence: AnimationSequence, settings: RenderSettings): Promise<RenderResult> {
-    console.log('Rendering video with sequence:', sequence);
-    console.log('Settings:', settings);
+    logger.info('Rendering video with sequence', { component: 'RenderEngine', sequence });
+    logger.info('Settings', { component: 'RenderEngine', settings });
     
     return {
       video_url: 'https://example.com/video.mp4',

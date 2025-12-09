@@ -7,6 +7,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
+import { logger } from '@/lib/logger'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -124,7 +125,7 @@ export default function AvatarGalleryImages() {
           ))
         }
       } catch (error) {
-        console.error(`Erro ao gerar imagem para ${avatar.name}:`, error)
+        logger.error('Erro ao gerar imagem', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarGalleryImages', avatarName: avatar.name })
       }
 
       // Delay entre gerações
@@ -147,7 +148,7 @@ export default function AvatarGalleryImages() {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (error) {
-      console.error('Erro ao baixar imagem:', error)
+      logger.error('Erro ao baixar imagem', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarGalleryImages' })
     }
   }
 

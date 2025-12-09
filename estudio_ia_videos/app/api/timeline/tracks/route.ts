@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 // Interfaces para tipagem de queries
 interface TrackOrderIndex {
@@ -120,7 +121,7 @@ export async function GET(request: NextRequest) {
       .order('order_index', { ascending: true })
 
     if (error) {
-      console.error('Erro ao buscar tracks:', error)
+      logger.error('Erro ao buscar tracks', { component: 'API: timeline/tracks', error: error instanceof Error ? error : new Error(String(error)) })
       return NextResponse.json(
         { error: 'Erro interno do servidor' },
         { status: 500 }
@@ -130,7 +131,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ tracks: tracks || [] })
 
   } catch (error) {
-    console.error('Erro na API de tracks:', error)
+    logger.error('Erro na API de tracks', { component: 'API: timeline/tracks', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -236,7 +237,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Erro ao criar track:', error)
+      logger.error('Erro ao criar track', { component: 'API: timeline/tracks', error: error instanceof Error ? error : new Error(String(error)) })
       return NextResponse.json(
         { error: 'Erro ao criar track' },
         { status: 500 }
@@ -270,7 +271,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error('Erro na criação de track:', error)
+    logger.error('Erro na criação de track', { component: 'API: timeline/tracks', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -395,7 +396,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.error('Erro na reordenação de tracks:', error)
+    logger.error('Erro na reordenação de tracks', { component: 'API: timeline/tracks', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

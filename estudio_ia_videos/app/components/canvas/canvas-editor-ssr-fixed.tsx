@@ -8,6 +8,7 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Input } from '@/components/ui/input'
@@ -130,7 +131,7 @@ export default function CanvasEditorSSRFixed({
         }
         initializeCanvas()
       } catch (error) {
-        console.error('Failed to load Fabric.js:', error)
+        logger.error('Failed to load Fabric.js', error instanceof Error ? error : new Error(String(error)), { component: 'CanvasEditorSSR' })
         toast.error('Falha ao carregar editor')
         setIsLoading(false)
       }
@@ -224,7 +225,7 @@ export default function CanvasEditorSSRFixed({
       setIsLoading(false)
       toast.success('Editor carregado com sucesso!')
     } catch (error) {
-      console.error('Canvas initialization error:', error)
+      logger.error('Canvas initialization error', error instanceof Error ? error : new Error(String(error)), { component: 'CanvasEditorSSR' })
       toast.error('Erro ao inicializar editor')
       setIsLoading(false)
     }
@@ -376,7 +377,7 @@ export default function CanvasEditorSSRFixed({
         toast.success('Dados carregados!')
       })
     } catch (error) {
-      console.error('Load data error:', error)
+      logger.error('Load data error', error instanceof Error ? error : new Error(String(error)), { component: 'CanvasEditorSSR' })
       toast.error('Erro ao carregar dados')
     }
   }
@@ -552,7 +553,7 @@ export default function CanvasEditorSSRFixed({
 
       toast.success('Canvas exportado!')
     } catch (error) {
-      console.error('Export error:', error)
+      logger.error('Export error', error instanceof Error ? error : new Error(String(error)), { component: 'CanvasEditorSSR' })
       toast.error('Erro ao exportar')
     }
   }
@@ -568,7 +569,7 @@ export default function CanvasEditorSSRFixed({
       onSave?.(data)
       toast.success('Canvas salvo!')
     } catch (error) {
-      console.error('Save error:', error)
+      logger.error('Save error', error instanceof Error ? error : new Error(String(error)), { component: 'CanvasEditorSSR' })
       toast.error('Erro ao salvar')
     }
   }

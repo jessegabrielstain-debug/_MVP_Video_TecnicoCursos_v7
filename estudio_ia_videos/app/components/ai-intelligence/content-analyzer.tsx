@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -254,7 +255,7 @@ const ContentAnalyzer: React.FC<ContentAnalyzerProps> = ({
       toast.success('Análise de conteúdo concluída com IA');
 
     } catch (error) {
-      console.error('Erro na análise:', error);
+      logger.error('Erro na análise', error instanceof Error ? error : new Error(String(error)), { component: 'ContentAnalyzer' });
       toast.error('Erro ao analisar conteúdo');
     } finally {
       setIsAnalyzing(false);

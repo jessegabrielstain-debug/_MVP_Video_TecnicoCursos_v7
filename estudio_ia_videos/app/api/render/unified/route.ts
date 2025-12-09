@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
@@ -88,7 +89,7 @@ class UnifiedRenderPipeline {
 
     // Start processing asynchronously
     this.processRenderJob(jobId, request).catch(error => {
-      console.error('Render job failed:', error)
+      logger.error('Render job failed:', error instanceof Error ? error : new Error(String(error)), { component: 'API: render/unified' })
       this.updateRenderJob(jobId, {
         status: 'failed',
         errorMessage: error.message
@@ -217,7 +218,7 @@ class UnifiedRenderPipeline {
       backgroundImages: slides.filter(s => s.backgroundImageUrl).length
     }
 
-    console.log('Assets validated:', validatedAssets)
+    logger.info('Assets validated:', { component: 'API: render/unified', validatedAssets })
     return validatedAssets
   }
 
@@ -319,7 +320,7 @@ class UnifiedRenderPipeline {
     
     if (config.avatarSync) {
       // Perform lip-sync and gesture alignment
-      console.log('Syncing avatar with audio...')
+      logger.info('Syncing avatar with audio...', { component: 'API: render/unified' })
     }
 
     return { ...video, audioSynced: true, avatarSynced: config.avatarSync }
@@ -388,13 +389,13 @@ class UnifiedRenderPipeline {
   // Save to database
   private async saveRenderJobToDatabase(job: RenderJob, userId: string): Promise<void> {
     // Simulate database save
-    console.log('Saving render job to database:', job.id)
+    logger.info('Saving render job to database:', { component: 'API: render/unified', jobId: job.id })
   }
 
   // Update in database
   private async updateRenderJobInDatabase(jobId: string, updates: Partial<RenderJob>): Promise<void> {
     // Simulate database update
-    console.log('Updating render job in database:', jobId, updates)
+    logger.info('Updating render job in database:', { component: 'API: render/unified', jobId, updates })
   }
 }
 
@@ -433,7 +434,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: unknown) {
-    console.error('Render API error:', error)
+    logger.error('Render API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: render/unified' })
     return NextResponse.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : String(error) 
@@ -482,7 +483,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: unknown) {
-    console.error('Render status API error:', error)
+    logger.error('Render status API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: render/unified' })
     return NextResponse.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : String(error) 

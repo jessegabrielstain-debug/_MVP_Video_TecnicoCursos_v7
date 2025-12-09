@@ -4,6 +4,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { exec } from 'child_process';
 import util from 'util';
+import { logger } from '@/lib/logger';
 
 const execPromise = util.promisify(exec);
 
@@ -26,7 +27,7 @@ if (!fs.existsSync(AUDIO_DIR)) {
 }
 
 export async function synthesizeToFile(options: SynthesizeOptions): Promise<SynthesizeResult> {
-  console.log(`Synthesizing text: "${options.text}"`);
+  logger.info(`Synthesizing text: "${options.text}"`, { component: 'TtsServiceReal' });
   
   const fileName = `${uuidv4()}.mp3`;
   const filePath = path.join(AUDIO_DIR, fileName);
@@ -40,7 +41,7 @@ export async function synthesizeToFile(options: SynthesizeOptions): Promise<Synt
       const voice = options.voiceId || 'pt-BR-AntonioNeural';
       const command = `edge-tts --text "${options.text.replace(/"/g, '\\"')}" --write-media "${filePath}" --voice ${voice}`;
       
-      console.log(`Executing TTS command: ${command}`);
+      logger.info(`Executing TTS command: ${command}`, { component: 'TtsServiceReal' });
       await execPromise(command);
       
       // Get duration (mocked for now as getting duration from mp3 requires another lib like mp3-duration or ffprobe)
@@ -56,7 +57,7 @@ export async function synthesizeToFile(options: SynthesizeOptions): Promise<Synt
       };
 
   } catch (error) {
-      console.warn('Edge-TTS failed or not installed, falling back to mock.', error);
+      logger.warn('Edge-TTS failed or not installed, falling back to mock.', { component: 'TtsServiceReal', error });
       
       // Fallback: Create a silent or dummy file so the system doesn't crash
       // For now, we just return the mock data but without creating a real file (which might break ffmpeg later)

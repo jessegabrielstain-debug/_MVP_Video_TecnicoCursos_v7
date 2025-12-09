@@ -4,6 +4,7 @@
  */
 
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { logger } from '@/lib/logger';
 
 /**
  * AWS S3 Config
@@ -33,7 +34,7 @@ let s3ClientInstance: S3Client | null = null;
 export const createS3Client = () => {
   if (s3ClientInstance) return s3ClientInstance;
 
-  console.log('[S3] Creating S3 client for region:', s3Config.region);
+  logger.info('[S3] Creating S3 client for region', { component: 'AwsS3Config', region: s3Config.region });
   s3ClientInstance = new S3Client({
     region: s3Config.region,
     credentials: s3Config.credentials,
@@ -52,7 +53,7 @@ export const validateFile = (file: File) => {
 };
 
 export const uploadFileToS3 = async (file: File | Buffer, key: string, contentType?: string) => {
-  console.log('[S3] Uploading file to S3:', key);
+  logger.info('[S3] Uploading file to S3', { component: 'AwsS3Config', key });
   
   const client = createS3Client();
   
@@ -89,7 +90,7 @@ export const uploadFileToS3 = async (file: File | Buffer, key: string, contentTy
     const url = `https://${s3Config.bucket}.s3.amazonaws.com/${key}`;
     return { url, key };
   } catch (error) {
-    console.error('[S3] Upload error:', error);
+    logger.error('[S3] Upload error', error instanceof Error ? error : new Error(String(error)), { component: 'AwsS3Config' });
     throw error;
   }
 };

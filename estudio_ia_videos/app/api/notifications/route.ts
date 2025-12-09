@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabase, supabaseAdmin } from '@/lib/services'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Validation schemas
 const NotificationCreateSchema = z.object({
@@ -109,7 +110,7 @@ async function getNotificationStats(userId: string, filters: z.infer<typeof Noti
       recent_activity: recentActivity
     }
   } catch (error) {
-    console.error('Error getting notification stats:', error)
+    logger.error('Error getting notification stats', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: notifications' })
     return {
       total: 0,
       unread: 0,
@@ -206,7 +207,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Notifications API error:', error)
+    logger.error('Notifications API error', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: notifications' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -267,7 +268,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Create notification API error:', error)
+    logger.error('Create notification API error', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: notifications' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

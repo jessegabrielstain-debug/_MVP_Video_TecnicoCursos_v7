@@ -19,6 +19,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { logger } from '@/lib/logger'
 import {
   Bell,
   BellOff,
@@ -305,7 +306,7 @@ export default function NotificationsCenter() {
         setNotifications(data)
       }
     } catch (error) {
-      console.error('Erro ao carregar notificações:', error)
+      logger.error('Erro ao carregar notificações', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationsCenter' })
     }
   }
 
@@ -321,7 +322,7 @@ export default function NotificationsCenter() {
         prev.map(n => (n.id === id ? { ...n, read: true } : n))
       )
     } catch (error) {
-      console.error('Erro ao marcar como lida:', error)
+      logger.error('Erro ao marcar como lida', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationsCenter', notificationId: id })
     }
   }
 
@@ -330,7 +331,7 @@ export default function NotificationsCenter() {
       await fetch('/api/notifications/read-all', { method: 'PUT' })
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     } catch (error) {
-      console.error('Erro ao marcar todas como lidas:', error)
+      logger.error('Erro ao marcar todas como lidas', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationsCenter' })
     }
   }
 
@@ -339,7 +340,7 @@ export default function NotificationsCenter() {
       await fetch(`/api/notifications/${id}`, { method: 'DELETE' })
       setNotifications(prev => prev.filter(n => n.id !== id))
     } catch (error) {
-      console.error('Erro ao excluir notificação:', error)
+      logger.error('Erro ao excluir notificação', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationsCenter', notificationId: id })
     }
   }
 
@@ -352,7 +353,7 @@ export default function NotificationsCenter() {
       })
       setShowPreferences(false)
     } catch (error) {
-      console.error('Erro ao salvar preferências:', error)
+      logger.error('Erro ao salvar preferências', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationsCenter' })
     }
   }
 

@@ -10,7 +10,7 @@ import { Upload, FileText, CheckCircle, Settings } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 interface PPTXImportWizardProps {
-  onComplete?: (data: any) => void
+  onComplete?: (data: Record<string, unknown>) => void
   onCancel?: () => void
 }
 

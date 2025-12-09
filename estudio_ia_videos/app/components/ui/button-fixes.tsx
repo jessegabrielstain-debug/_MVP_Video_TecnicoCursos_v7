@@ -2,6 +2,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { logger } from '@/lib/logger'
 
 // Button click handlers for fixing inactive buttons
 export const useButtonHandlers = () => {
@@ -15,30 +16,30 @@ export const useButtonHandlers = () => {
     switch (action) {
       case 'filter':
         // Handle filter action
-        console.log('Filter action triggered')
+        logger.debug('Filter action triggered', { component: 'useButtonHandlers', action: 'filter' })
         break
       case 'preview':
         // Handle preview action
-        console.log('Preview action triggered')
+        logger.debug('Preview action triggered', { component: 'useButtonHandlers', action: 'preview' })
         break
       case 'tools':
         // Handle tools action
-        console.log('Tools panel toggled')
+        logger.debug('Tools panel toggled', { component: 'useButtonHandlers', action: 'tools' })
         break
       case 'layers':
         // Handle layers action
-        console.log('Layers panel toggled')
+        logger.debug('Layers panel toggled', { component: 'useButtonHandlers', action: 'layers' })
         break
       case 'assets':
         // Handle assets action
-        console.log('Assets panel toggled')
+        logger.debug('Assets panel toggled', { component: 'useButtonHandlers', action: 'assets' })
         break
       case 'upload':
         // Handle upload action
-        console.log('Upload triggered')
+        logger.debug('Upload triggered', { component: 'useButtonHandlers', action: 'upload' })
         break
       default:
-        console.log(`Action ${action} triggered`)
+        logger.debug('Action triggered', { component: 'useButtonHandlers', action })
     }
   }
 

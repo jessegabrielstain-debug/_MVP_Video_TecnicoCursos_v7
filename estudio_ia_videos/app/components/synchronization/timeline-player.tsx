@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -166,7 +167,7 @@ export default function TimelinePlayer({
           await slideAvatarSyncController.playTimeline(
             (slideIndex) => {
               // Callback de mudança de slide
-              console.log(`🎬 Mudando para slide ${slideIndex + 1}`)
+              logger.debug('Mudando para slide', { component: 'TimelinePlayer', slideIndex: slideIndex + 1 })
             },
             (action) => {
               // Callback de ação de avatar
@@ -184,7 +185,7 @@ export default function TimelinePlayer({
             }
           )
         } catch (error) {
-          console.error('Erro na reprodução:', error)
+          logger.error('Erro na reprodução', error instanceof Error ? error : new Error(String(error)), { component: 'TimelinePlayer' })
           handleStop()
         }
       }

@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { logger } from '@/lib/logger'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -324,7 +325,7 @@ function useBattery() {
         battery.addEventListener('levelchange', handleLevelChange)
         battery.addEventListener('chargingchange', handleChargingChange)
       } catch (error) {
-        console.warn('Battery API indisponível:', error)
+        logger.warn('Battery API indisponível', { component: 'MobileOptimized', error })
       }
     }
 
@@ -416,7 +417,7 @@ export default function MobileOptimized() {
 
           if (!isMounted) return
           if (error) {
-            console.warn('Erro ao carregar perfil:', error)
+            logger.warn('Erro ao carregar perfil', { component: 'MobileOptimized', userId: authUser.id, error })
           }
 
           setDisplayName(profile?.name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
@@ -426,7 +427,7 @@ export default function MobileOptimized() {
           setAvatarUrl(null)
         }
       } catch (error) {
-        console.error('Erro ao carregar sessão do usuário:', error)
+        logger.error('Erro ao carregar sessão do usuário', error instanceof Error ? error : new Error(String(error)), { component: 'MobileOptimized' })
       }
     }
 
@@ -826,7 +827,7 @@ export default function MobileOptimized() {
       }
       window.location.href = '/login?reason=session_expired'
     } catch (error) {
-      console.error('Erro ao encerrar sessão:', error)
+      logger.error('Erro ao encerrar sessão', error instanceof Error ? error : new Error(String(error)), { component: 'MobileOptimized' })
     } finally {
       setSigningOut(false)
     }

@@ -19,9 +19,11 @@ export interface ProcessedImage {
   size: number;
 }
 
+import { logger } from '@/lib/logger';
+
 export class ImageProcessor {
   async process(inputBuffer: Buffer, options?: ImageProcessOptions): Promise<ProcessedImage> {
-    console.log('[ImageProcessor] Processing image with options:', options);
+    logger.info('Processing image with options:', { component: 'ImageProcessor', options });
     
     return {
       buffer: inputBuffer,
@@ -33,22 +35,22 @@ export class ImageProcessor {
   }
   
   async resize(buffer: Buffer, width: number, height: number): Promise<Buffer> {
-    console.log('[ImageProcessor] Resizing to:', width, height);
+    logger.info(`Resizing to: ${width}x${height}`, { component: 'ImageProcessor' });
     return buffer;
   }
   
   async crop(buffer: Buffer, x: number, y: number, width: number, height: number): Promise<Buffer> {
-    console.log('[ImageProcessor] Cropping:', { x, y, width, height });
+    logger.info('Cropping:', { component: 'ImageProcessor', x, y, width, height });
     return buffer;
   }
   
   async applyFilter(buffer: Buffer, filter: string): Promise<Buffer> {
-    console.log('[ImageProcessor] Applying filter:', filter);
+    logger.info(`Applying filter: ${filter}`, { component: 'ImageProcessor' });
     return buffer;
   }
 
   async processBatchImages(files: File[], options?: ImageProcessOptions): Promise<ProcessedImage[]> {
-    console.log('[ImageProcessor] Processing batch of', files.length, 'images');
+    logger.info(`Processing batch of ${files.length} images`, { component: 'ImageProcessor' });
     const results: ProcessedImage[] = [];
     
     for (const file of files) {
@@ -67,7 +69,7 @@ export class ImageProcessor {
     format: string;
     sizes: { original: number; webp: number; jpeg: number };
   }> {
-    console.log('[ImageProcessor] Optimizing for web:', options);
+    logger.info('Optimizing for web:', { component: 'ImageProcessor', options });
     
     return {
       buffer,
@@ -96,7 +98,7 @@ export const processProjectImages = async (
   files: File[], 
   options?: ImageProcessOptions
 ): Promise<ProjectImageResult> => {
-  console.log('[ImageProcessor] Processing images for project:', projectId);
+  logger.info(`Processing images for project: ${projectId}`, { component: 'ImageProcessor' });
   try {
     const processedImages = await imageProcessor.processBatchImages(files, options);
     return { 

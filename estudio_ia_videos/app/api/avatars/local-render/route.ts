@@ -17,6 +17,7 @@ import { EnhancedTTSService } from '@/lib/enhanced-tts-service';
 import { S3UploadEngine } from '@/lib/s3-upload-engine';
 import { LocalAvatarRenderer } from '@/lib/local-avatar-renderer';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
     // Inicia processamento em background
     processAvatarRendering(job.id, text, voiceId, avatarId, resolution, fps)
       .catch(error => {
-        console.error(`[Job ${job.id}] Erro no processamento:`, error);
+        logger.error(`[Job ${job.id}] Erro no processamento`, error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/local-render' });
         // Atualiza job com erro
         prisma.processingQueue.update({
           where: { id: job.id },
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
               errorDetails: { stack: error.stack }
             } as Prisma.InputJsonValue
           }
-        }).catch(console.error);
+        }).catch((err) => logger.error('Erro ao atualizar job falho', err instanceof Error ? err : new Error(String(err)), { component: 'API: avatars/local-render' }));
       });
 
     return NextResponse.json({
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Erro ao iniciar renderização local:', error);
+    logger.error('Erro ao iniciar renderização local', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/local-render' });
     return NextResponse.json(
       { error: 'Erro ao iniciar renderização' },
       { status: 500 }
@@ -147,7 +148,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Erro ao consultar status do job:', error);
+    logger.error('Erro ao consultar status do job', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/local-render' });
     return NextResponse.json(
       { error: 'Erro ao consultar status' },
       { status: 500 }
@@ -280,10 +281,10 @@ async function processAvatarRendering(
       }
     });
 
-    console.log(`[Job ${jobId}] ✅ Renderização concluída com sucesso`);
+    logger.info(`[Job ${jobId}] ✅ Renderização concluída com sucesso`, { component: 'API: avatars/local-render' });
 
   } catch (error) {
-    console.error(`[Job ${jobId}] ❌ Erro:`, error);
+    logger.error(`[Job ${jobId}] ❌ Erro`, error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/local-render' });
     throw error;
   }
 }

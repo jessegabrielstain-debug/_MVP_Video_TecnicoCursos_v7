@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * PPTX Generator
  * Gerador de apresentações PowerPoint
@@ -26,7 +28,7 @@ export class PPTXGenerator {
   }
 
   async generate(slides: SlideContent[]): Promise<Buffer> {
-    console.log(`[PPTX] Generating presentation with ${slides.length} slides`);
+    logger.info(`[PPTX] Generating presentation with ${slides.length} slides`, { component: 'PPTXGenerator' });
     
     // Placeholder - implementar com PptxGenJS ou similar
     return Buffer.from('placeholder PPTX');
@@ -38,12 +40,12 @@ export class PPTXGenerator {
   }
 
   async generateFromData(data: Record<string, unknown>): Promise<Buffer> {
-    console.log('[PPTX] Generating from data', data);
+    logger.info('[PPTX] Generating from data', { component: 'PPTXGenerator', data });
     return Buffer.from('mock-pptx-data');
   }
 
   async generateFromTemplate(templateId: string, variables: Record<string, unknown>): Promise<Buffer> {
-    console.log('[PPTX] Generating from template', templateId, variables);
+    logger.info('[PPTX] Generating from template', { component: 'PPTXGenerator', templateId, variables });
     return Buffer.from('mock-pptx-template');
   }
 }

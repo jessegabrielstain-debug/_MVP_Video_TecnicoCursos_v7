@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 // Interfaces
 interface AvatarRenderRequest {
@@ -118,7 +119,7 @@ class Avatar3DRenderer {
 
     // Start processing asynchronously
     this.processAvatarRender(jobId, request).catch(error => {
-      console.error('Avatar render failed:', error)
+      logger.error('Avatar render failed:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/render' })
       this.updateRenderJob(jobId, {
         status: 'failed',
         errorMessage: error.message
@@ -597,7 +598,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Avatar render API error:', error)
+    logger.error('Avatar render API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/render' })
     return NextResponse.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -647,7 +648,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Avatar render status API error:', error)
+    logger.error('Avatar render status API error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/render' })
     return NextResponse.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'

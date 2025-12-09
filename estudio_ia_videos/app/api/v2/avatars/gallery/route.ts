@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRateLimiter, rateLimitPresets } from '../../../../lib/utils/rate-limit-middleware';
 import { avatar3DPipeline } from '../../../../lib/avatar-3d-pipeline'
 import { supabase as supabaseClient } from '../../../../lib/services'
+import { logger } from '@/lib/logger';
 
 // Interface para avatar model da tabela
 interface AvatarModel {
@@ -58,10 +59,10 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
 
-    console.log('🎭 API v2: Buscando galeria de avatares...')
-    console.log(`📂 Categoria: ${category || 'todas'}`)
-    console.log(`✨ Qualidade: ${quality || 'todas'}`)
-    console.log(`🌍 Idioma: ${language || 'todos'}`)
+    logger.info('🎭 API v2: Buscando galeria de avatares...', { component: 'API: v2/avatars/gallery' })
+    logger.info(`📂 Categoria: ${category || 'todas'}`, { component: 'API: v2/avatars/gallery' })
+    logger.info(`✨ Qualidade: ${quality || 'todas'}`, { component: 'API: v2/avatars/gallery' })
+    logger.info(`🌍 Idioma: ${language || 'todos'}`, { component: 'API: v2/avatars/gallery' })
 
     // Buscar avatares do Supabase
     let query: any = ((supabaseClient as any)
@@ -196,7 +197,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response)
   } catch (error) {
-    console.error('❌ Erro na API v2 Gallery:', error)
+    logger.error('❌ Erro na API v2 Gallery', { component: 'API: v2/avatars/gallery', error: error instanceof Error ? error : new Error(String(error)) })
     
     return NextResponse.json({
       success: false,
@@ -217,7 +218,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { avatarId, action, data } = body
 
-    console.log(`🎭 API v2: Ação na galeria - ${action} para avatar ${avatarId}`)
+    logger.info(`🎭 API v2: Ação na galeria - ${action} para avatar ${avatarId}`, { component: 'API: v2/avatars/gallery' })
 
     switch (action) {
       case 'preview': {
@@ -326,7 +327,7 @@ export async function POST(request: NextRequest) {
             }
           })
         } catch (lipSyncError) {
-          console.error('Erro no teste de lip-sync:', lipSyncError)
+          logger.error('Erro no teste de lip-sync', { component: 'API: v2/avatars/gallery', error: lipSyncError instanceof Error ? lipSyncError : new Error(String(lipSyncError)) })
           return NextResponse.json({
             success: false,
             error: { 
@@ -368,7 +369,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
     }
   } catch (error) {
-    console.error('❌ Erro na ação da galeria:', error)
+    logger.error('❌ Erro na ação da galeria', { component: 'API: v2/avatars/gallery', error: error instanceof Error ? error : new Error(String(error)) })
     
     return NextResponse.json({
       success: false,

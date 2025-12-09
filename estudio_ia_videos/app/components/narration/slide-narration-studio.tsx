@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -133,14 +134,14 @@ export default function SlideNarrationStudio({
           `🎉 Narração gerada com sucesso! ${data.data.summary.successfulSlides}/${data.data.summary.totalSlides} slides`
         )
         
-        console.log('📊 Resumo da narração:', data.data.summary)
+        logger.info('Resumo da narração', { component: 'SlideNarrationStudio', summary: data.data.summary })
         
       } else {
         throw new Error(data.error)
       }
 
     } catch (error) {
-      console.error('Erro na geração de narração:', error)
+      logger.error('Erro na geração de narração', error instanceof Error ? error : new Error(String(error)), { component: 'SlideNarrationStudio', projectId })
       toast.error(`Erro: ${error instanceof Error ? error.message : 'Falha na geração'}`)
     } finally {
       setIsProcessing(false)
@@ -179,7 +180,7 @@ export default function SlideNarrationStudio({
       await audio.play()
 
     } catch (error) {
-      console.error('Erro no preview:', error)
+      logger.error('Erro no preview', error instanceof Error ? error : new Error(String(error)), { component: 'SlideNarrationStudio', slideIndex })
       toast.error('Erro ao reproduzir preview')
       setPlayingSlide(null)
     }

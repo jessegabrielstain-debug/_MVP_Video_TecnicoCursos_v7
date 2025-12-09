@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PPTXGenerator, PPTXGenerationOptions } from '@/lib/pptx/pptx-generator';
+import { logger } from '@/lib/logger';
 
 /**
  * POST - Gerar apresentação PPTX
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[PPTX Generate API] Generating presentation type: ${type}`);
+    logger.info(`Generating presentation type: ${type}`, { component: 'API: pptx/generate', type });
 
     const generationOptions: PPTXGenerationOptions = options || {};
     const generator = new PPTXGenerator(generationOptions);
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
     headers.set('Content-Disposition', `attachment; filename="${data.title || 'apresentacao'}.pptx"`);
     headers.set('Content-Length', buffer.length.toString());
 
-    console.log(`[PPTX Generate API] Generated presentation successfully (${buffer.length} bytes)`);
+    logger.info(`Generated presentation successfully (${buffer.length} bytes)`, { component: 'API: pptx/generate', size: buffer.length });
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[PPTX Generate API] Generation error:', error);
+    logger.error('Generation error', { component: 'API: pptx/generate', error: error instanceof Error ? error : new Error(String(error)) });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: 'Erro na geração da apresentação', details: errorMessage },

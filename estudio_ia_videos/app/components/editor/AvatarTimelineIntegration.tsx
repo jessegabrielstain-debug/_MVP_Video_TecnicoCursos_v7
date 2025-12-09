@@ -8,6 +8,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -151,7 +152,7 @@ export default function AvatarTimelineIntegration({
       setPreviewAudioUrl(newClip.audioUrl);
       setText('');
     } catch (error) {
-      console.error('Erro ao gerar clip:', error);
+      logger.error('Erro ao gerar clip', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarTimelineIntegration' });
       // Fallback para demonstração (Ritmo Continuo)
       const mockClip: AvatarTimelineClip = {
         id: editingClipId || `avatar_clip_${Date.now()}`,

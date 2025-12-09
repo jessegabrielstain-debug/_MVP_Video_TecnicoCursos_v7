@@ -18,6 +18,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import {
   Users,
   Shield,
@@ -121,7 +122,7 @@ export default function AdminPanel() {
       const data = await response.json()
       setStats(data)
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      logger.error('Error fetching stats', error instanceof Error ? error : new Error(String(error)), { component: 'AdminPanel' })
     } finally {
       setLoading(false)
     }
@@ -305,7 +306,7 @@ const UsersManager: React.FC = () => {
       const data = await response.json()
       setUsers(data)
     } catch (error) {
-      console.error('Error fetching users:', error)
+      logger.error('Error fetching users', error instanceof Error ? error : new Error(String(error)), { component: 'UsersManager', filter })
     } finally {
       setLoading(false)
     }
@@ -320,7 +321,7 @@ const UsersManager: React.FC = () => {
       })
       fetchUsers()
     } catch (error) {
-      console.error('Error updating user:', error)
+      logger.error('Error updating user', error instanceof Error ? error : new Error(String(error)), { component: 'UsersManager', userId, status })
     }
   }
 
@@ -333,7 +334,7 @@ const UsersManager: React.FC = () => {
       })
       fetchUsers()
     } catch (error) {
-      console.error('Error updating quota:', error)
+      logger.error('Error updating quota', error instanceof Error ? error : new Error(String(error)), { component: 'UsersManager', userId, quota })
     }
   }
 
@@ -491,7 +492,7 @@ const RateLimitsManager: React.FC = () => {
       const data = await response.json()
       setConfigs(data)
     } catch (error) {
-      console.error('Error fetching rate limits:', error)
+      logger.error('Error fetching rate limits', error instanceof Error ? error : new Error(String(error)), { component: 'RateLimitsManager' })
     }
   }
 

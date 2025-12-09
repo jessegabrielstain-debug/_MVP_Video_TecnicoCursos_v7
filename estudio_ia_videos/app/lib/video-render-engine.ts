@@ -90,6 +90,8 @@ export interface RenderClip {
   source: string;
 }
 
+import { logger } from '@/lib/logger';
+
 export class VideoRenderEngine {
   private jobs: Map<string, RenderJob> = new Map();
 
@@ -99,7 +101,7 @@ export class VideoRenderEngine {
     options: RenderOptions,
     onProgress?: (progress: RenderProgress) => void
   ): Promise<void> {
-    console.log('[RenderEngine] Starting render:', { inputPath, outputPath, options });
+    logger.info('[RenderEngine] Starting render:', { component: 'VideoRenderEngine', inputPath, outputPath, options });
     
     // Simular progresso
     if (onProgress) {
@@ -110,7 +112,7 @@ export class VideoRenderEngine {
   }
   
   async validateInput(path: string): Promise<boolean> {
-    console.log('[RenderEngine] Validating input:', path);
+    logger.info(`[RenderEngine] Validating input: ${path}`, { component: 'VideoRenderEngine' });
     return true;
   }
   
@@ -128,7 +130,7 @@ export class VideoRenderEngine {
     slides: RenderSlide[],
     options?: { projectId?: string; userId?: string }
   ): Promise<{ timelineId: string; totalDuration: number }> {
-    console.log('[RenderEngine] Creating timeline from', slides.length, 'slides');
+    logger.info(`[RenderEngine] Creating timeline from ${slides.length} slides`, { component: 'VideoRenderEngine' });
     const timelineId = `timeline_${Date.now()}`;
     const totalDuration = slides.reduce((sum, s) => sum + (s.duration || 5), 0);
     return { timelineId, totalDuration };
@@ -139,7 +141,7 @@ export class VideoRenderEngine {
     timeline: RenderTimeline | null, 
     settings?: RenderJobSettings
   ): Promise<string> {
-    console.log('[RenderEngine] Starting render with slides:', slides.length);
+    logger.info(`[RenderEngine] Starting render with slides: ${slides.length}`, { component: 'VideoRenderEngine' });
     const jobId = `job_${Date.now()}`;
     
     this.jobs.set(jobId, {
@@ -166,17 +168,17 @@ export class VideoRenderEngine {
   }
 
   async getAllJobs(userId?: string): Promise<RenderJob[]> {
-    console.log('[RenderEngine] Getting all jobs for user:', userId);
+    logger.info(`[RenderEngine] Getting all jobs for user: ${userId}`, { component: 'VideoRenderEngine' });
     return Array.from(this.jobs.values());
   }
 
   async getJobStatus(jobId: string): Promise<RenderJob | null> {
-    console.log('[RenderEngine] Getting job status:', jobId);
+    logger.info(`[RenderEngine] Getting job status: ${jobId}`, { component: 'VideoRenderEngine' });
     return this.jobs.get(jobId) || null;
   }
 
   async cancelJob(jobId: string): Promise<boolean> {
-    console.log('[RenderEngine] Cancelling job:', jobId);
+    logger.info(`[RenderEngine] Cancelling job: ${jobId}`, { component: 'VideoRenderEngine' });
     const job = this.jobs.get(jobId);
     if (job) {
       job.status = 'cancelled';
@@ -187,7 +189,7 @@ export class VideoRenderEngine {
   }
 
   async cleanupJob(jobId: string): Promise<boolean> {
-    console.log('[RenderEngine] Cleaning up job:', jobId);
+    logger.info(`[RenderEngine] Cleaning up job: ${jobId}`, { component: 'VideoRenderEngine' });
     return this.jobs.delete(jobId);
   }
 }

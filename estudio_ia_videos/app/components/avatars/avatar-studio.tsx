@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -121,7 +122,7 @@ export default function AvatarStudio({ selectedAvatar, onAvatarChange }: AvatarS
       const data = await response.json();
       setAudio2FaceStatus(data.audio2FaceStatus || 'inactive');
     } catch (error) {
-      console.error('Erro ao verificar status do Audio2Face:', error);
+      logger.error('Erro ao verificar status do Audio2Face', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarStudio' });
       setAudio2FaceStatus('inactive');
     }
   };
@@ -134,7 +135,7 @@ export default function AvatarStudio({ selectedAvatar, onAvatarChange }: AvatarS
         setRenderJobs(data.jobs || []);
       }
     } catch (error) {
-      console.error('Erro ao carregar jobs de renderização:', error);
+      logger.error('Erro ao carregar jobs de renderização', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarStudio' });
     }
   };
 
@@ -216,7 +217,7 @@ export default function AvatarStudio({ selectedAvatar, onAvatarChange }: AvatarS
         toast.error(`Erro na renderização: ${result.error}`);
       }
     } catch (error) {
-      console.error('Erro ao iniciar renderização:', error);
+      logger.error('Erro ao iniciar renderização', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarStudio' });
       toast.error('Erro ao conectar com o serviço de renderização');
     } finally {
       setIsRendering(false);
@@ -277,7 +278,7 @@ export default function AvatarStudio({ selectedAvatar, onAvatarChange }: AvatarS
           }
         }
       } catch (error) {
-        console.error('Erro ao monitorar job:', error);
+        logger.error('Erro ao monitorar job', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarStudio', jobId });
       }
     }, 2000); // Verificar a cada 2 segundos
     
@@ -299,7 +300,7 @@ export default function AvatarStudio({ selectedAvatar, onAvatarChange }: AvatarS
         toast.success('Job cancelado com sucesso');
       }
     } catch (error) {
-      console.error('Erro ao cancelar job:', error);
+      logger.error('Erro ao cancelar job', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarStudio', jobId });
       toast.error('Erro ao cancelar job');
     }
   };
@@ -322,7 +323,7 @@ export default function AvatarStudio({ selectedAvatar, onAvatarChange }: AvatarS
       
       toast.success('Download iniciado');
     } catch (error) {
-      console.error('Erro no download:', error);
+      logger.error('Erro no download', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarStudio', jobId: job.id });
       toast.error('Erro ao fazer download');
     }
   };
@@ -356,7 +357,7 @@ export default function AvatarStudio({ selectedAvatar, onAvatarChange }: AvatarS
         toast.success('Preview gerado!');
       }
     } catch (error) {
-      console.error('Erro ao gerar preview:', error);
+      logger.error('Erro ao gerar preview', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarStudio', avatarId: selectedAvatar?.id });
       toast.error('Erro ao gerar preview');
     } finally {
       setPreviewMode(false);

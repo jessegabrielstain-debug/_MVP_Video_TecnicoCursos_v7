@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { logger } from '@/lib/logger'
 import { useRouter } from 'next/navigation'
 import { createBrowserSupabaseClient } from '@/lib/services'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
@@ -92,7 +93,7 @@ export default function DashboardHome() {
           setDisplayName(profile?.name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
           setAvatarUrl(profile?.avatar_url ?? authUser.user_metadata?.avatar_url ?? null)
         } catch (error) {
-          console.error('Erro ao carregar perfil do usuário:', error)
+          logger.error('Erro ao carregar perfil do usuário:', error instanceof Error ? error : new Error(String(error)), { component: 'DashboardHome' })
           setDisplayName(authUser.user_metadata?.name ?? authUser.email ?? null)
           setAvatarUrl(authUser.user_metadata?.avatar_url ?? null)
         }
@@ -182,7 +183,7 @@ export default function DashboardHome() {
       router.replace('/login?reason=session_expired')
       router.refresh()
     } catch (error) {
-      console.error('Erro ao fazer logout:', error)
+      logger.error('Erro ao fazer logout:', error instanceof Error ? error : new Error(String(error)), { component: 'DashboardHome' })
     } finally {
       setSigningOut(false)
     }

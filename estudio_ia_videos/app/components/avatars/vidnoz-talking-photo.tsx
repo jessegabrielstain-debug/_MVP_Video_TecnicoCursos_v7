@@ -8,6 +8,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
+import { logger } from '@/lib/logger'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -170,10 +171,12 @@ export default function VidnozTalkingPhoto({ className }: VidnozTalkingPhotoProp
     setGenerationProgress(0)
 
     try {
-      console.log('🎬 Iniciando geração REAL de talking photo')
-      console.log(`📝 Texto: "${inputText.substring(0, 100)}..."`)
-      console.log(`🎭 Avatar: ${selectedAvatar.name}`)
-      console.log(`🗣️ Voz: ${selectedVoice}`)
+      logger.info('Iniciando geração REAL de talking photo', {
+        component: 'VidnozTalkingPhoto',
+        textPreview: inputText.substring(0, 100),
+        avatarName: selectedAvatar.name,
+        voice: selectedVoice
+      })
       
       // Progresso realista para operações reais
       const progressInterval = setInterval(() => {
@@ -224,21 +227,22 @@ export default function VidnozTalkingPhoto({ className }: VidnozTalkingPhotoProp
       setIsGenerating(false)
 
       if (result.success) {
-        console.log('✅ Talking Photo REAL concluído!')
-        console.log('📊 Dados REAIS:', result.data)
-        console.log('🎵 Áudio URL:', result.data.audioUrl)
-        console.log('🎬 Vídeo URL:', result.data.videoUrl)
-        console.log('🔧 TTS Provider:', result.data.processing.ttsProvider)
-        console.log('⚡ Qualidade TTS:', result.data.processing.ttsQuality)
-        console.log('👄 Lip Sync Accuracy:', result.data.processing.lipSyncAccuracy)
+        logger.info('Talking Photo REAL concluído', {
+          component: 'VidnozTalkingPhoto',
+          audioUrl: result.data.audioUrl,
+          videoUrl: result.data.videoUrl,
+          ttsProvider: result.data.processing.ttsProvider,
+          ttsQuality: result.data.processing.ttsQuality,
+          lipSyncAccuracy: result.data.processing.lipSyncAccuracy
+        })
         
         // Testar reprodução REAL do áudio
         try {
           const audio = new Audio(result.data.audioUrl)
           await audio.play()
-          console.log('✅ Áudio REAL reproduzindo!')
+          logger.info('Áudio REAL reproduzindo', { component: 'VidnozTalkingPhoto' })
         } catch (audioErr) {
-          console.warn('⚠️ Erro ao reproduzir áudio:', audioErr)
+          logger.warn('Erro ao reproduzir áudio', { component: 'VidnozTalkingPhoto', error: audioErr })
         }
         
         // Modal de sucesso com dados REAIS
@@ -273,7 +277,7 @@ O TALKING PHOTO AGORA REALMENTE FUNCIONA!`)
       }
 
     } catch (error: unknown) {
-      console.error('❌ Erro na geração:', error)
+      logger.error('Erro na geração de talking photo', error instanceof Error ? error : new Error(String(error)), { component: 'VidnozTalkingPhoto' })
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
       alert(`❌ Erro na geração do talking photo:
 

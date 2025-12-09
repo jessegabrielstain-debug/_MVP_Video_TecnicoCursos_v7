@@ -105,3 +105,7 @@ Thumbs.db
 supabase-audit.json
 setup-status.json
 estudio_ia_videos/app/app/nul
+
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md

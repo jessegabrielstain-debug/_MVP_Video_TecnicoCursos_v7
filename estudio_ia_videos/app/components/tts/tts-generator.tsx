@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { VoiceSelector } from './voice-selector'
 import { Volume2, Wand2, Download, Loader2 } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 export interface TTSGeneratorProps {
   text: string
@@ -90,7 +91,7 @@ export function TTSGenerator({
       fetchCredits()
 
     } catch (err) {
-      console.error('Error generating audio:', err)
+      logger.error('Error generating audio', err instanceof Error ? err : new Error(String(err)), { component: 'TTSGenerator', provider })
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setGenerating(false)
@@ -109,7 +110,7 @@ export function TTSGenerator({
         setCredits(data.data.user)
       }
     } catch (err) {
-      console.error('Error fetching credits:', err)
+      logger.error('Error fetching credits', err instanceof Error ? err : new Error(String(err)), { component: 'TTSGenerator', provider })
     }
   }
 

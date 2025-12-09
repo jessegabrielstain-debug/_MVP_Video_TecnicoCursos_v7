@@ -4,6 +4,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 export interface Notification {
   id: string;
@@ -34,7 +35,7 @@ export class NotificationManager {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     
     if (!supabaseUrl || !supabaseKey) {
-      console.warn('⚠️ Supabase credentials not found in NotificationManager');
+      logger.warn('Supabase credentials not found in NotificationManager', { component: 'NotificationManager' });
     }
     
     this.supabase = createClient(supabaseUrl, supabaseKey, {
@@ -128,7 +129,7 @@ export class NotificationManager {
       .single();
 
     if (error) {
-      console.error('Failed to create notification:', error);
+      logger.error('Failed to create notification', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationManager' });
       throw error;
     }
 
@@ -236,13 +237,13 @@ export class NotificationManager {
         actionUrl: data?.uploadId ? `/upload/${data.uploadId}` : undefined
       });
     } catch (error) {
-      console.error('Error sending notification to user:', error);
+      logger.error('Error sending notification to user', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationManager' });
     }
   }
 
   async broadcastToRoom(roomId: string, notification: Record<string, unknown>): Promise<void> {
     // Not implemented in persistence layer yet
-    console.log(`[NotificationManager] Broadcasting to room ${roomId}:`, notification.title);
+    logger.info(`Broadcasting to room ${roomId}`, { component: 'NotificationManager', title: notification.title });
   }
 
   async sendNotification(notification: {
@@ -268,7 +269,7 @@ export class NotificationManager {
           actionUrl: notification.data?.uploadId ? `/upload/${notification.data.uploadId}` : undefined
         });
       } catch (error) {
-        console.error('Error persisting notification:', error);
+        logger.error('Error persisting notification', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationManager' });
       }
     }
 
@@ -280,7 +281,7 @@ export class NotificationManager {
     // 3. Send to user if specified (and not already handled by broadcast if room is user-specific)
     if (notification.userId && !notification.roomId) {
        // In a real implementation, this would send via WebSocket to the user's channel
-       console.log(`[NotificationManager] Sending to user ${notification.userId}:`, notification.title);
+       logger.info(`Sending to user ${notification.userId}`, { component: 'NotificationManager', title: notification.title });
     }
   }
 }

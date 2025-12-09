@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { logger } from '@/lib/logger';
 import { 
   Card, 
   CardContent, 
@@ -81,7 +82,7 @@ export function HybridRenderPanel({
     try {
       await startHybridRender(projectId, timeline, assets, settings);
     } catch (error) {
-      console.error('Failed to start render:', error);
+      logger.error('Failed to start render:', error instanceof Error ? error : new Error(String(error)), { component: 'HybridRenderPanel', projectId });
     } finally {
       setIsStarting(false);
     }
@@ -91,7 +92,7 @@ export function HybridRenderPanel({
     try {
       await cancelJob(jobId);
     } catch (error) {
-      console.error('Failed to cancel job:', error);
+      logger.error('Failed to cancel job:', error instanceof Error ? error : new Error(String(error)), { component: 'HybridRenderPanel', jobId });
     }
   };
 

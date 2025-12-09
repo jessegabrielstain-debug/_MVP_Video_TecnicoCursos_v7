@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * Analytics Tracker
  * Sistema de tracking de eventos de analytics
@@ -53,7 +55,7 @@ export class AnalyticsTracker {
   private buffer: AnalyticsEvent[] = [];
   
   track(event: string, properties?: Record<string, unknown>, userId?: string) {
-    console.log('[Analytics] Track event:', event, properties);
+    logger.info('[Analytics] Track event', { component: 'AnalyticsTracker', event, properties });
     
     this.buffer.push({
       event,
@@ -64,7 +66,7 @@ export class AnalyticsTracker {
   }
   
   async flush(): Promise<void> {
-    console.log('[Analytics] Flushing', this.buffer.length, 'events');
+    logger.info(`[Analytics] Flushing ${this.buffer.length} events`, { component: 'AnalyticsTracker' });
     this.buffer = [];
   }
   
@@ -73,7 +75,7 @@ export class AnalyticsTracker {
   }
   
   identify(userId: string, traits?: Record<string, unknown>) {
-    console.log('[Analytics] Identify user:', userId, traits);
+    logger.info('[Analytics] Identify user', { component: 'AnalyticsTracker', userId, traits });
   }
 
   static async trackTimelineEdit(data: {
@@ -85,7 +87,7 @@ export class AnalyticsTracker {
     userId: string;
     action?: string;
   }) {
-    console.log('[Analytics] Timeline Edit:', data);
+    logger.info('[Analytics] Timeline Edit', { component: 'AnalyticsTracker', data });
     // In a real implementation, this would save to the database
   }
 

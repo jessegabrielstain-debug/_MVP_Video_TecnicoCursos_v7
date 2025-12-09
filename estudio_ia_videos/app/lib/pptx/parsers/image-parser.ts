@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import { getBrowserClient } from '../../supabase/browser';
 import { XMLParser } from 'fast-xml-parser';
+import { logger } from '@/lib/logger';
 
 export interface ImageExtractionOptions {
   maxImages?: number;
@@ -230,7 +231,7 @@ export class PPTXImageParser {
 
       return images;
     } catch (error) {
-      console.warn(`Erro ao extrair imagens do slide ${slideNumber}:`, error);
+      logger.warn('Erro ao extrair imagens do slide ' + slideNumber, { component: 'PPTXImageParser', error });
       return [];
     }
   }
@@ -246,7 +247,7 @@ export class PPTXImageParser {
         .png()
         .toBuffer();
     } catch (error) {
-      console.error('Sharp is not available or error generating thumbnail:', error);
+      logger.error('Sharp is not available or error generating thumbnail', error instanceof Error ? error : new Error(String(error)), { component: 'PPTXImageParser' });
       return null;
     }
   }

@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 interface InteractiveElement {
   id?: string
@@ -71,7 +72,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Interactive elements processing error:', error);
+    logger.error('Interactive elements processing error', { 
+      component: 'API: v1/interactive/elements', 
+      error: error instanceof Error ? error : new Error(String(error)) 
+    });
     return NextResponse.json(
       { success: false, message: 'Erro ao processar elementos interativos' },
       { status: 500 }
@@ -202,7 +206,10 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get interactive elements error:', error);
+    logger.error('Get interactive elements error', { 
+      component: 'API: v1/interactive/elements', 
+      error: error instanceof Error ? error : new Error(String(error)) 
+    });
     return NextResponse.json(
       { success: false, message: 'Erro ao carregar elementos interativos' },
       { status: 500 }
@@ -232,7 +239,10 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Update interactive element error:', error);
+    logger.error('Update interactive element error', { 
+      component: 'API: v1/interactive/elements', 
+      error: error instanceof Error ? error : new Error(String(error)) 
+    });
     return NextResponse.json(
       { success: false, message: 'Erro ao atualizar elemento interativo' },
       { status: 500 }
@@ -266,7 +276,10 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Delete interactive element error:', error);
+    logger.error('Delete interactive element error', { 
+      component: 'API: v1/interactive/elements', 
+      error: error instanceof Error ? error : new Error(String(error)) 
+    });
     return NextResponse.json(
       { success: false, message: 'Erro ao remover elemento interativo' },
       { status: 500 }

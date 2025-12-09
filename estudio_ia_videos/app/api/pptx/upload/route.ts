@@ -7,6 +7,7 @@ import { existsSync } from 'fs'
 import { withRateLimit, RATE_LIMITS } from '@/lib/rate-limiter-real'
 import PPTXProcessorReal from '@/lib/pptx/pptx-processor-real'
 import { notificationManager } from '@/lib/notifications/notification-manager'
+import { logger } from '@/lib/logger';
 
 // Schema de validação para upload
 const uploadSchema = z.object({
@@ -74,7 +75,7 @@ export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POS
         .single()
       
       if (projectError || !newProject) {
-        console.error('Erro ao criar projeto:', projectError)
+        logger.error('Erro ao criar projeto:', projectError instanceof Error ? projectError : new Error(String(projectError)), { component: 'API: pptx/upload' })
         return NextResponse.json(
           { error: 'Erro ao criar projeto automaticamente' },
           { status: 500 }
@@ -176,7 +177,7 @@ export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POS
       .single()
 
     if (error) {
-      console.error('Erro ao criar registro de upload:', error)
+      logger.error('Erro ao criar registro de upload:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/upload' })
       return NextResponse.json(
         { error: 'Erro ao salvar informações do upload' },
         { status: 500 }
@@ -245,7 +246,7 @@ export const POST = withRateLimit(RATE_LIMITS.UPLOAD, 'user')(async function POS
       )
     }
 
-    console.error('Erro no upload de PPTX:', error)
+    logger.error('Erro no upload de PPTX:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/upload' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -328,7 +329,7 @@ export async function GET(request: NextRequest) {
     const { data: uploads, error } = await query
 
     if (error) {
-      console.error('Erro ao buscar uploads:', error)
+      logger.error('Erro ao buscar uploads:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/upload' })
       return NextResponse.json(
         { error: 'Erro interno do servidor' },
         { status: 500 }
@@ -338,7 +339,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ uploads: uploads || [] })
 
   } catch (error) {
-    console.error('Erro na API de uploads PPTX:', error)
+    logger.error('Erro na API de uploads PPTX:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/upload' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -500,7 +501,7 @@ async function processPPTXAsync(uploadId: string, filePath: string, projectId: s
     })
 
   } catch (error) {
-    console.error('Erro no processamento de PPTX:', error)
+    logger.error('Erro no processamento de PPTX:', error instanceof Error ? error : new Error(String(error)), { component: 'API: pptx/upload' })
 
     // Marcar como falha
     const supabase = supabaseAdmin

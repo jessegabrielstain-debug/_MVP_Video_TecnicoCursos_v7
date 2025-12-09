@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { Server as SocketIOServer, Socket } from 'socket.io'
 import { Server as HTTPServer } from 'http'
 import { 
@@ -27,7 +28,7 @@ export function initializeWebSocket(server: HTTPServer) {
   const socketData = new Map<string, SocketUser>()
 
   io.on('connection', (socket: Socket) => {
-    console.log('✓ Socket conectado:', socket.id)
+    logger.info('✓ Socket conectado', { component: 'TimelineWebsocket', socketId: socket.id });
     
     // Extract user data from auth handshake if available
     const authData = socket.handshake.auth
@@ -256,7 +257,7 @@ export function initializeWebSocket(server: HTTPServer) {
     })
 
     socket.on('disconnect', () => {
-      console.log('Socket desconectado:', socket.id)
+      logger.info('Socket desconectado', { component: 'TimelineWebsocket', socketId: socket.id });
       
       const userId = socket.data.userId || socket.id
       
@@ -276,6 +277,6 @@ export function initializeWebSocket(server: HTTPServer) {
     })
   })
 
-  console.log('✓ Socket.IO timeline server configurado')
+  logger.info('✓ Socket.IO timeline server configurado', { component: 'TimelineWebsocket' });
   return io
 }

@@ -3,6 +3,7 @@
 
 import { useState, useCallback } from 'react'
 import Image from 'next/image'
+import { logger } from '@/lib/logger'
 import { ImageIcon, AlertTriangle } from 'lucide-react'
 
 interface ImageFallbackProps {
@@ -32,7 +33,7 @@ export function ImageFallback({
   const [isLoading, setIsLoading] = useState(true)
 
   const handleImageError = useCallback(() => {
-    console.warn(`🖼️ Imagem não encontrada: ${src}`)
+    logger.warn('Imagem não encontrada', { component: 'ImageFallback', src })
     setImageError(true)
     setIsLoading(false)
   }, [src])

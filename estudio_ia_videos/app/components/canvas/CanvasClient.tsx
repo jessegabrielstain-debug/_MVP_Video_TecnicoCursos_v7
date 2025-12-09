@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { logger } from "@/lib/logger";
 import { FabricManager } from "@/lib/fabric-singleton";
 
 interface CanvasClientProps {
@@ -53,7 +54,7 @@ export default function CanvasClient({
         setFabricLoaded(true);
         onReady?.(canvas);
       } catch (error) {
-        console.error("Erro ao carregar Fabric.js:", error);
+        logger.error("Erro ao carregar Fabric.js", error instanceof Error ? error : new Error(String(error)), { component: "CanvasClient" });
       }
     };
 

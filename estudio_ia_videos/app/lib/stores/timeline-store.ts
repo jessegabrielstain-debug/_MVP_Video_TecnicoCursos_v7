@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { logger } from '@/lib/logger';
 import { DragData, TimelineSelection, TimelineProject, TimelineElement } from '../types/timeline-types';
 
 // ========================================
@@ -124,11 +125,11 @@ export const useTimelineStore = create<TimelineStore>((set) => ({
   setVolume: (volume) => set({ volume }),
   seekTo: (time) => set({ currentTime: time }),
   stop: () => set({ isPlaying: false, currentTime: 0 }),
-  undo: () => console.log('Undo not implemented'),
-  redo: () => console.log('Redo not implemented'),
+  undo: () => logger.warn('Undo not implemented', { component: 'TimelineStore' }),
+  redo: () => logger.warn('Redo not implemented', { component: 'TimelineStore' }),
   zoomToFit: () => set({ zoom: 1 }),
-  saveProject: () => console.log('Save project not implemented'),
-  addRenderJob: (job) => console.log('Add render job', job),
+  saveProject: () => logger.warn('Save project not implemented', { component: 'TimelineStore' }),
+  addRenderJob: (job) => logger.info('Add render job', { component: 'TimelineStore', job }),
   selectElement: (id, multi) => set((state) => ({
     selection: {
       ...state.selection,
@@ -153,9 +154,9 @@ export const useTimelineStore = create<TimelineStore>((set) => ({
     collaborators: state.collaborators.filter(c => c.id !== id)
   })),
   loadProject: (project) => set({ project }),
-  addElement: (element) => console.log('Add element not implemented', element),
-  moveElement: (elementId, newLayerId, newTime) => console.log('Move element not implemented', elementId, newLayerId, newTime),
-  updateElement: (elementId, updates) => console.log('Update element not implemented', elementId, updates),
+  addElement: (element) => logger.warn('Add element not implemented', { component: 'TimelineStore', element }),
+  moveElement: (elementId, newLayerId, newTime) => logger.warn('Move element not implemented', { component: 'TimelineStore', elementId, newLayerId, newTime }),
+  updateElement: (elementId, updates) => logger.warn('Update element not implemented', { component: 'TimelineStore', elementId, updates }),
    setBeatMarkers: (markers) => set({ beatMarkers: markers }),
    enableContinuousFlow: (enabled) => set({ continuousFlowEnabled: enabled }),
 }));

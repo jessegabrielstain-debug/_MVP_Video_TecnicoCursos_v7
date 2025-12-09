@@ -1,6 +1,8 @@
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
 import { ParsedPPTXData, ParsedPPTXMetadata, Slide } from '@/lib/definitions';
+import { logger } from '@/lib/logger';
+import type { PPTXParseResult } from '@/types/external-apis';
 
 const DEFAULT_METADATA: ParsedPPTXMetadata = {
   title: 'Untitled Presentation',
@@ -85,7 +87,7 @@ export class PPTXParser {
               notes: '',
             });
           } catch (e) {
-            console.warn(`Failed to parse slide ${slideNumber}:`, e);
+            logger.warn(`Failed to parse slide ${slideNumber}:`, { component: 'PPTXParser', error: e });
             // Continue to next slide
           }
         }
@@ -104,27 +106,42 @@ export class PPTXParser {
     };
   }
 
-  async parseFile(file: File): Promise<any> {
+  async parseFile(file: File): Promise<PPTXParseResult> {
     const buffer = Buffer.from(await file.arrayBuffer());
     const parsed = await this.parsePPTX(buffer);
     
     return {
-      title: parsed.metadata.title,
-      author: parsed.metadata.author,
-      slideCount: parsed.metadata.slideCount,
-      totalDuration: parsed.metadata.slideCount * 5, // Mock duration
-      createdDate: new Date(),
-      theme: 'default',
+      metadata: {
+        title: parsed.metadata.title,
+        author: parsed.metadata.author,
+        slideCount: parsed.metadata.slideCount,
+        subject: parsed.metadata.subject,
+        keywords: [],
+        createdAt: new Date().toISOString(),
+        modifiedAt: new Date().toISOString(),
+      },
       slides: parsed.slides.map((s, i) => ({
-        id: `slide-${i+1}`,
-        slideNumber: i+1,
+        slideIndex: i,
+        slideId: `slide-${i+1}`,
+        layout: 'default',
         title: s.title,
-        content: s.content ? [s.content] : [],
-        duration: 5,
-        images: [],
-        shapes: [],
-        animations: []
-      }))
+        notes: s.notes,
+        elements: s.content ? [{
+          id: `text-${i}`,
+          type: 'text' as const,
+          content: s.content,
+          position: { x: 0, y: 0, width: 100, height: 100 }
+        }] : [],
+      })),
+      errors: [],
+      warnings: [],
+      statistics: {
+        totalSlides: parsed.metadata.slideCount,
+        totalElements: parsed.slides.length,
+        totalImages: 0,
+        totalTextBoxes: parsed.slides.length,
+        parseTimeMs: 0,
+      }
     };
   }
 

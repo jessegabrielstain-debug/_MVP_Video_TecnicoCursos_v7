@@ -9,6 +9,7 @@
 import React from 'react'
 import { Button, ButtonProps } from './button'
 import { toast } from 'react-hot-toast'
+import { logger } from '@/lib/logger'
 
 interface NavigationFixProps {
   children?: React.ReactNode
@@ -18,7 +19,7 @@ interface NavigationFixProps {
 export function NavigationFix({ children }: NavigationFixProps) {
   const handleMissingAction = (actionName: string) => {
     toast.success(`${actionName} - Funcionalidade em desenvolvimento!`)
-    console.log(`Action triggered: ${actionName}`)
+    logger.debug('Action triggered', { component: 'NavigationFix', actionName })
   }
 
   return (

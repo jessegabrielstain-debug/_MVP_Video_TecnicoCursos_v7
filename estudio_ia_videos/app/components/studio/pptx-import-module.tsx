@@ -6,6 +6,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import { useDropzone } from 'react-dropzone'
 import { 
   Upload, 
@@ -262,7 +263,7 @@ export default function PPTXImportModule({
       }
 
     } catch (error: any) {
-      console.error('Import error:', error)
+      logger.error('PPTX import error', error instanceof Error ? error : new Error(String(error)), { component: 'PPTXImportModule' })
       toast.error('Erro na importação: ' + error.message)
     } finally {
       setIsImporting(false)

@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,7 +64,10 @@ export async function POST(request: NextRequest) {
     };
 
     // In production, this would be stored in database
-    console.log('New version created:', newVersion);
+    logger.info('New version created', {
+      component: 'API: collaboration/version/create',
+      context: { version: newVersion }
+    });
 
     return NextResponse.json({
       success: true,
@@ -72,7 +76,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating version:', error);
+    logger.error('Error creating version', {
+      component: 'API: collaboration/version/create',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -147,7 +154,10 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching versions:', error);
+    logger.error('Error fetching versions', {
+      component: 'API: collaboration/version/create',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

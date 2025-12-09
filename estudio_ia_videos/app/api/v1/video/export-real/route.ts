@@ -5,13 +5,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { exportProjectVideo, getExportJobStatus } from '@/lib/video-export-real'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    console.log('DEBUG: Body received:', JSON.stringify(body))
+    logger.info('DEBUG: Body received', { component: 'API: v1/video/export-real', body: JSON.stringify(body) })
     const { projectId, options } = body
 
     if (!projectId) {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
     const exportOptions = normalized as ExportOptions
 
-    console.log('🎬 Iniciando exportação de vídeo para projeto:', projectId)
+    logger.info(`🎬 Iniciando exportação de vídeo para projeto: ${projectId}`, { component: 'API: v1/video/export-real' })
 
     // Iniciar exportação assíncrona
     const result = await exportProjectVideo(projectId, exportOptions)
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Erro na API de exportação de vídeo:', error)
+    logger.error('❌ Erro na API de exportação de vídeo', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/video/export-real' })
     return NextResponse.json(
       { 
         error: 'Erro na exportação de vídeo',
@@ -150,7 +151,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Erro ao verificar status do job:', error)
+    logger.error('❌ Erro ao verificar status do job', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/video/export-real' })
     return NextResponse.json(
       { 
         error: 'Erro ao verificar status',
@@ -179,7 +180,7 @@ export async function DELETE(request: NextRequest) {
     // Em uma implementação real, cancelaria o processo FFmpeg
     // Por enquanto, apenas marcamos como cancelado no banco
     
-    console.log('🛑 Cancelando job de exportação:', jobId)
+    logger.info(`🛑 Cancelando job de exportação: ${jobId}`, { component: 'API: v1/video/export-real' })
 
     // Aqui seria implementada a lógica de cancelamento real
     // incluindo parar processos FFmpeg em andamento
@@ -191,7 +192,7 @@ export async function DELETE(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Erro ao cancelar job:', error)
+    logger.error('❌ Erro ao cancelar job', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/video/export-real' })
     return NextResponse.json(
       { 
         error: 'Erro ao cancelar job',

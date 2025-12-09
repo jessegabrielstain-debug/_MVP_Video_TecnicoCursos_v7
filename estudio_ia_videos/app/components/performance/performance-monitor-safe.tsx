@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, useState, useRef } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -48,7 +49,7 @@ export function PerformanceMonitorSafe() {
   useEffect(() => {
     // 🛡️ Se detectou loop, não executa
     if (isBlocked) {
-      console.warn('🛑 PerformanceMonitor bloqueado - loop detectado')
+      logger.warn('PerformanceMonitor bloqueado - loop detectado', { component: 'PerformanceMonitorSafe' })
       return
     }
     

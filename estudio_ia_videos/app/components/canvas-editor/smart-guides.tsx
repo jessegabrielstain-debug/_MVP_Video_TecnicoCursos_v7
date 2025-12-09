@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import { logger } from '@/lib/logger'
 
 interface Guide {
   type: 'horizontal' | 'vertical'
@@ -161,7 +162,7 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
             canvas.add(line)
           }
         } catch (error) {
-          console.warn('Error rendering guide:', error)
+          logger.warn('Error rendering guide:', { error, component: 'SmartGuides' })
         }
       })
       
@@ -181,7 +182,7 @@ export function SmartGuides({ canvas, enabled, snapDistance = 5 }: SmartGuidesPr
           })
         }
       } catch (error) {
-        console.warn('Error clearing guides:', error)
+        logger.warn('Error clearing guides:', { error, component: 'SmartGuides' })
       }
     }
     

@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Loader2, AlertCircle, Shield, User, Eye } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 import { getBrowserClient } from '@/lib/supabase/browser';
 import { Button } from '@/components/ui/button';
@@ -74,7 +75,7 @@ export function LoginForm() {
             router.push(redirectUrl);
             router.refresh();
         } catch (err) {
-            console.error('Quick login error:', err);
+            logger.error('Quick login error', err instanceof Error ? err : new Error(String(err)), { component: 'LoginForm', role });
             setError(`Falha no login ${role}. Verifique se os usuários de teste foram criados.`);
         } finally {
             setLoadingRole(null);
@@ -98,7 +99,7 @@ export function LoginForm() {
             router.push(redirectUrl);
             router.refresh();
         } catch (err) {
-            console.error('Login error:', err);
+            logger.error('Login error', err instanceof Error ? err : new Error(String(err)), { component: 'LoginForm' });
             setError('Email ou senha incorretos. Tente novamente.');
         } finally {
             setIsLoading(false);

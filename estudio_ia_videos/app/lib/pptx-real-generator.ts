@@ -4,6 +4,7 @@
  */
 
 import PptxGenJS from 'pptxgenjs';
+import { logger } from '@/lib/logger';
 
 export interface GeneratorSlide {
   title: string;
@@ -20,7 +21,7 @@ export interface GeneratorOptions {
 
 export class PPTXRealGenerator {
   async generate(slides: GeneratorSlide[], options?: GeneratorOptions): Promise<Buffer> {
-    console.log('[PPTXGenerator] Generating presentation with', slides.length, 'slides');
+    logger.info('Generating presentation', { component: 'PPTXRealGenerator', slideCount: slides.length });
     
     const pres = new PptxGenJS();
     
@@ -73,7 +74,7 @@ export class PPTXRealGenerator {
     // We would need to parse it first or keep the PptxGenJS instance alive.
     // For now, we log a warning and return the original buffer, 
     // or we could throw "Not Implemented" if this is critical.
-    console.warn('[PPTXGenerator] addSlide to existing buffer not supported by pptxgenjs. Returning original.');
+    logger.warn('addSlide to existing buffer not supported by pptxgenjs. Returning original.', { component: 'PPTXRealGenerator' });
     return presentation;
   }
 
@@ -138,7 +139,7 @@ export const generateRealPptxFromProject = async (
   projectId: string, 
   options?: PptxGenerationOptions
 ): Promise<{ success: boolean; pptxUrl?: string; metadata?: Record<string, unknown>; error?: string }> => {
-  console.log('[PPTXGenerator] Generating PPTX for project:', projectId, 'with options:', options);
+  logger.info('[PPTXGenerator] Generating PPTX for project:', { component: 'PPTXRealGenerator', projectId, options });
   
   // Em produção, buscaria os slides do projeto no banco de dados
   // Por enquanto, retorna um placeholder

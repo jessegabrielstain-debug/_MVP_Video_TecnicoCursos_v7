@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -205,7 +206,10 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching smart recommendations:', error);
+    logger.error('Error fetching smart recommendations', {
+      component: 'API: ai-intelligence/recommendations',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -264,7 +268,10 @@ export async function POST(request: NextRequest) {
     };
 
     // In production, update database and trigger implementation workflow
-    console.log('Recommendation action processed:', implementationResult);
+    logger.info('Recommendation action processed', {
+      component: 'API: ai-intelligence/recommendations',
+      result: implementationResult
+    });
 
     const messages: Record<string, string> = {
       apply: 'Recomendação aplicada com sucesso! Monitorando resultados...',
@@ -280,7 +287,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error processing recommendation action:', error);
+    logger.error('Error processing recommendation action', {
+      component: 'API: ai-intelligence/recommendations',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

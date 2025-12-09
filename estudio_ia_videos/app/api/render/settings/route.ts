@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Validation schema for render settings
 const RenderSettingsSchema = z.object({
@@ -96,7 +97,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Get render settings API error:', error)
+    logger.error('Get render settings API error', { component: 'API: render/settings', error: error instanceof Error ? error : new Error(String(error)) })
     
     return NextResponse.json(
       { 
@@ -200,7 +201,7 @@ export async function PATCH(request: NextRequest) {
           }
         })
     } catch (analyticsError) {
-      console.warn('Failed to log render settings update:', analyticsError)
+      logger.warn('Failed to log render settings update', { component: 'API: render/settings', error: analyticsError instanceof Error ? analyticsError : new Error(String(analyticsError)) })
     }
 
     return NextResponse.json({
@@ -210,7 +211,7 @@ export async function PATCH(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Update render settings API error:', error)
+    logger.error('Update render settings API error', { component: 'API: render/settings', error: error instanceof Error ? error : new Error(String(error)) })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -272,7 +273,7 @@ export async function DELETE(request: NextRequest) {
           }
         })
     } catch (analyticsError) {
-      console.warn('Failed to log render settings reset:', analyticsError)
+      logger.warn('Failed to log render settings reset', { component: 'API: render/settings', error: analyticsError instanceof Error ? analyticsError : new Error(String(analyticsError)) })
     }
 
     return NextResponse.json({
@@ -282,7 +283,7 @@ export async function DELETE(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Reset render settings API error:', error)
+    logger.error('Reset render settings API error', { component: 'API: render/settings', error: error instanceof Error ? error : new Error(String(error)) })
     
     return NextResponse.json(
       { 

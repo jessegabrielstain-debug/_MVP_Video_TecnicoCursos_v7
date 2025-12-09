@@ -1,10 +1,10 @@
-
 /**
  * API: Real-Time Collaboration
  * Endpoints para colaboração simultânea
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 export async function GET(req: NextRequest) {
   try {
@@ -44,7 +44,10 @@ export async function GET(req: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error('Erro na API de colaboração:', error)
+    logger.error('Erro na API de colaboração', {
+      component: 'API: collaboration/realtime',
+      error: error instanceof Error ? error : new Error(String(error))
+    })
     return NextResponse.json(
       { error: 'Erro ao buscar dados de colaboração' },
       { status: 500 }
@@ -94,11 +97,13 @@ export async function POST(req: NextRequest) {
         )
     }
   } catch (error) {
-    console.error('Erro ao processar ação de colaboração:', error)
+    logger.error('Erro ao processar ação de colaboração', {
+      component: 'API: collaboration/realtime',
+      error: error instanceof Error ? error : new Error(String(error))
+    })
     return NextResponse.json(
       { error: 'Erro ao processar requisição' },
       { status: 500 }
     )
   }
 }
-

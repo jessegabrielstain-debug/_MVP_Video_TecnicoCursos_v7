@@ -7,6 +7,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -47,7 +48,7 @@ export default function LocalRenderPanel() {
         if (!isMounted) return
         setUser(data.user ?? null)
       } catch (error) {
-        console.error('Erro ao carregar sessão do usuário:', error)
+        logger.error('Erro ao carregar sessão do usuário', error instanceof Error ? error : new Error(String(error)), { component: 'LocalRenderPanel' })
       }
     }
 
@@ -126,7 +127,7 @@ export default function LocalRenderPanel() {
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao iniciar renderização';
-      console.error('Erro ao iniciar renderização:', error)
+      logger.error('Erro ao iniciar renderização', error instanceof Error ? error : new Error(String(error)), { component: 'LocalRenderPanel' })
       toast.error(errorMessage)
       setIsRendering(false)
     }
@@ -162,7 +163,7 @@ export default function LocalRenderPanel() {
         }
 
       } catch (error) {
-        console.error('Erro ao consultar status:', error)
+        logger.error('Erro ao consultar status', error instanceof Error ? error : new Error(String(error)), { component: 'LocalRenderPanel' })
         clearInterval(interval)
         setIsRendering(false)
       }

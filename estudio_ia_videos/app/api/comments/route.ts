@@ -13,6 +13,7 @@ import { authOptions } from '@/lib/auth'
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { commentsService } from '@/lib/collab/comments-service';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ comment })
 
   } catch (error) {
-    console.error('[COMMENTS_POST_ERROR]', error)
+    logger.error('Erro ao criar comentário', { component: 'API: comments', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Erro ao criar comentário' },
       { status: 500 }
@@ -87,7 +88,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ comments })
 
   } catch (error) {
-    console.error('[COMMENTS_GET_ERROR]', error)
+    logger.error('Erro ao buscar comentários', { component: 'API: comments', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json(
       { error: 'Erro ao buscar comentários' },
       { status: 500 }

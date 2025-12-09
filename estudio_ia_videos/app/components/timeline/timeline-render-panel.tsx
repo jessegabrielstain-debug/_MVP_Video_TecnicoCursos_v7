@@ -5,6 +5,7 @@
 'use client';
 
 import { useState } from 'react';
+import { logger } from '@/lib/logger';
 import { useTimelineRender } from '@/lib/hooks/use-timeline-render';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,7 +83,7 @@ export function TimelineRenderPanel({
       });
       setIsDialogOpen(false);
     } catch (error) {
-      console.error('Erro ao renderizar:', error);
+      logger.error('Erro ao renderizar', error instanceof Error ? error : new Error(String(error)), { projectId, timelineId, settings, component: 'TimelineRenderPanel' });
     }
   };
 

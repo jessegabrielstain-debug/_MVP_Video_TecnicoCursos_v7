@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import type { AuthOptions } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   req: NextRequest,
@@ -22,11 +23,17 @@ export async function POST(
 
     // TODO: Implementar cancelamento real quando o render queue estiver ativo
     // Por enquanto, apenas retorna sucesso
-    console.log(`Cancelamento de render solicitado para job: ${jobId}`);
+    logger.info('Cancelamento de render solicitado', {
+      component: 'API: render/cancel',
+      jobId
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Erro ao cancelar render:', error);
+    logger.error('Erro ao cancelar render', {
+      component: 'API: render/cancel',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
     return NextResponse.json(
       { error: 'Erro ao cancelar render' },
       { status: 500 }

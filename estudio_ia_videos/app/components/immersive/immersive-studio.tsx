@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -102,7 +103,7 @@ export default function ImmersiveStudio() {
       setGenerationProgress(null)
 
     } catch (error) {
-      console.error('Erro ao gerar ambiente:', error)
+      logger.error('Erro ao gerar ambiente', error instanceof Error ? error : new Error(String(error)), { component: 'ImmersiveStudio' });
       setGenerationProgress({ stage: 'Erro', progress: 0, error: 'Falha na geração' })
     } finally {
       setIsGenerating(false)

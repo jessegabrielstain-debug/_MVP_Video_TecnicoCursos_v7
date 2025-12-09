@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getBrowserClient } from '@/lib/supabase/browser';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,7 +55,7 @@ export function UserProfile({ userId, editable = false, showStats = true, showAc
           });
         }
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        logger.error('Error fetching profile', error instanceof Error ? error : new Error(String(error)), { component: 'UserProfile', userId });
         toast.error('Erro ao carregar perfil');
       } finally {
         setLoading(false);
@@ -87,7 +88,7 @@ export function UserProfile({ userId, editable = false, showStats = true, showAc
       if (data) setProfile(data);
 
     } catch (error) {
-      console.error('Error updating profile:', error);
+      logger.error('Error updating profile', error instanceof Error ? error : new Error(String(error)), { component: 'UserProfile', userId });
       toast.error('Erro ao atualizar perfil');
     } finally {
       setSaving(false);

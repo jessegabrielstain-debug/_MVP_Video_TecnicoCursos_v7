@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import { ReportGenerator, ReportType } from './report-generator';
+import { logger } from '@/lib/logger';
 
 export interface ScheduledReport {
   id: string;
@@ -121,7 +122,7 @@ export class ReportScheduler {
           processed++;
         }
       } catch (error) {
-        console.error(`Failed to run report ${report.id}:`, error);
+        logger.error(`Failed to run report ${report.id}:`, error instanceof Error ? error : new Error(String(error)), { component: 'ReportScheduler' });
         errors++;
         
         await prisma.analyticsEvent.create({

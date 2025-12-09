@@ -14,6 +14,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import {
   Activity,
   AlertTriangle,
@@ -111,7 +112,7 @@ export default function SystemHealthDashboard() {
       const data = await response.json();
       setHealthStatus(data);
     } catch (error) {
-      console.error('Failed to fetch health status:', error);
+      logger.error('Failed to fetch health status', error instanceof Error ? error : new Error(String(error)), { component: 'SystemHealthDashboard' });
     }
   };
 
@@ -121,7 +122,7 @@ export default function SystemHealthDashboard() {
       const data = await response.json();
       setAlerts(data.active || []);
     } catch (error) {
-      console.error('Failed to fetch alerts:', error);
+      logger.error('Failed to fetch alerts', error instanceof Error ? error : new Error(String(error)), { component: 'SystemHealthDashboard' });
     }
   };
 

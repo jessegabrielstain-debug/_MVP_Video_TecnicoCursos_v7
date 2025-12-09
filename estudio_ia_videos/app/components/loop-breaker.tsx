@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react'
+import { logger } from '@/lib/logger';
 import { AlertTriangle, Zap } from 'lucide-react'
 
 interface LoopBreakerProps {
@@ -48,11 +49,12 @@ export function LoopBreaker({
 
     // Detect loop
     if (renderCountRef.current > maxRenders) {
-      console.warn('🚨 LOOP DETECTED: Too many renders in short time', {
+      logger.warn('🚨 LOOP DETECTED: Too many renders in short time', {
+        component: 'LoopBreaker',
         renders: renderCountRef.current,
         timeWindow: timeElapsed,
         maxAllowed: maxRenders
-      })
+      });
       
       setIsLoopDetected(true)
       onLoopDetected?.()

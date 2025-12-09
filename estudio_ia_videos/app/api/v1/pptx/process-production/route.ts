@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { PPTXProcessor } from '@/lib/pptx/pptx-processor'
 import { S3StorageService } from '@/lib/s3-storage'
@@ -31,20 +32,20 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    console.log('🔄 Starting PPTX processing:', { s3Key, jobId })
+    logger.info('🔄 Starting PPTX processing:', { component: 'API: v1/pptx/process-production', s3Key, jobId })
     
     // Download file from S3
-    console.log('📥 Downloading file from S3...')
+    logger.info('📥 Downloading file from S3...', { component: 'API: v1/pptx/process-production' })
     const downloadResult = await S3StorageService.downloadFile(s3Key)
     
     if (!downloadResult.success || !downloadResult.buffer) {
       throw new Error(`Failed to download file: ${downloadResult.error}`)
     }
     
-    console.log(`📦 File downloaded: ${downloadResult.buffer.length} bytes`)
+    logger.info(`📦 File downloaded: ${downloadResult.buffer.length} bytes`, { component: 'API: v1/pptx/process-production' })
     
     // Process PPTX content
-    console.log('🔍 Processing PPTX content...')
+    logger.info('🔍 Processing PPTX content...', { component: 'API: v1/pptx/process-production' })
     const { pptxProcessor } = await import('@/lib/pptx/pptx-real-processor');
     const processingResult = await pptxProcessor.processBuffer(downloadResult.buffer, {
       extractImages: true,
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
       throw new Error(`Processing failed: No slides found`)
     }
     
-    console.log(`✅ Processing successful: ${processingResult.slides.length} slides`)
+    logger.info(`✅ Processing successful: ${processingResult.slides.length} slides`, { component: 'API: v1/pptx/process-production' })
     
     // Calculate metrics
     const totalDuration = processingResult.slides.reduce((acc: any, slide: any) => acc + (slide.duration || 5), 0)
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Processing API Error:', error)
+    logger.error('Processing API Error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/pptx/process-production' })
     return NextResponse.json(
       { 
         error: 'Erro durante o processamento',
@@ -127,7 +128,7 @@ export async function GET(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Status check error:', error)
+    logger.error('Status check error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/pptx/process-production' })
     return NextResponse.json(
       { error: 'Erro ao verificar status' },
       { status: 500 }

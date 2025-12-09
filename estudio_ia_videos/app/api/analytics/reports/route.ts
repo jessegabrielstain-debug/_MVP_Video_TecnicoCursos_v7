@@ -6,6 +6,7 @@ import { ReportGenerator, ReportType } from '@/lib/analytics/report-generator';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/analytics/reports
@@ -202,7 +203,10 @@ async function getHandler(req: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('[Analytics Reports] Error:', error);
+    logger.error('[Analytics Reports] Error', {
+      component: 'API: analytics/reports',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
     
     return NextResponse.json(
       {
@@ -328,7 +332,10 @@ async function postHandler(req: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('[Analytics Reports POST] Error:', error);
+    logger.error('[Analytics Reports POST] Error', {
+      component: 'API: analytics/reports',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
     
     return NextResponse.json(
       {
@@ -410,7 +417,10 @@ async function deleteHandler(req: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('[Analytics Reports DELETE] Error:', error);
+    logger.error('[Analytics Reports DELETE] Error', {
+      component: 'API: analytics/reports',
+      error: error instanceof Error ? error : new Error(String(error))
+    });
     
     return NextResponse.json(
       {

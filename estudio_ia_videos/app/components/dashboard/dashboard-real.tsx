@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { logger } from '@/lib/logger'
 import { useRouter } from 'next/navigation'
 import { UnifiedProject } from '@/lib/stores/unified-project-store'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
@@ -93,7 +94,7 @@ export default function DashboardReal() {
           if (!isMounted) return
 
           if (error) {
-            console.warn('Erro ao carregar perfil:', error)
+            logger.warn('Erro ao carregar perfil', { component: 'DashboardReal', error: error.message })
           }
 
           setDisplayName(profile?.name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
@@ -101,7 +102,7 @@ export default function DashboardReal() {
           setDisplayName(null)
         }
       } catch (error) {
-        console.error('Erro ao carregar sessão do usuário:', error)
+        logger.error('Erro ao carregar sessão do usuário', error instanceof Error ? error : new Error(String(error)), { component: 'DashboardReal' })
       }
     }
 
@@ -171,7 +172,7 @@ export default function DashboardReal() {
       router.replace('/login?reason=session_expired')
       router.refresh()
     } catch (error) {
-      console.error('Erro ao fazer logout:', error)
+      logger.error('Erro ao fazer logout', error instanceof Error ? error : new Error(String(error)), { component: 'DashboardReal' })
       toast.error('Não foi possível encerrar a sessão. Tente novamente.')
     } finally {
       setSigningOut(false)

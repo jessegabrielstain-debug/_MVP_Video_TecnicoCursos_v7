@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -90,7 +91,7 @@ export default function Sprint9Overview() {
         setSystemHealth(health);
       }
     } catch (error) {
-      console.error('Erro ao carregar saúde do sistema:', error);
+      logger.error('Erro ao carregar saúde do sistema', error instanceof Error ? error : new Error(String(error)), { component: 'Sprint9Overview' });
     }
   };
 
@@ -111,7 +112,7 @@ export default function Sprint9Overview() {
 
       setRealtimeMetrics(metrics);
     } catch (error) {
-      console.error('Erro ao carregar métricas:', error);
+      logger.error('Erro ao carregar métricas', error instanceof Error ? error : new Error(String(error)), { component: 'Sprint9Overview' });
     }
   };
 

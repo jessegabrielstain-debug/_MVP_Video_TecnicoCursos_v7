@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -158,7 +159,7 @@ const ProfessionalVoiceCloningStudio: React.FC = () => {
         });
       }, 200);
     } catch (error) {
-      console.error('Erro ao gerar áudio:', error);
+      logger.error('Erro ao gerar áudio', error instanceof Error ? error : new Error(String(error)), { component: 'ProfessionalVoiceCloningStudio' });
     }
   };
 
@@ -194,7 +195,7 @@ const ProfessionalVoiceCloningStudio: React.FC = () => {
         }, 30000); // Máximo 30 segundos
         
       } catch (error) {
-        console.error('Erro ao acessar microfone:', error);
+        logger.error('Erro ao acessar microfone', error instanceof Error ? error : new Error(String(error)), { component: 'ProfessionalVoiceCloningStudio' });
       }
     } else {
       if (mediaRecorderRef.current) {

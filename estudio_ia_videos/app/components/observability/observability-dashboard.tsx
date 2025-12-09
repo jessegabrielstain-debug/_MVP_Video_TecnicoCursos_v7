@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import {
   LineChart,
   Line,
@@ -98,7 +99,7 @@ export default function ObservabilityDashboard() {
       // Fetch séries temporais para métrica selecionada
       await fetchTimeSeries(selectedMetric);
     } catch (error) {
-      console.error('Erro ao buscar dados:', error);
+      logger.error('Erro ao buscar dados', error instanceof Error ? error : new Error(String(error)), { component: 'ObservabilityDashboard' });
     } finally {
       setLoading(false);
     }
@@ -116,7 +117,7 @@ export default function ObservabilityDashboard() {
         [metricType]: data.data,
       }));
     } catch (error) {
-      console.error('Erro ao buscar série temporal:', error);
+      logger.error('Erro ao buscar série temporal', error instanceof Error ? error : new Error(String(error)), { component: 'ObservabilityDashboard', metricType });
     }
   }
 

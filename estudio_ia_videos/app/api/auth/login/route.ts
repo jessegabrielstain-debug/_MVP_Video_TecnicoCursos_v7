@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth/auth-service';
 import { AuthMiddleware } from '@/lib/auth/auth-middleware';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,19 +50,22 @@ export async function POST(request: NextRequest) {
     AuthMiddleware.setAuthCookies(response, tokens.accessToken, tokens.refreshToken);
 
     // Log de segurança
-    console.log(`Login successful for user: ${email} at ${new Date().toISOString()}`);
+    logger.info(`Login successful for user: ${email}`, { component: 'API: auth/login' });
 
     return response;
 
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error('Login error', { 
+      component: 'API: auth/login', 
+      error: error instanceof Error ? error : new Error(String(error)) 
+    });
     
     const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor';
     
     // Log de tentativa de login falhada
     const { email } = await request.json().catch(() => ({}));
     if (email) {
-      console.warn(`Failed login attempt for: ${email} at ${new Date().toISOString()}`);
+      logger.warn(`Failed login attempt for: ${email}`, { component: 'API: auth/login' });
     }
 
     return NextResponse.json(
@@ -106,7 +110,10 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Auth check error:', error);
+    logger.error('Auth check error', { 
+      component: 'API: auth/login', 
+      error: error instanceof Error ? error : new Error(String(error)) 
+    });
     return NextResponse.json(
       { authenticated: false },
       { status: 401 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,7 +52,7 @@ export default function CacheDashboard({ refreshInterval = 5000 }: CacheDashboar
         toast.error('Erro ao carregar dados do cache');
       }
     } catch (error) {
-      console.error('Failed to fetch cache stats:', error);
+      logger.error('Failed to fetch cache stats', error instanceof Error ? error : new Error(String(error)), { component: 'CacheDashboard' });
       toast.error('Falha na conexão com API de cache');
     } finally {
       setLoading(false);

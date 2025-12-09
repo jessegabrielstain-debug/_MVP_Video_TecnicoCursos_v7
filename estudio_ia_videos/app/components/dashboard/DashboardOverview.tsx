@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react'
+import { logger } from '@/lib/logger';
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -186,7 +187,7 @@ export default function DashboardOverview() {
         if (!isMounted) return
         setUser(data.user ?? null)
       } catch (error) {
-        console.error('Erro ao carregar sessão do usuário:', error)
+        logger.error('Erro ao carregar sessão do usuário', error instanceof Error ? error : new Error(String(error)), { component: 'DashboardOverview' });
       } finally {
         if (isMounted) {
           setAuthLoading(false)

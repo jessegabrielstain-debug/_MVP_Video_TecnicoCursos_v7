@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getVideoJobStatus } from '@/lib/queue/render-queue';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log(`📊 [API] Verificando status do job: ${jobId}`);
+    logger.info(`📊 [API] Verificando status do job: ${jobId}`, { component: 'API: render/status' });
 
     // Try Supabase first (main database)
     try {
@@ -91,7 +92,7 @@ export async function GET(req: NextRequest) {
         });
       }
     } catch (supabaseError) {
-      console.warn('[API] Supabase unavailable, trying Prisma...');
+      logger.warn('[API] Supabase unavailable, trying Prisma...', { component: 'API: render/status' });
     }
 
     // Fallback to Prisma
@@ -126,7 +127,7 @@ export async function GET(req: NextRequest) {
         });
       }
     } catch (prismaError) {
-      console.warn('[API] Prisma unavailable, falling back to queue status');
+      logger.warn('[API] Prisma unavailable, falling back to queue status', { component: 'API: render/status' });
     }
 
     // Fallback to queue status
@@ -148,7 +149,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[API] Erro ao verificar status:', error);
+    logger.error('[API] Erro ao verificar status:', { component: 'API: render/status', error: error instanceof Error ? error : new Error(String(error)) });
     return NextResponse.json(
       { 
         error: 'Erro ao verificar status',

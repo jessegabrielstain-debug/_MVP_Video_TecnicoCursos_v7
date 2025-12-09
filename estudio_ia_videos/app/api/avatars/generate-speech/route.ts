@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 // Using inline implementations instead of external modules
 // import { EnhancedTTSService, EnhancedTTSConfig } from '@/lib/enhanced-tts-service';
 // import { UnifiedAvatarPipeline } from '@/lib/unified-avatar-pipeline';
@@ -314,8 +315,8 @@ export async function POST(request: NextRequest) {
       voiceId: body.voiceId || getDefaultVoiceId(body.provider || DEFAULT_CONFIG.provider, body.language || DEFAULT_CONFIG.language)
     };
     
-    console.log(`🎤 Gerando speech para texto: "${config.text.substring(0, 50)}..." (${config.text.length} chars)`);
-    console.log(`📋 Configuração: provider=${config.provider}, voice=${config.voiceId}, quality=${config.quality}`);
+    logger.info(`🎤 Gerando speech para texto: "${config.text.substring(0, 50)}..." (${config.text.length} chars)`, { component: 'API: avatars/generate-speech' })
+    logger.info(`📋 Configuração: provider=${config.provider}, voice=${config.voiceId}, quality=${config.quality}`, { component: 'API: avatars/generate-speech' })
     
     // Verificar se deve usar pipeline unificado
     if (config.useUnifiedPipeline) {
@@ -325,7 +326,7 @@ export async function POST(request: NextRequest) {
     }
     
   } catch (error) {
-    console.error('❌ Erro ao gerar speech:', error);
+    logger.error('❌ Erro ao gerar speech', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/generate-speech' })
     
     const processingTime = Date.now() - startTime;
     
@@ -401,12 +402,12 @@ async function handleUnifiedPipeline(config: GenerateSpeechRequest, startTime: n
       }
     };
     
-    console.log(`✅ Job ${jobId} criado no pipeline unificado em ${processingTime}ms`);
+    logger.info(`✅ Job ${jobId} criado no pipeline unificado em ${processingTime}ms`, { component: 'API: avatars/generate-speech' })
     
     return NextResponse.json(response);
     
   } catch (error) {
-    console.error('❌ Erro no pipeline unificado:', error);
+    logger.error('❌ Erro no pipeline unificado', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/generate-speech' })
     throw error;
   }
 }
@@ -429,7 +430,7 @@ async function handleDirectTTS(config: GenerateSpeechRequest, startTime: number)
     };
     
     // Gerar áudio
-    console.log(`🔄 Gerando TTS com ${config.provider}...`);
+    logger.info(`🔄 Gerando TTS com ${config.provider}...`, { component: 'API: avatars/generate-speech' })
     const result = await ttsService.synthesizeSpeech(ttsConfig);
     
     if (!result.success || !result.audioUrl) {
@@ -459,13 +460,13 @@ async function handleDirectTTS(config: GenerateSpeechRequest, startTime: number)
       }
     };
     
-    console.log(`✅ TTS gerado com sucesso em ${processingTime}ms`);
-    console.log(`📊 Qualidade: ${response.metadata?.quality}, Provider: ${response.provider}`);
+    logger.info(`✅ TTS gerado com sucesso em ${processingTime}ms`, { component: 'API: avatars/generate-speech' })
+    logger.info(`📊 Qualidade: ${response.metadata?.quality}, Provider: ${response.provider}`, { component: 'API: avatars/generate-speech' })
     
     return NextResponse.json(response);
     
   } catch (error) {
-    console.error('❌ Erro no TTS direto:', error);
+    logger.error('❌ Erro no TTS direto', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/generate-speech' })
     throw error;
   }
 }
@@ -515,7 +516,7 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('❌ Erro ao obter status do job:', error);
+    logger.error('❌ Erro ao obter status do job', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars/generate-speech' })
     
     return NextResponse.json(
       { 

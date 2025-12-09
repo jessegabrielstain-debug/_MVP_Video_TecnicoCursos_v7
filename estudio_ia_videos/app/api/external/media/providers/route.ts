@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/services'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Validation schema
 const MediaProviderSchema = z.object({
@@ -193,7 +194,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Get media providers API error:', error)
+    logger.error('Get media providers API error', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: external/media/providers' })
     
     return NextResponse.json(
       { 
@@ -260,7 +261,7 @@ export async function POST(request: NextRequest) {
           created_at: new Date().toISOString()
         } as any)
     } catch (analyticsError) {
-      console.warn('Failed to log media provider creation:', analyticsError)
+      logger.warn('Failed to log media provider creation', { error: analyticsError, component: 'API: external/media/providers' })
     }
 
     // Transform to expected format
@@ -280,7 +281,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
-    console.error('Create media provider API error:', error)
+    logger.error('Create media provider API error', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: external/media/providers' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

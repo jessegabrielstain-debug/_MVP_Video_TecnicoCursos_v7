@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 // Using inline implementations instead of external modules
 // import { AdvancedLipSyncProcessor } from '@/lib/lipsync/advanced-lipsync-processor';
 // import { Avatar3DRenderEngine } from '@/lib/avatar/avatar-3d-render-engine';
@@ -16,7 +17,7 @@ class MonitoringService {
   }
   
   logEvent(event: string, data: unknown) {
-    console.log(`📊 [${event}]`, data);
+    logger.info(`[${event}]`, { component: 'API: avatars/sync', event, data });
   }
 }
 
@@ -203,7 +204,7 @@ export async function POST(request: NextRequest) {
     try {
       avatarModel = await avatarEngine.loadAvatar(avatarId);
     } catch (error) {
-      console.error('Erro ao carregar avatar:', error);
+      logger.error('Erro ao carregar avatar', { component: 'API: avatars/sync', error: error instanceof Error ? error : new Error(String(error)) });
       return NextResponse.json(
         { error: 'Erro ao carregar avatar 3D' },
         { status: 500 }
@@ -256,7 +257,7 @@ export async function POST(request: NextRequest) {
       processingTime: Date.now() - startTime
     });
 
-    console.error('Erro na sincronização do avatar:', error);
+    logger.error('Erro na sincronização do avatar', { component: 'API: avatars/sync', error: error instanceof Error ? error : new Error(String(error)) });
 
     return NextResponse.json(
       { 

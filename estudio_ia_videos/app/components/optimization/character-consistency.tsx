@@ -3,6 +3,7 @@
 'use client'
 
 import { useState } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -158,7 +159,7 @@ export default function CharacterConsistency() {
     toast.success('Configurações de personagem salvas!')
     
     // In production, save to database
-    console.log('Saving character card:', cardId)
+    logger.debug('Saving character card', { component: 'CharacterConsistency', cardId })
   }
 
   const handleGeneratePreview = async (card: CharacterCard) => {
@@ -171,7 +172,7 @@ export default function CharacterConsistency() {
       toast.success('Preview gerado! Verificando consistência...')
       
     } catch (error) {
-      console.error('Preview generation error:', error)
+      logger.error('Preview generation error', error instanceof Error ? error : new Error(String(error)), { component: 'CharacterConsistency', cardId: card.id })
       toast.error('Erro ao gerar preview')
     }
   }
@@ -186,7 +187,7 @@ export default function CharacterConsistency() {
       toast.success('Consistência aplicada a todas as cenas!')
       
     } catch (error) {
-      console.error('Apply consistency error:', error)
+      logger.error('Apply consistency error', error instanceof Error ? error : new Error(String(error)), { component: 'CharacterConsistency', cardId: card.id })
       toast.error('Erro ao aplicar consistência')
     }
   }

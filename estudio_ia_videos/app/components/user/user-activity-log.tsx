@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getBrowserClient } from '@/lib/supabase/browser';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -40,7 +41,7 @@ export function UserActivityLog({ userId, limit = 20, showFilters = false }: Use
           setEvents(data);
         }
       } catch (error) {
-        console.error('Error fetching activity:', error);
+        logger.error('Error fetching activity', error instanceof Error ? error : new Error(String(error)), { component: 'UserActivityLog', userId });
       } finally {
         setLoading(false);
       }

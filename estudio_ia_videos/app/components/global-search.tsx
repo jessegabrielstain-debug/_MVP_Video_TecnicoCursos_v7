@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { logger } from '@/lib/logger'
 import { Dialog, DialogContent } from './ui/dialog'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
@@ -130,7 +131,7 @@ export function GlobalSearch() {
         setResults(defaultActions)
       }
     } catch (error) {
-      console.error('Erro ao buscar:', error)
+      logger.error('Erro ao buscar projetos', error instanceof Error ? error : new Error(String(error)), { component: 'GlobalSearch' })
       setResults(defaultActions)
     } finally {
       setLoading(false)

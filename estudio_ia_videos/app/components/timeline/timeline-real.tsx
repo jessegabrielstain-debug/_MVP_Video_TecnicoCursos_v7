@@ -7,6 +7,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { useTimelineReal } from '@/hooks/use-timeline-real';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -37,7 +38,9 @@ export function TimelineReal({ projectId, onSave }: TimelineRealProps) {
   
   // Carregar timeline ao montar
   useEffect(() => {
-    manipulation.load().catch(console.error);
+    manipulation.load().catch((error) => {
+      logger.error('Failed to load timeline', error instanceof Error ? error : new Error(String(error)), { component: 'TimelineReal', projectId });
+    });
   }, []);
   
   // Calcular largura da timeline
@@ -86,7 +89,7 @@ export function TimelineReal({ projectId, onSave }: TimelineRealProps) {
       await manipulation.save();
       onSave?.();
     } catch (error) {
-      console.error('Error saving timeline:', error);
+      logger.error('Error saving timeline', error instanceof Error ? error : new Error(String(error)), { projectId, component: 'TimelineReal' });
     }
   };
   

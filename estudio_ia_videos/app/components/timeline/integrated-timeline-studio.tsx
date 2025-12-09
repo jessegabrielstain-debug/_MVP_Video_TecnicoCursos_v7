@@ -1,6 +1,6 @@
 'use client';
 
-
+import { logger } from '@/lib/logger';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -631,9 +631,9 @@ export function IntegratedTimelineStudio() {
       }));
 
       // Toast de sucesso seria aqui
-      console.log('Projeto salvo com sucesso!');
+      logger.info('Projeto salvo com sucesso', { component: 'IntegratedTimelineStudio' });
     } catch (error) {
-      console.error('Erro ao salvar projeto:', error);
+      logger.error('Erro ao salvar projeto', error instanceof Error ? error : new Error(String(error)), { component: 'IntegratedTimelineStudio' });
     }
   }, []);
 

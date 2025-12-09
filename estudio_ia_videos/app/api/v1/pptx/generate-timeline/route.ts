@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger';
 
 interface TimelineScene {
   sceneId: string
@@ -61,7 +62,7 @@ interface GeneratedTimeline {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<GeneratedTimeline>> {
-  console.log('⏱️ Gerando timeline de vídeo...')
+  logger.info('⏱️ Gerando timeline de vídeo...', { component: 'API: v1/pptx/generate-timeline' })
   
   try {
     const { s3Key, slides, options } = await request.json()
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Generated
       }, { status: 400 })
     }
 
-    console.log(`🎬 Gerando timeline para ${slides.length} slides`)
+    logger.info(`🎬 Gerando timeline para ${slides.length} slides`, { component: 'API: v1/pptx/generate-timeline' })
 
     // Opções padrão para geração de timeline
     const timelineOptions = {
@@ -176,7 +177,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Generated
       }
     }
 
-    console.log(`✅ Timeline gerada: ${scenes.length} cenas, ${currentTime}s total`)
+    logger.info(`✅ Timeline gerada: ${scenes.length} cenas, ${currentTime}s total`, { component: 'API: v1/pptx/generate-timeline' })
 
     return NextResponse.json({
       success: true,
@@ -184,7 +185,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Generated
     })
 
   } catch (error) {
-    console.error('❌ Erro na geração de timeline:', error)
+    logger.error('❌ Erro na geração de timeline:', { component: 'API: v1/pptx/generate-timeline', error: error instanceof Error ? error : new Error(String(error)) })
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno'

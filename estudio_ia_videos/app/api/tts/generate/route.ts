@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 // Using inline implementations instead of external modules
 // import { TTSEngineManager } from '@/lib/tts/tts-engine-manager';
 // import { MonitoringService } from '@/lib/monitoring/monitoring-service';
@@ -15,7 +16,7 @@ class MonitoringService {
   }
   
   logEvent(event: string, data: Record<string, unknown>) {
-    console.log(`📊 [${event}]`, data);
+    logger.info(`📊 [${event}]`, { data, component: 'API: tts/generate' });
   }
 }
 
@@ -189,7 +190,7 @@ export async function POST(request: NextRequest) {
       processingTime: Date.now() - startTime
     });
 
-    console.error('Erro na geração TTS:', error);
+    logger.error('Erro na geração TTS', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: tts/generate' });
 
     return NextResponse.json(
       { 
@@ -218,7 +219,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('Erro ao obter estatísticas TTS:', error);
+    logger.error('Erro ao obter estatísticas TTS', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: tts/generate' });
     
     return NextResponse.json(
       { 

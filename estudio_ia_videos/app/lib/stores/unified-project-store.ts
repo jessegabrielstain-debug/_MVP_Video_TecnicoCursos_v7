@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { logger } from '@/lib/logger';
 
 export interface ProjectSlide {
   id: string;
@@ -138,7 +139,7 @@ export const useUnifiedProjectStore = create<UnifiedProjectStore>((set, get) => 
     try {
       // Simulate processing
       await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log(`Executed step ${step} with data:`, data);
+      logger.info(`Executed step ${step} with data`, { component: 'UnifiedProjectStore', data });
     } finally {
       set({ isLoading: false });
     }
@@ -149,7 +150,7 @@ export const useUnifiedProjectStore = create<UnifiedProjectStore>((set, get) => 
     try {
       // Simulate save
       await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('Project saved:', get().currentProject);
+      logger.info('Project saved', { component: 'UnifiedProjectStore', project: get().currentProject });
     } finally {
       set({ isLoading: false });
     }

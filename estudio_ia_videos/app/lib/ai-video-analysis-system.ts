@@ -7,6 +7,7 @@ import FFmpegExecutor from './render/ffmpeg-executor';
 import path from 'path';
 import fs from 'fs/promises';
 import os from 'os';
+import { logger } from '@/lib/logger';
 
 export interface VideoAnalysisResult {
   duration: number;
@@ -131,7 +132,7 @@ export class AIVideoAnalysisSystem {
         }
       };
     } catch (error) {
-      console.error('Error analyzing video:', error);
+      logger.error('Error analyzing video:', error instanceof Error ? error : new Error(String(error)), { component: 'AIVideoAnalysisSystem' });
       return {
         duration: 0,
         scenes: 0,

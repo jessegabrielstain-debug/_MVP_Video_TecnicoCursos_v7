@@ -7,6 +7,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { logger } from '@/lib/logger'
 import {
   ExportFormat,
   ExportResolution,
@@ -93,7 +94,7 @@ export function VideoExportDialog({
     // Check completed
     const completedJob = renderQueue.completed.find(j => j.id === currentJobId)
     if (completedJob) {
-      console.log('Export complete:', completedJob.output_url)
+      logger.info('Export complete', { component: 'VideoExportDialog', jobId: currentJobId, outputUrl: completedJob.output_url })
       setIsExporting(false)
       setDownloadUrl(completedJob.output_url || null)
       setCurrentJobId(null)
@@ -103,7 +104,7 @@ export function VideoExportDialog({
     // Check failed
     const failedJob = renderQueue.failed.find(j => j.id === currentJobId)
     if (failedJob) {
-      console.error('Export failed:', failedJob.error_message)
+      logger.error('Export failed', new Error(failedJob.error_message || 'Unknown error'), { component: 'VideoExportDialog', jobId: currentJobId })
       setIsExporting(false)
       setErrorMessage(failedJob.error_message || 'Export failed')
       setCurrentJobId(null)
@@ -162,12 +163,12 @@ export function VideoExportDialog({
 
       if (job && job.id) {
         setCurrentJobId(job.id)
-        console.log('Export started, job ID:', job.id)
+        logger.info('Export started', { component: 'VideoExportDialog', jobId: job.id })
       } else {
         throw new Error('Failed to get job ID')
       }
     } catch (error) {
-      console.error('Failed to start export:', error)
+      logger.error('Failed to start export', error instanceof Error ? error : new Error(String(error)), { component: 'VideoExportDialog' })
       setErrorMessage(String(error))
       setIsExporting(false)
     }
@@ -182,7 +183,7 @@ export function VideoExportDialog({
       setIsExporting(false)
       setCurrentJobId(null)
     } catch (error) {
-      console.error('Failed to cancel export:', error)
+      logger.error('Failed to cancel export', error instanceof Error ? error : new Error(String(error)), { component: 'VideoExportDialog', jobId: currentJobId })
     }
   }
 

@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { logger } from '@/lib/logger';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Settings, Video, Image, Music, type LucideIcon } from 'lucide-react';
 import { useRendering } from '../../hooks/use-rendering';
@@ -37,7 +38,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
       clearError();
       await startRender(project, settings);
     } catch (err) {
-      console.error('Erro ao iniciar exportação:', err);
+      logger.error('Erro ao iniciar exportação', err instanceof Error ? err : new Error(String(err)), { component: 'ExportModal' });
     }
   };
 

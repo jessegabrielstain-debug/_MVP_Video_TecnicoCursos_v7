@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs/promises';
+import { logger } from '@/lib/logger';
 import { ProcessedPDF, PDFPage } from './pdf-processor';
 import { GeneratedNarration, NarrationScript, TransitionConfig } from './ai-narrator';
 
@@ -89,7 +90,7 @@ export class VideoGenerator {
     try {
       await fs.mkdir(this.tempDir, { recursive: true });
     } catch (error) {
-      console.error('Error creating temp directory:', error);
+      logger.error('Error creating temp directory:', error instanceof Error ? error : new Error(String(error)), { component: 'VideoGenerator' });
     }
   }
 
@@ -150,7 +151,7 @@ export class VideoGenerator {
         }
       };
     } catch (error) {
-      console.error('Video generation error:', error);
+      logger.error('Video generation error:', error instanceof Error ? error : new Error(String(error)), { component: 'VideoGenerator' });
       throw new Error(`Failed to generate video: ${(error as Error).message}`);
     }
   }
@@ -311,7 +312,7 @@ export class VideoGenerator {
   private async addImagesToSlide(outputPath: string, images: string[]): Promise<void> {
     // For now, we'll skip adding actual images to avoid complexity
     // In production, you would decode base64 images and overlay them
-    console.log(`Skipping image addition for ${images.length} images`);
+    logger.info(`Skipping image addition for ${images.length} images`, { component: 'VideoGenerator' });
   }
 
   private createTextOverlays(
@@ -482,7 +483,7 @@ export class VideoGenerator {
   private async cleanupTempFiles(files: string[]): Promise<void> {
     await Promise.all(files.map(file => 
       fs.unlink(file).catch(error => 
-        console.warn(`Failed to delete temp file ${file}:`, error)
+        logger.warn(`Failed to delete temp file ${file}`, { component: 'VideoGenerator', error })
       )
     ));
   }
@@ -494,7 +495,7 @@ export class VideoGenerator {
         fs.unlink(path.join(this.tempDir, file)).catch(() => {})
       ));
     } catch (error) {
-      console.warn('Failed to cleanup temp directory:', error);
+      logger.warn('Failed to cleanup temp directory', { component: 'VideoGenerator', error });
     }
   }
 }

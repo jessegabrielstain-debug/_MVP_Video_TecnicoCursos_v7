@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRateLimiter, rateLimitPresets } from '@/lib/utils/rate-limit-middleware';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { logger } from '@/lib/logger';
 
 // Simulação de storage - em produção usar S3, Google Cloud Storage, etc.
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'temp');
@@ -17,7 +18,7 @@ async function ensureDirectories() {
     await fs.mkdir(UPLOAD_DIR, { recursive: true });
     await fs.mkdir(METADATA_DIR, { recursive: true });
   } catch (error) {
-    console.error('Error creating directories:', error);
+    logger.error('Error creating directories', { component: 'API: upload/status', error: error instanceof Error ? error : new Error(String(error)) });
   }
 }
 
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
           validChunks.push(chunkIndex);
         } catch {
           // Chunk não existe mais, remover da lista
-          console.warn(`Chunk ${chunkIndex} for upload ${uploadId} not found`);
+          logger.warn(`Chunk ${chunkIndex} for upload ${uploadId} not found`, { component: 'API: upload/status', uploadId, chunkIndex });
         }
       }
       uploadedChunks = validChunks;
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Upload status error:', error);
+    logger.error('Upload status error', { component: 'API: upload/status', error: error instanceof Error ? error : new Error(String(error)) });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

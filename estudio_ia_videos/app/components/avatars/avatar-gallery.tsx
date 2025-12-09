@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -247,12 +248,12 @@ export default function AvatarGallery({
         setAvatars(mappedAvatars);
         setPipelineStats(data.data.stats);
       } else {
-        console.error('Erro ao carregar avatares:', data.error);
+        logger.error('Erro ao carregar avatares', new Error(data.error || 'API error'), { component: 'AvatarGallery' });
         // Fallback para dados mock se a API falhar
         setAvatars(generateMockAvatars());
       }
     } catch (error) {
-      console.error('Erro ao carregar avatares hiper-realistas:', error);
+      logger.error('Erro ao carregar avatares hiper-realistas', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarGallery' });
       // Fallback para dados mock
       setAvatars(generateMockAvatars());
     } finally {
@@ -561,7 +562,7 @@ export default function AvatarGallery({
       const statusData = await audio2FaceStatus.json();
       
       if (!statusData.available) {
-        console.error('Audio2Face não está disponível no momento');
+        logger.warn('Audio2Face não está disponível no momento', { component: 'AvatarGallery' });
         return;
       }
 
@@ -617,12 +618,12 @@ export default function AvatarGallery({
           };
         });
 
-        console.log(`Preview iniciado para ${avatar.name}`);
+        logger.info('Preview iniciado', { component: 'AvatarGallery', avatarName: avatar.name });
       } else {
-        console.error(`Erro no preview: ${result.error}`);
+        logger.error('Erro no preview', new Error(result.error || 'Unknown error'), { component: 'AvatarGallery' });
       }
     } catch (error) {
-      console.error('Erro ao iniciar preview:', error);
+      logger.error('Erro ao iniciar preview', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarGallery' });
     } finally {
       setPreviewLoading(false);
     }
@@ -646,7 +647,7 @@ export default function AvatarGallery({
           };
         });
       } catch (error) {
-        console.error('Erro ao limpar preview:', error);
+        logger.error('Erro ao limpar preview', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarGallery' });
       }
     }
     
@@ -670,21 +671,21 @@ export default function AvatarGallery({
       if (response.ok) {
         if (isFavorited) {
           setFavorites(prev => prev.filter(id => id !== avatarId));
-          console.log('Avatar removido dos favoritos');
+          logger.debug('Avatar removido dos favoritos', { component: 'AvatarGallery', avatarId });
         } else {
           setFavorites(prev => [...prev, avatarId]);
-          console.log('Avatar adicionado aos favoritos');
+          logger.debug('Avatar adicionado aos favoritos', { component: 'AvatarGallery', avatarId });
         }
       }
     } catch (error) {
-      console.error('Erro ao atualizar favoritos:', error);
+      logger.error('Erro ao atualizar favoritos', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarGallery', avatarId });
     }
   };
 
   // Função para selecionar avatar para renderização
   const handleSelectAvatar = (avatar: HyperRealisticAvatar) => {
     onAvatarSelect(avatar);
-    console.log(`Avatar ${avatar.name} selecionado para renderização`);
+    logger.info('Avatar selecionado para renderização', { component: 'AvatarGallery', avatarName: avatar.name, avatarId: avatar.id });
   };
 
   if (loading) {

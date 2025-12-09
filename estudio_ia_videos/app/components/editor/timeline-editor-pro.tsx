@@ -8,6 +8,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -460,7 +461,7 @@ export default function TimelineEditorPro({
                       toast.success(`Efeito ${effect} aplicado!`)
                       // Aplicar efeito ao clip selecionado
                       if (selectedClip) {
-                        console.log(`Aplicando efeito ${effect} ao clip ${selectedClip}`)
+                        logger.debug('Aplicando efeito ao clip', { component: 'TimelineEditorPro', effect, clipId: selectedClip })
                       } else {
                         toast.error('Selecione um elemento na timeline primeiro')
                       }
@@ -487,7 +488,7 @@ export default function TimelineEditorPro({
                     onClick={() => {
                       toast.success(`Transição ${transition} aplicada!`)
                       if (selectedClip) {
-                        console.log(`Aplicando transição ${transition} ao clip ${selectedClip}`)
+                        logger.debug('Aplicando transição ao clip', { component: 'TimelineEditorPro', transition, clipId: selectedClip })
                       } else {
                         toast.error('Selecione um elemento na timeline primeiro')
                       }
@@ -794,7 +795,7 @@ export default function TimelineEditorPro({
                       onClick={() => {
                         toast.success(`Tipo de animação ${type} selecionado`);
                         if (selectedClip) {
-                          console.log(`Aplicando estilo ${type} ao clip ${selectedClip}`);
+                          logger.debug('Aplicando estilo ao clip', { component: 'TimelineEditorPro', type, clipId: selectedClip });
                         } else {
                           toast.error('Selecione um elemento na timeline primeiro');
                         }
@@ -814,7 +815,7 @@ export default function TimelineEditorPro({
                       onClick={() => {
                         toast.success(`Animação ${effect} aplicada!`)
                         if (selectedClip) {
-                          console.log(`Aplicando animação ${effect} ao clip ${selectedClip}`)
+                          logger.debug('Aplicando animação ao clip', { component: 'TimelineEditorPro', effect, clipId: selectedClip })
                         } else {
                           toast.error('Selecione um elemento na timeline primeiro')
                         }

@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs/promises';
 import { PDFPage, PDFElement } from './pdf-processor';
+import { logger } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -77,7 +78,7 @@ export class AINarrator {
     try {
       await fs.mkdir(this.tempDir, { recursive: true });
     } catch (error) {
-      console.error('Error creating temp directory:', error);
+      logger.error('Error creating temp directory', error instanceof Error ? error : new Error(String(error)), { component: 'AINarrator' });
     }
   }
 
@@ -129,7 +130,7 @@ export class AINarrator {
         transitions
       };
     } catch (error) {
-      console.error('Narration generation error:', error);
+      logger.error('Narration generation error', error instanceof Error ? error : new Error(String(error)), { component: 'AINarrator' });
       throw new Error(`Failed to generate narration: ${(error as Error).message}`);
     }
   }
@@ -445,7 +446,7 @@ export class AINarrator {
 
       return outputFile;
     } catch (error) {
-      console.error(`Failed to generate audio for script ${script.id}:`, error);
+      logger.error(`Failed to generate audio for script ${script.id}`, error instanceof Error ? error : new Error(String(error)), { component: 'AINarrator' });
       throw error;
     }
   }
@@ -486,7 +487,7 @@ export class AINarrator {
 
       return outputFile;
     } catch (error) {
-      console.error('Failed to synthesize narration:', error);
+      logger.error('Failed to synthesize narration', error instanceof Error ? error : new Error(String(error)), { component: 'AINarrator' });
       throw error;
     }
   }
@@ -517,7 +518,7 @@ export class AINarrator {
 
       return data.id;
     } catch (error) {
-      console.error('Database error:', error);
+      logger.error('Database error', error instanceof Error ? error : new Error(String(error)), { component: 'AINarrator' });
       throw error;
     }
   }
@@ -529,7 +530,7 @@ export class AINarrator {
         fs.unlink(path.join(this.tempDir, file)).catch(() => {})
       ));
     } catch (error) {
-      console.warn('Failed to cleanup temp directory:', error);
+      logger.warn('Failed to cleanup temp directory', { component: 'AINarrator', error: String(error) });
     }
   }
 }

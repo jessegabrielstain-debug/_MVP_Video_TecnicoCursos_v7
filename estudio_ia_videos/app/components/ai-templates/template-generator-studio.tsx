@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,7 +63,7 @@ export default function TemplateGeneratorStudio() {
       const data = await response.json();
       setTemplates(data);
     } catch (error) {
-      console.error('Erro ao carregar templates:', error);
+      logger.error('Erro ao carregar templates', error instanceof Error ? error : new Error(String(error)), { component: 'TemplateGeneratorStudio' });
       setTemplates(mockTemplates);
     }
   };
@@ -120,7 +121,7 @@ export default function TemplateGeneratorStudio() {
         loadOptimizationSuggestions(template.id);
       }
     } catch (error) {
-      console.error('Erro ao gerar template:', error);
+      logger.error('Erro ao gerar template', error instanceof Error ? error : new Error(String(error)), { formData, component: 'TemplateGeneratorStudio' });
       // Mock para demonstração
       setTimeout(() => {
         setGenerationProgress(100);
@@ -138,7 +139,7 @@ export default function TemplateGeneratorStudio() {
       const suggestions = await response.json();
       setOptimizationSuggestions(suggestions);
     } catch (error) {
-      console.error('Erro ao carregar sugestões:', error);
+      logger.error('Erro ao carregar sugestões', error instanceof Error ? error : new Error(String(error)), { templateId, component: 'TemplateGeneratorStudio' });
       setOptimizationSuggestions(mockOptimizationSuggestions);
     }
   };

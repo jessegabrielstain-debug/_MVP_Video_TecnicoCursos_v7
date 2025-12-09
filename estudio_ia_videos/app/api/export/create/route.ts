@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exportSystem } from '@/lib/export-advanced-system';
 import type { ExportOptions, TargetPlatform } from '@/lib/export-advanced-system';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/export/create
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Export creation error:', error);
+    logger.error('Export creation error', error instanceof Error ? error : new Error(String(error)), { component: 'API: export/create' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Export creation failed' },
       { status: 500 }
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Job status error:', error);
+    logger.error('Job status error', error instanceof Error ? error : new Error(String(error)), { component: 'API: export/create' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to get job status' },
       { status: 500 }

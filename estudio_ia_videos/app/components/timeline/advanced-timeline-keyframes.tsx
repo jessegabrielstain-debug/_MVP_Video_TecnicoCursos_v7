@@ -7,6 +7,7 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
+import { logger } from '@/lib/logger'
 import { useKeyframeAnimation, Keyframe, TimelineTrack } from '@/lib/keyframe-animation-system'
 import { toast } from 'react-hot-toast'
 
@@ -192,7 +193,7 @@ export default function AdvancedTimelineKeyframes({
         }
       }
     } catch (error) {
-      console.error('❌ Erro ao salvar timeline:', error)
+      logger.error('Erro ao salvar timeline', error instanceof Error ? error : new Error(String(error)), { component: 'AdvancedTimelineKeyframes', projectId })
       toast.error('Erro ao salvar timeline')
     }
   }
@@ -223,7 +224,7 @@ export default function AdvancedTimelineKeyframes({
         }
       }
     } catch (error) {
-      console.error('❌ Erro na renderização:', error)
+      logger.error('Erro na renderização', error instanceof Error ? error : new Error(String(error)), { component: 'AdvancedTimelineKeyframes', projectId })
       toast.error('Erro na renderização')
     }
   }
@@ -243,7 +244,7 @@ export default function AdvancedTimelineKeyframes({
       URL.revokeObjectURL(url)
       
     } catch (error) {
-      console.error('❌ Erro ao gerar preview:', error)
+      logger.error('Erro ao gerar preview', error instanceof Error ? error : new Error(String(error)), { component: 'AdvancedTimelineKeyframes' })
       toast.error('Erro ao gerar preview')
     } finally {
       setIsGeneratingPreview(false)

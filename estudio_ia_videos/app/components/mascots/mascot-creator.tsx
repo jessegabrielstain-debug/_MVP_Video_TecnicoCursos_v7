@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -100,7 +101,7 @@ export default function MascotCreator({ onMascotCreate, companyBranding }: Masco
         template_id: customMascot.id
       }))
     } catch (error: unknown) {
-      console.error('Erro ao gerar mascote:', error)
+      logger.error('Erro ao gerar mascote', error instanceof Error ? error : new Error(String(error)), { component: 'MascotCreator' })
     } finally {
       setGeneratingCustom(false)
     }

@@ -6,6 +6,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { 
   User, 
   Settings, 
@@ -219,7 +220,7 @@ export default function Avatar3DModule({
       toast.success('Preview gerado com sucesso!')
 
     } catch (error: any) {
-      console.error('Preview generation error:', error)
+      logger.error('Preview generation error', error instanceof Error ? error : new Error(String(error)), { component: 'Avatar3DModule' })
       toast.error('Erro ao gerar preview: ' + error.message)
     } finally {
       setIsGenerating(false)

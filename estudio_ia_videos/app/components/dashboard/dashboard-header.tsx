@@ -2,6 +2,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { logger } from '@/lib/logger'
 import { Video, User, LogOut, Settings, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
@@ -43,13 +44,13 @@ export default function DashboardHeader() {
           .maybeSingle()
 
         if (error) {
-          console.warn('Não foi possível carregar perfil do usuário:', error)
+          logger.warn('Não foi possível carregar perfil do usuário', { component: 'DashboardHeader', error: String(error) })
         }
 
         setDisplayName(profile?.name ?? authUser.user_metadata?.name ?? authUser.email ?? null)
         setAvatarUrl(profile?.avatar_url ?? authUser.user_metadata?.avatar_url ?? null)
       } catch (error) {
-        console.error('Erro ao carregar perfil do usuário:', error)
+        logger.error('Erro ao carregar perfil do usuário', error instanceof Error ? error : new Error(String(error)), { component: 'DashboardHeader' })
         setDisplayName(authUser.user_metadata?.name ?? authUser.email ?? null)
         setAvatarUrl(authUser.user_metadata?.avatar_url ?? null)
       }
@@ -95,7 +96,7 @@ export default function DashboardHeader() {
       router.replace('/login?reason=session_expired')
       router.refresh()
     } catch (error) {
-      console.error('Erro ao sair:', error)
+      logger.error('Erro ao sair', error instanceof Error ? error : new Error(String(error)), { component: 'DashboardHeader' })
       toast.error('Não foi possível encerrar a sessão. Tente novamente.')
     } finally {
       setSigningOut(false)

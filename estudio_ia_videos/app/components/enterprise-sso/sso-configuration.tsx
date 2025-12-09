@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -105,7 +106,7 @@ export default function SSOConfiguration() {
         setSelectedProvider(data[0]);
       }
     } catch (error) {
-      console.error('Erro ao carregar provedores:', error);
+      logger.error('Erro ao carregar provedores', error instanceof Error ? error : new Error(String(error)), { component: 'SSOConfiguration' });
       // Mock data
       setProviders(mockProviders);
       setSelectedProvider(mockProviders[0]);
@@ -118,7 +119,7 @@ export default function SSOConfiguration() {
       const data = await response.json();
       setAuditStats(data);
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+      logger.error('Erro ao carregar estatísticas', error instanceof Error ? error : new Error(String(error)), { component: 'SSOConfiguration' });
       setAuditStats(mockAuditStats);
     }
   };
@@ -188,7 +189,7 @@ export default function SSOConfiguration() {
       const result = await response.json();
       setTestResult(result);
     } catch (error) {
-      console.error('Erro ao testar provedor:', error);
+      logger.error('Erro ao testar provedor', error instanceof Error ? error : new Error(String(error)), { component: 'SSOConfiguration' });
       setTestResult({
         success: false,
         details: { error: 'Erro de conectividade' }

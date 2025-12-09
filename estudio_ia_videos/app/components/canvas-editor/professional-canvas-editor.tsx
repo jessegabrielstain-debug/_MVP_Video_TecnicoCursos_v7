@@ -7,6 +7,7 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import { toast } from 'react-hot-toast'
 
 // Import dos novos componentes
@@ -457,7 +458,7 @@ function CanvasEditorCore() {
       
       toast.success('Vídeo exportado com sucesso!')
     } catch (error: unknown) {
-      console.error(error)
+      logger.error('Erro ao exportar vídeo', error instanceof Error ? error : new Error(String(error)), { component: 'ProfessionalCanvasEditor' })
       toast.error('Erro ao exportar vídeo')
     }
   }
@@ -551,13 +552,13 @@ function CanvasEditorCore() {
         >
           <Tabs defaultValue="tools" className="h-full">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="tools" onClick={() => console.log('Ferramentas tab clicked')}>
+              <TabsTrigger value="tools" onClick={() => logger.debug('Ferramentas tab clicked', { component: 'ProfessionalCanvasEditor' })}>
                 Ferramentas
               </TabsTrigger>
-              <TabsTrigger value="layers" onClick={() => console.log('Camadas tab clicked')}>
+              <TabsTrigger value="layers" onClick={() => logger.debug('Camadas tab clicked', { component: 'ProfessionalCanvasEditor' })}>
                 Camadas
               </TabsTrigger>
-              <TabsTrigger value="assets" onClick={() => console.log('Assets tab clicked')}>
+              <TabsTrigger value="assets" onClick={() => logger.debug('Assets tab clicked', { component: 'ProfessionalCanvasEditor' })}>
                 Assets
               </TabsTrigger>
             </TabsList>

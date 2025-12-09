@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -203,11 +204,11 @@ const EnhancedDashboardV4 = () => {
 
   // Dashboard functions
   const handleOpenProject = useCallback((projectId: string) => {
-    console.log(`Abrindo projeto: ${projectId}`);
+    logger.debug(`Abrindo projeto: ${projectId}`, { component: 'EnhancedDashboardV4', projectId });
   }, []);
 
   const handleQuickAction = useCallback((href: string) => {
-    console.log(`Navegando para: ${href}`);
+    logger.debug(`Navegando para: ${href}`, { component: 'EnhancedDashboardV4', href });
   }, []);
 
   const getStatusColor = (status: ProjectSprint24['status']) => {

@@ -12,6 +12,7 @@
 
 import JSZip from 'jszip';
 import { Slide } from '@/lib/definitions';
+import { logger } from '@/lib/logger';
 
 export interface AdvancedPPTXOptions {
   extractImages?: boolean;
@@ -71,7 +72,7 @@ export async function processAdvancedPPTX(
   // 3. Usar layout-parser para analisar estrutura
   // 4. Gerar thumbnails com canvas/sharp se solicitado
 
-  console.warn('processAdvancedPPTX: Implementação pendente. Retornando array vazio.');
+  logger.warn('processAdvancedPPTX: Implementação pendente. Retornando array vazio.', { component: 'PptxProcessorAdvanced' });
   
   return slides;
 }

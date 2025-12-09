@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -257,7 +258,7 @@ export default function NRTemplatesReal() {
       await new Promise(resolve => setTimeout(resolve, 800))
       setTemplates(mockNRTemplates)
     } catch (error) {
-      console.error('Erro ao carregar templates:', error)
+      logger.error('Erro ao carregar templates', error instanceof Error ? error : new Error(String(error)), { component: 'NRTemplatesReal' })
     } finally {
       setLoading(false)
     }
@@ -312,12 +313,12 @@ export default function NRTemplatesReal() {
       }
 
       // Simular criação do projeto
-      console.log('Criando projeto com template NR:', createData)
+      logger.debug('Criando projeto com template NR', { component: 'NRTemplatesReal', ...createData })
       
       // Redirecionar para o editor com o template carregado
       router.push(`/editor-timeline?template=${selectedTemplate.id}`)
     } catch (error) {
-      console.error('Erro ao criar projeto:', error)
+      logger.error('Erro ao criar projeto', error instanceof Error ? error : new Error(String(error)), { component: 'NRTemplatesReal', templateId: selectedTemplate?.id })
     }
   }
 

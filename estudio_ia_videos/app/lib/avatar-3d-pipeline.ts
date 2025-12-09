@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { avatarRegistry } from './avatars/avatar-registry';
 
 type AvatarConfig = Record<string, unknown>;
@@ -119,7 +120,7 @@ export const avatar3DPipeline = {
         audio2FaceEnabled: !!options.audio2FaceEnabled 
       };
     } catch (error) {
-      console.error('Error creating render job:', error);
+      logger.error('Error creating render job', error instanceof Error ? error : new Error(String(error)), { component: 'Avatar3dPipeline' });
       return { success: false, error: 'Failed to create render job' };
     }
   },
@@ -158,7 +159,7 @@ export const avatar3DPipeline = {
         updatedAt: job.updatedAt
       };
     } catch (error) {
-      console.error('Error fetching job status:', error);
+      logger.error('Error fetching job status', error instanceof Error ? error : new Error(String(error)), { component: 'Avatar3dPipeline' });
       return { status: 'error', error: 'Database error' };
     }
   },
@@ -246,7 +247,7 @@ export const avatar3DPipeline = {
       });
       return true;
     } catch (error) {
-      console.error('Error cancelling job:', error);
+      logger.error('Error cancelling job', error instanceof Error ? error : new Error(String(error)), { component: 'Avatar3dPipeline' });
       return false;
     }
   },

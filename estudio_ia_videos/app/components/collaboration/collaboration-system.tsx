@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react'
+import { logger } from '@/lib/logger';
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -300,7 +301,7 @@ export default function CollaborationSystem({ projectId }: { projectId: string }
           setAvatarUrl('')
         }
       } catch (error) {
-        console.error('Erro ao carregar sessão do usuário:', error)
+        logger.error('Erro ao carregar sessão do usuário', error instanceof Error ? error : new Error(String(error)), { component: 'CollaborationSystem' });
       }
     }
 

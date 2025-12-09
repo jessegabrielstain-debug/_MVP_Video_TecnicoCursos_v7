@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef } from 'react'
+import { logger } from '@/lib/logger'
 import { SubtitleFormat, SubtitleStyle } from '@/types/subtitle.types'
 import { SubtitleParser } from '@/lib/export/subtitle-parser'
 import { Button } from '@/components/ui/button'
@@ -112,7 +113,7 @@ export function SubtitleSettings({ subtitle, onChange }: SubtitleSettingsProps) 
       toast.success(`Legenda carregada: ${format.toUpperCase()} (${parsed.cues.length} cues)`)
     } catch (error) {
       toast.error('Erro ao carregar legenda')
-      console.error(error)
+      logger.error('Erro ao carregar legenda', error instanceof Error ? error : new Error(String(error)), { component: 'SubtitleSettings' })
     }
   }
 

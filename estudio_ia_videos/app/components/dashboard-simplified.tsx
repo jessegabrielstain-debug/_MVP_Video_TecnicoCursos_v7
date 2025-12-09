@@ -7,6 +7,7 @@
 */
 
 import { useEffect, useMemo, useState } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
@@ -157,7 +158,7 @@ export default function DashboardSimplified() {
         if (!isMounted) return
         setUser(data.user ?? null)
       } catch (error) {
-        console.error('Erro ao carregar sessão do usuário:', error)
+        logger.error('Erro ao carregar sessão do usuário', error instanceof Error ? error : new Error(String(error)), { component: 'DashboardSimplified' })
       }
     }
 
@@ -179,13 +180,13 @@ export default function DashboardSimplified() {
   )
 
   const handleCreateProject = () => {
-    console.log('🚀 Creating new project')
+    logger.info('Creating new project', { component: 'DashboardSimplified' })
     // Simple navigation without complex routing
     window.location.href = '/pptx/upload'
   }
 
   const handleProjectClick = (projectId: string) => {
-    console.log('📂 Opening project:', projectId)
+    logger.info('Opening project', { projectId, component: 'DashboardSimplified' })
     // Simple navigation without complex routing
     window.location.href = `/project/${projectId}`
   }
@@ -200,7 +201,7 @@ export default function DashboardSimplified() {
       }
       window.location.href = '/login?reason=session_expired'
     } catch (error) {
-      console.error('Erro ao encerrar sessão:', error)
+      logger.error('Erro ao encerrar sessão', error instanceof Error ? error : new Error(String(error)), { component: 'DashboardSimplified' })
     } finally {
       setSigningOut(false)
     }

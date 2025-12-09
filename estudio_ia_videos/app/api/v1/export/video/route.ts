@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 import { ffmpegService, RenderSettings, getResolutionDimensions } from '../../../../lib/ffmpeg-service'
 import { CanvasToVideoConverter, VideoScene } from '../../../../lib/canvas-to-video'
 
@@ -43,7 +44,8 @@ export async function POST(request: NextRequest) {
   try {
     const exportData: ExportRequest = await request.json()
     
-    console.log('🎬 Starting professional video export:', {
+    logger.info('🎬 Starting professional video export:', {
+      component: 'API: v1/export/video',
       project: exportData.project?.name,
       slides: exportData.upload?.slides,
       duration: exportData.timeline?.totalDuration || exportData.upload?.duration
@@ -61,7 +63,7 @@ export async function POST(request: NextRequest) {
     try {
       await ffmpegService.initialize()
     } catch (error) {
-      console.error('FFmpeg initialization failed:', error)
+      logger.error('FFmpeg initialization failed:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/export/video' })
       return NextResponse.json(
         { success: false, error: 'Falha ao inicializar o engine de renderização' },
         { status: 500 }
@@ -108,7 +110,7 @@ export async function POST(request: NextRequest) {
     let renderProgress = 0
     const progressCallback = (progress: number) => {
       renderProgress = progress
-      console.log(`🎬 Render progress: ${Math.round(progress)}%`)
+      logger.info(`🎬 Render progress: ${Math.round(progress)}%`, { component: 'API: v1/export/video' })
     }
 
     try {
@@ -188,7 +190,8 @@ export async function POST(request: NextRequest) {
         fileSize: Math.round(videoBlob.size / (1024 * 1024) * 100) / 100 // MB with 2 decimals
       }
 
-      console.log('✅ Professional video export completed:', {
+      logger.info('✅ Professional video export completed:', {
+        component: 'API: v1/export/video',
         videoUrl: downloadUrl,
         metadata: videoMetadata,
         size: `${videoMetadata.fileSize}MB`
@@ -215,10 +218,10 @@ export async function POST(request: NextRequest) {
       })
 
     } catch (renderError) {
-      console.error('❌ FFmpeg render error:', renderError)
+      logger.error('❌ FFmpeg render error:', renderError instanceof Error ? renderError : new Error(String(renderError)), { component: 'API: v1/export/video' })
       
       // Fallback to error response - no more mocks
-      console.error('❌ Video rendering failed completely')
+      logger.error('❌ Video rendering failed completely', new Error('Video rendering failed'), { component: 'API: v1/export/video' })
       return NextResponse.json({ 
          success: false, 
          error: 'Video rendering failed' 
@@ -226,7 +229,7 @@ export async function POST(request: NextRequest) {
     }
     
   } catch (error: unknown) {
-    console.error('❌ Professional video export error:', error)
+    logger.error('❌ Professional video export error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/export/video' })
     
     return NextResponse.json(
       { 

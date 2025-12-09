@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -56,7 +57,7 @@ export function ComplianceAlerts() {
         setSummary(data.summary);
       }
     } catch (error) {
-      console.error('Error fetching alerts:', error);
+      logger.error('Error fetching alerts', error instanceof Error ? error : new Error(String(error)), { component: 'ComplianceAlerts' });
       toast.error('Erro ao carregar alertas');
     } finally {
       setLoading(false);
@@ -135,7 +136,7 @@ export function ComplianceAlerts() {
         fetchAlerts(); // Refresh alerts
       }
     } catch (error) {
-      console.error('Error handling alert action:', error);
+      logger.error('Error handling alert action', error instanceof Error ? error : new Error(String(error)), { component: 'ComplianceAlerts' });
       toast.error('Erro ao executar ação');
     }
   };

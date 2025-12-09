@@ -1,4 +1,6 @@
 
+import { logger } from '@/lib/logger';
+
 export interface NarrationSyncSegment {
   text: string;
   startTime: number;
@@ -31,12 +33,12 @@ class SlideAvatarSyncController {
 
   pause() {
     this.isPaused = true;
-    console.log('SlideAvatarSyncController: Paused');
+    logger.info('SlideAvatarSyncController: Paused', { component: 'SlideAvatarSync' });
   }
 
   resume() {
     this.isPaused = false;
-    console.log('SlideAvatarSyncController: Resumed');
+    logger.info('SlideAvatarSyncController: Resumed', { component: 'SlideAvatarSync' });
   }
 
   async playTimeline(
@@ -46,18 +48,18 @@ class SlideAvatarSyncController {
   ) {
     this.isPlaying = true;
     this.isPaused = false;
-    console.log('SlideAvatarSyncController: Playing timeline');
+    logger.info('SlideAvatarSyncController: Playing timeline', { component: 'SlideAvatarSync' });
     // Mock implementation
   }
 
   stop() {
     this.isPlaying = false;
     this.isPaused = false;
-    console.log('SlideAvatarSyncController: Stopped');
+    logger.info('SlideAvatarSyncController: Stopped', { component: 'SlideAvatarSync' });
   }
 
   seekToSlide(slideIndex: number) {
-    console.log(`SlideAvatarSyncController: Seeking to slide ${slideIndex}`);
+    logger.info(`SlideAvatarSyncController: Seeking to slide ${slideIndex}`, { component: 'SlideAvatarSync' });
   }
 }
 

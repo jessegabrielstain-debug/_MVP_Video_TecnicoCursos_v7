@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 // Schema de validação para atualização de track
 const updateTrackSchema = z.object({
@@ -76,7 +77,7 @@ export async function GET(
           { status: 404 }
         )
       }
-      console.error('Erro ao buscar track:', error)
+      logger.error('Erro ao buscar track', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/tracks/[id]' })
       return NextResponse.json(
         { error: 'Erro interno do servidor' },
         { status: 500 }
@@ -113,7 +114,7 @@ export async function GET(
     return NextResponse.json(trackResponse)
 
   } catch (error) {
-    console.error('Erro na API de track:', error)
+    logger.error('Erro na API de track:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/tracks/[id]' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -197,7 +198,7 @@ export async function PUT(
       .single()
 
     if (error) {
-      console.error('Erro ao atualizar track:', error)
+      logger.error('Erro ao atualizar track:', new Error(error.message), { component: 'API: timeline/tracks/[id]' })
       return NextResponse.json(
         { error: 'Erro ao atualizar track' },
         { status: 500 }
@@ -239,7 +240,7 @@ export async function PUT(
       )
     }
 
-    console.error('Erro na atualização de track:', error)
+    logger.error('Erro na atualização de track:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/tracks/[id]' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -333,7 +334,7 @@ export async function DELETE(
       .eq('id', trackId)
 
     if (error) {
-      console.error('Erro ao excluir track:', error)
+      logger.error('Erro ao excluir track:', new Error(error.message), { component: 'API: timeline/tracks/[id]' })
       return NextResponse.json(
         { error: 'Erro ao excluir track' },
         { status: 500 }
@@ -362,7 +363,7 @@ export async function DELETE(
     return NextResponse.json({ message: 'Track excluída com sucesso' })
 
   } catch (error) {
-    console.error('Erro na exclusão de track:', error)
+    logger.error('Erro na exclusão de track:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/tracks/[id]' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

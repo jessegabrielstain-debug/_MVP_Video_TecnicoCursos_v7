@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger';
 
 // Schema de validação para avatar 3D
 const avatarSchema = z.object({
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
     const { data: avatarsData, error } = await query
 
     if (error) {
-      console.error('Erro ao buscar avatares:', error)
+      logger.error('Erro ao buscar avatares:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars' })
       return NextResponse.json(
         { error: 'Erro interno do servidor' },
         { status: 500 }
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ avatars: authorizedAvatars })
 
   } catch (error) {
-    console.error('Erro na API de avatares:', error)
+    logger.error('Erro na API de avatares:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -189,7 +190,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Erro ao criar avatar:', error)
+      logger.error('Erro ao criar avatar:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars' })
       return NextResponse.json(
         { error: 'Erro ao criar avatar' },
         { status: 500 }
@@ -223,7 +224,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error('Erro ao criar avatar:', error)
+    logger.error('Erro ao criar avatar:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -328,7 +329,7 @@ export async function PUT(request: NextRequest) {
       .eq('id', project_id)
 
     if (updateError) {
-      console.error('Erro ao atualizar configurações:', updateError)
+      logger.error('Erro ao atualizar configurações:', updateError instanceof Error ? updateError : new Error(String(updateError)), { component: 'API: avatars' })
       return NextResponse.json(
         { error: 'Erro ao atualizar configurações' },
         { status: 500 }
@@ -354,7 +355,7 @@ export async function PUT(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Erro ao atualizar configurações de avatares:', error)
+    logger.error('Erro ao atualizar configurações de avatares:', error instanceof Error ? error : new Error(String(error)), { component: 'API: avatars' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

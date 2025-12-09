@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -188,7 +189,7 @@ export default function CertificationCenter() {
       const result = await response.json()
       setVerificationResult(result)
     } catch (error) {
-      console.error('Erro ao verificar certificado:', error)
+      logger.error('Erro ao verificar certificado:', error instanceof Error ? error : new Error(String(error)), { component: 'CertificationCenter' })
       setVerificationResult({ is_valid: false, error: 'Erro ao verificar certificado' })
     } finally {
       setIsVerifying(false)
@@ -236,7 +237,7 @@ export default function CertificationCenter() {
       setIssuanceProgress(null)
       
     } catch (error) {
-      console.error('Erro ao emitir certificado:', error)
+      logger.error('Erro ao emitir certificado:', error instanceof Error ? error : new Error(String(error)), { component: 'CertificationCenter' })
       setIssuanceProgress({ step: 'Erro', progress: 0, error: 'Falha na emissão' })
     }
   }

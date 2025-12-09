@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,7 +89,7 @@ export const WorkflowAutomation: React.FC = () => {
     try {
       await triggerWorkflow(workflowId);
     } catch (err) {
-      console.error('Failed to trigger workflow:', err);
+      logger.error('Failed to trigger workflow', err instanceof Error ? err : new Error(String(err)), { component: 'WorkflowAutomation', workflowId });
     }
   }, [triggerWorkflow]);
 

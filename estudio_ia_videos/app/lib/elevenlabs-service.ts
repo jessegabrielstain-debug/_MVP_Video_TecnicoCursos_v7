@@ -1,5 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
+import type {
+  ElevenLabsVoice as ExternalElevenLabsVoice,
+  ElevenLabsVoiceSettings,
+  ElevenLabsCloneVoiceResponse
+} from '@/types/external-apis';
 
 export interface ElevenLabsOptions {
   apiKey?: string;
@@ -7,12 +13,7 @@ export interface ElevenLabsOptions {
   model?: string;
 }
 
-export interface VoiceSettings {
-  stability: number;
-  similarity_boost: number;
-  style?: number;
-  use_speaker_boost?: boolean;
-}
+export interface VoiceSettings extends ElevenLabsVoiceSettings {}
 
 export interface ElevenLabsVoice {
   id: string;
@@ -102,12 +103,12 @@ export class ElevenLabsService {
       .download(fileName);
 
     if (existingFile) {
-      console.log(`🎤 TTS Cache Hit: ${fileName}`);
+      logger.info(`TTS Cache Hit: ${fileName}`, { component: 'ElevenlabsService' });
       return await existingFile.arrayBuffer();
     }
 
     // 2. Call ElevenLabs API
-    console.log(`🎤 Generating TTS for: "${request.text.substring(0, 20)}..."`);
+    logger.info(`Generating TTS for: "${request.text.substring(0, 20)}..."`, { component: 'ElevenlabsService' });
     
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
@@ -139,13 +140,13 @@ export class ElevenLabsService {
       });
 
     if (uploadError) {
-      console.warn('⚠️ Failed to cache TTS audio:', uploadError.message);
+      logger.warn('Failed to cache TTS audio', { component: 'ElevenlabsService', error: uploadError.message });
     }
 
     return audioBuffer;
   }
 
-  async listVoices(): Promise<any[]> {
+  async listVoices(): Promise<ExternalElevenLabsVoice[]> {
     if (!this.apiKey) return [];
 
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
@@ -155,13 +156,13 @@ export class ElevenLabsService {
     });
 
     if (!response.ok) return [];
-    const data = await response.json();
+    const data = await response.json() as { voices: ExternalElevenLabsVoice[] };
     return data.voices;
   }
 
   async getVoices(): Promise<ElevenLabsVoice[]> {
     const voices = await this.listVoices();
-    return voices.map((v: any) => ({
+    return voices.map((v) => ({
       id: v.voice_id,
       name: v.name,
       category: v.category,
@@ -190,7 +191,7 @@ export class ElevenLabsService {
     return await response.json();
   }
 
-  async cloneVoice(name: string, description: string, files: File[]): Promise<any> {
+  async cloneVoice(name: string, description: string, files: File[]): Promise<ElevenLabsCloneVoiceResponse> {
     if (!this.apiKey) {
       throw new Error('ElevenLabs API Key not configured');
     }
@@ -216,7 +217,7 @@ export class ElevenLabsService {
       throw new Error(`ElevenLabs API Error: ${response.status} - ${errorText}`);
     }
 
-    return await response.json();
+    return await response.json() as ElevenLabsCloneVoiceResponse;
   }
 }
 

@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react'
 import { Play, Pause, Volume2, Loader2 } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 export interface Voice {
   voiceId: string
@@ -77,7 +78,7 @@ export function VoiceSelector({
         onVoiceSelect(data.data[0].voiceId)
       }
     } catch (err) {
-      console.error('Error fetching voices:', err)
+      logger.error('Error fetching voices', err instanceof Error ? err : new Error(String(err)), { component: 'VoiceSelector' })
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
@@ -110,7 +111,7 @@ export function VoiceSelector({
         newAudio.onended = () => setPlayingVoice(null)
         newAudio.onerror = () => {
           setPlayingVoice(null)
-          console.error('Error playing preview')
+          logger.error('Error playing voice preview', new Error('Audio playback failed'), { component: 'VoiceSelector', voiceId: voice.voiceId })
         }
 
         await newAudio.play()
@@ -152,7 +153,7 @@ export function VoiceSelector({
         await newAudio.play()
       }
     } catch (err) {
-      console.error('Error playing preview:', err)
+      logger.error('Error playing preview', err instanceof Error ? err : new Error(String(err)), { component: 'VoiceSelector' })
       setPlayingVoice(null)
     }
   }

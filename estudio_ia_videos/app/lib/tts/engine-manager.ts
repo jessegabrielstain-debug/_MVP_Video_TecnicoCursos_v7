@@ -2,6 +2,7 @@
  * TTS Engine Manager
  * Gerencia múltiplos engines de Text-to-Speech
  */
+import { logger } from '@/lib/logger';
 
 export interface TTSEngine {
   name: string;
@@ -62,12 +63,12 @@ export class EngineManager {
   private engines: Map<string, TTSEngine> = new Map();
   
   registerEngine(name: string, engine: TTSEngine) {
-    console.log(`[TTS] Registering engine: ${name}`);
+    logger.info(`[TTS] Registering engine: ${name}`, { component: 'EngineManager' });
     this.engines.set(name, engine);
   }
   
   async synthesize(text: string, engineName?: string, options?: TTSOptions): Promise<Buffer> {
-    console.log(`[TTS] Synthesizing with engine: ${engineName || 'default'}`);
+    logger.info(`[TTS] Synthesizing with engine: ${engineName || 'default'}`, { component: 'EngineManager' });
     // Placeholder - retornar buffer vazio
     return Buffer.from([]);
   }
@@ -83,7 +84,7 @@ export class EngineManager {
     const startTime = Date.now();
     const jobId = `tts_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     
-    console.log(`[TTS] Generating speech for job ${jobId}`);
+    logger.info(`[TTS] Generating speech for job ${jobId}`, { component: 'EngineManager' });
     
     // Placeholder implementation
     return {
@@ -116,7 +117,7 @@ export class EngineManager {
           engine: engineName,
         })));
       } catch (error) {
-        console.error(`[TTS] Failed to get voices from ${engineName}:`, error);
+        logger.error(`[TTS] Failed to get voices from ${engineName}:`, error instanceof Error ? error : new Error(String(error)), { component: 'EngineManager' });
       }
     }
     

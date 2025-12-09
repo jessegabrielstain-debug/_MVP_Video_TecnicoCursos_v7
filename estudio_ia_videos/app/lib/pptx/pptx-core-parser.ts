@@ -5,6 +5,7 @@
 
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
+import { logger } from '@/lib/logger';
 
 export interface PPTXStructure {
   slides: Array<{
@@ -33,7 +34,7 @@ export class PPTXCoreParser {
   }
 
   async parseStructure(buffer: Buffer): Promise<PPTXStructure> {
-    console.log(`[PPTX Core ${this.jobId || ''}] Parsing structure`);
+    logger.info(`[PPTX Core ${this.jobId || ''}] Parsing structure`, { component: 'PptxCoreParser' });
     
     const zip = await JSZip.loadAsync(buffer);
     const structure: PPTXStructure = {
