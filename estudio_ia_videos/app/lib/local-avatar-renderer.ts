@@ -6,6 +6,7 @@
 import { createCanvas, loadImage, CanvasRenderingContext2D } from 'canvas';
 import path from 'path';
 import fs from 'fs';
+import { logger } from '@/lib/logger';
 
 export interface AvatarConfig {
   type: 'static' | '2d' | '3d';
@@ -32,7 +33,7 @@ export class LocalAvatarRenderer {
         this.drawPlaceholderAvatar(ctx, width, height, frame);
       }
     } catch (error) {
-      console.error(`[Avatar] Error rendering frame ${frame}:`, error);
+      logger.error(`[Avatar] Error rendering frame ${frame}`, error as Error, { frame, component: 'LocalAvatarRenderer' });
       this.drawPlaceholderAvatar(ctx, width, height, frame);
     }
 

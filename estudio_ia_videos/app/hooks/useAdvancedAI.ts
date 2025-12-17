@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 
 export interface AIModel {
   id: string;
@@ -513,7 +514,7 @@ export const useAdvancedAI = () => {
       setInsights(prev => [...newInsights, ...prev]);
 
     } catch (err) {
-      console.error('Failed to generate insights:', err);
+      logger.error('Failed to generate insights', err as Error, { component: 'useAdvancedAI' });
     }
   }, []);
 
@@ -555,7 +556,7 @@ export const useAdvancedAI = () => {
       );
 
     } catch (err) {
-      console.error('Failed to mark insight as read:', err);
+      logger.error('Failed to mark insight as read', err as Error, { component: 'useAdvancedAI' });
     }
   }, []);
 
@@ -596,7 +597,7 @@ export const useAdvancedAI = () => {
       const stats = await response.json();
       setUsageStats(stats);
     } catch (err) {
-      console.error('Failed to load usage stats:', err);
+      logger.error('Failed to load usage stats', err as Error, { component: 'useAdvancedAI' });
     }
   }, []);
 
@@ -626,7 +627,7 @@ export const useAdvancedAI = () => {
       return suggestions;
 
     } catch (err) {
-      console.error('Failed to get smart suggestions:', err);
+      logger.error('Failed to get smart suggestions', err as Error, { component: 'useAdvancedAI' });
       return [];
     }
   }, []);
@@ -656,7 +657,7 @@ export const useAdvancedAI = () => {
       return completions;
 
     } catch (err) {
-      console.error('Failed to auto-complete content:', err);
+      logger.error('Failed to auto-complete content', err as Error, { component: 'useAdvancedAI' });
       return [];
     }
   }, []);

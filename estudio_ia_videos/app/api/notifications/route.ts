@@ -7,8 +7,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabase, supabaseAdmin } from '@/lib/services'
+import { fromUntypedTable } from '@/lib/supabase/server'
+import type { NotificationRow } from '@/types/database'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+
+// Helper para acessar tabela notifications com tipagem
+function notificationsTable() {
+  return fromUntypedTable<NotificationRow>(supabaseAdmin, 'notifications')
+}
 
 // Validation schemas
 const NotificationCreateSchema = z.object({
@@ -58,8 +65,7 @@ function getTimeRangeFilter(timeRange?: string) {
 // Get notification statistics
 async function getNotificationStats(userId: string, filters: z.infer<typeof NotificationQuerySchema>) {
   try {
-    let query = (supabaseAdmin as any)
-      .from('notifications')
+    let query = notificationsTable()
       .select('id, type, priority, status')
       .eq('user_id', userId)
 
@@ -79,28 +85,28 @@ async function getNotificationStats(userId: string, filters: z.infer<typeof Noti
 
     if (error) throw error
 
-    const notifications = notificationsData as any[]
+    const notifications = (notificationsData || []) as NotificationRow[]
 
-    const total = notifications?.length || 0
-    const unread = notifications?.filter((n: any) => n.status === 'unread').length || 0
+    const total = notifications.length
+    const unread = notifications.filter((n) => n.status === 'unread').length
 
     // Group by type
-    const byType = notifications?.reduce((acc: any, notification: any) => {
+    const byType = notifications.reduce((acc, notification) => {
       acc[notification.type] = (acc[notification.type] || 0) + 1
       return acc
-    }, {} as Record<string, number>) || {}
+    }, {} as Record<string, number>)
 
     // Group by priority
-    const byPriority = notifications?.reduce((acc: any, notification: any) => {
+    const byPriority = notifications.reduce((acc, notification) => {
       acc[notification.priority] = (acc[notification.priority] || 0) + 1
       return acc
-    }, {} as Record<string, number>) || {}
+    }, {} as Record<string, number>)
 
     // Recent activity (last 24 hours)
     const recentFilter = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    const recentActivity = notifications?.filter((n: any) => 
+    const recentActivity = notifications.filter((n) => 
       new Date(n.created_at) > recentFilter
-    ).length || 0
+    ).length
 
     return {
       total,
@@ -110,7 +116,8 @@ async function getNotificationStats(userId: string, filters: z.infer<typeof Noti
       recent_activity: recentActivity
     }
   } catch (error) {
-    logger.error('Error getting notification stats', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: notifications' })
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Error getting notification stats', err, { component: 'API: notifications' })
     return {
       total: 0,
       unread: 0,
@@ -148,8 +155,7 @@ export async function GET(request: NextRequest) {
     const validatedParams = NotificationQuerySchema.parse(queryParams)
 
     // Build query
-    let query = (supabaseAdmin as any)
-      .from('notifications')
+    let query = notificationsTable()
       .select('*')
       .eq('user_id', session.user.id)
 
@@ -207,7 +213,8 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Notifications API error', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: notifications' })
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Notifications API error', err, { component: 'API: notifications' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -247,8 +254,7 @@ export async function POST(request: NextRequest) {
     const validatedData = NotificationCreateSchema.parse(body)
 
     // Create notification
-    const { data: notification, error } = await (supabaseAdmin as any)
-      .from('notifications')
+    const { data: notification, error } = await notificationsTable()
       .insert({
         ...validatedData,
         user_id: session.user.id,
@@ -268,7 +274,8 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Create notification API error', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: notifications' })
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Create notification API error', err, { component: 'API: notifications' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

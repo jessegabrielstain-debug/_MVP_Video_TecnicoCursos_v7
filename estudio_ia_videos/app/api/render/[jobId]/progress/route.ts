@@ -4,6 +4,11 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { z } from 'zod'
 import { createRenderQueueEvents } from '@/lib/queue/render-queue'
 import type { Database } from '@/lib/supabase/types'
+import type { 
+  RenderJobWithProject, 
+  RenderProgressData, 
+  RenderCompleteData
+} from '@/types/database'
 
 const paramsSchema = z.object({
   id: z.string().uuid('ID do job inválido'),
@@ -71,7 +76,9 @@ export async function GET(request: NextRequest, ctx: { params: { id?: string } }
     })
   }
 
-  const projectUserId = (job as any).projects?.user_id
+  // Type the job with project relation
+  const typedJob = job as unknown as RenderJobWithProject
+  const projectUserId = typedJob.projects?.user_id
   if (projectUserId !== user.id) {
     return new Response(JSON.stringify({ error: 'Sem acesso a este job' }), {
       status: 403,
@@ -89,20 +96,21 @@ export async function GET(request: NextRequest, ctx: { params: { id?: string } }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`))
       }
 
-      const jobData = job as any
       send('init', {
-        status: jobData.status,
-        progress: jobData.progress,
+        status: typedJob.status,
+        progress: typedJob.progress,
         stage: null,
         message: null,
-        videoUrl: jobData.output_url,
-        error: jobData.error_message,
+        videoUrl: typedJob.output_url,
+        error: typedJob.error_message,
       })
 
-      // BullMQ event callbacks - using type assertion for compatibility
-      const onProgress = (args: { jobId: string; data: unknown }, id: string) => {
+      // BullMQ event callbacks - typed internally, use generic handler for registration
+      // Note: BullMQ QueueEvents typing is complex, we use explicit typing for the handler logic
+      const onProgress = (args: { jobId: string; data: unknown }, _id: string) => {
         if (args.jobId !== jobId) return
-        const progress = typeof (args.data as any)?.progress === 'number' ? (args.data as any).progress : 0
+        const progressData = args.data as RenderProgressData
+        const progress = typeof progressData?.progress === 'number' ? progressData.progress : 0
         send('progress', {
           progress,
           data: args.data,
@@ -110,16 +118,16 @@ export async function GET(request: NextRequest, ctx: { params: { id?: string } }
         })
       }
 
-      const onCompleted = (args: { jobId: string; returnvalue: unknown }, id: string) => {
+      const onCompleted = (args: { jobId: string; returnvalue: unknown }, _id: string) => {
         if (args.jobId !== jobId) return
-        const videoUrl = (args.returnvalue as any)?.videoUrl
+        const completeData = args.returnvalue as RenderCompleteData
         send('complete', {
-          videoUrl: videoUrl ?? null,
+          videoUrl: completeData?.videoUrl ?? null,
           timestamp: Date.now(),
         })
       }
 
-      const onFailed = (args: { jobId: string; failedReason: string }, id: string) => {
+      const onFailed = (args: { jobId: string; failedReason: string }, _id: string) => {
         if (args.jobId !== jobId) return
         send('failed', {
           error: args.failedReason ?? 'Renderização falhou',
@@ -127,8 +135,12 @@ export async function GET(request: NextRequest, ctx: { params: { id?: string } }
         })
       }
 
+      // BullMQ QueueEvents requires generic listener type - use type assertion for compatibility
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       queueEvents.on('progress', onProgress as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       queueEvents.on('completed', onCompleted as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       queueEvents.on('failed', onFailed as any)
 
       const keepAlive = setInterval(() => {
@@ -137,8 +149,11 @@ export async function GET(request: NextRequest, ctx: { params: { id?: string } }
 
       const close = () => {
         clearInterval(keepAlive)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         queueEvents.removeListener('progress', onProgress as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         queueEvents.removeListener('completed', onCompleted as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         queueEvents.removeListener('failed', onFailed as any)
         queueEvents.close().catch(() => undefined)
         controller.close()

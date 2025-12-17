@@ -232,7 +232,7 @@ export const TemplateStudioAdvanced: React.FC<TemplateStudioAdvancedProps> = ({
   };
 
   const isDifficulty = (value: string): value is NonNullable<TemplateFilter['difficulty']>[number] => {
-    return difficultyOptions.includes(value as any);
+    return (difficultyOptions as readonly string[]).includes(value);
   };
 
   const isComplianceStatus = (value: string): value is NonNullable<TemplateFilter['compliance']> => {

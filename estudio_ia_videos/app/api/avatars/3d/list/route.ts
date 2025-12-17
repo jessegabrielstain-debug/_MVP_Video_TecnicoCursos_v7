@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { avatarEngine } from '@/lib/avatar-engine';
 import avatarsData from '@/data/avatars.json';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -21,7 +22,8 @@ export async function GET() {
       count: avatarsData.avatars.length
     });
   } catch (error) {
-    console.error('Erro ao listar avatares:', error);
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao listar avatares', errorObj, { component: 'API: avatars/3d/list' });
     return NextResponse.json(
       { error: 'Erro ao listar avatares 3D' },
       { status: 500 }

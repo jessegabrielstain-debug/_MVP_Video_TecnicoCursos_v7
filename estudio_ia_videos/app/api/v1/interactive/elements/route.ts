@@ -72,10 +72,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Interactive elements processing error', { 
-      component: 'API: v1/interactive/elements', 
-      error: error instanceof Error ? error : new Error(String(error)) 
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Interactive elements processing error', err, { component: 'API: v1/interactive/elements' });
     return NextResponse.json(
       { success: false, message: 'Erro ao processar elementos interativos' },
       { status: 500 }
@@ -206,10 +203,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Get interactive elements error', { 
-      component: 'API: v1/interactive/elements', 
-      error: error instanceof Error ? error : new Error(String(error)) 
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Get interactive elements error', err, { component: 'API: v1/interactive/elements' });
     return NextResponse.json(
       { success: false, message: 'Erro ao carregar elementos interativos' },
       { status: 500 }
@@ -239,10 +233,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Update interactive element error', { 
-      component: 'API: v1/interactive/elements', 
-      error: error instanceof Error ? error : new Error(String(error)) 
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Update interactive element error', err, { component: 'API: v1/interactive/elements' });
     return NextResponse.json(
       { success: false, message: 'Erro ao atualizar elemento interativo' },
       { status: 500 }
@@ -276,10 +267,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Delete interactive element error', { 
-      component: 'API: v1/interactive/elements', 
-      error: error instanceof Error ? error : new Error(String(error)) 
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Delete interactive element error', err, { component: 'API: v1/interactive/elements' });
     return NextResponse.json(
       { success: false, message: 'Erro ao remover elemento interativo' },
       { status: 500 }

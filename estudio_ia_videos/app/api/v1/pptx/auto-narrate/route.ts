@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { AutoNarrationService } from '@/lib/pptx/auto-narration-service'
 import { logger } from '@/lib/logger'
+import { toJsonValue } from '@/lib/prisma-helpers'
 
 export async function POST(request: NextRequest) {
   logger.info('🎙️ [Auto-Narrate] Iniciando geração de narração...', { component: 'API: v1/pptx/auto-narrate' })
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
         await prisma.project.update({
           where: { id: projectId },
           data: {
-            slidesData: slidesData as any,
+            slidesData: toJsonValue(slidesData),
             autoNarration: true,
             updatedAt: new Date()
           }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSupabaseForRequest } from "@/lib/supabase/server"
+import { logger } from "@/lib/logger"
 
 export async function GET(
   req: NextRequest,
@@ -45,7 +46,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error("Render Status API error:", error);
+    logger.error("Render Status API error", error instanceof Error ? error : new Error(String(error)), { component: 'API: render-status/[id]' });
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

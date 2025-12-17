@@ -41,22 +41,44 @@ export class StorageSystemReal {
   async upload(options: StorageUploadOptions): Promise<string> {
     const { bucket, path, file, contentType, cacheControl } = options;
     
-    try {
-      const { data, error } = await this.supabase.storage
-        .from(bucket)
-        .upload(path, file, {
-          contentType,
-          cacheControl: cacheControl || '3600',
-          upsert: true
-        });
+    // Use retry pattern for critical upload operations
+    const { withRetry } = await import('@/lib/error-handling');
+    
+    return await withRetry(
+      async () => {
+        const { data, error } = await this.supabase.storage
+          .from(bucket)
+          .upload(path, file, {
+            contentType,
+            cacheControl: cacheControl || '3600',
+            upsert: true
+          });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      return this.getPublicUrl(bucket, path);
-    } catch (error) {
-      logger.error(`[Storage] Upload failed for ${bucket}/${path}:`, error instanceof Error ? error : new Error(String(error)), { component: 'StorageSystemReal' });
+        return this.getPublicUrl(bucket, path);
+      },
+      {
+        maxAttempts: 3,
+        delayMs: 1000,
+        backoffMultiplier: 2,
+        shouldRetry: (error) => {
+          // Retry on network errors and 5xx status codes
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          return (
+            errorMessage.includes('network') ||
+            errorMessage.includes('timeout') ||
+            errorMessage.includes('ECONNRESET') ||
+            errorMessage.includes('ETIMEDOUT') ||
+            (typeof error === 'object' && error !== null && 'status' in error && 
+             typeof error.status === 'number' && error.status >= 500)
+          );
+        },
+      }
+    ).catch((error) => {
+      logger.error(`[Storage] Upload failed for ${bucket}/${path} after retries:`, error instanceof Error ? error : new Error(String(error)), { component: 'StorageSystemReal' });
       throw error;
-    }
+    });
   }
   
   async download(options: StorageDownloadOptions): Promise<Buffer> {

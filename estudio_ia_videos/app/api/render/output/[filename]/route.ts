@@ -67,7 +67,7 @@ export async function GET(
     }
 
   } catch (error) {
-    logger.error('Erro ao fazer download', { component: 'API: render/output', error: error instanceof Error ? error : new Error(String(error)) });
+    logger.error('Erro ao fazer download', error instanceof Error ? error : new Error(String(error)), { component: 'API: render/output' });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -113,7 +113,7 @@ export async function DELETE(
     }
 
   } catch (error) {
-    console.error('Erro ao deletar arquivo:', error);
+    logger.error('Erro ao deletar arquivo', error instanceof Error ? error : new Error(String(error)), { component: 'API: render/output' });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

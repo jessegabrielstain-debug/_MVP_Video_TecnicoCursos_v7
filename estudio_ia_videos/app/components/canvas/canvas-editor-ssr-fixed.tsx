@@ -45,6 +45,12 @@ import {
 import { toast } from 'react-hot-toast'
 import type * as Fabric from 'fabric'
 
+// Extended Fabric.Object type with custom properties
+interface ExtendedFabricObject extends Fabric.Object {
+  id?: string
+  excludeFromExport?: boolean
+}
+
 // Fabric.js - dynamic import for SSR safety
 let fabric: typeof Fabric | null = null
 
@@ -348,17 +354,21 @@ export default function CanvasEditorSSRFixed({
   const updateLayers = (canvas: Fabric.Canvas) => {
     if (!canvas) return
 
-    // @ts-ignore
-    const objects = canvas.getObjects().filter((obj: Fabric.Object) => !(obj as any).excludeFromExport)
-    const newLayers: Layer[] = objects.map((obj: Fabric.Object, index: number) => ({
-      // @ts-ignore
-      id: (obj as any).id || `layer-${index}`,
-      name: obj.type || 'Object',
-      object: obj,
-      visible: obj.visible !== false,
-      locked: obj.selectable === false,
-      order: index
-    }))
+    const objects = canvas.getObjects().filter((obj: Fabric.Object) => {
+      const extObj = obj as ExtendedFabricObject
+      return !extObj.excludeFromExport
+    })
+    const newLayers: Layer[] = objects.map((obj: Fabric.Object, index: number) => {
+      const extObj = obj as ExtendedFabricObject
+      return {
+        id: extObj.id || `layer-${index}`,
+        name: obj.type || 'Object',
+        object: obj,
+        visible: obj.visible !== false,
+        locked: obj.selectable === false,
+        order: index
+      }
+    })
 
     setLayers(newLayers)
   }
@@ -499,8 +509,8 @@ export default function CanvasEditorSSRFixed({
     
     const objects = canvas.getObjects()
     objects.forEach((obj: Fabric.Object) => {
-      // @ts-ignore
-      if ((obj as any).excludeFromExport) {
+      const extObj = obj as ExtendedFabricObject
+      if (extObj.excludeFromExport) {
         canvas.remove(obj)
       }
     })

@@ -9,6 +9,9 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
 import { randomUUID } from 'crypto';
+import { Logger } from '@/lib/logger';
+
+const logger = new Logger('TimelineEditor');
 
 // ==================== TYPES ====================
 
@@ -429,7 +432,12 @@ export default class TimelineEditor extends EventEmitter {
         command.audioFilters([
           `sidechaincompress=threshold=${sidechain.threshold ?? 0.015}:ratio=${sidechain.ratio ?? 4}`,
         ]);
-      } catch {}
+      } catch (error) {
+        // Sidechain filter não suportado - continua sem ele
+        logger.warn('Sidechain audio filter not supported, skipping', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
       // Video filters placeholders for slow-motion/time-lapse (applied per clip in real pipeline)
     }
 

@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { reviewWorkflowService } from '@/lib/collab/review-workflow';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,9 +34,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ stats });
   } catch (error: unknown) {
-    console.error('❌ Erro ao buscar estatísticas de revisão:', error);
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao buscar estatísticas de revisão', normalizedError, { component: 'API: review/stats' });
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Erro ao buscar estatísticas' },
+      { error: normalizedError.message },
       { status: 500 }
     );
   }

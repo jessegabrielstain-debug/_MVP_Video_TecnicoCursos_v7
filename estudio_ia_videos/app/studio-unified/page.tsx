@@ -37,7 +37,7 @@ import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 
 // Store imports
-import { useUnifiedProjectStore, type UnifiedProject } from '@/lib/stores/unified-project-store'
+import { useUnifiedProjectStore, type UnifiedProject, type WorkflowStepType, type WorkflowStepData } from '@/lib/stores/unified-project-store'
 import { useWebSocketStore } from '@/lib/stores/websocket-store'
 import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
@@ -256,7 +256,7 @@ export default function UnifiedStudioPage() {
   }
 
   // Handle step execution
-  const handleExecuteStep = async (stepData: unknown) => {
+  const handleExecuteStep = async (stepData: WorkflowStepData | Record<string, unknown>) => {
     if (!currentProject) {
       toast.error('Nenhum projeto ativo')
       return
@@ -265,9 +265,15 @@ export default function UnifiedStudioPage() {
     setIsExecutingStep(true)
 
     try {
-      // Map local WorkflowStep to store WorkflowStepType if needed
-      // For now assuming they are compatible or handled by the store
-      await executeWorkflowStep(currentStep as any, stepData as any)
+      // Map local WorkflowStep to store WorkflowStepType
+      const step = currentStep as WorkflowStepType
+      const data: WorkflowStepData = 'stepType' in stepData 
+        ? stepData as WorkflowStepData 
+        : {
+          stepType: step,
+          config: stepData as Record<string, unknown>,
+        }
+      await executeWorkflowStep(step, data)
       
       // Update step status
       updateStepStatus(currentStep, 'completed')

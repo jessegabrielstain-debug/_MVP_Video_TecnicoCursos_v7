@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mediaPreprocessor, PreprocessOptions } from '@/lib/media-preprocessor-real';
 import * as fs from 'fs/promises';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,7 +46,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Media preprocessing error:', error);
+    logger.error('Media preprocessing error', error instanceof Error ? error : new Error(String(error)) 
+    , { component: 'API: media/preprocess' });
     return NextResponse.json(
       { 
         error: 'Failed to preprocess media',
@@ -66,7 +68,8 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching preprocessor stats:', error);
+    logger.error('Error fetching preprocessor stats', error instanceof Error ? error : new Error(String(error)) 
+    , { component: 'API: media/preprocess' });
     return NextResponse.json(
       { error: 'Failed to fetch stats' },
       { status: 500 }

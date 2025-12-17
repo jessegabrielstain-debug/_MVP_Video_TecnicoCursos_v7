@@ -10,7 +10,10 @@ import { useState, useEffect, useCallback } from 'react'
 import useSWR from 'swr'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { Logger } from '@/lib/logger'
 import type { Json } from '@/lib/supabase/database.types'
+
+const logger = new Logger('Projects')
 
 // Enhanced Project Types
 export interface ProjectVersion {
@@ -237,7 +240,7 @@ export function useProjects(filters?: ProjectFilters, options?: {
           table: 'projects'
         },
         (payload) => {
-          console.log('Project realtime update:', payload)
+          logger.debug('Project realtime update', { eventType: payload.eventType })
           mutate() // Revalidate data
           
           // Show toast notifications
@@ -300,7 +303,7 @@ export function useProjects(filters?: ProjectFilters, options?: {
       toast.success('Project created successfully')
       return data as unknown as Project
     } catch (error) {
-      console.error('Error creating project:', error)
+      logger.error('Error creating project', error instanceof Error ? error : undefined)
       toast.error('Failed to create project')
       throw error
     } finally {
@@ -360,7 +363,7 @@ export function useProjects(filters?: ProjectFilters, options?: {
       toast.success('Project updated successfully')
       return data as unknown as Project
     } catch (error) {
-      console.error('Error updating project:', error)
+      logger.error('Error updating project', error instanceof Error ? error : undefined)
       toast.error('Failed to update project')
       throw error
     } finally {
@@ -382,7 +385,7 @@ export function useProjects(filters?: ProjectFilters, options?: {
       await mutate()
       toast.success('Project deleted successfully')
     } catch (error) {
-      console.error('Error deleting project:', error)
+      logger.error('Error deleting project', error instanceof Error ? error : undefined)
       toast.error('Failed to delete project')
       throw error
     } finally {
@@ -415,7 +418,7 @@ export function useProjects(filters?: ProjectFilters, options?: {
         render_settings: (originalProject.render_settings || {}) as ProjectRenderSettings
       })
     } catch (error) {
-      console.error('Error duplicating project:', error)
+      logger.error('Error duplicating project', error instanceof Error ? error : undefined)
       toast.error('Failed to duplicate project')
       throw error
     }
@@ -486,7 +489,7 @@ export function useProjects(filters?: ProjectFilters, options?: {
       await mutate()
       toast.success('Collaborator added successfully')
     } catch (error) {
-      console.error('Error adding collaborator:', error)
+      logger.error('Error adding collaborator', error instanceof Error ? error : undefined)
       toast.error('Failed to add collaborator')
       throw error
     }
@@ -501,7 +504,7 @@ export function useProjects(filters?: ProjectFilters, options?: {
       if (error) throw error
       return data
     } catch (error) {
-      console.error('Error getting project analytics:', error)
+      logger.error('Error getting project analytics', error instanceof Error ? error : undefined)
       throw error
     }
   }, [])

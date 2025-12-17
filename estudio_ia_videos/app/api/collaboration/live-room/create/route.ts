@@ -54,10 +54,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error creating live room', {
-      component: 'API: collaboration/live-room/create',
-      error: error instanceof Error ? error : new Error(String(error))
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error creating live room', err, { component: 'API: collaboration/live-room/create' });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -108,10 +105,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error fetching live rooms', {
-      component: 'API: collaboration/live-room/create',
-      error: error instanceof Error ? error : new Error(String(error))
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error fetching live rooms', err, { component: 'API: collaboration/live-room/create' });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

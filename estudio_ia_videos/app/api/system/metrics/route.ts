@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(metrics)
   } catch (error) {
-    logger.error('Error fetching system metrics', { component: 'API: system/metrics', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error fetching system metrics', err, { component: 'API: system/metrics' })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -104,7 +104,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result)
   } catch (error) {
-    console.error('Error executing system action:', error)
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Error executing system action', err, { component: 'API: system/metrics' });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

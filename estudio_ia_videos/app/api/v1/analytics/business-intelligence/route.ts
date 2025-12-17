@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 // Mock data for business intelligence
 const generateAnalyticsData = () => {
@@ -106,7 +107,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error('Error fetching analytics data:', error)
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error fetching analytics data', err, { component: 'API: v1/analytics/business-intelligence' })
     return NextResponse.json(
       { success: false, error: 'Failed to fetch analytics data' },
       { status: 500 }
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
         )
     }
   } catch (error) {
-    console.error('Error processing analytics request:', error)
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error processing analytics request', err, { component: 'API: v1/analytics/business-intelligence' })
     return NextResponse.json(
       { success: false, error: 'Failed to process request' },
       { status: 500 }

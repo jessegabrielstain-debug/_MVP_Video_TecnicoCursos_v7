@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
       processingTime: Date.now() - startTime
     });
 
-    logger.error('Erro no pipeline integrado:', { component: 'API: pipeline/integrated', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro no pipeline integrado:', err, { component: 'API: pipeline/integrated' });
 
     return NextResponse.json(
       { 
@@ -298,7 +298,7 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error: unknown) {
-    logger.error('Erro ao consultar pipeline:', { component: 'API: pipeline/integrated', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao consultar pipeline:', err, { component: 'API: pipeline/integrated' });
     
     return NextResponse.json(
       { 
@@ -375,7 +375,7 @@ export async function PUT(request: NextRequest) {
     }
 
   } catch (error: unknown) {
-    logger.error('Erro ao atualizar job:', { component: 'API: pipeline/integrated', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao atualizar job:', err, { component: 'API: pipeline/integrated' });
     
     return NextResponse.json(
       { 

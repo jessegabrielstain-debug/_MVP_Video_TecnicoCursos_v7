@@ -135,7 +135,15 @@ export const avatar3DPipeline = {
         return { status: 'not_found', error: 'Job not found' };
       }
 
-      const settings = (job.renderSettings as any) || {};
+      type RenderSettingsData = {
+        avatarId?: string;
+        quality?: string;
+        resolution?: string;
+        rayTracing?: boolean;
+        realTimeLipSync?: boolean;
+        language?: string;
+      };
+      const settings = (job.renderSettings || {}) as RenderSettingsData;
 
       return { 
         id: job.id,

@@ -34,7 +34,8 @@ const FormField = <
 >({
   ...props
 }: ControllerProps<TFieldValues, TName>) => {
-  const ControllerComp = Controller as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- react-hook-form Controller generic inference limitation
+  const ControllerComp = Controller as React.FC<ControllerProps<TFieldValues, TName>>;
   return (
     <FormFieldContext.Provider value={{ name: props.name }}>
       <ControllerComp {...props} />

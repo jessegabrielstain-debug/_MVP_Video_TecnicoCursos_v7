@@ -2,7 +2,10 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRealTimeCollaboration } from './useRealTimeCollaboration';
+import { Logger } from '@/lib/logger';
 import type { SerializedProjectState } from './useRealTimeCollaboration';
+
+const logger = new Logger('BackupSystem');
 
 export interface RestorePreview {
   versionId: string;
@@ -308,7 +311,7 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
       
       updateStats();
     } catch (error) {
-      console.error('Erro ao carregar histórico de versões:', error);
+      logger.error('Erro ao carregar histórico de versões', error instanceof Error ? error : undefined);
     }
   }, [projectId]);
 
@@ -337,7 +340,7 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
         setRestorePoints(deserialized);
       }
     } catch (error) {
-      console.error('Erro ao carregar restore points:', error);
+      logger.error('Erro ao carregar restore points', error instanceof Error ? error : undefined);
     }
   }, [projectId]);
 
@@ -364,7 +367,7 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar configuração:', error);
+      logger.error('Erro ao carregar configuração', error instanceof Error ? error : undefined);
     }
   }, []);
 
@@ -512,7 +515,7 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
         try {
           await createBackup('auto', 'Backup automático');
         } catch (error) {
-          console.error('Erro no backup automático:', error);
+          logger.error('Erro no backup automático', error instanceof Error ? error : undefined);
         }
       }
     }, config.interval * 60 * 1000); // Converter minutos para ms
@@ -529,7 +532,7 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
           'Restore point automático'
         );
       } catch (error) {
-        console.error('Erro ao criar restore point automático:', error);
+        logger.error('Erro ao criar restore point automático', error instanceof Error ? error : undefined);
       }
     }, config.restorePointInterval * 60 * 60 * 1000); // Converter horas para ms
   }, [config.autoBackup, config.interval, config.restorePointInterval, createBackup, createRestorePoint]);
@@ -578,7 +581,7 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
       
       return true;
     } catch (error) {
-      console.error('Erro ao restaurar versão:', error);
+      logger.error('Erro ao restaurar versão', error instanceof Error ? error : undefined);
       
       eventCallbacks.current.onRestoreCompleted.forEach(callback => {
         callback(false);
@@ -626,7 +629,7 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
         callback(syncStatus);
       });
     } catch (error) {
-      console.error('Erro no sync para cloud:', error);
+      logger.error('Erro no sync para cloud', error instanceof Error ? error : undefined);
       
       setSyncStatus(prev => ({
         ...prev,
@@ -744,14 +747,14 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
         compressed: parsed?.compressed,
       } satisfies ProjectBackupPayload;
     } catch (error) {
-      console.error('Erro ao carregar dados do backup:', error);
+      logger.error('Erro ao carregar dados do backup', error instanceof Error ? error : undefined);
       return null;
     }
   };
 
   const applyVersionData = async (payload: ProjectBackupPayload) => {
     // Implementar aplicação dos dados restaurados
-    console.log('Aplicando dados da versão:', payload);
+    logger.debug('Aplicando dados da versão', { id: payload.id });
   };
 
   const applyRetentionPolicy = (versions: BackupVersion[]): BackupVersion[] => {
@@ -761,7 +764,7 @@ export const useBackupSystem = (projectId: string): UseBackupSystemReturn => {
 
   const uploadVersionToCloud = async (version: BackupVersion) => {
     // Implementar upload real para Supabase
-    console.log('Uploading version to cloud:', version.id);
+    logger.debug('Uploading version to cloud', { versionId: version.id });
   };
 
   const estimateRestoreDuration = (size: number): number => {

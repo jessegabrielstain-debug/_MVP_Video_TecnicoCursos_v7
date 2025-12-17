@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/services'
+import { logger } from '@/lib/logger'
 
 export async function PATCH(
   request: NextRequest,
@@ -25,7 +26,7 @@ export async function PATCH(
     const notificationId = params.id
 
     // Mark notification as read
-    const { data: updatedNotification, error } = await (supabaseAdmin as any)
+    const { data: updatedNotification, error } = await supabaseAdmin
       .from('notifications')
       .update({
         status: 'read',
@@ -48,7 +49,7 @@ export async function PATCH(
 
     // Log the action for analytics
     try {
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
@@ -60,7 +61,8 @@ export async function PATCH(
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      console.warn('Failed to log notification read action:', analyticsError)
+      const err = analyticsError instanceof Error ? analyticsError : new Error(String(analyticsError))
+      logger.warn('Failed to log notification read action', { component: 'API: notifications/[id]/read' })
     }
 
     return NextResponse.json({
@@ -70,10 +72,11 @@ export async function PATCH(
     })
 
   } catch (error) {
-    console.error('Mark notification as read API error:', error)
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Mark notification as read API error', err, { component: 'API: notifications/[id]/read' })
     
     return NextResponse.json(
-      { 
+      {  
         success: false, 
         error: 'Failed to mark notification as read',
         details: error instanceof Error ? error.message : 'Unknown error'

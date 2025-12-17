@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -558,7 +559,7 @@ export const useRealTimeCollaboration = (projectId?: string) => {
   // Invite user
   const inviteUser = useCallback(async (email: string, role: 'viewer' | 'editor' | 'admin') => {
     // Mock implementation
-    console.log(`Invited ${email} as ${role}`);
+    logger.debug(`Invited ${email} as ${role}`, { email, role, component: 'useRealTimeCollaboration' });
   }, []);
 
   return {

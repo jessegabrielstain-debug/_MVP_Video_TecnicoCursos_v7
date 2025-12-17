@@ -2,6 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import type Konva from 'konva'; // Fix SSR crash
 import { useEditorStore } from '../stores/useEditorStore';
 
+// Extend Window for legacy webkit AudioContext support
+declare global {
+    interface Window {
+        webkitAudioContext?: typeof AudioContext;
+    }
+}
+
 export const useExport = (stageRef: React.RefObject<Konva.Stage>) => {
     const [isExporting, setIsExporting] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -46,7 +53,12 @@ export const useExport = (stageRef: React.RefObject<Konva.Stage>) => {
             if (!canvas) return;
 
             // 3. Audio Context & Mixing
-            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = AudioContextClass ? new AudioContextClass() : null;
+            if (!audioCtx) {
+                console.error('AudioContext not supported');
+                return;
+            }
             const dest = audioCtx.createMediaStreamDestination();
             
             // Collect all active video elements

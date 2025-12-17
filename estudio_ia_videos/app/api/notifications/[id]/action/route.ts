@@ -34,7 +34,7 @@ export async function POST(
     const { action } = NotificationActionSchema.parse(body)
 
     // Get the notification to verify ownership and get action details
-    const { data: notification, error: fetchError } = await (supabaseAdmin as any)
+    const { data: notification, error: fetchError } = await supabaseAdmin
       .from('notifications')
       .select('*')
       .eq('id', notificationId)
@@ -52,7 +52,11 @@ export async function POST(
     }
 
     // Find the action in the notification's actions array
-    const notificationAction = (notification as any).actions?.find((a: Record<string, unknown>) => a.action === action)
+    type NotificationWithActions = typeof notification & {
+      actions?: Array<{ action: string; label?: string; url?: string }>;
+    };
+    const typedNotification = notification as NotificationWithActions;
+    const notificationAction = typedNotification.actions?.find((a) => a.action === action)
     if (!notificationAction) {
       return NextResponse.json(
         { success: false, error: 'Action not found for this notification' },
@@ -80,9 +84,9 @@ export async function POST(
                 c.user_id === session.user.id ? { ...c, status: 'accepted', updated_at: new Date().toISOString() } : c
               )
 
-              await (supabaseAdmin as any)
+              await supabaseAdmin
                 .from('projects')
-                .update({ metadata: { ...metadata, collaborators } })
+                .update({ metadata: JSON.parse(JSON.stringify({ ...metadata, collaborators })) })
                 .eq('id', notification.project_id)
             }
 
@@ -109,9 +113,9 @@ export async function POST(
                 c.user_id === session.user.id ? { ...c, status: 'declined', updated_at: new Date().toISOString() } : c
               )
 
-              await (supabaseAdmin as any)
+              await supabaseAdmin
                 .from('projects')
-                .update({ metadata: { ...metadata, collaborators } })
+                .update({ metadata: JSON.parse(JSON.stringify({ ...metadata, collaborators })) })
                 .eq('id', notification.project_id)
             }
 
@@ -185,7 +189,7 @@ export async function POST(
     }
 
     // Mark notification as read after action
-    const { error: updateError } = await (supabaseAdmin as any)
+    const { error: updateError } = await supabaseAdmin
       .from('notifications')
       .update({
         status: 'read',
@@ -194,12 +198,12 @@ export async function POST(
       .eq('id', notificationId)
 
     if (updateError) {
-      logger.warn('Failed to mark notification as read after action', { component: 'API: notifications/[id]/action', error: updateError })
+      logger.warn('Failed to mark notification as read after action', { component: 'API: notifications/[id]/action' })
     }
 
     // Log the action for analytics
     try {
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
@@ -213,7 +217,7 @@ export async function POST(
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      logger.warn('Failed to log notification action', { component: 'API: notifications/[id]/action', error: analyticsError })
+      logger.warn('Failed to log notification action', { component: 'API: notifications/[id]/action' })
     }
 
     return NextResponse.json({
@@ -223,7 +227,8 @@ export async function POST(
     })
 
   } catch (error) {
-    logger.error('Notification action API error', { component: 'API: notifications/[id]/action', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Notification action API error', err, { component: 'API: notifications/[id]/action' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

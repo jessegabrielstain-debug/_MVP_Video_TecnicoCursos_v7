@@ -9,6 +9,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react'
 import useSWR from 'swr'
 import { toast } from 'sonner'
 import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client'
+import { logger } from '@/lib/logger'
 import type { User } from '@supabase/supabase-js'
 
 // Types and Interfaces
@@ -212,7 +213,7 @@ export function useExternalAPIs() {
         if (!isMounted) return
         setUser(data.user ?? null)
       } catch (error) {
-        console.error('[ExternalAPIs] Falha ao carregar usuário:', error)
+        logger.error('Falha ao carregar usuário', error as Error, { component: 'useExternalAPIs' })
       }
     }
 

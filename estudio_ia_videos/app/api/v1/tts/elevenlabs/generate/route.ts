@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 import { Upload } from '@aws-sdk/lib-storage'
 import { S3Client } from '@aws-sdk/client-s3'
 
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error generating TTS:', error)
+    logger.error('Error generating TTS', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/tts/elevenlabs/generate' })
     return NextResponse.json(
       { 
         error: 'Failed to generate speech',

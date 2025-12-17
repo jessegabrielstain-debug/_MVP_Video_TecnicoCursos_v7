@@ -49,10 +49,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    logger.error('Erro ao listar backups:', {
-      component: 'API: backup',
-      error: error instanceof Error ? error : new Error(String(error))
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao listar backups:', err, { component: 'API: backup' });
     return NextResponse.json(
       { error: 'Erro ao listar backups' },
       { status: 500 }
@@ -92,10 +89,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const normalizedError = error instanceof Error ? error : new Error(String(error));
-    logger.error('Erro ao processar backup:', {
-      component: 'API: backup',
-      error: normalizedError
-    });
+    logger.error('Erro ao processar backup:', normalizedError, { component: 'API: backup' });
     return NextResponse.json(
       { error: normalizedError.message },
       { status: 500 }
@@ -116,10 +110,7 @@ export async function DELETE() {
       deleted
     });
   } catch (error) {
-    logger.error('Erro ao limpar backups:', {
-      component: 'API: backup',
-      error: error instanceof Error ? error : new Error(String(error))
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao limpar backups:', err, { component: 'API: backup' });
     return NextResponse.json(
       { error: 'Erro ao limpar backups' },
       { status: 500 }

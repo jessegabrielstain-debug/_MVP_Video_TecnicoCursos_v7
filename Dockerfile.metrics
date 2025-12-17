@@ -1,0 +1,44 @@
+# 🐳 Dockerfile for Metrics Server
+# MVP Vídeos TécnicoCursos v7
+
+FROM node:20-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    curl \
+    procps \
+    util-linux
+
+# Create app user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S metrics -u 1001
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy application code
+COPY scripts/monitoring-server.js ./
+
+# Create log directory
+RUN mkdir -p /var/log && \
+    chown -R metrics:nodejs /var/log
+
+# Switch to non-root user
+USER metrics
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:9091/health || exit 1
+
+# Expose port
+EXPOSE 9091
+
+# Start server
+CMD ["node", "monitoring-server.js"]

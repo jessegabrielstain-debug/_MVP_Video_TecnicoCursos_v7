@@ -309,10 +309,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     const normalizedError = error instanceof Error ? error : new Error(String(error));
-    logger.error('❌ Erro em operação em lote:', {
-      component: 'API: v1/timeline/multi-track/bulk',
-      error: normalizedError
-    });
+    logger.error('❌ Erro em operação em lote:', normalizedError
+    , { component: 'API: v1/timeline/multi-track/bulk' });
     const errorMessage = normalizedError.message;
     return NextResponse.json(
       { success: false, message: 'Erro ao executar operação em lote', error: errorMessage },

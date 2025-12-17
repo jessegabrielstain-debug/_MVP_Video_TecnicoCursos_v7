@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { commentsService } from '@/lib/collab/comments-service';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,7 +36,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ users });
   } catch (error) {
-    console.error('❌ Erro ao buscar usuários para menção:', error);
+    logger.error('❌ Erro ao buscar usuários para menção:', error instanceof Error ? error : new Error(String(error)), {
+      component: 'API: comments/mention-search'
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erro ao buscar usuários' },
       { status: 500 }

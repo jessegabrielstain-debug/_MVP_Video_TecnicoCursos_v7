@@ -1,0 +1,641 @@
+/**
+ * API Documentation Generator - Simplified Version
+ * Generates OpenAPI specification for MVP Vídeos TécnicoCursos API
+ */
+
+import fs from 'fs/promises';
+import path from 'path';
+
+console.log('🚀 Starting API Documentation Generation...');
+
+const openApiSpec = {
+  openapi: '3.0.3',
+  info: {
+    title: 'MVP Vídeos TécnicoCursos API',
+    version: '1.0.0',
+    description: `
+Sistema profissional de criação de vídeos educacionais com IA.
+
+## Funcionalidades Principais
+- 🎬 Renderização de vídeos a partir de PPTX
+- 📊 Analytics em tempo real
+- 🎤 Text-to-Speech com IA
+- 📚 Compliance com Normas Regulamentadoras
+- 🔒 Autenticação via Supabase
+
+## Autenticação
+Use o header \`Authorization: Bearer <token>\` para endpoints protegidos.
+    `,
+    contact: {
+      name: 'Suporte TécnicoCursos',
+      email: 'suporte@tecnicocursos.com'
+    },
+    license: {
+      name: 'MIT',
+      url: 'https://opensource.org/licenses/MIT'
+    }
+  },
+  servers: [
+    {
+      url: 'http://localhost:3000',
+      description: 'Ambiente de Desenvolvimento'
+    },
+    {
+      url: 'https://tecnicocursos-videos.vercel.app', 
+      description: 'Ambiente de Produção'
+    }
+  ],
+  tags: [
+    { name: 'render', description: 'Renderização de vídeos' },
+    { name: 'projects', description: 'Gerenciamento de projetos' },
+    { name: 'analytics', description: 'Métricas e analytics' },
+    { name: 'auth', description: 'Autenticação' },
+    { name: 'nr', description: 'Normas Regulamentadoras' }
+  ],
+  paths: {
+    '/api/render/start': {
+      post: {
+        tags: ['render'],
+        summary: 'Iniciar renderização de vídeo',
+        description: 'Cria um novo job de renderização para um projeto',
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['projectId', 'slides'],
+                properties: {
+                  projectId: {
+                    type: 'string',
+                    format: 'uuid',
+                    description: 'ID único do projeto'
+                  },
+                  slides: {
+                    type: 'array',
+                    description: 'Lista de slides para renderização',
+                    items: {
+                      type: 'object',
+                      required: ['id', 'content'],
+                      properties: {
+                        id: { type: 'string' },
+                        content: { type: 'string' },
+                        audioUrl: { type: 'string', format: 'uri' },
+                        imageUrl: { type: 'string', format: 'uri' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '201': {
+            description: 'Job de renderização criado com sucesso',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        jobId: { type: 'string', format: 'uuid' },
+                        status: { type: 'string', enum: ['pending', 'queued', 'processing'] },
+                        createdAt: { type: 'string', format: 'date-time' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '400': { $ref: '#/components/responses/BadRequest' },
+          '401': { $ref: '#/components/responses/Unauthorized' },
+          '422': { $ref: '#/components/responses/ValidationError' }
+        }
+      }
+    },
+    '/api/render/jobs': {
+      get: {
+        tags: ['render'],
+        summary: 'Listar jobs de renderização',
+        description: 'Retorna lista paginada dos jobs do usuário autenticado',
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            name: 'page',
+            in: 'query',
+            schema: { type: 'integer', default: 1 },
+            description: 'Número da página'
+          },
+          {
+            name: 'limit', 
+            in: 'query',
+            schema: { type: 'integer', default: 20, maximum: 100 },
+            description: 'Itens por página'
+          },
+          {
+            name: 'status',
+            in: 'query', 
+            schema: { 
+              type: 'string',
+              enum: ['pending', 'queued', 'processing', 'completed', 'failed', 'cancelled']
+            },
+            description: 'Filtrar por status'
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Lista de jobs retornada com sucesso',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string', format: 'uuid' },
+                          projectId: { type: 'string', format: 'uuid' },
+                          status: { type: 'string', enum: ['pending', 'queued', 'processing', 'completed', 'failed', 'cancelled'] },
+                          progress: { type: 'number', minimum: 0, maximum: 100 },
+                          createdAt: { type: 'string', format: 'date-time' },
+                          updatedAt: { type: 'string', format: 'date-time' }
+                        }
+                      }
+                    },
+                    pagination: {
+                      type: 'object',
+                      properties: {
+                        page: { type: 'integer' },
+                        limit: { type: 'integer' },
+                        total: { type: 'integer' },
+                        totalPages: { type: 'integer' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '401': { $ref: '#/components/responses/Unauthorized' }
+        }
+      }
+    },
+    '/api/render/progress/{jobId}': {
+      get: {
+        tags: ['render'],
+        summary: 'Verificar progresso de renderização',
+        description: 'Retorna o progresso atual de um job específico',
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            name: 'jobId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'ID único do job de renderização'
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Progresso do job',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        jobId: { type: 'string', format: 'uuid' },
+                        progress: { type: 'number', minimum: 0, maximum: 100 },
+                        status: { type: 'string', enum: ['pending', 'queued', 'processing', 'completed', 'failed', 'cancelled'] },
+                        phase: { type: 'string', example: 'processing_slides' },
+                        estimatedTimeRemaining: { type: 'number', description: 'Tempo estimado em segundos' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '401': { $ref: '#/components/responses/Unauthorized' },
+          '404': { $ref: '#/components/responses/NotFound' }
+        }
+      }
+    },
+    '/api/analytics/render-stats': {
+      get: {
+        tags: ['analytics'],
+        summary: 'Estatísticas de renderização',
+        description: 'Retorna métricas de performance do sistema',
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            name: 'timeRange',
+            in: 'query',
+            schema: { type: 'string', enum: ['24h', '7d', '30d'], default: '24h' },
+            description: 'Período para as estatísticas'
+          },
+          {
+            name: 'includeErrors',
+            in: 'query', 
+            schema: { type: 'boolean', default: false },
+            description: 'Incluir análise de erros'
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Métricas de renderização',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        basicStats: {
+                          type: 'object',
+                          properties: {
+                            totalJobs: { type: 'number' },
+                            completedJobs: { type: 'number' },
+                            failedJobs: { type: 'number' },
+                            averageRenderTime: { type: 'number', description: 'Tempo médio em segundos' }
+                          }
+                        },
+                        performanceMetrics: {
+                          type: 'object',
+                          properties: {
+                            p50: { type: 'number', description: 'Percentil 50 do tempo de render' },
+                            p90: { type: 'number', description: 'Percentil 90 do tempo de render' },
+                            p95: { type: 'number', description: 'Percentil 95 do tempo de render' }
+                          }
+                        },
+                        queueStats: {
+                          type: 'object',
+                          properties: {
+                            waiting: { type: 'number' },
+                            active: { type: 'number' },
+                            completed: { type: 'number' },
+                            failed: { type: 'number' }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '401': { $ref: '#/components/responses/Unauthorized' }
+        }
+      }
+    },
+    '/api/projects': {
+      post: {
+        tags: ['projects'],
+        summary: 'Criar novo projeto',
+        description: 'Cria um novo projeto de vídeo',
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['title'],
+                properties: {
+                  title: { type: 'string', minLength: 1, maxLength: 255 },
+                  description: { type: 'string', maxLength: 1000 }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '201': {
+            description: 'Projeto criado com sucesso',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string', format: 'uuid' },
+                        title: { type: 'string' },
+                        description: { type: 'string' },
+                        userId: { type: 'string', format: 'uuid' },
+                        createdAt: { type: 'string', format: 'date-time' },
+                        updatedAt: { type: 'string', format: 'date-time' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '400': { $ref: '#/components/responses/BadRequest' },
+          '401': { $ref: '#/components/responses/Unauthorized' },
+          '422': { $ref: '#/components/responses/ValidationError' }
+        }
+      },
+      get: {
+        tags: ['projects'],
+        summary: 'Listar projetos',
+        description: 'Retorna lista paginada de projetos do usuário',
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            name: 'page',
+            in: 'query',
+            schema: { type: 'integer', default: 1 },
+            description: 'Número da página'
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'integer', default: 20, maximum: 100 },
+            description: 'Itens por página'
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Lista de projetos',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string', format: 'uuid' },
+                          title: { type: 'string' },
+                          description: { type: 'string' },
+                          createdAt: { type: 'string', format: 'date-time' }
+                        }
+                      }
+                    },
+                    pagination: {
+                      type: 'object',
+                      properties: {
+                        page: { type: 'integer' },
+                        limit: { type: 'integer' },
+                        total: { type: 'integer' },
+                        totalPages: { type: 'integer' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '401': { $ref: '#/components/responses/Unauthorized' }
+        }
+      }
+    },
+    '/api/nr/courses': {
+      get: {
+        tags: ['nr'],
+        summary: 'Listar cursos NR',
+        description: 'Retorna lista de cursos das Normas Regulamentadoras disponíveis',
+        responses: {
+          '200': {
+            description: 'Lista de cursos NR',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string' },
+                          nr: { type: 'string', example: 'NR-01' },
+                          title: { type: 'string' },
+                          description: { type: 'string' },
+                          modules: { 
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                id: { type: 'string' },
+                                title: { type: 'string' },
+                                order: { type: 'integer' }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  components: {
+    securitySchemes: {
+      BearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Token JWT obtido através da autenticação Supabase'
+      }
+    },
+    responses: {
+      BadRequest: {
+        description: 'Requisição inválida',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean', example: false },
+                error: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    code: { type: 'string', example: 'BAD_REQUEST' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      Unauthorized: {
+        description: 'Não autorizado - token inválido ou ausente',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean', example: false },
+                error: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string', example: 'Authentication required' },
+                    code: { type: 'string', example: 'AUTHENTICATION_ERROR' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      NotFound: {
+        description: 'Recurso não encontrado',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean', example: false },
+                error: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string', example: 'Resource not found' },
+                    code: { type: 'string', example: 'NOT_FOUND' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      ValidationError: {
+        description: 'Erro de validação nos dados enviados',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean', example: false },
+                error: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string', example: 'Validation failed' },
+                    code: { type: 'string', example: 'VALIDATION_ERROR' },
+                    details: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          field: { type: 'string' },
+                          message: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+};
+
+async function generateDocumentation() {
+  try {
+    console.log('📁 Creating docs directory...');
+    const docsDir = path.resolve(process.cwd(), 'docs');
+    await fs.mkdir(docsDir, { recursive: true });
+
+    console.log('📝 Generating OpenAPI specification...');
+    const specPath = path.join(docsDir, 'api-spec.json');
+    await fs.writeFile(specPath, JSON.stringify(openApiSpec, null, 2));
+
+    console.log('🌐 Generating HTML documentation...');
+    const htmlPath = path.join(docsDir, 'api-docs.html');
+    
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVP Vídeos TécnicoCursos - API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui.css" />
+    <style>
+      html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
+      *, *:before, *:after { box-sizing: inherit; }
+      body { margin: 0; background: #fafafa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+      .swagger-ui .topbar { display: none; }
+      .swagger-ui .scheme-container { display: none; }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+          const ui = SwaggerUIBundle({
+            spec: ${JSON.stringify(openApiSpec)},
+            dom_id: '#swagger-ui',
+            deepLinking: true,
+            presets: [
+              SwaggerUIBundle.presets.apis,
+              SwaggerUIStandalonePreset
+            ],
+            plugins: [
+              SwaggerUIBundle.plugins.DownloadUrl
+            ],
+            layout: "StandaloneLayout",
+            tryItOutEnabled: true,
+            filter: true,
+            defaultModelsExpandDepth: 0,
+            defaultModelExpandDepth: 1,
+            supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+            onComplete: function(swaggerApi, swaggerUi){
+              console.log("✅ Swagger UI Loaded Successfully");
+            },
+            onFailure: function(data) {
+              console.error("❌ Unable to Load Swagger UI:", data);
+            }
+          });
+        }
+    </script>
+</body>
+</html>`;
+
+    await fs.writeFile(htmlPath, html);
+
+    console.log('✅ API Documentation generated successfully!');
+    console.log(`   📄 OpenAPI Spec: ${specPath}`);
+    console.log(`   🌐 HTML Docs: ${htmlPath}`);
+    console.log(`   🚀 To view: npm run docs:serve`);
+
+  } catch (error) {
+    console.error('❌ Error generating documentation:', error);
+    process.exit(1);
+  }
+}
+
+// Run
+generateDocumentation();

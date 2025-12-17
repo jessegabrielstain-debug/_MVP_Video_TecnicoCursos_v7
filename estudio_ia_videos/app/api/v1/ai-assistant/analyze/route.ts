@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 interface AnalysisRequest {
   contentId: string
@@ -103,7 +104,8 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('AI Analysis Error:', error)
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('AI Analysis Error', err, { component: 'API: v1/ai-assistant/analyze' });
     return NextResponse.json({
       success: false,
       error: 'Failed to analyze content'

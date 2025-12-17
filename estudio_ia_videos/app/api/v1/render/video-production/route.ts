@@ -109,10 +109,11 @@ export async function GET(request: NextRequest) {
 
   if (!jobId) {
     // Retornar lista de todos os jobs
+    interface RenderJobItem { id: string; status: string; progress: number; startTime?: string; endTime?: string; outputPath?: string; errorMessage?: string }
     const jobs = await renderEngine.getAllJobs();
     return NextResponse.json({
       success: true,
-      jobs: jobs.map((job: any) => ({
+      jobs: jobs.map((job: RenderJobItem) => ({
         id: job.id,
         status: job.status,
         progress: job.progress,

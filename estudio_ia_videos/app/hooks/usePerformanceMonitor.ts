@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 
 interface StoredPerformanceMetrics
   extends Omit<PerformanceMetrics, 'timestamp'> {
@@ -176,7 +177,7 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
         }
       }
     } catch (err) {
-      console.error('Error loading performance data:', err);
+      logger.error('Error loading performance data', err as Error, { component: 'usePerformanceMonitor' });
     }
   };
 
@@ -195,7 +196,7 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
         }));
       }
     } catch (err) {
-      console.error('Error loading thresholds:', err);
+      logger.error('Error loading thresholds', err as Error, { component: 'usePerformanceMonitor' });
     }
   };
 
@@ -205,7 +206,7 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
       const trimmed = metrics.slice(-1000);
       localStorage.setItem('performance_metrics', JSON.stringify(trimmed));
     } catch (err) {
-      console.error('Error saving performance data:', err);
+      logger.error('Error saving performance data', err as Error, { component: 'usePerformanceMonitor' });
     }
   };
 
@@ -213,7 +214,7 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
     try {
       localStorage.setItem('performance_thresholds', JSON.stringify(newThresholds));
     } catch (err) {
-      console.error('Error saving thresholds:', err);
+      logger.error('Error saving thresholds', err as Error, { component: 'usePerformanceMonitor' });
     }
   };
 
@@ -235,7 +236,7 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
         observer.observe({ entryTypes: ['navigation', 'paint', 'measure'] });
         performanceObserver.current = observer;
       } catch (err) {
-        console.warn('Performance Observer not supported:', err);
+        logger.warn('Performance Observer not supported', { error: err, component: 'usePerformanceMonitor' });
       }
     }
   };
@@ -391,7 +392,7 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
         
         checkThresholds(metrics);
       } catch (err) {
-        console.error('Error collecting metrics:', err);
+        logger.error('Error collecting metrics', err as Error, { component: 'usePerformanceMonitor' });
       }
     };
     
@@ -426,7 +427,7 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
       const renderTime = endTime - startTime;
       
       // Log or store render time
-      console.log(`${componentName} render time: ${renderTime.toFixed(2)}ms`);
+      logger.debug(`${componentName} render time: ${renderTime.toFixed(2)}ms`, { componentName, renderTime, component: 'usePerformanceMonitor' });
       
       renderTimers.current.delete(componentName);
       return renderTime;

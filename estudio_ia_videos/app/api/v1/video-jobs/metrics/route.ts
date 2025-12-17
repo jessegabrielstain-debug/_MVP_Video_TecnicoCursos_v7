@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     }
 
     // A função is_admin() deve ser definida no seu banco de dados Supabase.
-    const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin' as any);
+    const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin');
     
     if (isAdminError || !isAdminData) {
         return NextResponse.json({ code: 'FORBIDDEN', message: 'Acesso negado. Recurso disponível apenas para administradores.' }, { status: 403 });

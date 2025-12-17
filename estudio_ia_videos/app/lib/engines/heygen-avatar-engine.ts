@@ -1,4 +1,5 @@
 import { heyGenService, HeyGenVideoRequest } from '../heygen-service';
+import { logger } from '@/lib/logger';
 
 export interface HeyGenAvatarOptions {
   avatarId: string;
@@ -53,7 +54,7 @@ export class HeyGenAvatarEngine {
         status: 'pending',
       };
     } catch (error) {
-      console.error('HeyGen Render Error:', error);
+      logger.error('HeyGen Render Error', error as Error, { options, component: 'HeyGenAvatarEngine' });
       throw error;
     }
   }

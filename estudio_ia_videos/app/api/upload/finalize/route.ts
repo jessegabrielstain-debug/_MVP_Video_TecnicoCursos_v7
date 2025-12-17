@@ -39,7 +39,7 @@ async function ensureDirectories() {
     await fs.mkdir(METADATA_DIR, { recursive: true });
     await fs.mkdir(FINAL_DIR, { recursive: true });
   } catch (error) {
-    logger.error('Error creating directories', { component: 'API: upload/finalize', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error creating directories', err, { component: 'API: upload/finalize' });
   }
 }
 
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
 
   } catch (error) {
-    logger.error('Upload finalization error', { component: 'API: upload/finalize', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Upload finalization error', err, { component: 'API: upload/finalize' });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

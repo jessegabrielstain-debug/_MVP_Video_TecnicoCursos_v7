@@ -55,10 +55,7 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error) {
-    logger.error('Login error', { 
-      component: 'API: auth/login', 
-      error: error instanceof Error ? error : new Error(String(error)) 
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Login error', err, { component: 'API: auth/login' });
     
     const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor';
     
@@ -110,10 +107,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Auth check error', { 
-      component: 'API: auth/login', 
-      error: error instanceof Error ? error : new Error(String(error)) 
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Auth check error', err, { component: 'API: auth/login' });
     return NextResponse.json(
       { authenticated: false },
       { status: 401 }

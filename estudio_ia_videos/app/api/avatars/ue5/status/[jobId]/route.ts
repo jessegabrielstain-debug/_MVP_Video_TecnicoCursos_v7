@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { ue5AvatarEngine } from '@/lib/engines/ue5-avatar-engine'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/avatars/ue5/status/:jobId
@@ -64,7 +65,8 @@ export async function GET(
     })
     
   } catch (error) {
-    console.error('❌ Erro ao obter status:', error)
+    const errorObj = error instanceof Error ? error : new Error(String(error))
+    logger.error('Erro ao obter status', errorObj, { component: 'API: avatars/ue5/status' })
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

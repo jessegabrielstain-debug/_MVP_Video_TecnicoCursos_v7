@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   try {
@@ -65,7 +66,7 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Error fetching voices:', error)
+    logger.error('Error fetching voices', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/tts/elevenlabs/voices' })
     return NextResponse.json(
       { error: 'Failed to fetch voices' },
       { status: 500 }

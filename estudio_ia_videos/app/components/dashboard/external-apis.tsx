@@ -56,6 +56,18 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+// Union type for all providers with common config access
+type AnyProvider = TTSProvider | MediaProvider | NRComplianceProvider
+
+// Helper to safely get provider config values
+const getProviderConfig = (provider: AnyProvider) => ({
+  api_key: provider.config?.api_key,
+  endpoint_url: provider.config?.endpoint,
+  rate_limit: 'rate_limit' in provider.config ? provider.config.rate_limit : undefined,
+  last_error: 'last_error' in provider ? provider.last_error : undefined,
+  rate_limit_exceeded: false // Could be computed from usage if needed
+})
+
 const providerIcons = {
   azure: Globe,
   google: Globe,
@@ -182,11 +194,11 @@ export function ExternalAPIs() {
     }).format(amount)
   }
 
-  const getProviderStatus = (provider: TTSProvider | MediaProvider | NRComplianceProvider) => {
-    const p = provider as any
-    if (!p.api_key) return 'inactive'
-    if (p.last_error) return 'error'
-    if (p.rate_limit_exceeded) return 'warning'
+  const getProviderStatus = (provider: AnyProvider) => {
+    const config = getProviderConfig(provider)
+    if (!config.api_key) return 'inactive'
+    if (config.last_error) return 'error'
+    if (config.rate_limit_exceeded) return 'warning'
     return 'active'
   }
 
@@ -460,7 +472,7 @@ export function ExternalAPIs() {
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
                               <span>{result.author || 'Unknown'}</span>
                                                           <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span>{(result as any).size || 'N/A'}</span>
+                            <span>{result.file_size ? `${Math.round(result.file_size / 1024)}KB` : 'N/A'}</span>
                           </div>
                             <div className="flex space-x-2">
                               <Button size="sm" variant="outline" className="flex-1">
@@ -646,7 +658,7 @@ export function ExternalAPIs() {
       <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Configure {(selectedProvider as any)?.provider_name}</DialogTitle>
+            <DialogTitle>Configure {selectedProvider?.name || 'Provider'}</DialogTitle>
             <DialogDescription>
               Update API keys and configuration settings
             </DialogDescription>
@@ -658,7 +670,7 @@ export function ExternalAPIs() {
                 id="api-key"
                 type="password"
                 placeholder="Enter API key..."
-                defaultValue={(selectedProvider as any)?.api_key}
+                defaultValue={selectedProvider ? getProviderConfig(selectedProvider).api_key : ''}
               />
             </div>
             <div className="space-y-2">
@@ -666,7 +678,7 @@ export function ExternalAPIs() {
               <Input
                 id="endpoint"
                 placeholder="https://api.example.com"
-                defaultValue={(selectedProvider as any)?.endpoint_url}
+                defaultValue={selectedProvider ? getProviderConfig(selectedProvider).endpoint_url : ''}
               />
             </div>
             <div className="space-y-2">
@@ -675,7 +687,7 @@ export function ExternalAPIs() {
                 id="rate-limit"
                 type="number"
                 placeholder="1000"
-                defaultValue={(selectedProvider as any)?.rate_limit}
+                defaultValue={selectedProvider ? getProviderConfig(selectedProvider).rate_limit : undefined}
               />
             </div>
             <div className="flex items-center space-x-2">

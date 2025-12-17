@@ -10,12 +10,13 @@ import { createRateLimiter, rateLimitPresets } from '@/lib/utils/rate-limit-midd
 import { avatar3DPipeline } from '@/lib/avatar-3d-pipeline'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { prisma } from '@/lib/db'
 
 // Interface para tipagem do avatar
 interface AvatarModelInfo {
   id: string;
   name: string;
-  display_name: string;
+  display_name: string | null;
   category?: string;
 }
 
@@ -54,14 +55,23 @@ export async function GET(
       }, { status: 404 })
     }
 
-    // Buscar informações do avatar do Supabase
-    const { data: avatarData } = await ((supabase as any)
-      .from('avatar_models')
-      .select('id, name, display_name, category') as any)
-      .eq('id', job.avatarId)
-      .single()
+    // Buscar informações do avatar do Prisma
+    const avatarData = await prisma.avatarModel.findUnique({
+      where: { id: job.avatarId },
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+        category: true
+      }
+    })
     
-    const avatar = avatarData as AvatarModelInfo | null;
+    const avatar: AvatarModelInfo | null = avatarData ? {
+      id: avatarData.id,
+      name: avatarData.name,
+      display_name: avatarData.displayName,
+      category: avatarData.category ?? undefined
+    } : null;
 
     // Calcular métricas
     const currentTime = Date.now()
@@ -164,7 +174,7 @@ export async function GET(
 
     return NextResponse.json(response, { headers })
   } catch (error) {
-    logger.error('Erro ao verificar status', { component: 'API: v2/avatars/render/status/[id]', error: error instanceof Error ? error : new Error(String(error)) })
+    logger.error('Erro ao verificar status', error instanceof Error ? error : new Error(String(error)), { component: 'API: v2/avatars/render/status/[id]' })
     
     return NextResponse.json({
       success: false,
@@ -239,21 +249,17 @@ export async function POST(
           }, { status: 400 })
         }
 
-        // Atualizar job no Supabase para reprocessamento
-        const { error: updateError } = await (supabase
-          .from('render_jobs')
-          .update({
+        // Atualizar job no Prisma para reprocessamento
+        await prisma.renderJob.update({
+          where: { id: jobId },
+          data: {
             status: 'queued',
             progress: 0,
-            error_message: null,
-            completed_at: null,
-            updated_at: new Date().toISOString()
-          }) as any)
-          .eq('id', jobId)
-
-        if (updateError) {
-          throw new Error(`Erro ao atualizar job: ${updateError.message}`)
-        }
+            errorMessage: null,
+            completedAt: null,
+            updatedAt: new Date()
+          }
+        })
 
         return NextResponse.json({
           success: true,
@@ -300,7 +306,7 @@ export async function POST(
         }, { status: 400 })
     }
   } catch (error) {
-    logger.error('Erro na ação do job', { component: 'API: v2/avatars/render/status/[id]', error: error instanceof Error ? error : new Error(String(error)) })
+    logger.error('Erro na ação do job', error instanceof Error ? error : new Error(String(error)), { component: 'API: v2/avatars/render/status/[id]' })
     
     return NextResponse.json({
       success: false,
@@ -349,15 +355,10 @@ export async function DELETE(
       }, { status: 400 })
     }
 
-    // Remover job do Supabase
-    const { error: deleteError } = await (supabase
-      .from('render_jobs')
-      .delete() as any)
-      .eq('id', jobId)
-
-    if (deleteError) {
-      throw new Error(`Erro ao remover job: ${deleteError.message}`)
-    }
+    // Remover job usando Prisma
+    await prisma.renderJob.delete({
+      where: { id: jobId }
+    })
 
     // Também remover da memória se existir
     await avatar3DPipeline.cancelRenderJob(jobId)
@@ -371,7 +372,7 @@ export async function DELETE(
       }
     })
   } catch (error) {
-    logger.error('Erro ao remover job', { component: 'API: v2/avatars/render/status/[id]', error: error instanceof Error ? error : new Error(String(error)) })
+    logger.error('Erro ao remover job', error instanceof Error ? error : new Error(String(error)), { component: 'API: v2/avatars/render/status/[id]' })
     
     return NextResponse.json({
       success: false,

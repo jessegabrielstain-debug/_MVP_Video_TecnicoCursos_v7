@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import useSWR from 'swr'
 import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client'
+import { logger } from '@/lib/logger'
 import type { User } from '@supabase/supabase-js'
 
 // Types for analytics data
@@ -193,7 +194,7 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
         if (!isMounted) return
         setUser(data.user ?? null)
       } catch (error) {
-        console.error('[Analytics] Falha ao carregar usuário:', error)
+        logger.error('[Analytics] Falha ao carregar usuário', error as Error, { component: 'use-analytics' })
       }
     }
 
@@ -335,7 +336,7 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
 
       return await response.json()
     } catch (error) {
-      console.error('Error tracking analytics event:', error)
+      logger.error('Error tracking analytics event', error as Error, { component: 'use-analytics' })
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }, [])
@@ -413,7 +414,7 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
 
       return { success: true }
     } catch (error) {
-      console.error('Error exporting analytics data:', error)
+      logger.error('Error exporting analytics data', error as Error, { component: 'use-analytics' })
       return { success: false, error: error instanceof Error ? error.message : 'Export failed' }
     }
   }, [queryParams])
@@ -428,7 +429,7 @@ export function useAnalytics(filters: AnalyticsFilters = { timeRange: '24h' }) {
   // Subscribe to specific events
   const subscribeToEvents = useCallback((eventTypes: string[]) => {
     if (isConnected) {
-      console.warn('subscribeToEvents: sendMessage is not implemented', { eventTypes, filters })
+      logger.warn('subscribeToEvents: sendMessage is not implemented', { eventTypes, filters, component: 'use-analytics' })
     }
   }, [isConnected, filters])
 

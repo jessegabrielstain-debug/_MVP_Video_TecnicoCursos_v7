@@ -5,6 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { VideoCompositionProps } from '@/lib/types/remotion-types';
+import { logger } from '@/lib/logger';
 
 interface RenderOptions {
   compositionId: string;
@@ -52,7 +53,7 @@ export function useRemotionRender() {
     });
 
     try {
-      console.log('🎬 Starting Remotion render:', options.compositionId);
+      logger.debug('🎬 Starting Remotion render', { compositionId: options.compositionId, component: 'useRemotionRender' });
 
       const response = await fetch('/api/remotion/render', {
         method: 'POST',
@@ -76,7 +77,7 @@ export function useRemotionRender() {
         error: null,
       });
 
-      console.log('✅ Render completed:', result);
+      logger.debug('✅ Render completed', { result, component: 'useRemotionRender' });
       return result;
 
     } catch (error) {
@@ -89,7 +90,7 @@ export function useRemotionRender() {
         error: errorMessage,
       });
 
-      console.error('❌ Render error:', error);
+      logger.error('❌ Render error', error as Error, { component: 'useRemotionRender' });
       throw error;
     }
   }, []);
@@ -107,7 +108,7 @@ export function useRemotionRender() {
       return data.composition;
 
     } catch (error) {
-      console.error('❌ Get composition error:', error);
+      logger.error('❌ Get composition error', error as Error, { component: 'useRemotionRender' });
       throw error;
     }
   }, []);

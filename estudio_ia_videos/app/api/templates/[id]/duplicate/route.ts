@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 interface Template {
   id: string
@@ -72,7 +73,7 @@ export async function POST(
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Erro ao duplicar template:', error);
+    logger.error('Erro ao duplicar template', error instanceof Error ? error : new Error(String(error)), { component: 'API: templates/[id]/duplicate' });
     return NextResponse.json(
       { error: 'Erro interno do servidor', success: false },
       { status: 500 }

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Template, NRCategory, TemplateFilter, TemplateSort } from '@/types/templates';
 import { useTemplates } from './useTemplates';
-import { useComplianceAnalyzer } from './useComplianceAnalyzer';
+import { useComplianceAnalyzer, ComplianceProjectData } from './useComplianceAnalyzer';
 import { useAdvancedAI } from './useAdvancedAI';
-import type { OptimizedContentResult } from './useAdvancedAI';
+import { logger } from '@/lib/logger';
+import type { OptimizedContentResult, OptimizableContentInput } from './useAdvancedAI';
 
 interface AdvancedTemplateFeatures {
   // 3D Preview
@@ -147,7 +148,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
         setAnalytics(data);
       }
     } catch (error) {
-      console.error('Failed to load analytics:', error);
+      logger.error('Failed to load analytics', error as Error, { component: 'useAdvancedTemplates' });
     }
   };
 
@@ -159,7 +160,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
         setUsagePatterns(data);
       }
     } catch (error) {
-      console.error('Failed to load usage patterns:', error);
+      logger.error('Failed to load usage patterns', error as Error, { component: 'useAdvancedTemplates' });
     }
   };
 
@@ -230,7 +231,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
       
       return suggestions.slice(0, 3); // Return top 3 suggestions
     } catch (error) {
-      console.error('Failed to suggest categories:', error);
+      logger.error('Failed to suggest categories', error as Error, { component: 'useAdvancedTemplates' });
       return [];
     }
   }, [analyzeContent]);
@@ -255,7 +256,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
       
       return allTags.slice(0, 8); // Limit to 8 tags
     } catch (error) {
-      console.error('Failed to generate tags:', error);
+      logger.error('Failed to generate tags', error as Error, { component: 'useAdvancedTemplates' });
       return template.tags;
     }
   }, [analyzeContent]);
@@ -268,8 +269,17 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
     }
 
     try {
-      const complianceAnalysis = await analyzeProject(template as any);
-      const suggestions = await getComplianceRecommendations(template as any);
+      // Converter Template para ComplianceProjectData
+      // ComplianceProjectData aceita [key: string]: unknown, então criamos um objeto literal
+      const projectData: ComplianceProjectData = {
+        id: template.id,
+        metadata: { ...template.metadata },
+        content: template.content as unknown as OptimizableContentInput,
+        summary: template.name,
+      };
+      
+      const complianceAnalysis = await analyzeProject(projectData);
+      const suggestions = await getComplianceRecommendations(projectData);
       
       const issues: ComplianceIssue[] = complianceAnalysis.violations.map(violation => ({
         id: violation.id,
@@ -280,12 +290,23 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
         autoFixAvailable: violation.autoFixable || false,
       }));
       
+      // Tipos seguros para suggestion.type e suggestion.effort
+      type SuggestionType = 'content' | 'structure' | 'accessibility' | 'interaction';
+      type EffortLevel = 'easy' | 'moderate' | 'complex';
+      
+      const validTypes: SuggestionType[] = ['content', 'structure', 'accessibility', 'interaction'];
+      const validEfforts: EffortLevel[] = ['easy', 'moderate', 'complex'];
+      
       const complianceSuggestions: ComplianceSuggestion[] = suggestions.map(suggestion => ({
         id: suggestion.id,
-        type: suggestion.type as any,
+        type: validTypes.includes(suggestion.type as SuggestionType) 
+          ? suggestion.type as SuggestionType 
+          : 'content',
         description: suggestion.description,
         impact: suggestion.impact,
-        effort: suggestion.effort as any,
+        effort: validEfforts.includes(suggestion.effort as EffortLevel) 
+          ? suggestion.effort as EffortLevel 
+          : 'moderate',
         autoApplyAvailable: false, // Default
       }));
       
@@ -304,7 +325,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
         certificationStatus,
       };
     } catch (error) {
-      console.error('Failed to validate compliance:', error);
+      logger.error('Failed to validate compliance', error as Error, { component: 'useAdvancedTemplates' });
       throw error;
     }
   }, [baseTemplates, analyzeProject, getComplianceRecommendations]);
@@ -387,7 +408,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
       
       return scoredTemplates.slice(0, 5).map(item => item.template);
     } catch (error) {
-      console.error('Failed to get recommendations:', error);
+      logger.error('Failed to get recommendations', error as Error, { component: 'useAdvancedTemplates' });
       return [];
     }
   }, [baseTemplates]);
@@ -412,7 +433,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
             nonCompliant++;
           }
         } catch (error) {
-          console.error(`Failed to validate template ${templateId}:`, error);
+          logger.error(`Failed to validate template ${templateId}`, error as Error, { component: 'useAdvancedTemplates', templateId });
         }
       }
       
@@ -465,7 +486,7 @@ export const useAdvancedTemplates = (): AdvancedTemplateFeatures & ReturnType<ty
           results[templateId] = optimizedTemplate;
           optimized++;
         } catch (error) {
-          console.error(`Failed to optimize template ${templateId}:`, error);
+          logger.error(`Failed to optimize template ${templateId}`, error as Error, { component: 'useAdvancedTemplates', templateId });
           failed++;
         }
       }

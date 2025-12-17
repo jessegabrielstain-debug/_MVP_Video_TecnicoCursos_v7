@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 interface Slide {
   id: string
@@ -118,7 +119,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Erro ao exportar template:', error);
+    logger.error('Erro ao exportar template', error instanceof Error ? error : new Error(String(error)) instanceof Error ? error instanceof Error ? error : new Error(String(error)) : new Error(String(error instanceof Error ? error : new Error(String(error)))), { component: 'API: templates/export' });
     return NextResponse.json(
       { error: 'Erro interno do servidor', success: false },
       { status: 500 }

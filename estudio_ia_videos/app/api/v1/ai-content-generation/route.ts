@@ -71,10 +71,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    logger.error('Error in AI content generation API', {
-      component: 'API: v1/ai-content-generation',
-      error: error instanceof Error ? error : new Error(String(error))
-    })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error in AI content generation API', err, { component: 'API: v1/ai-content-generation' })
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -133,10 +130,7 @@ export async function POST(request: NextRequest) {
       data: generationRequest
     })
   } catch (error) {
-    logger.error('Error in AI content generation POST', {
-      component: 'API: v1/ai-content-generation',
-      error: error instanceof Error ? error : new Error(String(error))
-    })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error in AI content generation POST', err, { component: 'API: v1/ai-content-generation' })
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

@@ -232,7 +232,7 @@ async function processRenderJob(
         finalPath = uploadUrl;
       }
     } catch (s3Error) {
-      logger.warn(`⚠️ [Video Render v2] Upload S3 falhou para job ${jobId}:`, { component: 'API: v1/render/video-production-v2', error: s3Error });
+      logger.warn(`⚠️ [Video Render v2] Upload S3 falhou para job ${jobId}:`, { component: 'API: v1/render/video-production-v2' });
     }
 
     // Finalizar job

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { batchSystem } from '@/lib/batch-processing-system';
 import type { BatchJobType } from '@/lib/batch-processing-system';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/batch/create
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Batch job creation error:', error);
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Batch job creation error', err, { component: 'API: batch/create' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Batch job creation failed' },
       { status: 500 }
@@ -106,7 +107,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Batch job status error:', error);
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Batch job status error', err, { component: 'API: batch/create' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to get job status' },
       { status: 500 }

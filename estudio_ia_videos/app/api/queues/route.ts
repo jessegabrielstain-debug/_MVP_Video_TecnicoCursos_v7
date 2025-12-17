@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -29,13 +30,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar se é admin
+    type UserRoleWithRole = { role: { name: string } | null };
     const { data: userRole } = await supabase
       .from('user_roles')
       .select('role:roles(name)')
       .eq('user_id', user.id)
       .single();
 
-    if (!userRole || (userRole.role as any).name !== 'admin') {
+    const typedUserRole = userRole as UserRoleWithRole | null;
+    if (!typedUserRole || typedUserRole.role?.name !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -74,12 +77,25 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching queue data:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Error fetching queue data', err, { component: 'API: queues' });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-function formatDbJob(job: any) {
+interface RenderJob {
+  id: string;
+  project_id: string;
+  user_id: string;
+  progress: number;
+  attempts?: number;
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+  error_message?: string;
+}
+
+function formatDbJob(job: RenderJob) {
   return {
     id: job.id,
     name: 'render-video',

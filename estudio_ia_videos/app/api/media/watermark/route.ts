@@ -6,13 +6,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { watermarkSystem, WatermarkOptions } from '@/lib/watermark-intelligent-real';
 import * as fs from 'fs/promises';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { imagePath, config } = body as {
       imagePath: string;
-      config: any;
+      config: WatermarkOptions;
     };
 
     if (!imagePath) {
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!config.logoPath) {
+    if (!config.imagePath) {
       return NextResponse.json(
         { error: 'Watermark logo path is required' },
         { status: 400 }
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     // Verificar se arquivos existem
     try {
       await fs.access(imagePath);
-      await fs.access(config.logoPath);
+      await fs.access(config.imagePath);
     } catch {
       return NextResponse.json(
         { error: 'Image or logo file not found' },
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     // Configurar opções
     const options: WatermarkOptions = {
       type: 'logo',
-      imagePath: config.logoPath,
+      imagePath: config.imagePath,
       position: config.position || 'bottom-right',
       opacity: config.opacity || 0.8,
       scale: config.scale || 0.2,
@@ -61,7 +62,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Watermark error:', error);
+    logger.error('Watermark error', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: media/watermark' });
     return NextResponse.json(
       { 
         error: 'Failed to apply watermark',

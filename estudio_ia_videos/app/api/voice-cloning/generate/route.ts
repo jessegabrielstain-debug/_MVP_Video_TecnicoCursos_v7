@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 // Schema de validação
 const VoiceSettingsSchema = z.object({
@@ -71,9 +72,20 @@ export async function POST(request: NextRequest) {
     // Generate real audio response using TTS service
     const audioBuffer = await generateRealAudio(text, voice_id, voice_settings)
     
-    console.log(`[VoiceCloning] Usuário ${user.id} gerou voz: ${text.length} chars`)
+    logger.info(`[VoiceCloning] Usuário ${user.id} gerou voz: ${text.length} chars`, { 
+      component: 'API: voice-cloning/generate',
+      userId: user.id,
+      textLength: text.length
+    })
     
-    return new Response(audioBuffer as any, {
+    // Response accepts ArrayBuffer - convert Buffer to ArrayBuffer explicitly
+    const arrayBuffer = new ArrayBuffer(audioBuffer.length)
+    const view = new Uint8Array(arrayBuffer)
+    for (let i = 0; i < audioBuffer.length; i++) {
+      view[i] = audioBuffer[i]
+    }
+    
+    return new Response(arrayBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'audio/mpeg',
@@ -83,7 +95,7 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error: unknown) {
-    console.error('[VoiceCloning] Erro:', error)
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('[VoiceCloning] Erro', err, { component: 'API: voice-cloning/generate' })
     return NextResponse.json(
       { 
         success: false,

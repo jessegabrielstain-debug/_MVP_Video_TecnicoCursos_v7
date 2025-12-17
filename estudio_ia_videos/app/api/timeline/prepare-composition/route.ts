@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 interface Clip {
   trackIndex: number
@@ -152,7 +153,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Erro ao preparar composição:', error);
+    logger.error('Erro ao preparar composição', error instanceof Error ? error : new Error(String(error)) instanceof Error ? error instanceof Error ? error : new Error(String(error)) : new Error(String(error instanceof Error ? error : new Error(String(error)))), { component: 'API: timeline/prepare-composition' });
     return NextResponse.json(
       { error: 'Erro ao preparar composição' },
       { status: 500 }

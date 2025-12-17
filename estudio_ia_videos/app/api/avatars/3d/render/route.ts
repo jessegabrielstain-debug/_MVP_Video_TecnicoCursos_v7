@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { avatarEngine } from '@/lib/avatar-engine';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,7 +49,8 @@ export async function POST(request: NextRequest) {
       message: 'Renderização iniciada. Use /api/avatars/3d/render/status para verificar progresso.'
     });
   } catch (error) {
-    console.error('Erro ao iniciar renderização:', error);
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao iniciar renderização', errorObj, { component: 'API: avatars/3d/render' });
     return NextResponse.json(
       { error: 'Erro ao iniciar renderização do avatar' },
       { status: 500 }

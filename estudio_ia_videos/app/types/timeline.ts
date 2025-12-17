@@ -1,3 +1,27 @@
+// Tipos específicos para substituir Record<string, any>
+export interface EffectParameters {
+  intensity?: number;
+  duration?: number;
+  color?: string;
+  blur?: number;
+  brightness?: number;
+  contrast?: number;
+  saturation?: number;
+  opacity?: number;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export interface TimelineMetadata {
+  source?: string;
+  author?: string;
+  tags?: string[];
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  version?: number;
+  [key: string]: string | number | boolean | string[] | undefined;
+}
+
 export interface TimelineClip {
   id: string;
   name: string;
@@ -32,12 +56,12 @@ export interface TimelineClip {
   effects?: Array<{
     id: string;
     type: string;
-    parameters: Record<string, any>;
+    parameters: EffectParameters;
     enabled: boolean;
   }>;
   
   // Metadata
-  metadata?: Record<string, any>;
+  metadata?: TimelineMetadata;
   
   // UI state
   selected?: boolean;
@@ -118,7 +142,7 @@ export interface TimelineOperation {
   type: 'move' | 'delete' | 'add' | 'trim' | 'split' | 'merge' | 'effect';
   clipIds: string[];
   trackIds: string[];
-  parameters: Record<string, any>;
+  parameters: OperationParameters;
   
   // For undo/redo
   previousState: TimelineState;
@@ -165,4 +189,16 @@ export interface TimelineImportOptions {
   // Metadata
   preserveMarkers?: boolean;
   preserveEffects?: boolean;
+}
+
+export interface OperationParameters {
+  position?: number;
+  duration?: number;
+  trackIndex?: number;
+  offset?: number;
+  trimStart?: number;
+  trimEnd?: number;
+  effectType?: string;
+  effectConfig?: EffectParameters;
+  [key: string]: string | number | EffectParameters | undefined;
 }

@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    logger.error('Erro ao gerar lip sync', { component: 'API: lip-sync', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao gerar lip sync', err, { component: 'API: lip-sync' });
     return NextResponse.json(
       { error: 'Erro ao processar requisição' },
       { status: 500 }
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const validation = await validateLipSyncResources();
     return NextResponse.json(validation);
   } catch (error) {
-    logger.error('Erro ao validar recursos', { component: 'API: lip-sync', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao validar recursos', err, { component: 'API: lip-sync' });
     return NextResponse.json(
       { error: 'Erro ao validar recursos' },
       { status: 500 }

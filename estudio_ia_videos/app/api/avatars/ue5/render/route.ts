@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { ue5AvatarEngine, UE5AvatarConfig } from '@/lib/engines/ue5-avatar-engine'
+import { logger } from '@/lib/logger'
 
 /**
  * POST /api/avatars/ue5/render
@@ -59,7 +60,8 @@ export async function POST(req: NextRequest) {
     })
     
   } catch (error) {
-    console.error('❌ Erro ao iniciar render UE5:', error)
+    const errorObj = error instanceof Error ? error : new Error(String(error))
+    logger.error('Erro ao iniciar render UE5', errorObj, { component: 'API: avatars/ue5/render' })
     return NextResponse.json(
       { 
         error: 'Erro ao iniciar renderização',

@@ -18,8 +18,14 @@ interface FabricObject {
   width: number
   height: number
   getBoundingRect: () => { left: number; top: number; width: number; height: number }
-  set: (options: Record<string, any>) => void
-  [key: string]: any
+  set: (options: Record<string, unknown>) => void
+  [key: string]: unknown
+}
+
+interface FabricEvent {
+  target?: FabricObject
+  selected?: FabricObject[]
+  [key: string]: unknown
 }
 
 interface Canvas {
@@ -30,9 +36,9 @@ interface Canvas {
   viewportTransform: number[]
   getObjects: () => FabricObject[]
   renderAll: () => void
-  on: (event: string, handler: (e: any) => void) => void
-  off: (event: string, handler?: (e: any) => void) => void
-  [key: string]: any
+  on: (event: string, handler: (e: FabricEvent) => void) => void
+  off: (event: string, handler?: (e: FabricEvent) => void) => void
+  [key: string]: unknown
 }
 
 interface Guide {
@@ -53,11 +59,7 @@ interface SnapPoint {
   object: FabricObject
 }
 
-interface FabricEvent {
-  target?: FabricObject
-  selected?: FabricObject[]
-  [key: string]: any
-}
+// FabricEvent já definida acima
 
 interface GuideOptions {
   snapToGrid: boolean
@@ -328,8 +330,8 @@ export default function SmartGuides({
   useEffect(() => {
     if (!canvas) return
     
-    const handleObjectMoving = (e: any) => {
-      const obj = e.target as FabricObject
+    const handleObjectMoving = (e: FabricEvent) => {
+      const obj = e.target
       if (!obj) return
       
       // Snap to grid
@@ -370,8 +372,8 @@ export default function SmartGuides({
       setMeasurements([])
     }
     
-    const handleSelectionCreated = (e: any) => {
-      const evt = e as FabricEvent
+    const handleSelectionCreated = (e: FabricEvent) => {
+      const evt = e
       if (currentOptions.showMeasurements && evt.selected && evt.selected.length > 1) {
         const newMeasurements: Measurement[] = []
         const objects = evt.selected

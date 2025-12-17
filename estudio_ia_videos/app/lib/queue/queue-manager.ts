@@ -181,7 +181,7 @@ export class QueueManager extends EventEmitter {
 
       job.status = 'completed';
       job.completedAt = new Date();
-      job.result = result as any;
+      job.result = result as JobResult;
       this.emit('job:completed', job);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

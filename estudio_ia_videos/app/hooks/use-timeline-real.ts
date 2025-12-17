@@ -6,6 +6,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/lib/logger';
 import type { Timeline, Track, Clip, TimelineManipulation, TimelineConfig } from '@/lib/types/timeline-types';
 import { DEFAULT_TIMELINE_CONFIG } from '@/lib/types/timeline-types';
 
@@ -393,9 +394,9 @@ export function useTimelineReal({
         throw new Error('Failed to save timeline');
       }
       
-      console.log('Timeline saved successfully');
+      logger.debug('Timeline saved successfully', { projectId, component: 'useTimelineReal' });
     } catch (error) {
-      console.error('Error saving timeline:', error);
+      logger.error('Error saving timeline', error as Error, { projectId, component: 'useTimelineReal' });
       throw error;
     }
   }, [projectId, timeline]);
@@ -411,9 +412,9 @@ export function useTimelineReal({
       const data = await response.json();
       setTimeline(data);
       
-      console.log('Timeline loaded successfully');
+      logger.debug('Timeline loaded successfully', { projectId, component: 'useTimelineReal' });
     } catch (error) {
-      console.error('Error loading timeline:', error);
+      logger.error('Error loading timeline', error as Error, { projectId, component: 'useTimelineReal' });
       throw error;
     }
   }, [projectId]);

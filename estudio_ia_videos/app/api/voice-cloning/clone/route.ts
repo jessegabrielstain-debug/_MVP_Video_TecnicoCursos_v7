@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,7 +56,8 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString()
     })
   } catch (error) {
-    console.error('Voice cloning error:', error)
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logger.error('Voice cloning error', errorObj, { component: 'API: /api/voice-cloning/clone' });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

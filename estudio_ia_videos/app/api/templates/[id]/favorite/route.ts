@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 interface Template {
   id: string
@@ -49,7 +50,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Erro ao atualizar favorito:', error);
+    logger.error('Erro ao atualizar favorito', error instanceof Error ? error : new Error(String(error)) instanceof Error ? error instanceof Error ? error : new Error(String(error)) : new Error(String(error instanceof Error ? error : new Error(String(error)))), { component: 'API: templates/favorite' });
     return NextResponse.json(
       { error: 'Erro interno do servidor', success: false },
       { status: 500 }

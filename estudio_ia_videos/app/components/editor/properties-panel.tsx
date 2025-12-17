@@ -37,7 +37,7 @@ import { HeyGenVoiceSelector } from './heygen-voice-selector'
 
 // Flexible element interface for the properties panel
 // This accepts both the strict EditorElement and the looser TimelineElement
-interface FlexibleElement {
+export interface FlexibleElement {
   id: string
   name: string
   type: string
@@ -51,15 +51,15 @@ interface FlexibleElement {
   locked?: boolean
   content?: string
   src?: string
-  style?: Record<string, any>
-  metadata?: Record<string, any>
+  style?: Record<string, unknown>
+  metadata?: Record<string, unknown>
   animation?: {
     type?: string
     duration?: number
     delay?: number
     easing?: string
   }
-  [key: string]: any
+  [key: string]: unknown
 }
 
 interface PropertiesPanelProps {
@@ -287,7 +287,7 @@ export function PropertiesPanel({
                 <div className="space-y-2">
                   <Label>Avatar Settings</Label>
                   <div className="text-xs text-muted-foreground">
-                    {selectedElement.metadata?.avatarName || 'Unknown Avatar'}
+                    {String(selectedElement.metadata?.avatarName || 'Unknown Avatar')}
                   </div>
                 </div>
                 
@@ -295,7 +295,7 @@ export function PropertiesPanel({
                   <div className="space-y-2">
                     <Label htmlFor="heygen-voice">HeyGen Voice</Label>
                     <HeyGenVoiceSelector 
-                      value={selectedElement.metadata?.voiceId as string}
+                      value={String(selectedElement.metadata?.voiceId || '')}
                       onChange={(voiceId) => onUpdateElement(selectedElement.id, {
                         metadata: { ...selectedElement.metadata, voiceId }
                       })}
@@ -326,12 +326,12 @@ export function PropertiesPanel({
                 <Input
                   id="bg-color"
                   type="color"
-                  value={selectedElement.style?.backgroundColor || '#ffffff'}
+                  value={String(selectedElement.style?.backgroundColor || '#ffffff')}
                   onChange={(e) => updateStyle('backgroundColor', e.target.value)}
                   className="w-12 h-8 p-1"
                 />
                 <Input
-                  value={selectedElement.style?.backgroundColor || '#ffffff'}
+                  value={String(selectedElement.style?.backgroundColor || '#ffffff')}
                   onChange={(e) => updateStyle('backgroundColor', e.target.value)}
                   placeholder="#ffffff"
                 />
@@ -347,7 +347,7 @@ export function PropertiesPanel({
                   <Input
                     id="border-width"
                     type="number"
-                    value={selectedElement.style?.borderWidth || 0}
+                    value={Number(selectedElement.style?.borderWidth || 0)}
                     onChange={(e) => updateStyle('borderWidth', Number(e.target.value))}
                   />
                 </div>
@@ -356,7 +356,7 @@ export function PropertiesPanel({
                   <Input
                     id="border-color"
                     type="color"
-                    value={selectedElement.style?.borderColor || '#000000'}
+                    value={String(selectedElement.style?.borderColor || '#000000')}
                     onChange={(e) => updateStyle('borderColor', e.target.value)}
                     className="h-8"
                   />
@@ -370,7 +370,7 @@ export function PropertiesPanel({
               <Input
                 id="border-radius"
                 type="number"
-                value={selectedElement.style?.borderRadius || 0}
+                value={Number(selectedElement.style?.borderRadius || 0)}
                 onChange={(e) => updateStyle('borderRadius', Number(e.target.value))}
               />
             </div>
@@ -417,7 +417,7 @@ export function PropertiesPanel({
                   <Input
                     id="font-size"
                     type="number"
-                    value={selectedElement.style?.fontSize || 16}
+                    value={Number(selectedElement.style?.fontSize || 16)}
                     onChange={(e) => updateStyle('fontSize', Number(e.target.value))}
                   />
                 </div>
@@ -428,12 +428,12 @@ export function PropertiesPanel({
                     <Input
                       id="text-color"
                       type="color"
-                      value={selectedElement.style?.color || '#000000'}
+                      value={String(selectedElement.style?.color || '#000000')}
                       onChange={(e) => updateStyle('color', e.target.value)}
                       className="w-12 h-8 p-1"
                     />
                     <Input
-                      value={selectedElement.style?.color || '#000000'}
+                      value={String(selectedElement.style?.color || '#000000')}
                       onChange={(e) => updateStyle('color', e.target.value)}
                       placeholder="#000000"
                     />

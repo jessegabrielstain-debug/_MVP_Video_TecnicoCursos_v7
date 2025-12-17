@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { withAnalytics } from '@/lib/analytics/middleware';
 import { ANALYTICS_CONFIG, validateConfig, getEnvironmentInfo } from '@/lib/analytics/config';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 interface HealthCheck {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -281,7 +282,8 @@ async function getMetrics() {
       scheduledReports: scheduledReportsCount
     };
   } catch (error) {
-    console.error('Error getting metrics:', error);
+    logger.error('Error getting metrics', error instanceof Error ? error : new Error(String(error)) 
+    , { component: 'API: analytics/health' });
     return {
       totalEvents: 0,
       totalUsers: 0,
@@ -372,7 +374,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(healthCheck);
 
   } catch (error) {
-    console.error('Health check error:', error);
+    logger.error('Health check error', error instanceof Error ? error : new Error(String(error)) 
+    , { component: 'API: analytics/health' });
     return NextResponse.json(
       {
         status: 'unhealthy',

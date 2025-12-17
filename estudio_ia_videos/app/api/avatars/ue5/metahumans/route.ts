@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server'
 import { ue5AvatarEngine } from '@/lib/engines/ue5-avatar-engine'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/avatars/ue5/metahumans
@@ -40,7 +41,8 @@ export async function GET() {
     })
     
   } catch (error) {
-    console.error('❌ Erro ao listar MetaHumans:', error)
+    const errorObj = error instanceof Error ? error : new Error(String(error))
+    logger.error('Erro ao listar MetaHumans', errorObj, { component: 'API: avatars/ue5/metahumans' })
     return NextResponse.json(
       { 
         success: false,

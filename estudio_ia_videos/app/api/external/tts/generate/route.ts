@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/services'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import type { Json } from '@/lib/supabase/types'
 
 // Validation schema
 const TTSGenerateSchema = z.object({
@@ -247,7 +248,7 @@ export async function POST(request: NextRequest) {
     const params = TTSGenerateSchema.parse(body)
 
     // Get provider configuration
-    const { data: providerData, error: providerError } = await (supabaseAdmin as any)
+    const { data: providerData, error: providerError } = await supabaseAdmin
       .from('user_external_api_configs')
       .select('*')
       .eq('user_id', session.user.id)
@@ -266,7 +267,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check rate limits and quotas
-    const { data: usage, error: usageError } = await (supabaseAdmin as any)
+    const { data: usage, error: usageError } = await supabaseAdmin
       .from('external_api_usage')
       .select('*')
       .eq('user_id', session.user.id)
@@ -276,11 +277,11 @@ export async function POST(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (usageError) {
-      logger.warn('Failed to check TTS usage:', { component: 'API: external/tts/generate', error: usageError })
+      logger.warn('Failed to check TTS usage:', { component: 'API: external/tts/generate' })
     }
 
     // Calculate current usage
-    const dailyUsage = usage?.reduce((total: number, record: any) => total + (record.characters_used || 0), 0) || 0
+    const dailyUsage = usage?.reduce((total: number, record: { characters_used?: number }) => total + (record.characters_used || 0), 0) || 0
     const dailyRequests = usage?.length || 0
 
     // Check limits
@@ -311,7 +312,7 @@ export async function POST(request: NextRequest) {
 
     // Record usage
     try {
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('external_api_usage')
         .insert({
           user_id: session.user.id,
@@ -329,7 +330,7 @@ export async function POST(request: NextRequest) {
           }
         })
     } catch (usageLogError) {
-      logger.warn('Failed to log TTS usage:', { component: 'API: external/tts/generate', error: usageLogError })
+      logger.warn('Failed to log TTS usage:', { component: 'API: external/tts/generate' })
     }
 
     // Log the action for analytics
@@ -347,11 +348,11 @@ export async function POST(request: NextRequest) {
             duration: result.duration,
             cost: totalCost,
             timestamp: new Date().toISOString()
-          } as any,
+          } as Json,
           created_at: new Date().toISOString()
-        } as any)
+        })
     } catch (analyticsError) {
-      logger.warn('Failed to log TTS generation:', { component: 'API: external/tts/generate', error: analyticsError })
+      logger.warn('Failed to log TTS generation:', { component: 'API: external/tts/generate' })
     }
 
     return NextResponse.json({

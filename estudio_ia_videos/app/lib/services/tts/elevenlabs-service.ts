@@ -2,6 +2,8 @@ import { ElevenLabsClient } from "elevenlabs";
 import { logger } from '@/lib/logger';
 import { createClient } from "@supabase/supabase-js";
 import { trackUsage } from '@/lib/analytics/usage-tracker';
+import { withCircuitBreaker } from '@/lib/resilience/circuit-breaker';
+import { withRetry } from '@/lib/error-handling';
 
 const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -61,55 +63,66 @@ export async function generateTTSAudio(
     throw new Error("A API da ElevenLabs não está configurada.");
   }
 
-  try {
-    logger.info("Iniciando geração de áudio TTS com ElevenLabs.", { component: 'ElevenlabsService', voiceId, modelId, textLength: text.length });
+  return withCircuitBreaker(
+    'elevenlabs-generate',
+    async () => {
+      logger.info("Iniciando geração de áudio TTS com ElevenLabs.", { component: 'ElevenlabsService', voiceId, modelId, textLength: text.length });
 
-    // Retry logic with exponential backoff
-    let attempts = 0;
-    const maxAttempts = 3;
-    let audioStream: NodeJS.ReadableStream | null = null;
+      // Retry logic with exponential backoff
+      let attempts = 0;
+      const maxAttempts = 3;
+      let audioStream: NodeJS.ReadableStream | null = null;
 
-    while (attempts < maxAttempts) {
-      try {
-        audioStream = await (elevenlabs as unknown as ElevenLabsClientWithGenerate).generate({
-          voice: voiceId,
-          model_id: modelId,
-          text,
-        });
-        break; // Success
-      } catch (err) {
-        attempts++;
-        logger.warn(`Tentativa ${attempts} falhou.`, { component: 'ElevenlabsService', error: err });
-        if (attempts >= maxAttempts) throw err;
-        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts))); // 2s, 4s, 8s
+      while (attempts < maxAttempts) {
+        try {
+          audioStream = await (elevenlabs as unknown as ElevenLabsClientWithGenerate).generate({
+            voice: voiceId,
+            model_id: modelId,
+            text,
+          });
+          break; // Success
+        } catch (err) {
+          attempts++;
+          logger.warn(`Tentativa ${attempts} falhou.`, { component: 'ElevenlabsService', error: err });
+          if (attempts >= maxAttempts) throw err;
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts))); // 2s, 4s, 8s
+        }
       }
-    }
 
-    if (!audioStream) throw new Error("Falha ao obter stream de áudio após tentativas.");
+      if (!audioStream) throw new Error("Falha ao obter stream de áudio após tentativas.");
 
-    const chunks: Buffer[] = [];
-    for await (const chunk of audioStream) {
-      chunks.push(chunk as Buffer);
-    }
-
-    const audioBuffer = Buffer.concat(chunks);
-    logger.info("Áudio TTS gerado com sucesso.", { component: 'ElevenlabsService', audioSize: audioBuffer.length });
-
-    // Track usage
-    await trackUsage('tts_generated', null, {
-      provider: 'elevenlabs',
-      details: {
-        textLength: text.length,
-        voiceId,
-        modelId
+      const chunks: Buffer[] = [];
+      for await (const chunk of audioStream) {
+        chunks.push(chunk as Buffer);
       }
-    });
 
-    return audioBuffer;
-  } catch (error) {
+      const audioBuffer = Buffer.concat(chunks);
+      logger.info("Áudio TTS gerado com sucesso.", { component: 'ElevenlabsService', audioSize: audioBuffer.length });
+
+      // Track usage
+      await trackUsage('tts_generated', null, {
+        provider: 'elevenlabs',
+        details: {
+          textLength: text.length,
+          voiceId,
+          modelId
+        }
+      });
+
+      return audioBuffer;
+    },
+    {
+      failureThreshold: 5,
+      timeout: 60000,
+      name: 'elevenlabs-generate',
+    },
+    () => {
+      throw new Error("Serviço ElevenLabs temporariamente indisponível. Tente novamente em alguns instantes.");
+    }
+  ).catch((error) => {
     logger.error("Falha ao gerar áudio TTS com ElevenLabs.", error as Error, { component: 'ElevenLabsService' });
-    throw new Error("Falha na comunicação com a API da ElevenLabs.");
-  }
+    throw error;
+  });
 }
 
 /**
@@ -135,18 +148,42 @@ export async function generateAndUploadTTSAudio(
     // Gera o áudio
     const audioBuffer = await generateTTSAudio(text, voiceId, modelId);
 
-    // Upload para o bucket 'assets'
+    // Upload para o bucket 'assets' com retry
     const filePath = `audio/tts/${fileName}`;
-    const { data, error } = await supabase.storage
-      .from('assets')
-      .upload(filePath, audioBuffer, {
-        contentType: 'audio/mpeg',
-        upsert: true,
-      });
-
-    if (error) {
-      logger.error("Falha ao fazer upload de áudio para o Storage.", error as Error, { component: 'ElevenLabsService' });
+    
+    const uploadResult = await withRetry(
+      async () => {
+        const result = await supabase.storage
+          .from('assets')
+          .upload(filePath, audioBuffer, {
+            contentType: 'audio/mpeg',
+            upsert: true,
+          });
+        
+        if (result.error) throw result.error;
+        return result;
+      },
+      {
+        maxAttempts: 3,
+        delayMs: 1000,
+        backoffMultiplier: 2,
+        shouldRetry: (error) => {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          return (
+            errorMessage.includes('network') ||
+            errorMessage.includes('timeout') ||
+            errorMessage.includes('ECONNRESET')
+          );
+        },
+      }
+    ).catch((error) => {
+      logger.error("Falha ao fazer upload de áudio para o Storage após retries.", error as Error, { component: 'ElevenLabsService' });
       throw error;
+    });
+
+    if (uploadResult.error) {
+      logger.error("Falha ao fazer upload de áudio para o Storage.", uploadResult.error as Error, { component: 'ElevenLabsService' });
+      throw uploadResult.error;
     }
 
     // Obtém URL pública
@@ -231,23 +268,36 @@ export async function listVoices(): Promise<ElevenLabsVoice[]> {
     throw new Error("A API da ElevenLabs não está configurada.");
   }
 
-  try {
-    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
-      headers: {
-        'xi-api-key': elevenLabsApiKey,
-      },
-    });
+  return withCircuitBreaker(
+    'elevenlabs-list-voices',
+    async () => {
+      const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: {
+          'xi-api-key': elevenLabsApiKey,
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error(`Falha ao listar vozes: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Falha ao listar vozes: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.voices as ElevenLabsVoice[];
+    },
+    {
+      failureThreshold: 3,
+      timeout: 30000,
+      name: 'elevenlabs-list-voices',
+    },
+    () => {
+      // Fallback: retorna array vazio se circuit breaker estiver aberto
+      logger.warn("Circuit breaker aberto para listVoices, retornando array vazio", { component: 'ElevenLabsService' });
+      return [];
     }
-
-    const result = await response.json();
-    return result.voices as ElevenLabsVoice[];
-  } catch (error) {
+  ).catch((error) => {
     logger.error("Falha ao listar vozes.", error as Error, { component: 'ElevenLabsService' });
     throw error;
-  }
+  });
 }
 
 /**

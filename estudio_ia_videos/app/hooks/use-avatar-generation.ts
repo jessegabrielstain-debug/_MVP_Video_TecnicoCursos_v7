@@ -12,6 +12,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // TYPES
@@ -83,7 +84,7 @@ export function useAvatarGeneration(): UseAvatarGenerationReturn {
         }
       }
     } catch (err) {
-      console.error('Erro ao fazer polling:', err instanceof Error ? err.message : String(err));
+      logger.error('Erro ao fazer polling', err as Error, { component: 'useAvatarGeneration' });
     }
   }, [pollingInterval]);
 
@@ -130,7 +131,7 @@ export function useAvatarGeneration(): UseAvatarGenerationReturn {
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error('Erro ao gerar avatar:', err);
+      logger.error('Erro ao gerar avatar', err as Error, { component: 'useAvatarGeneration' });
       setError(errorMessage);
       setIsGenerating(false);
       toast.error(errorMessage, { id: 'avatar-gen' });

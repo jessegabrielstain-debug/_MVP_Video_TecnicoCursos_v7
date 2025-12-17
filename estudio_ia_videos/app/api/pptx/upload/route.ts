@@ -8,6 +8,7 @@ import { withRateLimit, RATE_LIMITS } from '@/lib/rate-limiter-real'
 import PPTXProcessorReal from '@/lib/pptx/pptx-processor-real'
 import { notificationManager } from '@/lib/notifications/notification-manager'
 import { logger } from '@/lib/logger';
+import type { Json } from '@/lib/supabase/types'
 
 // Schema de validação para upload
 const uploadSchema = z.object({
@@ -355,8 +356,7 @@ async function processPPTXAsync(uploadId: string, filePath: string, projectId: s
     const roomId = `project:${projectId}:uploads`
 
     // Atualizar status para processando
-    // Note: using (supabase as any) because processing_progress may not be in generated types
-    await (supabase as any)
+    await supabase
       .from('pptx_uploads')
       .update({ 
         status: 'processing',
@@ -393,7 +393,7 @@ async function processPPTXAsync(uploadId: string, filePath: string, projectId: s
     }
 
     // Atualizar progresso após extração inicial
-    await (supabase as any)
+    await supabase
       .from('pptx_uploads')
       .update({ processing_progress: 50 })
       .eq('id', uploadId)
@@ -466,14 +466,14 @@ async function processPPTXAsync(uploadId: string, filePath: string, projectId: s
     }
 
     // Finalizar processamento
-    await (supabase as any)
+    await supabase
       .from('pptx_uploads')
       .update({
         status: 'completed',
         processing_progress: 100,
         slide_count: extraction.slides.length,
-        slides_data: extraction.slides,
-        metadata: extraction.metadata,
+        slides_data: extraction.slides as Json,
+        metadata: extraction.metadata as Json,
         preview_url: previewUrl,
         processed_at: new Date().toISOString()
       })
@@ -505,7 +505,7 @@ async function processPPTXAsync(uploadId: string, filePath: string, projectId: s
 
     // Marcar como falha
     const supabase = supabaseAdmin
-    await (supabase as any)
+    await supabase
       .from('pptx_uploads')
       .update({
         status: 'failed',

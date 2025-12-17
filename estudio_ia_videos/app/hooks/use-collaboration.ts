@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { AnalyticsTracker } from '@/lib/analytics-tracker';
+import { logger } from '@/lib/logger';
 
 /**
  * ✅ HOOK DE COLABORAÇÃO REAL - Sprint 43
@@ -78,7 +79,7 @@ export function useCollaboration(projectId: string) {
         setError(data.error);
       }
     } catch (err) {
-      console.error('❌ Erro ao carregar comentários:', err);
+      logger.error('Erro ao carregar comentários', err as Error, { component: 'useCollaboration' });
       setError('Erro ao carregar comentários');
     }
   };
@@ -95,7 +96,7 @@ export function useCollaboration(projectId: string) {
         setError(data.error);
       }
     } catch (err) {
-      console.error('❌ Erro ao carregar versões:', err);
+      logger.error('Erro ao carregar versões', err as Error, { component: 'useCollaboration' });
       setError('Erro ao carregar versões');
     }
   };
@@ -132,7 +133,7 @@ export function useCollaboration(projectId: string) {
         throw new Error(data.error);
       }
     } catch (err) {
-      console.error('❌ Erro ao adicionar comentário:', err);
+      logger.error('Erro ao adicionar comentário', err as Error, { component: 'useCollaboration' });
       throw err;
     }
   };
@@ -157,7 +158,7 @@ export function useCollaboration(projectId: string) {
         throw new Error(data.error);
       }
     } catch (err) {
-      console.error('❌ Erro ao responder comentário:', err);
+      logger.error('Erro ao responder comentário', err as Error, { component: 'useCollaboration' });
       throw err;
     }
   };
@@ -182,7 +183,7 @@ export function useCollaboration(projectId: string) {
         throw new Error(data.error);
       }
     } catch (err) {
-      console.error('❌ Erro ao resolver comentário:', err);
+      logger.error('Erro ao resolver comentário', err as Error, { component: 'useCollaboration' });
       throw err;
     }
   };
@@ -210,7 +211,7 @@ export function useCollaboration(projectId: string) {
         throw new Error(data.error);
       }
     } catch (err) {
-      console.error('❌ Erro ao criar versão:', err);
+      logger.error('Erro ao criar versão', err as Error, { component: 'useCollaboration' });
       throw err;
     }
   };
@@ -233,7 +234,7 @@ export function useCollaboration(projectId: string) {
         throw new Error(data.error);
       }
     } catch (err) {
-      console.error('❌ Erro ao restaurar versão:', err);
+      logger.error('Erro ao restaurar versão', err as Error, { component: 'useCollaboration' });
       throw err;
     }
   };

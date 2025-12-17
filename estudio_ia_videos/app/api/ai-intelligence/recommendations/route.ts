@@ -206,9 +206,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error fetching smart recommendations', {
-      component: 'API: ai-intelligence/recommendations',
-      error: error instanceof Error ? error : new Error(String(error))
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Error fetching smart recommendations', err, {
+      component: 'API: ai-intelligence/recommendations'
     });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
@@ -287,9 +287,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error processing recommendation action', {
-      component: 'API: ai-intelligence/recommendations',
-      error: error instanceof Error ? error : new Error(String(error))
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Error processing recommendation action', err, {
+      component: 'API: ai-intelligence/recommendations'
     });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },

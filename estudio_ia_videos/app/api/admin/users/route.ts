@@ -7,7 +7,8 @@ import { supabaseAdmin } from '../../../lib/supabase/server';
 async function buildUserContext(userId: string): Promise<UserContext> {
   const admin = supabaseAdmin;
   const { data: rolesData } = await admin.from('user_roles').select('role').eq('user_id', userId);
-  const roles = ((rolesData as any[]) || []).map((r: any) => r.role) as unknown as UserContext['roles'];
+  interface RoleRow { role: string }
+  const roles = ((rolesData || []) as unknown as RoleRow[]).map((r) => r.role) as UserContext['roles'];
   return { id: userId, roles: roles.length ? roles : ['viewer'] };
 }
 
@@ -21,8 +22,9 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: 'Falha ao buscar usuários' }, { status: 500 });
   // Carregar roles para cada usuário
   const rolesResp = await admin.from('user_roles').select('user_id, role');
+  interface UserRoleRow { user_id: string; role: string }
   const rolesMap = new Map<string, string[]>();
-  ((rolesResp.data as any[]) || []).forEach((r: any) => {
+  ((rolesResp.data || []) as unknown as UserRoleRow[]).forEach((r) => {
     const arr = rolesMap.get(r.user_id) || [];
     arr.push(r.role as string);
     rolesMap.set(r.user_id, arr);

@@ -12,6 +12,7 @@ import { supabaseClient } from '../../../../lib/supabase'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/db';
 
 const rateLimiterPost = createRateLimiter(rateLimitPresets.render);
 export async function POST(request: NextRequest) {
@@ -49,10 +50,10 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Verificar se avatar existe no Supabase
-    const { data: avatar, error: avatarError } = await ((supabaseClient as any)
-      .from('avatar_models')
-      .select('*') as any)
+    // Verificar se avatar existe no Supabase (avatar_models pode não existir no schema tipado)
+    const { data: avatar, error: avatarError } = await (supabaseClient
+      .from('avatar_models' as never) as ReturnType<typeof supabaseClient.from>)
+      .select('*')
       .eq('id', avatarId)
       .eq('is_active', true)
       .single()
@@ -125,17 +126,19 @@ export async function POST(request: NextRequest) {
 
     logger.info(`✅ Renderização iniciada - Job ID: ${renderResult.jobId}`, { component: 'API: v2/avatars/render' })
 
+    // Type avatar data from Supabase (tabela pode ter estrutura diferente do schema)
+    const avatarData = avatar as Record<string, unknown>
     const response = {
       success: true,
       data: {
         jobId: renderResult.jobId,
         status: renderResult.status,
         avatar: {
-          id: avatar.id,
-          name: avatar.name,
-          displayName: avatar.display_name,
-          category: avatar.category,
-          audio2FaceCompatible: avatar.audio2face_compatible
+          id: avatarData.id,
+          name: avatarData.name,
+          displayName: avatarData.display_name,
+          category: avatarData.category,
+          audio2FaceCompatible: avatarData.audio2face_compatible
         },
         render: {
           animation,
@@ -200,7 +203,8 @@ export async function GET(request: NextRequest) {
     logger.info('📊 API v2: Listando jobs de renderização...', { component: 'API: v2/avatars/render' })
 
     // Buscar jobs do Supabase
-    let query: any = (supabaseClient
+    type SupabaseQueryBuilder = ReturnType<typeof supabaseClient.from>
+    let query: SupabaseQueryBuilder = (supabaseClient
       .from('render_jobs')
       .select(`
         *,
@@ -210,7 +214,7 @@ export async function GET(request: NextRequest) {
           display_name,
           category
         )
-      `) as any)
+      `))
       .order('created_at', { ascending: false })
 
     // Filtrar por status
@@ -233,9 +237,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Contar total de jobs
-    let countQuery: any = (supabaseClient
+    let countQuery: SupabaseQueryBuilder = (supabaseClient
       .from('render_jobs')
-      .select('*', { count: 'exact', head: true }) as any)
+      .select('*', { count: 'exact', head: true }))
 
     if (status && status !== 'all') {
       countQuery = countQuery.eq('status', status)
@@ -249,10 +253,19 @@ export async function GET(request: NextRequest) {
     // Obter estatísticas do pipeline
     const stats = await avatar3DPipeline.getPipelineStats()
 
+    interface RenderJobRecord {
+      id: string; avatar_model_id: string; user_id: string; status: string;
+      progress?: number; created_at: string; completed_at?: string;
+      output_video_url?: string; output_thumbnail_url?: string;
+      error_message?: string; lipsync_accuracy?: number; audio2face_enabled?: boolean;
+      avatar_models?: { id: string; name: string; display_name: string; category: string };
+      quality?: string; resolution?: string; ray_tracing_enabled?: boolean;
+      real_time_lipsync?: boolean; language?: string;
+    }
     const response = {
       success: true,
       data: {
-        jobs: (jobs || []).map((job: any) => ({
+        jobs: (jobs || []).map((job: RenderJobRecord) => ({
           id: job.id,
           avatarId: job.avatar_model_id,
           userId: job.user_id,
@@ -368,21 +381,22 @@ export async function DELETE(request: NextRequest) {
       // Limpar jobs antigos
       await avatar3DPipeline.cleanupOldJobs()
       
-      // Contar jobs removidos do Supabase
+      // Contar jobs removidos usando Prisma
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
       
-      const { data: oldJobs } = await (supabaseClient
-        .from('render_jobs')
-        .select('id') as any)
-        .lt('created_at', thirtyDaysAgo.toISOString())
-        .in('status', ['completed', 'failed', 'cancelled'])
+      const oldJobsCount = await prisma.renderJob.count({
+        where: {
+          createdAt: { lt: thirtyDaysAgo },
+          status: { in: ['completed', 'failed', 'cancelled'] }
+        }
+      })
 
       return NextResponse.json({
         success: true,
         data: {
           message: `Jobs antigos removidos com sucesso`,
-          cleanedCount: oldJobs?.length || 0,
+          cleanedCount: oldJobsCount,
           cutoffDate: thirtyDaysAgo.toISOString()
         }
       })

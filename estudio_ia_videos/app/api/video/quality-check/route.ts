@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { videoQC, QCConfig } from '@/lib/video-quality-control-real';
 import * as fs from 'fs/promises';
 
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Quality control error:', error);
+    logger.error('Quality control error', error instanceof Error ? error : new Error(String(error)), { component: 'API: video/quality-check' });
     return NextResponse.json(
       { 
         error: 'Failed to run quality control',

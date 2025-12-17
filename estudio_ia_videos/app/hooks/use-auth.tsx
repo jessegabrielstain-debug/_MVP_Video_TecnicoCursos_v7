@@ -14,6 +14,7 @@
 
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react'
 import { User, Session } from '@supabase/supabase-js'
+import { logger } from '@/lib/logger'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 import {
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (err) {
-        console.error('Error initializing auth:', err)
+        logger.error('Error initializing auth', err as Error, { component: 'useAuth' })
         const msg = err instanceof Error ? err.message : String(err)
         setError(msg)
         if (msg && msg.toLowerCase().includes('jwt expired')) {
@@ -106,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        console.log('Auth state changed:', event)
+        logger.debug('Auth state changed', { event, component: 'useAuth' })
 
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
@@ -270,7 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(userProfile)
       }
     } catch (err) {
-      console.error('Error refreshing profile:', err)
+      logger.error('Error refreshing profile', err as Error, { component: 'useAuth' })
     }
   }, [user])
 
@@ -289,8 +290,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updatePassword,
     refreshProfile,
     isAdmin: profile?.role === 'admin',
-    isPro: (profile?.metadata as any)?.subscription_tier === 'pro',
-    isEnterprise: (profile?.metadata as any)?.subscription_tier === 'enterprise',
+    isPro: (profile?.metadata as { subscription_tier?: string } | undefined)?.subscription_tier === 'pro',
+    isEnterprise: (profile?.metadata as { subscription_tier?: string } | undefined)?.subscription_tier === 'enterprise',
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

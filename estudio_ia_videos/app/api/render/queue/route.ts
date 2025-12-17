@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Validation schemas
 const QueueQuerySchema = z.object({
@@ -97,7 +98,7 @@ async function calculateQueueStats(supabase: SupabaseClient, userId: string) {
       estimated_completion: estimatedCompletion
     }
   } catch (error) {
-    console.error('Error calculating queue stats:', error)
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error calculating queue stats', err, { component: 'API: render/queue' })
     return {
       total_jobs: 0,
       queue_length: 0,
@@ -152,14 +153,19 @@ export async function GET(request: NextRequest) {
     const queueStats = await calculateQueueStats(supabase, user.id)
 
     // Helper function to map job data
-    const mapJobData = (job: any) => {
+    interface RenderJobRow {
+      id: string;
+      render_settings?: Record<string, unknown>;
+      [key: string]: unknown;
+    }
+    const mapJobData = (job: RenderJobRow) => {
       const settings = job.render_settings || {};
       return {
         ...job,
-        priority: settings.priority || 'normal',
-        type: settings.type || 'video',
-        input_data: settings.input_data || {},
-        metadata: settings.metadata || {},
+        priority: (settings as Record<string, unknown>).priority || 'normal',
+        type: (settings as Record<string, unknown>).type || 'video',
+        input_data: (settings as Record<string, unknown>).input_data || {},
+        metadata: (settings as Record<string, unknown>).metadata || {},
         render_settings: settings
       };
     };
@@ -180,7 +186,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Render queue API error:', error)
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Render queue API error', err, { component: 'API: render/queue' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

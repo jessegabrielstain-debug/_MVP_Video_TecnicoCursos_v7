@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    logger.error('Erro ao buscar templates NR expandidos', { component: 'API: templates/nr/expanded', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao buscar templates NR expandidos', err, { component: 'API: templates/nr/expanded' })
     return NextResponse.json(
       { error: 'Erro ao buscar templates' },
       { status: 500 }
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       project: newProject
     })
   } catch (error) {
-    logger.error('Erro ao criar projeto a partir do template', { component: 'API: templates/nr/expanded', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao criar projeto a partir do template', err, { component: 'API: templates/nr/expanded' })
     return NextResponse.json(
       { error: 'Erro ao criar projeto' },
       { status: 500 }

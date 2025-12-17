@@ -162,6 +162,93 @@ export interface Database {
         }
         Relationships: []
       }
+      avatar_models: {
+        Row: {
+          id: string
+          name: string | null
+          is_active: boolean | null
+          metadata: Json | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name?: string | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      tts_jobs: {
+        Row: {
+          id: string
+          job_id: string | null
+          status: string
+          engine: string
+          processing_time: number | null
+          created_at: string
+          updated_at: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          job_id?: string | null
+          status: string
+          engine: string
+          processing_time?: number | null
+          created_at?: string
+          updated_at?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          job_id?: string | null
+          status?: string
+          engine?: string
+          processing_time?: number | null
+          created_at?: string
+          updated_at?: string | null
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      system_stats: {
+        Row: {
+          id: string
+          cpu_usage: number | null
+          memory_usage: number | null
+          active_connections: number | null
+          created_at: string
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          cpu_usage?: number | null
+          memory_usage?: number | null
+          active_connections?: number | null
+          created_at?: string
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          cpu_usage?: number | null
+          memory_usage?: number | null
+          active_connections?: number | null
+          created_at?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           id: string

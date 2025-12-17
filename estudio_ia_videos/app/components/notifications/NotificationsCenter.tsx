@@ -253,11 +253,12 @@ export default function NotificationsCenter() {
             filter: `user_id=eq.${user.id}`,
           },
           (payload) => {
-            const newEvent = payload.new as any
+            const newEvent = payload.new as { id: string; event_type: string; event_data: { type: string; title: string; message: string; read: boolean; actionUrl?: string }; created_at: string }
             if (newEvent.event_type === 'notification') {
+              const notificationType = newEvent.event_data.type as NotificationType
               const notification: Notification = {
                 id: newEvent.id,
-                type: newEvent.event_data.type,
+                type: notificationType,
                 title: newEvent.event_data.title,
                 message: newEvent.event_data.message,
                 read: newEvent.event_data.read,
@@ -271,7 +272,14 @@ export default function NotificationsCenter() {
 
               // Som de notificação
               if (preferences.sound && audioRef.current) {
-                audioRef.current.play().catch(() => { })
+                audioRef.current.play().catch((error) => {
+                  // Audio play() pode falhar silenciosamente se bloqueado pelo browser
+                  // (ex: autoplay policy). Não é crítico, apenas log para debug.
+                  logger.debug('Notification sound play() failed (likely autoplay policy)', {
+                    component: 'NotificationsCenter',
+                    error: error instanceof Error ? error.message : String(error),
+                  });
+                });
               }
 
               // Desktop notification

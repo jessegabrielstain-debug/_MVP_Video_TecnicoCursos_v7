@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth-options'
+import { logger } from '@/lib/logger'
 import { supabaseAdmin } from '@/lib/supabase/server'
 
 async function isAdmin(userId: string | undefined): Promise<boolean> {
@@ -69,7 +70,8 @@ export async function GET(_request: NextRequest) {
       generatedAt: now.toISOString(),
     })
   } catch (error) {
-    console.error('[Admin Stats] Error:', error)
+    logger.error('Failed to fetch stats', error instanceof Error ? error : new Error(String(error))
+    , { component: 'API: admin/stats' })
     return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
   }
 }

@@ -1,0 +1,103 @@
+# 🐳 Multi-stage Docker Build for MVP Vídeos TécnicoCursos
+# Optimized for production with security, performance, and size considerations
+
+# ================================
+# Stage 1: Dependencies
+# ================================
+FROM node:20-alpine AS deps
+
+# Install security updates and required packages
+RUN apk add --no-cache libc6-compat curl
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+COPY estudio_ia_videos/package.json ./estudio_ia_videos/
+
+# Install dependencies with clean npm cache
+RUN npm ci --only=production --audit false && \
+    npm cache clean --force
+
+# ================================
+# Stage 2: Builder
+# ================================
+FROM node:20-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+# Copy package files and install all dependencies (including dev)
+COPY package.json package-lock.json ./
+COPY estudio_ia_videos/package.json ./estudio_ia_videos/
+RUN npm ci --audit false
+
+# Copy source code
+COPY . .
+
+# Environment variables for build
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Build the application
+WORKDIR /app/estudio_ia_videos
+RUN npm run build && \
+    npm prune --production
+
+# ================================
+# Stage 3: Runtime
+# ================================
+FROM node:20-alpine AS runtime
+
+# Security: Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+WORKDIR /app
+
+# Install runtime security updates
+RUN apk add --no-cache \
+    curl \
+    tini \
+    && rm -rf /var/cache/apk/*
+
+# Copy built application
+COPY --from=builder /app/estudio_ia_videos/next.config.mjs ./
+COPY --from=builder /app/estudio_ia_videos/package.json ./
+COPY --from=builder /app/estudio_ia_videos/public ./public
+COPY --from=builder /app/estudio_ia_videos/.next/standalone ./
+COPY --from=builder /app/estudio_ia_videos/.next/static ./.next/static
+
+# Set proper permissions
+RUN chown -R nextjs:nodejs /app
+USER nextjs
+
+# Environment
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
+
+# Expose port
+EXPOSE 3000
+
+# Use tini as PID 1 for proper signal handling
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Start the application
+CMD ["node", "server.js"]
+
+# ================================
+# Labels for metadata
+# ================================
+LABEL maintainer="TécnicoCursos <suporte@tecnicocursos.com>"
+LABEL description="MVP Vídeos TécnicoCursos - Sistema de criação de vídeos educacionais"
+LABEL version="1.0.0"
+LABEL org.opencontainers.image.source="https://github.com/your-org/mvp-video-tecnicocursos"

@@ -565,7 +565,7 @@ const MotionGraphicsAIEngine = () => {
 
         {/* Controls Panel */}
         <div className="w-96 bg-gray-850 border-l border-gray-700">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="h-full flex flex-col">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'elements' | 'particles' | 'presets')} className="h-full flex flex-col">
             <TabsList className="w-full">
               <TabsTrigger value="elements" className="flex-1 text-xs">Elements</TabsTrigger>
               <TabsTrigger value="particles" className="flex-1 text-xs">Particles</TabsTrigger>

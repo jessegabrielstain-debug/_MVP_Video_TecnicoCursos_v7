@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (error: unknown) {
-    logger.error('Erro ao verificar conformidade', { component: 'API: compliance/check', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao verificar conformidade', err, { component: 'API: compliance/check' })
     return NextResponse.json(
       { error: 'Erro ao verificar conformidade' },
       { status: 500 }
@@ -127,7 +127,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ records })
 
   } catch (error: unknown) {
-    console.error('[COMPLIANCE_GET_ERROR]', error)
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao buscar registros de conformidade', err, { component: 'API: compliance/check' });
     return NextResponse.json(
       { error: 'Erro ao buscar registros de conformidade' },
       { status: 500 }

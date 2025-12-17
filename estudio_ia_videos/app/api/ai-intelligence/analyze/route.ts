@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -129,7 +130,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in AI analysis:', error);
+    logger.error('Error in AI analysis', error instanceof Error ? error : new Error(String(error))
+    , { component: 'API: ai-intelligence/analyze' });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -179,7 +181,8 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching AI analyses:', error);
+    logger.error('Error fetching AI analyses', error instanceof Error ? error : new Error(String(error))
+    , { component: 'API: ai-intelligence/analyze' });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

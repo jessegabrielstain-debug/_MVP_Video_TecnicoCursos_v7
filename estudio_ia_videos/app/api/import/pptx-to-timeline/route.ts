@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createRateLimiter, rateLimitPresets } from '@/lib/utils/rate-limit-middleware';
+import { logger } from '@/lib/logger';
 
 const rateLimiter = createRateLimiter(rateLimitPresets.upload);
 
@@ -157,7 +158,8 @@ export async function POST(req: NextRequest) {
       duration: currentTime,
     });
   } catch (error) {
-    console.error('Erro ao converter PPTX para timeline:', error);
+    logger.error('Erro ao converter PPTX para timeline', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: import/pptx-to-timeline' });
     return NextResponse.json(
       { error: 'Erro ao converter PPTX' },
       { status: 500 }

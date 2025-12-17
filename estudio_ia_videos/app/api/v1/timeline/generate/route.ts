@@ -129,10 +129,8 @@ export async function POST(request: NextRequest) {
     
   } catch (error: unknown) {
     const normalizedError = error instanceof Error ? error : new Error(String(error));
-    logger.error('❌ Timeline generation error:', {
-      component: 'API: v1/timeline/generate',
-      error: normalizedError
-    })
+    logger.error('❌ Timeline generation error:', normalizedError
+    , { component: 'API: v1/timeline/generate' })
     const message = normalizedError.message;
     
     return NextResponse.json(

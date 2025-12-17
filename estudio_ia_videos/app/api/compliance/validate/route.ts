@@ -47,8 +47,9 @@ export async function POST(request: NextRequest) {
     const result = await validator.validate(projectId, nrType);
 
     // Salvar resultado no banco
+    // Note: nr_compliance_records is a valid table but not in generated types
     const { error: insertError } = await supabase
-      .from('nr_compliance_records' as any)
+      .from('nr_compliance_records')
       .insert({
         project_id: projectId,
         nr: nrType,
@@ -165,8 +166,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar validações
+    // Note: nr_compliance_records is a valid table but not in generated types
     const { data: validations, error: fetchError } = await supabase
-      .from('nr_compliance_records' as any)
+      .from('nr_compliance_records')
       .select('*')
       .eq('project_id', projectId)
       .order('validated_at', { ascending: false })
@@ -181,12 +183,13 @@ export async function GET(request: NextRequest) {
       validations
     });
 
-  } catch (error: any) {
-    logger.error('Get validations error:', error instanceof Error ? error : new Error(String(error)), { component: 'API: compliance/validate' });
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Get validations error:', err, { component: 'API: compliance/validate' });
     return NextResponse.json({
       success: false,
-      error: error?.message || 'Erro interno do servidor',
-      details: error
+      error: err.message || 'Erro interno do servidor',
+      details: String(error)
     }, { status: 500 });
   }
 }

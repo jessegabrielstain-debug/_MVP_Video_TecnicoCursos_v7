@@ -4,10 +4,13 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { Logger } from '@/lib/logger'
 import useSWR from 'swr'
 import { toast } from 'sonner'
 import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
+
+const logger = new Logger('Notifications')
 
 interface NotificationLoadingState {
   notifications: boolean
@@ -133,7 +136,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
         if (!isMounted) return
         setUser(data.user ?? null)
       } catch (error) {
-        console.error('[Notifications] Falha ao carregar usuário:', error)
+        logger.error('Falha ao carregar usuário', error instanceof Error ? error : undefined)
       }
     }
 
@@ -329,10 +332,10 @@ export function useNotifications(filters: NotificationFilters = {}) {
       }
       
       audio.play().catch(error => {
-        console.warn('Could not play notification sound:', error)
+        logger.warn('Could not play notification sound', { error: error instanceof Error ? error.message : String(error) })
       })
     } catch (error) {
-      console.warn('Notification sound not available:', error)
+      logger.warn('Notification sound not available', { error: error instanceof Error ? error.message : String(error) })
     }
   }, [])
 
@@ -356,7 +359,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
 
       return { success: true }
     } catch (error) {
-      console.error('Error marking notification as read:', error)
+      logger.error('Error marking notification as read', error instanceof Error ? error : undefined)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }, [refreshNotifications])
@@ -380,7 +383,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
 
       return { success: true }
     } catch (error) {
-      console.error('Error marking all notifications as read:', error)
+      logger.error('Error marking all notifications as read', error instanceof Error ? error : undefined)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }, [refreshNotifications])
@@ -402,7 +405,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
       refreshNotifications()
       return { success: true }
     } catch (error) {
-      console.error('Error archiving notification:', error)
+      logger.error('Error archiving notification', error instanceof Error ? error : undefined)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }, [refreshNotifications])
@@ -424,7 +427,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
       refreshNotifications()
       return { success: true }
     } catch (error) {
-      console.error('Error deleting notification:', error)
+      logger.error('Error deleting notification', error instanceof Error ? error : undefined)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }, [refreshNotifications])
@@ -454,7 +457,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
 
       return { success: true }
     } catch (error) {
-      console.error('Error handling notification action:', error)
+      logger.error('Error handling notification action', error instanceof Error ? error : undefined)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }, [markAsRead])
@@ -478,7 +481,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
       refreshPreferences()
       return { success: true }
     } catch (error) {
-      console.error('Error updating notification preferences:', error)
+      logger.error('Error updating notification preferences', error instanceof Error ? error : undefined)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }, [refreshPreferences])
@@ -504,7 +507,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
       
       return { success: true, data: result.data }
     } catch (error) {
-      console.error('Error creating notification:', error)
+      logger.error('Error creating notification', error instanceof Error ? error : undefined)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }, [refreshNotifications])
@@ -541,13 +544,15 @@ export function useNotifications(filters: NotificationFilters = {}) {
     const p = preferencesData.data
     return {
       ...p,
-      email_enabled: (p as any).email_notifications,
-      push_enabled: (p as any).push_notifications,
-      email_digest: false,
-      sound_enabled: true,
-      render_notifications: p.notification_types.render_complete,
-      system_notifications: p.notification_types.system_maintenance,
-      collaboration_notifications: p.notification_types.collaboration_invite
+      // email_enabled e push_enabled já existem em NotificationPreferences
+      // Mapeamento legado para compatibilidade com API antiga
+      email_enabled: p.email_enabled ?? false,
+      push_enabled: p.push_enabled ?? false,
+      email_digest: p.email_digest ?? false,
+      sound_enabled: p.sound_enabled ?? true,
+      render_notifications: p.notification_types?.render_complete ?? true,
+      system_notifications: p.notification_types?.system_maintenance ?? true,
+      collaboration_notifications: p.notification_types?.collaboration_invite ?? true
     }
   }, [preferencesData?.data])
 

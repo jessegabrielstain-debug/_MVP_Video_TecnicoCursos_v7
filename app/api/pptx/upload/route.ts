@@ -18,6 +18,7 @@ import { PPTXProcessor } from '@/lib/pptx/pptx-processor'
 import { createStorage } from '@/lib/storage'
 import { captureError } from '@/lib/observability'
 import { incUploadRequest, incUploadError } from '@/lib/metrics'
+import { logger } from '@/lib/logger'
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024 // 50MB
 const ALLOWED_EXTENSIONS = ['.pptx', '.ppt', '.odp']
@@ -167,7 +168,7 @@ export async function POST(request: NextRequest) {
         originalFileName,
         pptxUrl: publicUrl,
         totalSlides: parsed.slides.length,
-        pptxMetadata: parsed.metadata as any,
+        metadata: parsed.metadata, // Campo Json? aceita objetos tipados
         slidesData: {
           extractedAt: now.toISOString(),
           metadata: parsed.metadata,
@@ -256,7 +257,7 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('PPTX upload error:', error)
+    logger.error('PPTX upload error', error instanceof Error ? error : new Error(String(error)), { component: 'PPTXUploadRoute' })
     captureError(error)
     incUploadError()
 

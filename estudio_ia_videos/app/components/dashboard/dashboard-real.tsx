@@ -48,7 +48,7 @@ import {
   CheckCircle,
   Eye
 } from 'lucide-react'
-import { useProjects } from '../../hooks/use-projects'
+import { useProjects, type Project } from '../../hooks/use-projects'
 import { useMetrics } from '../../hooks/use-metrics'
 import { toast } from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -155,9 +155,10 @@ export default function DashboardReal() {
     }
   }
 
-  const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = seconds % 60
+  const formatDuration = (seconds?: number) => {
+    const s = seconds ?? 0
+    const minutes = Math.floor(s / 60)
+    const remainingSeconds = s % 60
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
@@ -215,27 +216,25 @@ export default function DashboardReal() {
     }
   }
 
-  const handleDownloadVideo = async (project: UnifiedProject) => {
-    // @ts-ignore
-    if (!project.videoUrl) {
+  const handleDownloadVideo = async (projectData: Project) => {
+    const extendedProject = projectData as Project & { videoUrl?: string; downloads?: number }
+    if (!extendedProject.videoUrl) {
       toast.error('Vídeo ainda não está pronto')
       return
     }
     
     try {
       // Increment download count
-      await fetch(`/api/projects/${project.id}`, {
+      await fetch(`/api/projects/${projectData.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        // @ts-ignore
-        body: JSON.stringify({ downloads: (project.downloads || 0) + 1 })
+        body: JSON.stringify({ downloads: (extendedProject.downloads || 0) + 1 })
       })
       
       // Trigger download
       const link = document.createElement('a')
-      // @ts-ignore
-      link.href = project.videoUrl
-      link.download = `${project.name}.mp4`
+      link.href = extendedProject.videoUrl
+      link.download = `${projectData.name}.mp4`
       link.click()
       
       toast.success('Download iniciado')
@@ -641,8 +640,8 @@ export default function DashboardReal() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(projects || []).slice(0, 6).map((project: any) => {
-              const p = project as any
+            {(projects || []).slice(0, 6).map((project: Project) => {
+              const p = project as Project & { slidesCount?: number; duration?: number; thumbnailUrl?: string; views?: number; downloads?: number; createdAt?: string }
               return (
               <Card key={project.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
@@ -675,7 +674,7 @@ export default function DashboardReal() {
                   </div>
                   
                   <div className="text-xs text-gray-500 mb-2">
-                    Criado em {format(new Date(p.createdAt), 'dd/MM/yyyy', { locale: ptBR })}
+                    Criado em {p.createdAt ? format(new Date(p.createdAt), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
                   </div>
                   
                   <div className="text-xs text-gray-500 mb-4 flex gap-4">
@@ -720,7 +719,7 @@ export default function DashboardReal() {
                       </Button>
                     )}
                     
-                    {p.status === 'processing' && (
+                    {p.status === 'in-progress' && (
                       <div className="flex items-center gap-2 text-sm text-blue-600">
                         <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                         Processando...

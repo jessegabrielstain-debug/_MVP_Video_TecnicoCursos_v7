@@ -10,6 +10,7 @@ import type { AuthOptions } from 'next-auth';
 import { authConfig } from '@/lib/auth/auth-config';
 import { getOrgContext } from '@/lib/multi-tenancy/org-context';
 import { alertManager, AlertSeverity, AlertType } from '@/lib/alerts/alert-manager';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -40,7 +41,8 @@ export async function GET(
 
     return NextResponse.json({ alerts });
   } catch (error) {
-    console.error('Erro ao buscar alertas:', error);
+    logger.error('Erro ao buscar alertas', error instanceof Error ? error : new Error(String(error)) 
+, { component: 'API: org/alerts' });
     return NextResponse.json(
       { error: 'Erro ao buscar alertas' },
       { status: 500 }

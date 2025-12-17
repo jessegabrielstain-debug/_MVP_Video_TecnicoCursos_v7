@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth/auth-service';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     await authService.changePassword(user.id, currentPassword, newPassword);
 
     // Log de segurança
-    console.log(`Password changed for user: ${user.email} at ${new Date().toISOString()}`);
+    logger.info(`Password changed for user: ${user.email}`, { component: 'API: auth/change-password' });
 
     return NextResponse.json({
       success: true,
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Change password error:', error);
+    logger.error('Change password error', error instanceof Error ? error : new Error(String(error)), { component: 'API: auth/change-password' });
     
     const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor';
     

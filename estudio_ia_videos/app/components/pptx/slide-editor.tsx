@@ -221,7 +221,8 @@ export function SlideEditor({
                 slide={slide}
                 onChange={(updates) => {
                   setLocalSlide((prev: PPTXSlide) => ({ ...prev, elements: updates.elements }))
-                  onSlideUpdate(slide.slideNumber.toString(), { elements: updates.elements } as any)
+                  // CanvasEditor uses 'elements' but PPTXSlide uses 'content' - adapting
+                  onSlideUpdate(slide.slideNumber.toString(), updates as Partial<PPTXSlide> & { elements?: unknown[] })
                 }}
               />
             </div>

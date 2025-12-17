@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 interface ContentMetrics {
   viewCount: number
@@ -157,7 +158,8 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Content Analysis Error:', error)
+    logger.error('Content Analysis Error', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: v1/analytics/content-analysis' })
     return NextResponse.json({
       success: false,
       error: 'Failed to analyze content'

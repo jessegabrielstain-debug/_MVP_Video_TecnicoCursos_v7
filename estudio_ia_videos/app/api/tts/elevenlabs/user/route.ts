@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import ElevenLabsService from '@/lib/elevenlabs-service'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   try {
@@ -12,7 +13,8 @@ export async function GET() {
       user: userInfo
     })
   } catch (error) {
-    console.error('Erro ao buscar informações do usuário:', error)
+    logger.error('Erro ao buscar informações do usuário', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: tts/elevenlabs/user' })
     return NextResponse.json(
       {
         success: false,

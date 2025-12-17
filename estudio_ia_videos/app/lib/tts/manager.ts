@@ -6,6 +6,7 @@
 
 import { ElevenLabsProvider, ElevenLabsConfig } from './providers/elevenlabs';
 import { AzureTTSProvider, AzureConfig } from './providers/azure';
+import { logger } from '@/lib/logger';
 
 export interface Voice {
   id: string;
@@ -84,7 +85,7 @@ export class TTSManager {
     } catch (error) {
       if (this.enableFallback) {
         const fallbackProvider = providerName === 'elevenlabs' ? 'azure' : 'elevenlabs';
-        console.warn(`TTS Provider ${providerName} failed, falling back to ${fallbackProvider}`, error);
+        logger.warn(`TTS Provider ${providerName} failed, falling back to ${fallbackProvider}`, { error, providerName, fallbackProvider, component: 'TTSManager' });
         
         try {
           const audio = await this.generateWithProvider(fallbackProvider, options);

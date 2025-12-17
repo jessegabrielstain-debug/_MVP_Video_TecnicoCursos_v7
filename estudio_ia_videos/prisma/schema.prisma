@@ -30,6 +30,7 @@ model User {
   timelineTemplates TimelineTemplate[]
   renderJobs      RenderJob[]
   certificates    Certificate[]
+  projectVersions ProjectVersion[]
 
   @@map("users")
 }
@@ -144,6 +145,24 @@ model ProjectComment {
   @@index([userId])
   @@index([parentId])
   @@map("project_comments")
+}
+
+model ProjectVersion {
+  id            String   @id @default(uuid())
+  projectId     String   @map("project_id")
+  userId        String   @map("user_id")
+  name          String
+  description   String?
+  versionNumber Int      @map("version_number")
+  projectData   Json     @default("{}") @map("project_data")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_versions")
 }
 
 model Slide {

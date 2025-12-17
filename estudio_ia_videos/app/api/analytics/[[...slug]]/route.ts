@@ -25,6 +25,7 @@ import {
   MetricCategory,
   AggregationPeriod,
 } from '@/lib/analytics-metrics-system';
+import { logger } from '@/lib/logger';
 
 interface EventFilters {
   types?: EventType[];
@@ -180,7 +181,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error: unknown) {
-    console.error('[Analytics API] Erro:', error);
+    logger.error('Analytics API Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/[[...slug]]' });
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -334,7 +335,7 @@ export async function GET(request: NextRequest) {
     );
 
   } catch (error: unknown) {
-    console.error('[Analytics API] Erro:', error);
+    logger.error('Analytics API Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/[[...slug]]' });
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

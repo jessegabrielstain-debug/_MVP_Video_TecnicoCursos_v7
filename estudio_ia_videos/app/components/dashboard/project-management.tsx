@@ -6,8 +6,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useProjects } from '@/hooks/use-projects'
-import { UnifiedProject } from '@/lib/stores/unified-project-store'
+import { useProjects, Project } from '@/hooks/use-projects'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -70,7 +69,7 @@ export function ProjectManagement() {
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [selectedProject, setSelectedProject] = useState<any>(null)
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
@@ -147,12 +146,11 @@ export function ProjectManagement() {
     }
   }
 
-  const getProjectProgress = (project: UnifiedProject) => {
-    const p = project as any
-    if (p.status === 'completed') return 100
-    if (p.status === 'in-progress') return 60
-    if (p.status === 'review') return 80
-    if (p.status === 'draft') return 20
+  const getProjectProgress = (project: Project) => {
+    if (project.status === 'completed') return 100
+    if (project.status === 'in-progress') return 60
+    if (project.status === 'review') return 80
+    if (project.status === 'draft') return 20
     return 0
   }
 
@@ -293,10 +291,10 @@ export function ProjectManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {projects.filter((p: any) => p.status === 'in-progress').length}
+              {projects.filter((p: Project) => p.status === 'in-progress').length}
             </div>
             <div className="text-xs text-muted-foreground">
-              {projects.filter((p: any) => p.status === 'completed').length} completed
+              {projects.filter((p: Project) => p.status === 'completed').length} completed
             </div>
           </CardContent>
         </Card>
@@ -308,7 +306,7 @@ export function ProjectManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {projects.filter((p: any) => p.status === 'draft').length}
+              {projects.filter((p: Project) => p.status === 'draft').length}
             </div>
             <div className="text-xs text-muted-foreground">
               Waiting to start
@@ -323,7 +321,7 @@ export function ProjectManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {projects.reduce((acc: number, p: any) => acc + (p.collaborators?.length || 0), 0)}
+              {projects.reduce((acc: number, p: Project) => acc + (p.collaborators?.length || 0), 0)}
             </div>
             <div className="text-xs text-muted-foreground">
               across all projects
@@ -334,8 +332,8 @@ export function ProjectManagement() {
 
       {/* Projects Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {projects.map((project: any) => {
-          const p = project as any
+        {projects.map((project: Project) => {
+          const p = project
           const progress = getProjectProgress(project)
 
           return (
@@ -474,7 +472,7 @@ export function ProjectManagement() {
 
               <div className="space-y-2">
                 <Label htmlFor="edit-project-status">Status</Label>
-                <Select value={selectedProject.status} onValueChange={(value) => setSelectedProject({ ...selectedProject, status: value })}>
+                <Select value={selectedProject.status} onValueChange={(value) => setSelectedProject({ ...selectedProject, status: value as 'draft' | 'in-progress' | 'review' | 'completed' | 'archived' | 'error' })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

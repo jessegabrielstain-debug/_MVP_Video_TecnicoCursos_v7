@@ -413,16 +413,16 @@ async function handleGetDashboard(): Promise<NextResponse> {
  * Obter estatísticas gerais
  */
 async function handleGetStats(): Promise<NextResponse> {
-  // Buscar estatísticas do banco
-  const { data: systemStats } = await (supabase as any)
-    .from('system_stats')
+  // Buscar estatísticas do banco (system_stats e tts_jobs podem não existir no schema)
+  const { data: systemStats } = await (supabase
+    .from('system_stats' as never) as ReturnType<typeof supabase.from>)
     .select('*')
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
 
-  const { data: ttsStats } = await (supabase as any)
-    .from('tts_jobs')
+  const { data: ttsStats } = await (supabase
+    .from('tts_jobs' as never) as ReturnType<typeof supabase.from>)
     .select('status, engine, processing_time')
     .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
 
@@ -432,28 +432,33 @@ async function handleGetStats(): Promise<NextResponse> {
     .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
 
   // Calcular estatísticas
+  interface TTSJob { status: string; engine: string; processing_time?: number }
+  interface RenderJob { status: string; duration_ms?: number }
+  const ttsJobsArray = (ttsStats || []) as TTSJob[]
+  const renderJobsArray = (renderStats || []) as RenderJob[]
+  
   const stats = {
     system: systemStats || {},
     tts: {
-      total_jobs: ttsStats?.length || 0,
-      completed_jobs: ttsStats?.filter((j: any) => j.status === 'completed').length || 0,
-      failed_jobs: ttsStats?.filter((j: any) => j.status === 'failed').length || 0,
-      average_processing_time: ttsStats?.length 
-        ? ttsStats.reduce((sum: number, j: any) => sum + (j.processing_time || 0), 0) / ttsStats.length 
+      total_jobs: ttsJobsArray.length,
+      completed_jobs: ttsJobsArray.filter((j) => j.status === 'completed').length,
+      failed_jobs: ttsJobsArray.filter((j) => j.status === 'failed').length,
+      average_processing_time: ttsJobsArray.length 
+        ? ttsJobsArray.reduce((sum: number, j) => sum + (j.processing_time || 0), 0) / ttsJobsArray.length 
         : 0,
       engines: {
-        elevenlabs: ttsStats?.filter((j: any) => j.engine === 'elevenlabs').length || 0,
-        google: ttsStats?.filter((j: any) => j.engine === 'google').length || 0,
-        azure: ttsStats?.filter((j: any) => j.engine === 'azure').length || 0,
-        aws: ttsStats?.filter((j: any) => j.engine === 'aws').length || 0
+        elevenlabs: ttsJobsArray.filter((j) => j.engine === 'elevenlabs').length,
+        google: ttsJobsArray.filter((j) => j.engine === 'google').length,
+        azure: ttsJobsArray.filter((j) => j.engine === 'azure').length,
+        aws: ttsJobsArray.filter((j) => j.engine === 'aws').length
       }
     },
     avatar: {
-      total_renders: renderStats?.length || 0,
-      completed_renders: renderStats?.filter(j => j.status === 'completed').length || 0,
-      failed_renders: renderStats?.filter(j => j.status === 'failed').length || 0,
-      average_render_time: renderStats?.length 
-        ? renderStats.reduce((sum, j) => sum + (j.duration_ms || 0), 0) / renderStats.length 
+      total_renders: renderJobsArray.length,
+      completed_renders: renderJobsArray.filter((j) => j.status === 'completed').length,
+      failed_renders: renderJobsArray.filter((j) => j.status === 'failed').length,
+      average_render_time: renderJobsArray.length 
+        ? renderJobsArray.reduce((sum: number, j) => sum + (j.duration_ms || 0), 0) / renderJobsArray.length 
         : 0,
       average_quality_score: 0
     }

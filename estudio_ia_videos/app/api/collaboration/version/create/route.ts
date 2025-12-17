@@ -76,10 +76,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error creating version', {
-      component: 'API: collaboration/version/create',
-      error: error instanceof Error ? error : new Error(String(error))
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error creating version', err, { component: 'API: collaboration/version/create' });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -154,10 +151,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error fetching versions', {
-      component: 'API: collaboration/version/create',
-      error: error instanceof Error ? error : new Error(String(error))
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error fetching versions', err, { component: 'API: collaboration/version/create' });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

@@ -14,6 +14,7 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client';
+import { logger } from '@/lib/logger';
 
 export interface AnalyticsEvent {
   category: string;
@@ -55,7 +56,7 @@ export function useAnalytics() {
         if (!isMounted) return;
         setUserId(data.user?.id ?? null);
       } catch (error) {
-        console.error('[Analytics] Falha ao obter usuário:', error);
+        logger.error('[Analytics] Falha ao obter usuário', error as Error, { component: 'useAnalytics' });
       }
     };
 
@@ -109,10 +110,10 @@ export function useAnalytics() {
       });
 
       if (!response.ok) {
-        console.warn('[Analytics] Failed to track event:', event);
+        logger.warn('[Analytics] Failed to track event', { event, component: 'useAnalytics' });
       }
     } catch (error) {
-      console.error('[Analytics] Error tracking event:', error);
+      logger.error('[Analytics] Error tracking event', error as Error, { component: 'useAnalytics' });
     }
   }, [sessionId]);
 

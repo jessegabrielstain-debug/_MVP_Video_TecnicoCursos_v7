@@ -69,25 +69,26 @@ export function PerformanceDashboard() {
   });
 
   useEffect(() => {
-    const handleMetrics = (data: PerformanceMetrics) => {
-      setMetrics(data);
-      setHistory(prev => [...prev.slice(-59), data]); // Mantém últimos 60 pontos
+    const handleMetrics = (data: unknown) => {
+      setMetrics(data as PerformanceMetrics);
+      setHistory(prev => [...prev.slice(-59), data as PerformanceMetrics]); // Mantém últimos 60 pontos
     };
 
-    const handleAlerts = (alertData: any[]) => {
-      const newAlerts = alertData.map(alert => ({
+    const handleAlerts = (alertData: unknown) => {
+      const alerts = alertData as Array<{ type: string; message: string; severity: 'low' | 'medium' | 'high' }>;
+      const newAlerts = alerts.map(alert => ({
         ...alert,
         timestamp: Date.now()
       }));
       setAlerts(prev => [...newAlerts, ...prev].slice(0, 50)); // Últimos 50 alertas
     };
 
-    performanceMonitor.on('metrics', handleMetrics as any);
-    performanceMonitor.on('alerts', handleAlerts as any);
+    performanceMonitor.on('metrics', handleMetrics);
+    performanceMonitor.on('alerts', handleAlerts);
 
     return () => {
-      performanceMonitor.off('metrics', handleMetrics as any);
-      performanceMonitor.off('alerts', handleAlerts as any);
+      performanceMonitor.off('metrics', handleMetrics);
+      performanceMonitor.off('alerts', handleAlerts);
     };
   }, []);
 

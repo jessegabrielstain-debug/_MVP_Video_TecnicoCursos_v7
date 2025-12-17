@@ -103,10 +103,10 @@ export const TemplateSystem: React.FC<TemplateSystemProps> = ({ className }) => 
           user_id: user.id,
           status: 'draft',
           thumbnail_url: template.thumbnail,
-          render_settings: {
+          render_settings: JSON.parse(JSON.stringify({
             template_id: template.id,
             template_data: template
-          } as any
+          }))
         })
         .select()
         .single();

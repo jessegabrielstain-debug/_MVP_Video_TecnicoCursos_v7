@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getExportQueue } from '@/lib/export/export-queue'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,7 +26,8 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    console.error('[Export API] Error fetching queue status:', error)
+    logger.error('Error fetching queue status', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: v1/export/queue/status' })
     return NextResponse.json(
       { error: 'Failed to fetch queue status', details: String(error) },
       { status: 500 }

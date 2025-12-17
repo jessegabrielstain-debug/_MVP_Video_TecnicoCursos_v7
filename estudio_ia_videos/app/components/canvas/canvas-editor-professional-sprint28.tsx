@@ -49,6 +49,17 @@ import type * as Fabric from 'fabric'
 // Fabric.js import
 let fabric: typeof Fabric | null = null
 
+// Extended Fabric.Object type with custom properties
+interface ExtendedFabricObject extends Fabric.Object {
+  id?: string
+  grid?: boolean
+}
+
+// Type guard to check if object has custom properties
+const hasCustomProps = (obj: Fabric.Object): obj is ExtendedFabricObject => {
+  return obj !== null && typeof obj === 'object'
+}
+
 interface Layer {
   id: string
   name: string
@@ -228,7 +239,8 @@ export default function CanvasEditorProfessionalSprint28({
 
     // Remove existing grid lines
     canvas.getObjects('line').forEach((obj: Fabric.Object) => {
-      if ((obj as any).grid) canvas.remove(obj)
+      const extObj = obj as ExtendedFabricObject
+      if (extObj.grid) canvas.remove(obj)
     })
 
     // Draw vertical lines
@@ -238,7 +250,7 @@ export default function CanvasEditorProfessionalSprint28({
         strokeWidth: 1,
         selectable: false,
         evented: false,
-        // @ts-ignore
+        // @ts-ignore - grid is a custom property
         grid: true
       })
       canvas.add(line)
@@ -252,7 +264,7 @@ export default function CanvasEditorProfessionalSprint28({
         strokeWidth: 1,
         selectable: false,
         evented: false,
-        // @ts-ignore
+        // @ts-ignore - grid is a custom property
         grid: true
       })
       canvas.add(line)
@@ -272,7 +284,8 @@ export default function CanvasEditorProfessionalSprint28({
     } else {
       // Remove grid lines
       canvas?.getObjects('line').forEach((obj: Fabric.Object) => {
-        if ((obj as any).grid) canvas.remove(obj)
+        const extObj = obj as ExtendedFabricObject
+        if (extObj.grid) canvas.remove(obj)
       })
       canvas?.renderAll()
     }
@@ -526,18 +539,22 @@ export default function CanvasEditorProfessionalSprint28({
   const updateLayers = () => {
     if (!canvas) return
 
-    // @ts-ignore - id and grid properties
-    const objects = canvas.getObjects().filter((obj: Fabric.Object) => (obj as any).id && !(obj as any).grid)
-    const layersList: Layer[] = objects.map((obj: Fabric.Object, index: number) => ({
-      // @ts-ignore
-      id: (obj as any).id,
-      // @ts-ignore
-      name: obj.type === 'i-text' ? 'Texto' : obj.type === 'image' ? 'Imagem' : obj.type,
-      object: obj,
-      visible: obj.visible !== false,
-      locked: !obj.selectable,
-      order: index
-    }))
+    // Filter objects with id and not grid lines
+    const objects = canvas.getObjects().filter((obj: Fabric.Object) => {
+      const extObj = obj as ExtendedFabricObject
+      return extObj.id && !extObj.grid
+    })
+    const layersList: Layer[] = objects.map((obj: Fabric.Object, index: number) => {
+      const extObj = obj as ExtendedFabricObject
+      return {
+        id: extObj.id || `layer_${index}`,
+        name: obj.type === 'i-text' ? 'Texto' : obj.type === 'image' ? 'Imagem' : obj.type || 'Unknown',
+        object: obj,
+        visible: obj.visible !== false,
+        locked: !obj.selectable,
+        order: index
+      }
+    })
 
     setLayers(layersList.reverse())
   }
@@ -590,7 +607,7 @@ export default function CanvasEditorProfessionalSprint28({
     if (!canvas) return
 
     if (format === 'json') {
-      // @ts-ignore
+      // @ts-ignore - toJSON with custom properties
       const json = canvas.toJSON(['id'])
       const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -602,11 +619,13 @@ export default function CanvasEditorProfessionalSprint28({
       toast.success('Canvas exportado (JSON)')
     } else {
       // Remove grid before export
-      // @ts-ignore
-      const gridLines = canvas.getObjects('line').filter((obj: Fabric.Object) => (obj as any).grid)
+      const gridLines = canvas.getObjects('line').filter((obj: Fabric.Object) => {
+        const extObj = obj as ExtendedFabricObject
+        return extObj.grid
+      })
       gridLines.forEach((line: Fabric.Object) => canvas.remove(line))
 
-      // @ts-ignore
+      // @ts-ignore - toDataURL options
       const dataURL = canvas.toDataURL({
         format: format === 'png' ? 'png' : 'jpeg',
         quality: 1.0

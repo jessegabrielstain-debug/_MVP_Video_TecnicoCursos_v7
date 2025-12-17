@@ -11,6 +11,7 @@ import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/services'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import type { Json } from '@/lib/supabase/types'
 
 // Validation schema
 const MediaSearchSchema = z.object({
@@ -326,7 +327,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Get provider configuration
-    const { data: providerData, error: providerError } = await (supabaseAdmin as any)
+    const { data: providerData, error: providerError } = await supabaseAdmin
       .from('user_external_api_configs')
       .select('*')
       .eq('user_id', session.user.id)
@@ -345,7 +346,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check rate limits
-    const { data: usage, error: usageError } = await (supabaseAdmin as any)
+    const { data: usage, error: usageError } = await supabaseAdmin
       .from('external_api_usage')
       .select('*')
       .eq('user_id', session.user.id)
@@ -355,7 +356,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (usageError) {
-      logger.warn('Failed to check media usage', { component: 'API: external/media/search', error: usageError })
+      logger.warn('Failed to check media usage', { component: 'API: external/media/search' })
     }
 
     // Calculate current usage
@@ -377,7 +378,7 @@ export async function GET(request: NextRequest) {
 
     // Record usage
     try {
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('external_api_usage')
         .insert({
           user_id: session.user.id,
@@ -393,7 +394,7 @@ export async function GET(request: NextRequest) {
           }
         })
     } catch (usageLogError) {
-      logger.warn('Failed to log media search usage', { component: 'API: external/media/search', error: usageLogError instanceof Error ? usageLogError : new Error(String(usageLogError)) })
+      logger.warn('Failed to log media search usage', { component: 'API: external/media/search' })
     }
 
     // Log the action for analytics
@@ -411,11 +412,11 @@ export async function GET(request: NextRequest) {
             results_count: result.results.length,
             cost: searchCost,
             timestamp: new Date().toISOString()
-          } as any,
+          } as Json,
           created_at: new Date().toISOString()
-        } as any)
+        })
     } catch (analyticsError) {
-      logger.warn('Failed to log media search', { component: 'API: external/media/search', error: analyticsError instanceof Error ? analyticsError : new Error(String(analyticsError)) })
+      logger.warn('Failed to log media search', { component: 'API: external/media/search' })
     }
 
     return NextResponse.json({
@@ -433,7 +434,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Media search API error', { component: 'API: external/media/search', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Media search API error', err, { component: 'API: external/media/search' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

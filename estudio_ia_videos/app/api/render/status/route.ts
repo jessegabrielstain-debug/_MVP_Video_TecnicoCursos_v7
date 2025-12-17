@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
         });
       }
     } catch (supabaseError) {
-      logger.warn('[API] Supabase unavailable, trying Prisma...', { component: 'API: render/status' });
+      logger.warn('[API] Supabase unavailable', { component: 'API: render/status' });
     }
 
     // Fallback to Prisma
@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
         });
       }
     } catch (prismaError) {
-      logger.warn('[API] Prisma unavailable, falling back to queue status', { component: 'API: render/status' });
+      logger.warn('[API] Prisma unavailable', { component: 'API: render/status' });
     }
 
     // Fallback to queue status
@@ -149,7 +149,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('[API] Erro ao verificar status:', { component: 'API: render/status', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('[API] Erro ao verificar status:', err, { component: 'API: render/status' });
     return NextResponse.json(
       { 
         error: 'Erro ao verificar status',

@@ -30,10 +30,8 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Erro ao cancelar render', {
-      component: 'API: render/cancel',
-      error: error instanceof Error ? error : new Error(String(error))
-    });
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Erro ao cancelar render', err, { component: 'API: render/cancel' })
     return NextResponse.json(
       { error: 'Erro ao cancelar render' },
       { status: 500 }

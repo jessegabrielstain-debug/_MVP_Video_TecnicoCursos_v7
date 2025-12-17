@@ -77,7 +77,7 @@ import {
   MessageCircle,
   Share2
 } from 'lucide-react'
-import { PropertiesPanel } from './properties-panel'
+import { PropertiesPanel, FlexibleElement } from './properties-panel'
 import { ExportDialog, ExportOptions } from './export-dialog'
 import { ExportHistoryDialog } from './export-history-dialog'
 import { RenderProgressDialog } from './render-progress-dialog'
@@ -94,7 +94,7 @@ interface TimelineElement {
   content: {
     src?: string
     text?: string
-    style?: any
+    style?: Record<string, unknown>
     volume?: number
     effects?: string[]
   }
@@ -105,9 +105,9 @@ interface TimelineElement {
   height?: number
   rotation?: number
   opacity?: number
-  style?: any
-  metadata?: any
-  animation?: any
+  style?: Record<string, unknown>
+  metadata?: Record<string, unknown>
+  animation?: Record<string, unknown>
   
   locked: boolean
   visible: boolean
@@ -392,7 +392,7 @@ export default function TimelineEditorReal() {
     </div>
   )
 
-  const handleUpdateElement = (elementId: string, updates: any) => {
+  const handleUpdateElement = (elementId: string, updates: Partial<TimelineElement>) => {
     setElements(prev => prev.map(el => 
       el.id === elementId ? { ...el, ...updates } : el
     ))
@@ -961,8 +961,8 @@ export default function TimelineEditorReal() {
               
               <TabsContent value="properties" className="p-4 h-[calc(100%-40px)] overflow-y-auto">
                 <PropertiesPanel
-                  selectedElement={elements.find(el => el.id === selectedElements[0]) as any}
-                  onUpdateElement={handleUpdateElement}
+                  selectedElement={elements.find(el => el.id === selectedElements[0]) as unknown as FlexibleElement | null}
+                  onUpdateElement={(elementId, updates) => handleUpdateElement(elementId, updates as Partial<TimelineElement>)}
                   onDeleteElement={handleDeleteElement}
                   onDuplicateElement={handleDuplicateElement}
                 />

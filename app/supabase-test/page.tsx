@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase, getCurrentUser } from '@/lib/services';
+import { logger } from '@/lib/logger';
 
 export default function SupabaseTestPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -33,10 +34,10 @@ export default function SupabaseTestPage() {
         if (!coursesError && coursesData) {
           setCourses(coursesData);
         }
-      } catch (error: any) {
-        console.error('Erro ao testar Supabase:', error);
+      } catch (error: unknown) {
+        logger.error('Erro ao testar Supabase', error instanceof Error ? error : new Error(String(error)), { component: 'SupabaseTestPage' });
         setStatus('error');
-        setMessage(`Falha na conexão: ${error.message}`);
+        setMessage(`Falha na conexão: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
     

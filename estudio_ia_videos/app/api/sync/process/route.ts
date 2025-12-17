@@ -119,8 +119,8 @@ export async function POST(request: NextRequest) {
     })
 
     // Salvar informações adicionais no banco
-    // Using 'as any' for table name if it's not in the generated types yet
-    await supabase.from('sync_jobs' as any).update({
+    // sync_jobs table is now properly typed
+    await supabase.from('sync_jobs').update({
       project_id: projectId,
       avatar_id: avatarId,
       user_id: userId,
@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
 
         // Buscar status do job
         const { data: jobData, error } = await supabase
-          .from('sync_jobs' as any)
+          .from('sync_jobs')
           .select('*')
           .eq('job_id', jobId)
           .single()
@@ -233,7 +233,7 @@ export async function GET(request: NextRequest) {
 
         // Buscar resultado completo do job
         const { data: resultJobData, error: resultError } = await supabase
-          .from('sync_jobs' as any)
+          .from('sync_jobs')
           .select('*')
           .eq('job_id', jobId)
           .eq('status', 'completed')
@@ -271,7 +271,7 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '10')
 
         let query = supabase
-          .from('sync_jobs' as any)
+          .from('sync_jobs')
           .select('job_id, status, created_at, accuracy_score, audio_duration, file_name')
           .order('created_at', { ascending: false })
           .limit(limit)
@@ -298,7 +298,7 @@ export async function GET(request: NextRequest) {
       case 'stats':
         // Estatísticas gerais de processamento
         const { data: statsData, error: statsError } = await supabase
-          .from('sync_jobs' as any)
+          .from('sync_jobs')
           .select('accuracy_score, processing_time, audio_duration, status')
           .eq('status', 'completed')
 
@@ -363,7 +363,7 @@ export async function DELETE(request: NextRequest) {
 
     // Marcar job como cancelado
     const { error } = await supabase
-      .from('sync_jobs' as any)
+      .from('sync_jobs')
       .update({ 
         status: 'cancelled',
         updated_at: new Date().toISOString()

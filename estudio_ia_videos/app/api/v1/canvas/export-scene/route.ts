@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,7 +39,8 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error exporting canvas scene:', error)
+    logger.error('Error exporting canvas scene', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: v1/canvas/export-scene' })
     return NextResponse.json(
       { 
         error: 'Failed to export canvas scene',

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 export type ExportFormat = 'csv' | 'json' | 'xlsx' | 'pdf' | 'xml';
 export type ExportDataType = 'events' | 'performance' | 'users' | 'projects' | 'alerts' | 'reports' | 'all';
@@ -138,7 +139,7 @@ export function useDataExport(): UseDataExportReturn {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Export error:', error);
+      logger.error('Export error', error as Error, { component: 'useDataExport' });
       toast.error(`Erro na exportação: ${errorMessage}`);
       return null;
     } finally {
@@ -196,7 +197,7 @@ export function useDataExport(): UseDataExportReturn {
       return data.exports || [];
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Error loading export history:', error);
+      logger.error('Error loading export history', error as Error, { component: 'useDataExport' });
       toast.error(`Erro ao carregar histórico: ${errorMessage}`);
       return [];
     }
@@ -227,7 +228,7 @@ export function useDataExport(): UseDataExportReturn {
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Download error:', error);
+      logger.error('Download error', error as Error, { component: 'useDataExport' });
       throw new Error(`Falha no download: ${errorMessage}`);
     }
   }, []);
@@ -272,7 +273,7 @@ export function useBatchExport() {
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Batch export error:', error);
+      logger.error('Batch export error', error as Error, { component: 'useBatchExport' });
       toast.error(`Erro na exportação em lote: ${errorMessage}`);
     } finally {
       setIsExporting(false);

@@ -42,6 +42,82 @@ export interface Database {
         }
         Relationships: []
       }
+      avatars_3d: {
+        Row: {
+          id: string
+          name: string
+          user_id: string | null
+          project_id: string | null
+          provider: string | null
+          avatar_id: string | null
+          ready_player_me_url: string | null
+          avatar_type: string | null
+          gender: string | null
+          style: string | null
+          animations: Json | null
+          voice_settings: Json | null
+          properties: Json | null
+          model_url: string | null
+          thumbnail_url: string | null
+          metadata: Json | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          user_id?: string | null
+          project_id?: string | null
+          provider?: string | null
+          avatar_id?: string | null
+          ready_player_me_url?: string | null
+          avatar_type?: string | null
+          gender?: string | null
+          style?: string | null
+          animations?: Json | null
+          voice_settings?: Json | null
+          properties?: Json | null
+          model_url?: string | null
+          thumbnail_url?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          user_id?: string | null
+          project_id?: string | null
+          provider?: string | null
+          avatar_id?: string | null
+          ready_player_me_url?: string | null
+          avatar_type?: string | null
+          gender?: string | null
+          style?: string | null
+          animations?: Json | null
+          voice_settings?: Json | null
+          properties?: Json | null
+          model_url?: string | null
+          thumbnail_url?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avatars_3d_project_id_fkey"
+            columns: ["project_id"]
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avatars_3d_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       courses: {
         Row: {
           id: string
@@ -145,6 +221,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
+          owner_id: string | null
           name: string
           type: 'pptx' | 'template-nr' | 'talking-photo' | 'custom' | 'ai-generated'
           description: string | null
@@ -157,6 +234,8 @@ export interface Database {
           is_template: boolean
           is_public: boolean
           collaboration_enabled: boolean
+          collaborators: string[] | null
+          settings: Json | null
           created_at: string
           updated_at: string | null
           last_accessed_at: string | null
@@ -164,6 +243,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
+          owner_id?: string | null
           name: string
           type?: 'pptx' | 'template-nr' | 'talking-photo' | 'custom' | 'ai-generated'
           description?: string | null
@@ -176,6 +256,8 @@ export interface Database {
           is_template?: boolean
           is_public?: boolean
           collaboration_enabled?: boolean
+          collaborators?: string[] | null
+          settings?: Json | null
           created_at?: string
           updated_at?: string | null
           last_accessed_at?: string | null
@@ -183,6 +265,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
+          owner_id?: string | null
           name?: string
           type?: 'pptx' | 'template-nr' | 'talking-photo' | 'custom' | 'ai-generated'
           description?: string | null
@@ -195,6 +278,8 @@ export interface Database {
           is_template?: boolean
           is_public?: boolean
           collaboration_enabled?: boolean
+          collaborators?: string[] | null
+          settings?: Json | null
           created_at?: string
           updated_at?: string | null
           last_accessed_at?: string | null
@@ -765,6 +850,60 @@ export interface Database {
           permissions?: Json
           created_at?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: string
+          title: string
+          message: string
+          category: string | null
+          priority: string | null
+          status: string
+          project_id: string | null
+          metadata: Json
+          actions: Json
+          created_at: string
+          updated_at: string | null
+          expires_at: string | null
+          read_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: string
+          title: string
+          message: string
+          category?: string | null
+          priority?: string | null
+          status?: string
+          project_id?: string | null
+          metadata?: Json
+          actions?: Json
+          created_at?: string
+          updated_at?: string | null
+          expires_at?: string | null
+          read_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: string
+          title?: string
+          message?: string
+          category?: string | null
+          priority?: string | null
+          status?: string
+          project_id?: string | null
+          metadata?: Json
+          actions?: Json
+          created_at?: string
+          updated_at?: string | null
+          expires_at?: string | null
+          read_at?: string | null
         }
         Relationships: []
       }

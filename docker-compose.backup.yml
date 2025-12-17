@@ -1,0 +1,270 @@
+# Backup & Recovery Configuration
+# MVP Vídeos TécnicoCursos v7
+
+# ===========================================
+# Backup Services
+# ===========================================
+
+services:
+  # PostgreSQL with continuous backup
+  postgres-primary:
+    image: postgres:15-alpine
+    container_name: postgres_primary
+    environment:
+      - POSTGRES_DB=tecnicocursos
+      - POSTGRES_USER=app_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_REPLICATION_MODE=master
+      - POSTGRES_REPLICATION_USER=replicator
+      - POSTGRES_REPLICATION_PASSWORD_FILE=/run/secrets/postgres_replication_password
+      - POSTGRES_WAL_LEVEL=replica
+      - POSTGRES_MAX_WAL_SENDERS=3
+      - POSTGRES_WAL_KEEP_SEGMENTS=8
+    secrets:
+      - postgres_password
+      - postgres_replication_password
+    volumes:
+      - postgres_primary_data:/var/lib/postgresql/data
+      - postgres_backups:/backups
+      - ./database-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database-rls-policies.sql:/docker-entrypoint-initdb.d/02-rls.sql:ro
+    networks:
+      - backup-network
+    restart: unless-stopped
+    command: >
+      postgres
+      -c archive_mode=on
+      -c archive_command='cp %p /backups/wal/%f'
+      -c wal_level=replica
+      -c max_wal_senders=3
+      -c wal_keep_segments=8
+      -c hot_standby=on
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d tecnicocursos"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      
+  # PostgreSQL standby for backup
+  postgres-standby:
+    image: postgres:15-alpine
+    container_name: postgres_standby
+    environment:
+      - POSTGRES_REPLICATION_MODE=slave
+      - POSTGRES_REPLICATION_USER=replicator
+      - POSTGRES_REPLICATION_PASSWORD_FILE=/run/secrets/postgres_replication_password
+      - POSTGRES_MASTER_HOST=postgres-primary
+      - POSTGRES_MASTER_PORT=5432
+    secrets:
+      - postgres_replication_password
+    volumes:
+      - postgres_standby_data:/var/lib/postgresql/data
+      - postgres_backups:/backups
+    networks:
+      - backup-network
+    restart: unless-stopped
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    command: >
+      bash -c "
+        if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
+          pg_basebackup -h postgres-primary -D /var/lib/postgresql/data -U replicator -v -P
+          echo 'standby_mode = on' > /var/lib/postgresql/data/recovery.conf
+          echo 'primary_conninfo = '\''host=postgres-primary port=5432 user=replicator'\''' >> /var/lib/postgresql/data/recovery.conf
+        fi
+        postgres -c hot_standby=on
+      "
+      
+  # Backup scheduler service
+  backup-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    container_name: backup_scheduler
+    environment:
+      - NODE_ENV=production
+      - BACKUP_BASE_PATH=/backups
+      - BACKUP_S3_BUCKET=${BACKUP_S3_BUCKET}
+      - BACKUP_S3_REGION=${BACKUP_S3_REGION}
+      - BACKUP_ENCRYPTION_KEY_FILE=/run/secrets/backup_encryption_key
+      - SUPABASE_PROJECT_ID=${SUPABASE_PROJECT_ID}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - DIRECT_DATABASE_URL=${DIRECT_DATABASE_URL}
+    secrets:
+      - backup_encryption_key
+      - postgres_password
+      - aws_access_key
+      - aws_secret_key
+    volumes:
+      - postgres_backups:/backups/postgres
+      - storage_backups:/backups/storage
+      - app_backups:/backups/application
+      - ./scripts/backup-recovery.js:/app/backup-recovery.js:ro
+    networks:
+      - backup-network
+    restart: unless-stopped
+    depends_on:
+      - postgres-primary
+    command: ["node", "/app/backup-recovery.js", "scheduler"]
+    healthcheck:
+      test: ["CMD", "node", "/app/backup-recovery.js", "status"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  # Backup monitor & alerting
+  backup-monitor:
+    image: prom/prometheus:latest
+    container_name: backup_monitor
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+    volumes:
+      - ./monitoring/backup-prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - backup_monitoring_data:/prometheus
+    networks:
+      - backup-network
+      - monitoring
+    restart: unless-stopped
+    ports:
+      - "9091:9090"  # Different port to avoid conflict with main Prometheus
+      
+  # Backup storage (MinIO for S3-compatible local storage)
+  backup-storage:
+    image: minio/minio:latest
+    container_name: backup_storage
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD_FILE=/run/secrets/minio_password
+    secrets:
+      - minio_password
+    volumes:
+      - minio_data:/data
+    networks:
+      - backup-network
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"  # MinIO API
+      - "9001:9001"  # MinIO Console
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      
+  # Backup verification service
+  backup-verifier:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    container_name: backup_verifier
+    environment:
+      - NODE_ENV=production
+      - BACKUP_BASE_PATH=/backups
+      - VERIFICATION_SCHEDULE=0 6 * * *  # Daily at 6 AM
+    volumes:
+      - postgres_backups:/backups/postgres:ro
+      - storage_backups:/backups/storage:ro
+      - app_backups:/backups/application:ro
+      - ./scripts/verify-backups.js:/app/verify-backups.js:ro
+    networks:
+      - backup-network
+    restart: unless-stopped
+    command: ["node", "/app/verify-backups.js", "scheduler"]
+    depends_on:
+      - backup-scheduler
+
+# ===========================================
+# Secrets
+# ===========================================
+
+secrets:
+  postgres_password:
+    external: true
+    name: postgres_password
+  postgres_replication_password:
+    external: true
+    name: postgres_replication_password
+  backup_encryption_key:
+    external: true
+    name: backup_encryption_key
+  aws_access_key:
+    external: true
+    name: aws_access_key
+  aws_secret_key:
+    external: true
+    name: aws_secret_key
+  minio_password:
+    external: true
+    name: minio_password
+
+# ===========================================
+# Networks
+# ===========================================
+
+networks:
+  backup-network:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+        
+  monitoring:
+    external: true
+
+# ===========================================
+# Volumes
+# ===========================================
+
+volumes:
+  postgres_primary_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/backups/postgres/primary
+      
+  postgres_standby_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/backups/postgres/standby
+      
+  postgres_backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/backups/postgres/backups
+      
+  storage_backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/backups/storage
+      
+  app_backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/backups/application
+      
+  backup_monitoring_data:
+    driver: local
+    
+  minio_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/backups/minio

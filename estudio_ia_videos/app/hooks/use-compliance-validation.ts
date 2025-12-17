@@ -6,6 +6,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
+import { logger } from '@/lib/logger';
 
 interface ValidationResult {
   isCompliant: boolean;
@@ -83,7 +84,7 @@ export function useComplianceValidation(): UseComplianceValidationReturn {
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error('Erro ao validar compliance:', err);
+      logger.error('Erro ao validar compliance', err as Error, { component: 'useComplianceValidation' });
       setError(errorMessage);
       toast.error(errorMessage, { id: 'compliance-validation' });
       return null;

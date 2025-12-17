@@ -40,12 +40,12 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 
-import type { UnifiedProject, TTSConfig, ProjectSlide } from '@/lib/stores/unified-project-store'
+import type { UnifiedProject, TTSConfig, ProjectSlide, WorkflowStepData } from '@/lib/stores/unified-project-store'
 
 interface TTSModuleProps {
   project: UnifiedProject
   onTTSUpdate: (tts: TTSConfig) => void
-  onExecuteStep: (data: any) => Promise<void>
+  onExecuteStep: (data: WorkflowStepData) => Promise<void>
 }
 
 interface VoiceOption {
@@ -187,7 +187,7 @@ export default function TTSModule({
   }
 
   // Handle TTS parameter changes
-  const updateTTSParameter = (key: keyof TTSConfig, value: any) => {
+  const updateTTSParameter = (key: keyof TTSConfig, value: string | number) => {
     const newConfig = { ...ttsConfig, [key]: value }
     setTTSConfig(newConfig)
     onTTSUpdate(newConfig)
@@ -220,9 +220,10 @@ export default function TTSModule({
       
       toast.success('Preview gerado!')
 
-    } catch (error: any) {
-      logger.error('Preview generation error', error instanceof Error ? error : new Error(String(error)), { component: 'TTSModule' })
-      toast.error('Erro ao gerar preview: ' + error.message)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      logger.error('Preview generation error', error instanceof Error ? error : new Error(errorMessage), { component: 'TTSModule' })
+      toast.error('Erro ao gerar preview: ' + errorMessage)
     }
   }
 
@@ -286,18 +287,19 @@ export default function TTSModule({
 
       toast.success(`Áudio gerado para slide ${slide.slideNumber}`)
 
-    } catch (error: any) {
-      logger.error('Audio generation error', error instanceof Error ? error : new Error(String(error)), { component: 'TTSModule', slideId: slide.id })
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      logger.error('Audio generation error', error instanceof Error ? error : new Error(errorMessage), { component: 'TTSModule', slideId: slide.id })
       setAudioGenerations(prev => ({
         ...prev,
         [slide.id]: {
           ...prev[slide.id],
           status: 'error',
           progress: 0,
-          error: error.message
+          error: errorMessage
         }
       }))
-      toast.error('Erro ao gerar áudio: ' + error.message)
+      toast.error('Erro ao gerar áudio: ' + errorMessage)
     }
   }
 
@@ -353,21 +355,25 @@ export default function TTSModule({
 
     try {
       await onExecuteStep({
-        ttsConfig,
-        audioFiles: completedAudios.map(gen => ({
-          slideId: gen.slideId,
-          audioUrl: gen.audioUrl,
-          duration: gen.duration
-        })),
-        settings: {
-          syncWithAvatar: true,
-          generateSubtitles: true,
-          normalizeVolume: true
+        stepType: 'generate-tts',
+        config: {
+          ttsConfig,
+          audioFiles: completedAudios.map(gen => ({
+            slideId: gen.slideId,
+            audioUrl: gen.audioUrl,
+            duration: gen.duration
+          })),
+          settings: {
+            syncWithAvatar: true,
+            generateSubtitles: true,
+            normalizeVolume: true
+          }
         }
       })
       toast.success('TTS configurado! Prosseguindo para Render...')
-    } catch (error: any) {
-      toast.error('Erro ao configurar TTS: ' + error.message)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      toast.error('Erro ao configurar TTS: ' + errorMessage)
     }
   }
 

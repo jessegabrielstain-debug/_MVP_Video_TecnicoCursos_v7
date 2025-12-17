@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { recommendationSystem } from '@/lib/intelligent-recommendation-system';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/recommendations/track
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
       message: 'Interaction tracked successfully',
     });
   } catch (error) {
-    console.error('Track interaction error:', error);
+    logger.error('Track interaction error', error instanceof Error ? error : new Error(String(error)), { component: 'API: recommendations/track' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to track interaction' },
       { status: 500 }

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 export interface TimelineElement {
   id: string;
@@ -170,7 +171,7 @@ export function useTimeline(): UseTimelineReturn {
               }
             }
           } catch (e) {
-            console.error('Error polling job status', e);
+            logger.error('Error polling job status', e as Error, { component: 'useTimeline' });
           }
         }, 2000);
       }

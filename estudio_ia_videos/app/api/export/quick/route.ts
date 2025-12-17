@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exportSystem, PLATFORM_PRESETS } from '@/lib/export-advanced-system';
 import type { TargetPlatform } from '@/lib/export-advanced-system';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/export/quick
@@ -48,7 +49,8 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Quick export error:', error);
+    logger.error('Quick export error:', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: export/quick' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Quick export failed' },
       { status: 500 }

@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { logger } from '@/lib/logger'
 
 
 const getUserId = (user: unknown): string => ((user as { id?: string }).id || '');
@@ -46,12 +47,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Conta versões existentes para incrementar
-    const versionCount = await (prisma as any).projectVersion.count({
+    const versionCount = await prisma.projectVersion.count({
       where: { projectId }
     })
 
     // Cria nova versão
-    const version = await (prisma as any).projectVersion.create({
+    const version = await prisma.projectVersion.create({
       data: {
         projectId,
         userId: getUserId(session.user),
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ version })
 
   } catch (error) {
-    console.error('[VERSIONS_POST_ERROR]', error)
+    logger.error('Error creating version', error instanceof Error ? error : new Error(String(error)), { component: 'API: versions' })
     return NextResponse.json(
       { error: 'Erro ao criar versão' },
       { status: 500 }
@@ -91,7 +92,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Busca versões
-    const versions = await (prisma as any).projectVersion.findMany({
+    const versions = await prisma.projectVersion.findMany({
       where: { projectId },
       include: {
         user: {
@@ -107,7 +108,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ versions })
 
   } catch (error) {
-    console.error('[VERSIONS_GET_ERROR]', error)
+    logger.error('Error fetching versions', error instanceof Error ? error : new Error(String(error)), { component: 'API: versions' })
     return NextResponse.json(
       { error: 'Erro ao buscar versões' },
       { status: 500 }

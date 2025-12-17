@@ -53,10 +53,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Erro no processamento de imagens', {
-      component: 'API: v1/images/process-real',
-      error: error instanceof Error ? error : new Error(String(error))
-    })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro no processamento de imagens', err, { component: 'API: v1/images/process-real' })
     return NextResponse.json(
       { 
         error: 'Erro no processamento de imagens',
@@ -111,10 +108,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Erro na otimização de imagem', {
-      component: 'API: v1/images/process-real',
-      error: error instanceof Error ? error : new Error(String(error))
-    })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro na otimização de imagem', err, { component: 'API: v1/images/process-real' })
     return NextResponse.json(
       { 
         error: 'Erro na otimização',

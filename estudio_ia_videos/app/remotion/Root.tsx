@@ -5,9 +5,10 @@ import { MyComposition, MyCompositionProps } from './Composition';
 export const RemotionRoot: React.FC = () => {
   return (
     <>
-      <Composition
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- Remotion Composition generic typing requires component cast */}
+      <Composition<MyCompositionProps>
         id="MyVideo"
-        component={MyComposition as any}
+        component={MyComposition as React.ComponentType<MyCompositionProps>}
         durationInFrames={30 * 60} // Fallback duration
         fps={30}
         width={1920}

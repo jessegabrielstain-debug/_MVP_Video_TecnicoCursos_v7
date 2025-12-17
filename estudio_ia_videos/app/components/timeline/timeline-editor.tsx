@@ -91,16 +91,17 @@ export function TimelineEditor({
     let currentElement: TimelineElement | null = null;
     let currentLayerId = '';
     
-    timeline.project.layers.forEach(layer => {
+    for (const layer of timeline.project.layers) {
       const element = layer.elements.find(el => el.id === activeId);
       if (element) {
         currentElement = element;
         currentLayerId = layer.id;
+        break;
       }
-    });
+    }
 
-    if (currentElement) {
-      const el = currentElement as any;
+    if (currentElement !== null) {
+      const el = currentElement;
       const currentStart = el.startTime ?? el.start ?? 0;
       const newStartTime = Math.max(0, currentStart + timeDelta);
       
@@ -326,3 +327,5 @@ export function TimelineEditor({
     </div>
   );
 }
+
+export default TimelineEditor;

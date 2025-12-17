@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     logger.info('✅ Processamento concluído:', {
       component: 'API: v1/pptx/enhanced-process',
       slides: result.slides.length,
-      elements: result.slides.reduce((acc: any, slide: any) => acc + (slide.elements?.length || 0), 0),
+      elements: result.slides.reduce((acc: number, slide: { elements?: unknown[] }) => acc + (slide.elements?.length || 0), 0),
       assets: (result.assets?.images.length || 0) + (result.assets?.videos.length || 0) + (result.assets?.audio.length || 0),
       duration: result.timeline?.totalDuration || 0,
       compliance: result.compliance?.score
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       data: result,
       statistics: {
         processedSlides: result.slides.length,
-        totalElements: result.slides.reduce((acc: any, slide: any) => acc + (slide.elements?.length || 0), 0),
+        totalElements: result.slides.reduce((acc: number, slide: { elements?: unknown[] }) => acc + (slide.elements?.length || 0), 0),
         totalAssets: (result.assets?.images.length || 0) + (result.assets?.videos.length || 0) + (result.assets?.audio.length || 0),
         estimatedDuration: result.timeline?.totalDuration || 0,
         complianceScore: result.compliance?.score || 0
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('❌ Erro no processamento PPTX:', { component: 'API: v1/pptx/enhanced-process', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('❌ Erro no processamento PPTX:', err, { component: 'API: v1/pptx/enhanced-process' });
     
     return NextResponse.json(
       { 

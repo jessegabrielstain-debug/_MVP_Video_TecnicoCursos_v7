@@ -80,7 +80,7 @@ export async function GET(
     const elementId = params.id
 
     // Buscar elemento com dados da track e projeto
-    const { data: elementData, error } = await (supabase
+    const { data: elementData, error } = await supabase
       .from('timeline_elements')
       .select(`
         *,
@@ -88,7 +88,7 @@ export async function GET(
           *,
           project:projects(owner_id, collaborators, is_public)
         )
-      `) as any)
+      `)
       .eq('id', elementId)
       .single()
 
@@ -160,7 +160,7 @@ export async function PUT(
     const validatedData = updateElementSchema.parse(body)
 
     // Verificar se o elemento existe e obter dados do projeto
-    const { data: existingElementData } = await (supabase
+    const { data: existingElementData } = await supabase
       .from('timeline_elements')
       .select(`
         *,
@@ -168,7 +168,7 @@ export async function PUT(
           locked,
           project:projects(owner_id, collaborators)
         )
-      `) as any)
+      `)
       .eq('id', elementId)
       .single()
 
@@ -216,9 +216,9 @@ export async function PUT(
       const newDuration = validatedData.duration ?? existingElement.duration
       const newEndTime = newStartTime + newDuration
 
-      const { data: overlappingElements } = await (supabase
+      const { data: overlappingElements } = await supabase
         .from('timeline_elements')
-        .select('id, start_time, duration') as any)
+        .select('id, start_time, duration')
         .eq('track_id', existingElement.track_id)
         .neq('id', elementId)
         .or(`and(start_time.lte.${newStartTime},end_time.gt.${newStartTime}),and(start_time.lt.${newEndTime},end_time.gte.${newEndTime})`)
@@ -235,9 +235,9 @@ export async function PUT(
     }
 
     // Atualizar elemento
-    const { data: updatedElement, error } = await (supabase
+    const { data: updatedElement, error } = await supabase
       .from('timeline_elements')
-      .update(updateData) as any)
+      .update(updateData)
       .eq('id', elementId)
       .select()
       .single()
@@ -255,7 +255,7 @@ export async function PUT(
     
     if (projectId) {
       // Registrar no histórico
-      await (supabase
+      await supabase
         .from('project_history')
         .insert({
           project_id: projectId,
@@ -274,8 +274,8 @@ export async function PUT(
               transitions: existingElement.transitions
             },
             new_data: validatedData
-          } as any
-        }) as any)
+          }
+        })
     }
 
     return NextResponse.json(element)
@@ -315,7 +315,7 @@ export async function DELETE(
     const elementId = params.id
 
     // Verificar se o elemento existe e obter dados do projeto
-    const { data: existingElementData } = await (supabase
+    const { data: existingElementData } = await supabase
       .from('timeline_elements')
       .select(`
         *,
@@ -323,7 +323,7 @@ export async function DELETE(
           locked,
           project:projects(owner_id, collaborators)
         )
-      `) as any)
+      `)
       .eq('id', elementId)
       .single()
 
@@ -357,9 +357,9 @@ export async function DELETE(
     }
 
     // Excluir elemento
-    const { error } = await (supabase
+    const { error } = await supabase
       .from('timeline_elements')
-      .delete() as any)
+      .delete()
       .eq('id', elementId)
 
     if (error) {
@@ -372,7 +372,7 @@ export async function DELETE(
 
     // Registrar no histórico
     if (existingElement.project_id) {
-      await (supabase
+      await supabase
         .from('project_history')
         .insert({
           project_id: existingElement.project_id,
@@ -389,8 +389,8 @@ export async function DELETE(
               start_time: existingElement.start_time,
               duration: existingElement.duration
             }
-          } as any
-        }) as any)
+          }
+        })
     }
 
     return NextResponse.json({ message: 'Elemento excluído com sucesso' })

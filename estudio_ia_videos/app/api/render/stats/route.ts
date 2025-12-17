@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Validation schema
 const StatsQuerySchema = z.object({
@@ -232,7 +233,8 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Render stats API error:', error)
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Render stats API error', err, { component: 'API: render/stats' });
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

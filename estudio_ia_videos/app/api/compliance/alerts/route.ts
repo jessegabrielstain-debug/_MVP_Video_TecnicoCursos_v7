@@ -4,6 +4,14 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
+// Helper to safely extract array from Prisma Json field
+function toStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+  return [];
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -53,7 +61,7 @@ export async function GET(request: NextRequest) {
           nrType: validation.nr,
           score: validation.score,
           createdAt: validation.createdAt,
-          suggestions: validation.recommendations ? (validation.recommendations as any) : [],
+          suggestions: toStringArray(validation.recommendations),
           action: 'review_immediately'
         });
       }
@@ -69,14 +77,14 @@ export async function GET(request: NextRequest) {
           nrType: validation.nr,
           score: validation.score,
           createdAt: validation.createdAt,
-          suggestions: validation.recommendations ? (validation.recommendations as any) : [],
+          suggestions: toStringArray(validation.recommendations),
           action: 'review_soon'
         });
       }
 
       // Check for missing critical topics
       if (validation.criticalPoints) {
-        const missingPoints = (validation.criticalPoints as any);
+        const missingPoints = toStringArray(validation.criticalPoints);
         if (Array.isArray(missingPoints) && missingPoints.length > 0) {
           alerts.push({
             id: `missing-${validation.id}`,
@@ -123,7 +131,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error fetching compliance alerts', { component: 'API: compliance/alerts', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error fetching compliance alerts', err, { component: 'API: compliance/alerts' });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -149,7 +157,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    logger.error('Error handling alert action', { component: 'API: compliance/alerts', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error handling alert action', err, { component: 'API: compliance/alerts' });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

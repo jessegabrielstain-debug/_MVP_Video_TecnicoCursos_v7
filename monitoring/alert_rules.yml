@@ -1,0 +1,231 @@
+# ======================================================
+# 🚨 Prometheus Alerting Rules
+# MVP Vídeos TécnicoCursos v7
+# ======================================================
+
+groups:
+  # =====================================
+  # Application Alerts
+  # =====================================
+  - name: application.rules
+    rules:
+      - alert: HighErrorRate
+        expr: sum(rate(http_requests_total{status_code=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: mvp-videos-app
+        annotations:
+          summary: "High HTTP error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+          runbook_url: "https://docs.tecnicocursos.com/runbooks/high-error-rate"
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: mvp-videos-app
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s for the last 10 minutes"
+
+      - alert: LowRequestRate
+        expr: sum(rate(http_requests_total[5m])) < 0.1
+        for: 15m
+        labels:
+          severity: warning
+          service: mvp-videos-app
+        annotations:
+          summary: "Unusually low request rate"
+          description: "Request rate is only {{ $value }} requests/second"
+
+      - alert: HighConnectionCount
+        expr: active_connections > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: mvp-videos-app
+        annotations:
+          summary: "High number of active connections"
+          description: "{{ $value }} active connections, may indicate connection leak"
+
+  # =====================================
+  # Render Pipeline Alerts
+  # =====================================
+  - name: render-pipeline.rules
+    rules:
+      - alert: RenderQueueBackup
+        expr: render_queue_size > 50
+        for: 10m
+        labels:
+          severity: critical
+          service: render-pipeline
+        annotations:
+          summary: "Render queue is backing up"
+          description: "{{ $value }} jobs in queue, workers may be overloaded"
+          runbook_url: "https://docs.tecnicocursos.com/runbooks/render-queue-backup"
+
+      - alert: HighRenderFailureRate
+        expr: rate(render_jobs_total{status="failed"}[10m]) / rate(render_jobs_total[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: render-pipeline
+        annotations:
+          summary: "High render job failure rate"
+          description: "{{ $value | humanizePercentage }} of render jobs are failing"
+
+      - alert: SlowRenderJobs
+        expr: histogram_quantile(0.95, sum(rate(render_job_duration_seconds_bucket[10m])) by (le)) > 600
+        for: 15m
+        labels:
+          severity: warning
+          service: render-pipeline
+        annotations:
+          summary: "Render jobs taking too long"
+          description: "95th percentile render time is {{ $value }}s (>10 minutes)"
+
+      - alert: RenderWorkerDown
+        expr: up{job="mvp-videos-worker"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: render-pipeline
+        annotations:
+          summary: "Render worker is down"
+          description: "Render worker {{ $labels.instance }} is not responding"
+          runbook_url: "https://docs.tecnicocursos.com/runbooks/worker-down"
+
+  # =====================================
+  # System Resource Alerts
+  # =====================================
+  - name: system-resources.rules
+    rules:
+      - alert: HighMemoryUsage
+        expr: (system_memory_usage_bytes{type="used"} / system_memory_usage_bytes{type="total"}) > 0.9
+        for: 10m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: HighCPUUsage
+        expr: system_cpu_usage_percent > 80
+        for: 15m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: HighDiskUsage
+        expr: (disk_usage_bytes{type="used"} / disk_usage_bytes{type="total"}) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.mount_point }}"
+
+      - alert: CriticalDiskUsage
+        expr: (disk_usage_bytes{type="used"} / disk_usage_bytes{type="total"}) > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Critical disk usage"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.mount_point }}"
+          runbook_url: "https://docs.tecnicocursos.com/runbooks/disk-cleanup"
+
+  # =====================================
+  # Redis Alerts
+  # =====================================
+  - name: redis.rules
+    rules:
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance {{ $labels.instance }} is not responding"
+          runbook_url: "https://docs.tecnicocursos.com/runbooks/redis-down"
+
+      - alert: HighRedisMemoryUsage
+        expr: redis_memory_usage_bytes > 200000000  # 200MB
+        for: 10m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis is using {{ $value | humanizeBytes }} of memory"
+
+      - alert: TooManyRedisConnections
+        expr: redis_connections > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "High number of Redis connections"
+          description: "{{ $value }} Redis connections, possible connection leak"
+
+  # =====================================
+  # Application Health Alerts
+  # =====================================
+  - name: health.rules
+    rules:
+      - alert: ApplicationDown
+        expr: up{job="mvp-videos-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: mvp-videos-app
+        annotations:
+          summary: "Application is down"
+          description: "Main application is not responding"
+          runbook_url: "https://docs.tecnicocursos.com/runbooks/app-down"
+
+      - alert: HealthCheckFailing
+        expr: up{job="health-check"} == 0
+        for: 3m
+        labels:
+          severity: warning
+          service: health
+        annotations:
+          summary: "Health check endpoint failing"
+          description: "Health check has been failing for 3 minutes"
+
+  # =====================================
+  # Database Alerts
+  # =====================================
+  - name: database.rules
+    rules:
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, sum(rate(database_query_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Slow database queries"
+          description: "95th percentile query time is {{ $value }}s"
+
+      - alert: HighDatabaseConnections
+        expr: database_connections > 15
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High number of database connections"
+          description: "{{ $value }} active database connections"

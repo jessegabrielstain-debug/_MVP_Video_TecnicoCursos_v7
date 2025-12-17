@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 import { supabaseAdmin } from '@/lib/services'
 
 export async function PATCH(
@@ -25,7 +26,7 @@ export async function PATCH(
     const notificationId = params.id
 
     // Archive notification
-    const { data: updatedNotification, error } = await (supabaseAdmin as any)
+    const { data: updatedNotification, error } = await supabaseAdmin
       .from('notifications')
       .update({
         status: 'archived',
@@ -48,7 +49,7 @@ export async function PATCH(
 
     // Log the action for analytics
     try {
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
@@ -60,7 +61,7 @@ export async function PATCH(
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      console.warn('Failed to log notification archive action:', analyticsError)
+      logger.warn('Failed to log notification archive action', { component: 'API: notifications/[id]/archive' })
     }
 
     return NextResponse.json({
@@ -70,7 +71,7 @@ export async function PATCH(
     })
 
   } catch (error) {
-    console.error('Archive notification API error:', error)
+    logger.error('Archive notification API error', error instanceof Error ? error : new Error(String(error)), { component: 'API: notifications/[id]/archive' })
     
     return NextResponse.json(
       { 

@@ -5,6 +5,7 @@ import { getOrgId } from '@/lib/auth/session-helpers';
 import { prisma } from '@/lib/db';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/analytics/realtime
@@ -305,7 +306,7 @@ async function getHandler(req: NextRequest) {
     return NextResponse.json(realtimeData);
 
   } catch (error: unknown) {
-    console.error('[Analytics Realtime] Error:', error);
+    logger.error('Failed to fetch realtime metrics', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/realtime' });
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
@@ -377,7 +378,7 @@ async function postHandler(req: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('[Analytics Realtime POST] Error:', error);
+    logger.error('Failed to process realtime events', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/realtime' });
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {

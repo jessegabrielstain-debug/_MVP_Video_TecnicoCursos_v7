@@ -91,10 +91,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     const normalizedError = error instanceof Error ? error : new Error(String(error));
-    logger.error('❌ Erro na API TTS:', {
-      component: 'API: v1/tts/generate-real',
-      error: normalizedError
-    })
+    logger.error('❌ Erro na API TTS:', normalizedError
+    , { component: 'API: v1/tts/generate-real' })
     return NextResponse.json(
       { 
         error: 'Erro na geração de áudio',
@@ -161,9 +159,14 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      const slidesWithTTS = project.slides.filter((slide: any) => slide.audioConfig?.audioUrl)
-      const metadata = (project.metadata as any) || {}
-      const processingLog = metadata.processingLog || {}
+      type AudioConfig = { audioUrl?: string } | null | undefined
+      const slidesWithTTS = project.slides.filter((slide) => {
+        const cfg = slide.audioConfig as AudioConfig
+        return cfg?.audioUrl
+      })
+      const metadata = (project.metadata as Record<string, unknown>) || {}
+      interface ProcessingLog { audioTimeline?: unknown[]; generatedAt?: string }
+      const processingLog = (metadata.processingLog || {}) as ProcessingLog
 
       return NextResponse.json({
         success: true,
@@ -180,12 +183,15 @@ export async function GET(request: NextRequest) {
           total: project.slides.length,
           withTTS: slidesWithTTS.length,
           percentage: project.slides.length > 0 ? Math.round((slidesWithTTS.length / project.slides.length) * 100) : 0,
-          details: project.slides.map((slide: any) => ({
-            id: slide.id,
-            title: slide.title,
-            hasTTS: !!slide.audioConfig?.audioUrl,
-            audioUrl: slide.audioConfig?.audioUrl
-          }))
+          details: project.slides.map((slide) => {
+            const cfg = slide.audioConfig as AudioConfig
+            return {
+              id: slide.id,
+              title: slide.title,
+              hasTTS: !!cfg?.audioUrl,
+              audioUrl: cfg?.audioUrl
+            }
+          })
         },
         timeline: processingLog?.audioTimeline || [],
         generatedAt: processingLog?.generatedAt
@@ -206,10 +212,8 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     const normalizedError = error instanceof Error ? error : new Error(String(error));
-    logger.error('❌ Erro na API TTS GET:', {
-      component: 'API: v1/tts/generate-real',
-      error: normalizedError
-    })
+    logger.error('❌ Erro na API TTS GET:', normalizedError
+    , { component: 'API: v1/tts/generate-real' })
     return NextResponse.json(
       { 
         error: 'Erro na consulta TTS',

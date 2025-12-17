@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Logger } from '@/lib/logger';
+
+const logger = new Logger('WorkflowAutomation');
 
 export interface WorkflowTrigger {
   id: string;
@@ -336,7 +339,7 @@ export const useWorkflowAutomation = () => {
         // This is a simplified implementation
         if (schedule.cronExpression) {
           // Parse cron and set up recurring execution
-          console.log('Cron trigger setup:', schedule.cronExpression);
+          logger.debug('Cron trigger setup', { cronExpression: schedule.cronExpression });
         }
         break;
     }
@@ -408,9 +411,9 @@ export const useWorkflowAutomation = () => {
       case 'not_equals':
         return fieldValue !== cond.value;
       case 'greater_than':
-        return (fieldValue as any) > (cond.value as any);
+        return Number(fieldValue) > Number(cond.value);
       case 'less_than':
-        return (fieldValue as any) < (cond.value as any);
+        return Number(fieldValue) < Number(cond.value);
       case 'contains':
         return String(fieldValue).includes(String(cond.value));
       case 'starts_with':
@@ -435,7 +438,7 @@ export const useWorkflowAutomation = () => {
   const executeWorkflow = useCallback(async (workflowId: string, triggerId: string, triggerData: Record<string, unknown>) => {
     const workflow = workflows.find(w => w.id === workflowId);
     if (!workflow) {
-      console.error(`Workflow with id ${workflowId} not found.`);
+      logger.error(`Workflow with id ${workflowId} not found.`);
       return;
     }
 
@@ -552,10 +555,9 @@ export const useWorkflowAutomation = () => {
 
   const executeEmail = useCallback(async (config: WorkflowAction['config']['email'], variables: Record<string, unknown>) => {
     if (!config) throw new Error("Email configuration is missing.");
-    console.log('Sending email:', {
+    logger.info('Sending email', {
       to: config.to.map(recipient => interpolateString(recipient, variables)),
       subject: interpolateString(config.subject, variables),
-      body: interpolateString(config.body, variables),
     });
     // Mock implementation
     return { success: true, messageId: `mock_${Date.now()}` };
@@ -563,7 +565,7 @@ export const useWorkflowAutomation = () => {
 
   const executeNotification = useCallback(async (config: WorkflowAction['config']['notification'], variables: Record<string, unknown>) => {
     if (!config) throw new Error("Notification configuration is missing.");
-    console.log('Sending notification:', {
+    logger.info('Sending notification', {
       title: interpolateString(config.title, variables),
       message: interpolateString(config.message, variables),
       recipients: config.recipients.map(r => interpolateString(r, variables)),
@@ -581,7 +583,7 @@ export const useWorkflowAutomation = () => {
     const transformFn = new Function('input', 'context', config.transformScript);
     const context = {
       variables,
-      log: (...args: unknown[]) => console.log('[Workflow Transform]', ...args)
+      log: (...args: unknown[]) => logger.debug('[Workflow Transform]', { args })
     };
     
     const result = transformFn(input, context);
@@ -591,7 +593,8 @@ export const useWorkflowAutomation = () => {
 
   const executeFileOperation = useCallback(async (config: WorkflowAction['config']['fileOperation'], variables: Record<string, unknown>) => {
     if (!config) throw new Error("File operation configuration is missing.");
-    console.log('Executing file operation:', config.operation, {
+    logger.info('Executing file operation', {
+      operation: config.operation,
       source: config.sourcePath ? interpolateString(config.sourcePath, variables) : '',
       target: config.targetPath ? interpolateString(config.targetPath, variables) : '',
     });
@@ -602,7 +605,7 @@ export const useWorkflowAutomation = () => {
   const executeAiProcess = useCallback(async (config: WorkflowAction['config']['aiProcess'], variables: Record<string, unknown>) => {
     if (!config) throw new Error("AI process configuration is missing.");
     const prompt = config.prompt ? interpolateString(config.prompt, variables) : '';
-    console.log('Executing AI process:', config.type, { model: config.model, prompt });
+    logger.info('Executing AI process', { type: config.type, model: config.model, promptLength: prompt.length });
     // Mock implementation
     const result = `AI result for prompt: "${prompt}"`;
     return { [config.outputVariable]: result };
@@ -610,7 +613,7 @@ export const useWorkflowAutomation = () => {
 
   const executeCustomScript = useCallback(async (config: WorkflowAction['config']['customScript'], variables: Record<string, unknown>) => {
     if (!config) throw new Error("Custom script configuration is missing.");
-    console.log('Executing custom script:', config.language);
+    logger.debug('Executing custom script', { language: config.language });
     // WARNING: Unsafe. Use a sandboxed environment.
     // Mock implementation
     return { success: true, output: 'Script executed successfully' };
@@ -683,12 +686,12 @@ export const useWorkflowAutomation = () => {
   const triggerWorkflow = useCallback(async (workflowId: string, triggerData: Record<string, unknown> = {}) => {
     const workflow = workflows.find(w => w.id === workflowId);
     if (!workflow) {
-      console.error(`Cannot trigger: workflow with id ${workflowId} not found.`);
+      logger.error(`Cannot trigger: workflow with id ${workflowId} not found.`);
       return;
     }
     const manualTrigger = workflow.triggers.find(t => t.type === 'manual' && t.isActive);
     if (!manualTrigger) {
-      console.error(`No active manual trigger found for workflow ${workflow.name}.`);
+      logger.error(`No active manual trigger found for workflow ${workflow.name}.`);
       return;
     }
     await executeWorkflow(workflowId, manualTrigger.id, triggerData);

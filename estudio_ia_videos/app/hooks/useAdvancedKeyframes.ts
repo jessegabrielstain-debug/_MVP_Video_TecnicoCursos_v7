@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+import { logger } from '@/lib/logger';
 
 // Advanced Keyframe Types
 interface KeyframeValue {
@@ -524,7 +525,7 @@ export function importAnimation(jsonData: string): AnimationTrack[] {
       color: trackData.color ?? '#3b82f6'
     }));
   } catch (error) {
-    console.error('Failed to import animation:', error);
+    logger.error('Failed to import animation', error as Error, { component: 'useAdvancedKeyframes' });
     return [];
   }
 }

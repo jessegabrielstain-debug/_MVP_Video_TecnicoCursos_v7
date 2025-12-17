@@ -160,10 +160,10 @@ export default function AvatarStudioComplete({
   const [isRendering, setIsRendering] = useState(false);
   
   // Estados dos componentes
-  const [selectedAvatar, setSelectedAvatar] = useState<any>(null);
-  const [currentPersonality, setCurrentPersonality] = useState<any>(null);
-  const [currentAnimation, setCurrentAnimation] = useState<any>(null);
-  const [currentAudio, setCurrentAudio] = useState<any>(null);
+  const [selectedAvatar, setSelectedAvatar] = useState<AvatarProject['avatar'] | null>(null);
+  const [currentPersonality, setCurrentPersonality] = useState<AvatarPersonality | null>(null);
+  const [currentAnimation, setCurrentAnimation] = useState<AvatarAnimation | null>(null);
+  const [currentAudio, setCurrentAudio] = useState<AvatarAudio | null>(null);
   
   // Configurações da interface
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -249,7 +249,7 @@ export default function AvatarStudioComplete({
   };
 
   // Atualizar avatar
-  const handleAvatarUpdate = (avatarData: Partial<AvatarProject['avatar']>) => {
+  const handleAvatarUpdate = (avatarData: Record<string, unknown>) => {
     if (!currentProject) return;
     
     setCurrentProject(prev => ({
@@ -259,7 +259,7 @@ export default function AvatarStudioComplete({
         ...avatarData
       }
     }));
-    setSelectedAvatar(avatarData);
+    setSelectedAvatar(avatarData as AvatarProject['avatar']);
   };
 
   // Atualizar personalidade
@@ -559,44 +559,44 @@ export default function AvatarStudioComplete({
             <div className="flex-1 overflow-auto">
               <TabsContent value="generator" className="h-full m-0 p-6">
                 <Avatar3DGeneratorReal
-                  onAvatarGenerated={(avatar: any) => handleAvatarUpdate(avatar)}
+                  onAvatarGenerated={(avatar) => handleAvatarUpdate(avatar as unknown as Record<string, unknown>)}
                 />
               </TabsContent>
 
               <TabsContent value="appearance" className="h-full m-0 p-6">
                 <AppearanceCustomization
                   avatarId={currentProject?.avatar?.id || 'default'}
-                  initialSettings={selectedAvatar?.appearance}
-                  onAppearanceChange={(s: any) => handleAvatarUpdate({ appearance: s })}
+                  initialSettings={selectedAvatar?.appearance as Record<string, unknown>}
+                  onAppearanceChange={(s) => handleAvatarUpdate({ appearance: s as unknown as AvatarAppearance })}
                 />
               </TabsContent>
 
               <TabsContent value="personality" className="h-full m-0 p-6">
                 <PersonalityPresets
                   avatarId={selectedAvatar?.id || 'default'}
-                  onPersonalityChange={(p: any) => handlePersonalityUpdate(p)}
-                  currentPersonality={currentPersonality}
+                  onPersonalityChange={(p) => handlePersonalityUpdate(p as unknown as AvatarPersonality)}
+                  currentPersonality={currentPersonality as Record<string, unknown>}
                 />
               </TabsContent>
 
               <TabsContent value="animation" className="h-full m-0 p-6">
                 <FacialAnimationAI
                   avatarId={currentProject?.avatar?.id || 'default'}
-                  onAnimationGenerated={(animation) => setCurrentAnimation(animation)}
+                  onAnimationGenerated={(animation) => setCurrentAnimation(animation as unknown as AvatarAnimation)}
                 />
               </TabsContent>
 
               <TabsContent value="lipsync" className="h-full m-0 p-6">
                 <LipSyncSystemReal
                   avatarId={currentProject?.avatar?.id || 'default'}
-                  onSyncComplete={(lipSync) => setCurrentAudio(lipSync)}
+                  onSyncComplete={(lipSync) => setCurrentAudio(lipSync as unknown as AvatarAudio)}
                 />
               </TabsContent>
 
               <TabsContent value="expressions" className="h-full m-0 p-6">
                 <ExpressionsLibrary
                   avatarId={currentProject?.avatar?.id || 'default'}
-                  onExpressionSelected={(expression: any) => setCurrentAnimation(expression)}
+                  onExpressionSelected={(expression) => setCurrentAnimation(expression as unknown as AvatarAnimation)}
                 />
               </TabsContent>
 
@@ -611,9 +611,9 @@ export default function AvatarStudioComplete({
                 <AvatarExportSystem
                   avatarId={currentProject?.avatar?.id || 'default'}
                   avatarData={currentProject}
-                  onExportComplete={(format: any) => {
-                    logger.info('Exporting format', { component: 'AvatarStudioComplete', format });
-                    toast.success(`Exportando em ${format}...`);
+                  onExportComplete={(job) => {
+                    logger.info('Exporting job complete', { component: 'AvatarStudioComplete', jobId: job.id, status: job.status });
+                    toast.success(`Export ${job.status === 'completed' ? 'concluído' : 'em processamento'}...`);
                   }}
                 />
               </TabsContent>

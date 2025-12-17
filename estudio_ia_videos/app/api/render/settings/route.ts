@@ -57,8 +57,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's render settings
-    // Note: user_render_settings may not be in generated types
-    const { data: settings, error } = await (supabase as any)
+    const { data: settings, error } = await supabase
       .from('user_render_settings')
       .select('*')
       .eq('user_id', user.id)
@@ -70,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     // If no settings exist, create default settings
     if (!settings) {
-      const { data: newSettings, error: createError } = await (supabase as any)
+      const { data: newSettings, error: createError } = await supabase
         .from('user_render_settings')
         .insert({
           user_id: user.id,
@@ -97,7 +96,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Get render settings API error', { component: 'API: render/settings', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Get render settings API error', err, { component: 'API: render/settings' })
     
     return NextResponse.json(
       { 
@@ -127,7 +126,7 @@ export async function PATCH(request: NextRequest) {
     const settingsUpdate = RenderSettingsSchema.parse(body)
 
     // Get current settings
-    const { data: currentSettings, error: fetchError } = await (supabase as any)
+    const { data: currentSettings, error: fetchError } = await supabase
       .from('user_render_settings')
       .select('*')
       .eq('user_id', user.id)
@@ -143,7 +142,7 @@ export async function PATCH(request: NextRequest) {
       // Create new settings if none exist
       updatedSettings = { ...defaultSettings, ...settingsUpdate }
       
-      const { data: newSettings, error: createError } = await (supabase as any)
+      const { data: newSettings, error: createError } = await supabase
         .from('user_render_settings')
         .insert({
           user_id: user.id,
@@ -172,7 +171,7 @@ export async function PATCH(request: NextRequest) {
         }
       }
 
-      const { data: updated, error: updateError } = await (supabase as any)
+      const { data: updated, error: updateError } = await supabase
         .from('user_render_settings')
         .update({
           settings: updatedSettings,
@@ -184,12 +183,14 @@ export async function PATCH(request: NextRequest) {
 
       if (updateError) throw updateError
 
-      updatedSettings = (updated as any).settings
+      // Extract settings from updated record
+      const updatedRecord = updated as { settings: Record<string, unknown> } | null;
+      updatedSettings = updatedRecord?.settings ?? updatedSettings;
     }
 
     // Log the action for analytics
     try {
-      await (supabase as any)
+      await supabase
         .from('analytics_events')
         .insert({
           user_id: user.id,
@@ -201,7 +202,7 @@ export async function PATCH(request: NextRequest) {
           }
         })
     } catch (analyticsError) {
-      logger.warn('Failed to log render settings update', { component: 'API: render/settings', error: analyticsError instanceof Error ? analyticsError : new Error(String(analyticsError)) })
+      logger.warn('Failed to log render settings update', { component: 'API: render/settings' })
     }
 
     return NextResponse.json({
@@ -211,7 +212,7 @@ export async function PATCH(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Update render settings API error', { component: 'API: render/settings', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Update render settings API error', err, { component: 'API: render/settings' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -248,7 +249,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Reset to default settings
-    const { data: resetSettings, error } = await (supabase as any)
+    const { data: resetSettings, error } = await supabase
       .from('user_render_settings')
       .upsert({
         user_id: user.id,
@@ -262,7 +263,7 @@ export async function DELETE(request: NextRequest) {
 
     // Log the action for analytics
     try {
-      await (supabase as any)
+      await supabase
         .from('analytics_events')
         .insert({
           user_id: user.id,
@@ -273,17 +274,20 @@ export async function DELETE(request: NextRequest) {
           }
         })
     } catch (analyticsError) {
-      logger.warn('Failed to log render settings reset', { component: 'API: render/settings', error: analyticsError instanceof Error ? analyticsError : new Error(String(analyticsError)) })
+      logger.warn('Failed to log render settings reset', { component: 'API: render/settings' })
     }
+
+    // Extract settings from reset record
+    const resetRecord = resetSettings as { settings: Record<string, unknown> } | null;
 
     return NextResponse.json({
       success: true,
-      data: (resetSettings as any).settings,
+      data: resetRecord?.settings ?? defaultSettings,
       message: 'Render settings reset to defaults'
     })
 
   } catch (error) {
-    logger.error('Reset render settings API error', { component: 'API: render/settings', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Reset render settings API error', err, { component: 'API: render/settings' })
     
     return NextResponse.json(
       { 

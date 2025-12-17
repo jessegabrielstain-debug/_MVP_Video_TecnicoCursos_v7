@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { logger } from '@/lib/logger'
 
 interface RenderProgress {
   jobId: string
@@ -72,7 +73,7 @@ export function useRenderProgress({
         }
       }
     } catch (error) {
-      console.error('Error fetching render progress:', error)
+      logger.error('Error fetching render progress', error as Error, { component: 'useRenderProgress' })
       if (!mountedRef.current) return
       
       setProgress(prev => prev ? {

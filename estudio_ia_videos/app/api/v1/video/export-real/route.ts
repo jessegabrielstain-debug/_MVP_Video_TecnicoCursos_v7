@@ -26,8 +26,14 @@ export async function POST(request: NextRequest) {
     const normalized = normalizeAndValidateOptions(options)
     // Se houver erro de validação, a função retorna um NextResponse diretamente
     // Verificação robusta (duck typing) para evitar problemas com instanceof em testes
-    if (normalized instanceof NextResponse || ('status' in (normalized as any) && typeof (normalized as any).json === 'function')) {
-      return normalized as NextResponse
+    const isNextResponseLike = (obj: unknown): obj is NextResponse => {
+      if (obj instanceof NextResponse) return true
+      if (!obj || typeof obj !== 'object') return false
+      const candidate = obj as Record<string, unknown>
+      return 'status' in candidate && typeof candidate.json === 'function'
+    }
+    if (isNextResponseLike(normalized)) {
+      return normalized
     }
     const exportOptions = normalized as ExportOptions
 

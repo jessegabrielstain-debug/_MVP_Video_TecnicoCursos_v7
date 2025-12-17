@@ -22,6 +22,14 @@ import {
   EyeOff
 } from 'lucide-react'
 
+// Tipos para propriedades do slide
+interface SlideBackground {
+  color?: string
+  image?: string
+}
+
+type TextAlign = 'left' | 'center' | 'right' | 'justify'
+
 // Função utilitária para obter propriedades de posição com fallbacks
 const getElementPosition = (element: UnifiedElement) => ({
   x: element.x ?? element.style?.position?.x ?? 0,
@@ -269,7 +277,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
                 fontFamily: element.properties.fontFamily as string,
                 color: element.properties.color as string,
                 fontWeight: element.properties.fontWeight as string | number,
-                textAlign: element.properties.textAlign as any,
+                textAlign: (element.properties.textAlign as TextAlign) || 'left',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: element.properties.textAlign === 'center' ? 'center' : 'flex-start',
@@ -468,8 +476,8 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
           <div
             className="absolute inset-0"
             style={{
-              backgroundColor: (slide['background'] as any)?.color || '#ffffff',
-              backgroundImage: (slide['background'] as any)?.image ? `url(${(slide['background'] as any).image})` : undefined,
+              backgroundColor: (slide['background'] as SlideBackground | undefined)?.color || '#ffffff',
+              backgroundImage: (slide['background'] as SlideBackground | undefined)?.image ? `url(${(slide['background'] as SlideBackground).image})` : undefined,
               backgroundSize: 'cover',
               backgroundPosition: 'center'
             }}

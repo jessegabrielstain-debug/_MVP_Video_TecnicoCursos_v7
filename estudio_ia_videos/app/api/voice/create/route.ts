@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { trainVoice } from '@/lib/voice/voice-cloning'
+import { logger } from '@/lib/logger'
 
 
 const getUserId = (user: unknown): string => ((user as { id?: string }).id || '');
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // Salva no banco
     // Note: VoiceClone model must be present in schema.prisma and prisma generate run
-    const voiceClone = await (prisma as any).voiceClone.create({
+    const voiceClone = await prisma.voiceClone.create({
       data: {
         userId: getUserId(session.user),
         name,
@@ -56,7 +57,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ voiceClone })
 
   } catch (error) {
-    console.error('[VOICE_CREATE_ERROR]', error)
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao criar voz', errorObj, { component: 'API: /api/voice/create' });
     return NextResponse.json(
       { error: 'Erro ao criar voz' },
       { status: 500 }

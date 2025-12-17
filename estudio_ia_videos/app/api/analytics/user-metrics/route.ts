@@ -8,6 +8,28 @@ import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
+// Interfaces for raw query results
+interface ProjectQueryResult {
+  id: string;
+  status: string;
+  type: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface CollaboratorQueryResult {
+  project_id: string;
+  role: string;
+}
+
+interface SharedProjectQueryResult {
+  id: string;
+}
+
+interface UserRoleQueryResult {
+  role: string;
+}
+
 // Validation schema
 const UserMetricsQuerySchema = z.object({
   timeRange: z.enum(['1h', '24h', '7d', '30d', '90d']).default('24h'),
@@ -33,12 +55,12 @@ function getTimeRangeDate(timeRange: string): Date {
 async function getUserProjectStats(userId: string, timeRange: Date) {
   try {
     // Using raw query because 'type' is missing in Prisma schema
-    const projects = await prisma.$queryRaw`
+    const projects = await prisma.$queryRaw<ProjectQueryResult[]>`
       SELECT id, status, type, created_at, updated_at
       FROM projects
       WHERE user_id = ${userId}::uuid
       AND created_at >= ${timeRange}
-    ` as any[];
+    `;
 
     const projectsList = projects;
     const total = projectsList.length;
@@ -129,18 +151,18 @@ async function getCollaborationStats(userId: string) {
     });
 
     // ProjectCollaborator table is missing in Prisma schema, use raw query
-    const collaborations = await prisma.$queryRaw`
+    const collaborations = await prisma.$queryRaw<CollaboratorQueryResult[]>`
       SELECT project_id, role FROM project_collaborators WHERE user_id = ${userId}::uuid
-    ` as any[];
+    `;
     const collaborationsList = collaborations;
 
     // Shared projects (owned by user, has collaborators)
-    const sharedProjects = await prisma.$queryRaw`
+    const sharedProjects = await prisma.$queryRaw<SharedProjectQueryResult[]>`
       SELECT DISTINCT p.id 
       FROM projects p
       JOIN project_collaborators pc ON p.id = pc.project_id
       WHERE p.user_id = ${userId}::uuid
-    ` as any[];
+    `;
     const sharedProjectsList = sharedProjects;
 
     return {
@@ -302,7 +324,7 @@ export async function GET(request: NextRequest) {
     let targetUserId = session.user.id;
     if (validatedParams.userId && validatedParams.userId !== session.user.id) {
       // Check if current user is admin
-      const userRole = await prisma.$queryRaw`SELECT role FROM users WHERE id = ${session.user.id}::uuid` as any[];
+      const userRole = await prisma.$queryRaw<UserRoleQueryResult[]>`SELECT role FROM users WHERE id = ${session.user.id}::uuid`;
       const role = userRole[0]?.role;
 
       if (role !== 'admin') {

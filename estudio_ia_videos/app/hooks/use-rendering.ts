@@ -7,6 +7,7 @@
 
 import { useState, useCallback } from 'react';
 import { TimelineProject } from '@/lib/types/timeline-types';
+import { logger } from '@/lib/logger';
 import { 
   RenderJob, 
   RenderProgress, 
@@ -134,7 +135,7 @@ export function useRendering(): UseRenderingReturn {
           eventSource.close();
         }
       } catch (err) {
-        console.error('Erro ao processar progresso:', err);
+        logger.error('Erro ao processar progresso', err as Error, { component: 'useRendering' });
       }
     };
 
@@ -186,7 +187,7 @@ export function useRendering(): UseRenderingReturn {
       const data = await response.json();
       return data as RenderJobListResponse;
     } catch (err) {
-      console.error('Erro ao listar jobs:', err);
+      logger.error('Erro ao listar jobs', err as Error, { component: 'useRendering' });
       return { jobs: [], stats: { total: 0 } };
     }
   }, []);

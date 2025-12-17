@@ -81,6 +81,14 @@ interface VideoConfig {
   totalDuration: number
 }
 
+// Interface para metadata do projeto com canvas
+interface ProjectCanvasMetadata {
+  canvas?: CanvasData
+  timeline?: TimelineItem[]
+  totalDuration?: number
+  [key: string]: unknown
+}
+
 class CanvasEditor {
   async saveCanvasData(projectId: string, canvasData: CanvasData, timeline: TimelineItem[]): Promise<SaveCanvasResult> {
     try {
@@ -119,7 +127,7 @@ class CanvasEditor {
 
       // Salvar no banco
       const project = await prisma.project.findUnique({ where: { id: projectId } });
-      const currentMetadata = (project?.metadata as any) || {};
+      const currentMetadata = (project?.metadata as ProjectCanvasMetadata | null) || {};
 
       await prisma.project.update({
         where: { id: projectId },
@@ -133,7 +141,7 @@ class CanvasEditor {
             timeline,
             totalDuration,
             editedAt: new Date().toISOString()
-          }
+          } satisfies ProjectCanvasMetadata
         }
       })
 
@@ -188,19 +196,20 @@ class CanvasEditor {
         throw new Error('Project not found')
       }
 
-      const currentCanvas = (project.metadata as any)?.canvas || { elements: [] }
-      const updatedElements = [...currentCanvas.elements, element]
+      const projectMetadata = project.metadata as ProjectCanvasMetadata | null
+      const currentCanvas = projectMetadata?.canvas || { width: 1920, height: 1080, background: '#000000', elements: [] }
+      const updatedElements = [...(currentCanvas.elements || []), element]
 
       await prisma.project.update({
         where: { id: projectId },
         data: {
           metadata: {
-            ...(project.metadata as any || {}),
+            ...(projectMetadata || {}),
             canvas: {
               ...currentCanvas,
               elements: updatedElements
             }
-          }
+          } satisfies ProjectCanvasMetadata
         }
       })
 
@@ -339,10 +348,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
+    const projectMetadata = project.metadata as ProjectCanvasMetadata | null
     return NextResponse.json({
-      canvas: (project.metadata as any)?.canvas || null,
-      timeline: (project.metadata as any)?.timeline || [],
-      totalDuration: (project.metadata as any)?.totalDuration || 0
+      canvas: projectMetadata?.canvas || null,
+      timeline: projectMetadata?.timeline || [],
+      totalDuration: projectMetadata?.totalDuration || 0
     })
 
   } catch (error) {

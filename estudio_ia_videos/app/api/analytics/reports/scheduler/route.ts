@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { ReportScheduler } from '@/lib/analytics/report-scheduler';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
@@ -65,7 +66,8 @@ async function getHandler(req: NextRequest) {
     }
 
   } catch (error: unknown) {
-    console.error('[Analytics Reports Scheduler] Error:', error);
+    logger.error('Failed to process scheduler request', error instanceof Error ? error : new Error(String(error))
+    , { component: 'API: analytics/reports/scheduler' });
     
     return NextResponse.json(
       {
@@ -134,7 +136,8 @@ async function postHandler(req: NextRequest) {
     }
 
   } catch (error: unknown) {
-    console.error('[Analytics Reports Scheduler POST] Error:', error);
+    logger.error('Failed to manage scheduled report', error instanceof Error ? error : new Error(String(error))
+    , { component: 'API: analytics/reports/scheduler' });
     
     return NextResponse.json(
       {

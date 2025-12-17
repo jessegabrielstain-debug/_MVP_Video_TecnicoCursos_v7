@@ -6,6 +6,7 @@
  *        /api/placeholder/400/300?color=4f46e5 → custom color
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 interface RouteParams {
   params: Promise<{
@@ -60,7 +61,8 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('[API] Placeholder error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Placeholder error', err, { component: 'API: placeholder/[...dimensions]' });
     return NextResponse.json(
       { error: 'Failed to generate placeholder' },
       { status: 500 }

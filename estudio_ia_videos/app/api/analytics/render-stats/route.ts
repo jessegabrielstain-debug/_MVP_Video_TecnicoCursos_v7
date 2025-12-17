@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger'
 import {
   computeBasicStats,
   computePerformanceMetrics,
@@ -18,9 +19,10 @@ const cache = getInMemoryCache({ ttl: 30000 })
 
 type TimeRange = RenderStatsQuery['timeRange']
 
-type RenderJobRow = BasicRenderJob & {
+type RenderJobRow = Omit<BasicRenderJob, 'render_settings'> & {
   user_id?: string
   project_type?: string
+  render_settings: Record<string, unknown>
 }
 
 type RenderJobWithProject = {
@@ -30,7 +32,7 @@ type RenderJobWithProject = {
   completed_at: string | null
   status: string
   error_message: string | null
-  render_settings: any
+  render_settings: Record<string, unknown>
   projects: {
     user_id: string
     type: string
@@ -110,7 +112,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (params.projectType) {
-    query = query.eq('projects.type', params.projectType as any)
+    query = query.eq('projects.type', params.projectType)
   }
 
   if (params.status !== 'all') {
@@ -120,7 +122,7 @@ export async function GET(req: NextRequest) {
   const { data, error, count } = await query
 
   if (error) {
-    console.error('Supabase error while fetching render jobs:', error)
+    logger.error('Supabase error while fetching render jobs', error instanceof Error ? error : new Error(JSON.stringify(error)), { component: 'API: analytics/render-stats' })
     return NextResponse.json({ error: 'Failed to fetch render jobs' }, { status: 500 })
   }
 
@@ -141,11 +143,13 @@ export async function GET(req: NextRequest) {
   const totalCount = typeof count === 'number' ? count : jobs.length
   const truncated = totalCount > jobs.length || jobs.length === MAX_ROWS
 
-  const basicStats = computeBasicStats(jobs)
-  const queueStats = computeQueueStats(jobs)
-  const performanceMetrics = params.includePerformance ? computePerformanceMetrics(jobs) : undefined
-  const errorAnalysis = params.includeErrors ? computeErrorAnalysis(jobs) : undefined
-  const errorCategories = params.includeErrors ? computeErrorCategories(jobs) : undefined
+  // Cast to BasicRenderJob for compute functions - the render_settings type difference is negligible for metrics
+  const jobsForCompute = jobs as unknown as BasicRenderJob[]
+  const basicStats = computeBasicStats(jobsForCompute)
+  const queueStats = computeQueueStats(jobsForCompute)
+  const performanceMetrics = params.includePerformance ? computePerformanceMetrics(jobsForCompute) : undefined
+  const errorAnalysis = params.includeErrors ? computeErrorAnalysis(jobsForCompute) : undefined
+  const errorCategories = params.includeErrors ? computeErrorCategories(jobsForCompute) : undefined
 
   const payload: RenderStatsPayload = {
     metadata: {

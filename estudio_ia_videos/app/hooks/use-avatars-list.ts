@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 interface Avatar {
   id: string;
@@ -49,7 +50,7 @@ export function useAvatarsList(): UseAvatarsListReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       setError(errorMessage);
-      console.error('Erro ao buscar avatares:', err);
+      logger.error('Erro ao buscar avatares', err as Error, { component: 'useAvatarsList' });
     } finally {
       setLoading(false);
     }

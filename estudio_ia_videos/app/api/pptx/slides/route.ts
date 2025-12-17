@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let query = (supabase as any)
+    let query = supabase
       .from('pptx_slides')
       .select(`
         *,
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     const validatedData = slideSchema.parse(body)
 
     // Verificar se upload existe e permissões
-    const { data: upload } = await (supabase as any)
+    const { data: upload } = await supabase
       .from('pptx_uploads')
       .select(`
         *,
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
         .eq('user_id', user.id)
         .single()
       
-      if (collaborator && (collaborator.permissions as any)?.can_edit) {
+      if (collaborator?.permissions?.includes('can_edit')) {
         hasPermission = true
       }
     }
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar slide
-    const { data: slide, error } = await (supabase as any)
+    const { data: slide, error } = await supabase
       .from('pptx_slides')
       .insert(validatedData)
       .select()
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
       .eq('id', validatedData.upload_id)
 
     // Registrar no histórico
-    await (supabase as any)
+    await supabase
       .from('project_history')
       .insert({
         project_id: upload.project_id,
@@ -268,7 +268,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verificar permissões
-    const { data: upload } = await (supabase as any)
+    const { data: upload } = await supabase
       .from('pptx_uploads')
       .select(`
         project_id,
@@ -297,7 +297,7 @@ export async function PUT(request: NextRequest) {
         .eq('user_id', user.id)
         .single()
       
-      if (collaborator && (collaborator.permissions as any)?.can_edit) {
+      if (collaborator?.permissions?.includes('can_edit')) {
         hasPermission = true
       }
     }

@@ -19,6 +19,17 @@ import { LocalAvatarRenderer } from '@/lib/local-avatar-renderer';
 import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 
+// Interface for jobData stored in processingQueue
+interface AvatarJobData {
+  currentStage?: string;
+  estimatedTime?: number;
+  videoUrl?: string;
+  thumbnail?: string;
+  audioUrl?: string;
+  duration?: number;
+  lipSyncData?: unknown;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -131,7 +142,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const jobData = job.jobData as any;
+    const jobData = (job.jobData ?? {}) as AvatarJobData;
 
     return NextResponse.json({
       success: true,
@@ -173,7 +184,7 @@ async function processAvatarRendering(
   try {
     // Recuperar job atual para manter dados
     const currentJob = await prisma.processingQueue.findUnique({ where: { id: jobId } });
-    let currentData = (currentJob?.jobData as any) || {};
+    let currentData: AvatarJobData = (currentJob?.jobData ?? {}) as AvatarJobData;
 
     // ETAPA 1: Gerar áudio TTS
     currentData = { ...currentData, currentStage: 'audio' };

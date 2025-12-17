@@ -9,6 +9,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react'
 import useSWR from 'swr'
 import { toast } from 'sonner'
 import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client'
+import { logger } from '@/lib/logger'
 import type { User } from '@supabase/supabase-js'
 
 // Types and Interfaces
@@ -224,7 +225,7 @@ export function useRenderPipeline() {
         if (!isMounted) return
         setUser(data.user ?? null)
       } catch (error) {
-        console.error('[RenderPipeline] Falha ao carregar usuário:', error)
+        logger.error('[RenderPipeline] Falha ao carregar usuário', error as Error, { component: 'useRenderPipeline' })
       }
     }
 

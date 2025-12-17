@@ -1,6 +1,7 @@
 import { getServiceRoleClient } from '../supabase'
 import type { Database } from '../supabase/database.types'
 import type { SlideInsert, SlideUpdate } from './types'
+import { logger } from '@/lib/logger'
 
 type Slide = Database['public']['Tables']['slides']['Row']
 import { getSlidesByProject, mockSlides } from './mockStore'
@@ -16,13 +17,13 @@ export async function listSlides(projectId: string): Promise<Slide[]> {
       .returns<Slide[]>()
 
     if (error) {
-      console.warn('Supabase slides error, using mock:', error.message)
+      logger.warn('Supabase slides error, using mock', { error: error.message, projectId, component: 'slides' })
       return getSlidesByProject(projectId) as unknown as Slide[]
     }
 
     return data ?? []
   } catch (err) {
-    console.warn('Supabase not available, using mock slides')
+    logger.warn('Supabase not available, using mock slides', { projectId, component: 'slides' })
     return getSlidesByProject(projectId) as unknown as Slide[]
   }
 }

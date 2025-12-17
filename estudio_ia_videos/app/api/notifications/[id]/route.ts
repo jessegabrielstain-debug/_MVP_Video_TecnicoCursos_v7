@@ -32,7 +32,7 @@ export async function GET(
     const notificationId = params.id
 
     // Get notification
-    const { data: notification, error } = await (supabaseAdmin as any)
+    const { data: notification, error } = await supabaseAdmin
       .from('notifications')
       .select('*')
       .eq('id', notificationId)
@@ -106,7 +106,7 @@ export async function PATCH(
     }
 
     // Update notification
-    const { data: updatedNotification, error } = await (supabaseAdmin as any)
+    const { data: updatedNotification, error } = await supabaseAdmin
       .from('notifications')
       .update(updateData)
       .eq('id', notificationId)
@@ -126,7 +126,7 @@ export async function PATCH(
 
     // Log the action for analytics
     try {
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
@@ -139,7 +139,7 @@ export async function PATCH(
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      logger.warn('Failed to log notification update:', { error: analyticsError, component: 'API: notifications/[id]' })
+      logger.warn('Failed to log notification update:', { component: 'API: notifications/[id]' })
     }
 
     return NextResponse.json({
@@ -179,7 +179,7 @@ export async function DELETE(
     const notificationId = params.id
 
     // Delete notification
-    const { error } = await (supabaseAdmin as any)
+    const { error } = await supabaseAdmin
       .from('notifications')
       .delete()
       .eq('id', notificationId)
@@ -189,7 +189,7 @@ export async function DELETE(
 
     // Log the action for analytics
     try {
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
@@ -201,7 +201,7 @@ export async function DELETE(
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      logger.warn('Failed to log notification deletion:', { error: analyticsError, component: 'API: notifications/[id]' })
+      logger.warn('Failed to log notification deletion:', { component: 'API: notifications/[id]' })
     }
 
     return NextResponse.json({

@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { commentsService } from '@/lib/collab/comments-service';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   request: NextRequest,
@@ -34,7 +35,9 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('❌ Erro ao adicionar reação:', error);
+    logger.error('❌ Erro ao adicionar reação:', error instanceof Error ? error : new Error(String(error)), {
+      component: 'API: comments/[commentId]/reaction'
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erro ao adicionar reação' },
       { status: 500 }

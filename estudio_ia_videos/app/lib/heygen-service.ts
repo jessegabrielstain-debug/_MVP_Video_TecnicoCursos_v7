@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
+import { withRetry } from '@/lib/error-handling';
+import { withCircuitBreaker } from '@/lib/resilience/circuit-breaker';
 import type { HeyGenVoice, HeyGenGenerateVideoResponse } from '@/types/external-apis';
 
 export interface HeyGenAvatar {
@@ -70,21 +72,63 @@ export class HeyGenService {
       throw new Error('HeyGen API Key not configured');
     }
 
-    const response = await fetch(`https://api.heygen.com/v2/${endpoint}`, {
-      method,
-      headers: {
-        'X-Api-Key': this.apiKey,
-        'Content-Type': 'application/json',
+    // Use retry pattern with circuit breaker for external API calls
+    return withCircuitBreaker(
+      'heygen-api',
+      async () => {
+        return withRetry(
+          async () => {
+            const response = await fetch(`https://api.heygen.com/v2/${endpoint}`, {
+              method,
+              headers: {
+                'X-Api-Key': this.apiKey,
+                'Content-Type': 'application/json',
+              },
+              body: body ? JSON.stringify(body) : undefined,
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              const error = new Error(`HeyGen API Error: ${response.status} - ${errorText}`);
+              
+              // Don't retry on 4xx errors (client errors)
+              if (response.status >= 400 && response.status < 500) {
+                throw error;
+              }
+              
+              // Retry on 5xx errors (server errors)
+              throw error;
+            }
+
+            return await response.json();
+          },
+          {
+            maxAttempts: 3,
+            delayMs: 1000,
+            backoffMultiplier: 2,
+            shouldRetry: (error) => {
+              // Only retry on network errors and 5xx status codes
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              return (
+                errorMessage.includes('network') ||
+                errorMessage.includes('timeout') ||
+                errorMessage.includes('ECONNRESET') ||
+                errorMessage.includes('ETIMEDOUT') ||
+                errorMessage.includes('5')
+              );
+            },
+          }
+        );
       },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HeyGen API Error: ${response.status} - ${errorText}`);
-    }
-
-    return await response.json();
+      {
+        failureThreshold: 5,
+        timeout: 60000,
+        name: 'heygen-api',
+      },
+      () => {
+        throw new Error('HeyGen service temporarily unavailable. Please try again later.');
+      }
+    );
   }
 
   async listAvatars(): Promise<HeyGenAvatar[]> {

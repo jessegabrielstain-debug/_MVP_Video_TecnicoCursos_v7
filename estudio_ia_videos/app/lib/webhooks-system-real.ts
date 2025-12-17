@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { randomUUID, createHmac } from 'crypto'
 import { Prisma } from '@prisma/client'
+import { getRedisClient } from '@/lib/services/redis-service'
 
 export type WebhookEvent =
   | 'render.started'
@@ -106,6 +107,114 @@ export class WebhookManager {
     return await prisma.webhook.findUnique({
       where: { id }
     })
+  }
+
+  /**
+   * Calcula o tempo médio de resposta de um webhook a partir dos logs de delivery
+   * @param webhookId ID do webhook
+   * @returns Tempo médio de resposta em milissegundos
+   */
+  async calculateAverageResponseTime(webhookId: string): Promise<number> {
+    try {
+      // Tentar recuperar do cache Redis primeiro (cache de 5 minutos)
+      const cacheKey = `webhook:${webhookId}:avg_response_time`
+      try {
+        const redis = getRedisClient()
+        const cached = await redis.get(cacheKey)
+        if (cached) {
+          return parseInt(cached, 10)
+        }
+      } catch (redisError) {
+        // Redis não disponível, continuar com cálculo do banco
+        logger.info('Redis não disponível para cache de avgResponseTime', { webhookId })
+      }
+
+      // Buscar logs de delivery das últimas 24 horas
+      const oneDayAgo = new Date(Date.now() - 24 * 3600000)
+      
+      const deliveries = await prisma.webhookDelivery.findMany({
+        where: {
+          webhookId,
+          createdAt: { gte: oneDayAgo },
+          status: 'completed', // Apenas entregas bem-sucedidas
+          responseTime: { not: null }, // Apenas com tempo de resposta registrado
+        },
+        select: {
+          responseTime: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 100, // Últimas 100 entregas
+      })
+
+      if (deliveries.length === 0) {
+        return 0
+      }
+
+      // Calcular média dos tempos de resposta
+      const totalResponseTime = deliveries.reduce((sum, delivery) => {
+        return sum + (delivery.responseTime || 0)
+      }, 0)
+
+      const avgTime = Math.round(totalResponseTime / deliveries.length)
+
+      // Armazenar métrica no Redis para cache (5 minutos)
+      try {
+        const redis = getRedisClient()
+        await redis.setex(cacheKey, 300, avgTime.toString())
+      } catch (redisError) {
+        // Redis não disponível, continuar sem cache
+        logger.info('Não foi possível cachear avgResponseTime no Redis', { webhookId })
+      }
+
+      return avgTime
+    } catch (error) {
+      logger.error('Erro ao calcular avgResponseTime', error as Error, { webhookId })
+      
+      // Tentar recuperar do cache em caso de erro
+      try {
+        const redis = getRedisClient()
+        const cacheKey = `webhook:${webhookId}:avg_response_time`
+        const cached = await redis.get(cacheKey)
+        if (cached) {
+          return parseInt(cached, 10)
+        }
+      } catch {
+        // Ignorar erro de cache
+      }
+      
+      return 0
+    }
+  }
+
+  /**
+   * Obtém estatísticas completas de um webhook
+   * @param webhookId ID do webhook
+   * @returns Estatísticas do webhook incluindo avgResponseTime
+   */
+  async getWebhookStats(webhookId: string) {
+    try {
+      const webhook = await this.getWebhook(webhookId)
+      if (!webhook) {
+        throw new Error('Webhook not found')
+      }
+
+      const avgResponseTime = await this.calculateAverageResponseTime(webhookId)
+
+      return {
+        id: webhook.id,
+        url: webhook.url,
+        active: webhook.active,
+        totalDeliveries: webhook.totalDeliveries,
+        successfulDeliveries: webhook.successfulDeliveries,
+        failedDeliveries: webhook.failedDeliveries,
+        lastDeliveryAt: webhook.lastDeliveryAt,
+        avgResponseTime,
+      }
+    } catch (error) {
+      logger.error('Erro ao obter estatísticas do webhook', error as Error, { webhookId })
+      throw error
+    }
   }
 }
 

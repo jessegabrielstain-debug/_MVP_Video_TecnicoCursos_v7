@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { SilenceDetector } from '../../../lib/silence-removal/silence-detector';
+import { logger } from '@/lib/logger';
 
 const UPLOAD_DIR = '/tmp/silence-detection';
 
@@ -39,12 +40,12 @@ export async function POST(request: NextRequest) {
     try {
       await fs.unlink(filePath);
     } catch (cleanupError) {
-      console.error('Error cleaning up file:', cleanupError);
+      logger.error('Error cleaning up file', cleanupError instanceof Error ? cleanupError : new Error(String(cleanupError)), { component: 'API: silence/detect' });
     }
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error detecting silence:', error);
+    logger.error('Error detecting silence', error instanceof Error ? error : new Error(String(error)), { component: 'API: silence/detect' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Detection failed' },
       { status: 500 }

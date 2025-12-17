@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // Access global mock store
 declare global {
@@ -47,10 +48,12 @@ export async function GET(req: Request) {
       issued_at: certificate.issuedAt
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
      // Fallback for missing table
-    console.error('Error verifying certificate:', error);
-    if (error.code === 'P2010' || error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('Tenant or user not found')) {
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    const err = error as { code?: string; message?: string };
+    logger.error('Error verifying certificate', errorObj, { component: 'API: /api/certificates/verify' });
+    if (err.code === 'P2010' || err.code === 'P2021' || err.message?.includes('does not exist') || err.message?.includes('Tenant or user not found')) {
          if (global.mockCertificates.has(code)) {
              const mockCert = global.mockCertificates.get(code);
              return NextResponse.json({
@@ -65,7 +68,7 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: err.message || 'Unknown error' },
       { status: 500 }
     );
   }

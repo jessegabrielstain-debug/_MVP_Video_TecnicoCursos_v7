@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user preferences
-    const { data: preferences, error } = await (supabaseAdmin as any)
+    const { data: preferences, error } = await supabaseAdmin
       .from('notification_preferences')
       .select('*')
       .eq('user_id', session.user.id)
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
 
     // If no preferences exist, create default ones
     if (!preferences) {
-      const { data: newPreferences, error: createError } = await (supabaseAdmin as any)
+      const { data: newPreferences, error: createError } = await supabaseAdmin
         .from('notification_preferences')
         .insert({
           user_id: session.user.id,
@@ -142,7 +142,7 @@ export async function PATCH(request: NextRequest) {
     const validatedData = NotificationPreferencesSchema.parse(body)
 
     // Check if preferences exist
-    const { data: existingPreferences, error: fetchError } = await (supabaseAdmin as any)
+    const { data: existingPreferences, error: fetchError } = await supabaseAdmin
       .from('notification_preferences')
       .select('*')
       .eq('user_id', session.user.id)
@@ -156,7 +156,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!existingPreferences) {
       // Create new preferences with defaults merged with provided data
-      const { data: newPreferences, error: createError } = await (supabaseAdmin as any)
+      const { data: newPreferences, error: createError } = await supabaseAdmin
         .from('notification_preferences')
         .insert({
           user_id: session.user.id,
@@ -199,7 +199,7 @@ export async function PATCH(request: NextRequest) {
         }
       }
 
-      const { data: updated, error: updateError } = await (supabaseAdmin as any)
+      const { data: updated, error: updateError } = await supabaseAdmin
         .from('notification_preferences')
         .update(updateData)
         .eq('user_id', session.user.id)
@@ -212,7 +212,7 @@ export async function PATCH(request: NextRequest) {
 
     // Log preference change for analytics
     try {
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
@@ -224,7 +224,7 @@ export async function PATCH(request: NextRequest) {
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      logger.warn('Failed to log preference change:', { error: analyticsError, component: 'API: notifications/preferences' })
+      logger.warn('Failed to log preference change:', { component: 'API: notifications/preferences' })
     }
 
     return NextResponse.json({
@@ -270,7 +270,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Reset to default preferences
-    const { data: resetPreferences, error } = await (supabaseAdmin as any)
+    const { data: resetPreferences, error } = await supabaseAdmin
       .from('notification_preferences')
       .upsert({
         user_id: session.user.id,
@@ -285,7 +285,7 @@ export async function DELETE(request: NextRequest) {
 
     // Log preference reset for analytics
     try {
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
@@ -296,7 +296,7 @@ export async function DELETE(request: NextRequest) {
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      logger.warn('Failed to log preference reset:', { error: analyticsError, component: 'API: notifications/preferences' })
+      logger.warn('Failed to log preference reset:', { component: 'API: notifications/preferences' })
     }
 
     return NextResponse.json({

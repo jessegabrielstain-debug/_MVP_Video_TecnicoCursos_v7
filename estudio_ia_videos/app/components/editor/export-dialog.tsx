@@ -100,7 +100,7 @@ export function ExportDialog({ open, onOpenChange, onExport, isExporting }: Expo
               <select 
                 className="w-full p-2 rounded-md border bg-background"
                 value={format}
-                onChange={(e) => setFormat(e.target.value as any)}
+                onChange={(e) => setFormat(e.target.value as 'mp4' | 'webm')}
               >
                 <option value="mp4">MP4 (H.264)</option>
                 <option value="webm">WebM</option>
@@ -111,7 +111,7 @@ export function ExportDialog({ open, onOpenChange, onExport, isExporting }: Expo
               <select 
                 className="w-full p-2 rounded-md border bg-background"
                 value={resolution}
-                onChange={(e) => setResolution(e.target.value as any)}
+                onChange={(e) => setResolution(e.target.value as '720p' | '1080p')}
               >
                 <option value="720p">720p (HD)</option>
                 <option value="1080p">1080p (Full HD)</option>

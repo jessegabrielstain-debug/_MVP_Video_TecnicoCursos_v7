@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    logger.error('Error in enterprise integration API', { component: 'API: v1/enterprise-integration', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error in enterprise integration API', err, { component: 'API: v1/enterprise-integration' })
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     )
   } catch (error) {
-    logger.error('Error in enterprise integration POST', { component: 'API: v1/enterprise-integration', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error in enterprise integration POST', err, { component: 'API: v1/enterprise-integration' })
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

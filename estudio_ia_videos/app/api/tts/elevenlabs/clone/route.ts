@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import ElevenLabsService from '@/lib/elevenlabs-service'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,7 +65,8 @@ export async function POST(request: NextRequest) {
       message: 'Voz clonada com sucesso'
     })
   } catch (error) {
-    console.error('Erro ao clonar voz:', error)
+    logger.error('Erro ao clonar voz', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: tts/elevenlabs/clone' })
     return NextResponse.json(
       {
         success: false,

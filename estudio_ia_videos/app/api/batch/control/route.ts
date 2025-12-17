@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { batchSystem } from '@/lib/batch-processing-system';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/batch/control
@@ -67,9 +68,10 @@ export async function POST(request: NextRequest) {
       message: `Job ${action} successful`,
     });
   } catch (error) {
-    console.error('Batch control error:', error);
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logger.error('Batch control error', errorObj, { component: 'API: /api/batch/control' });
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Batch control failed' },
+      { error: errorObj.message || 'Batch control failed' },
       { status: 500 }
     );
   }

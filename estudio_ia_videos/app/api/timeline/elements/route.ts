@@ -101,9 +101,9 @@ export async function GET(request: NextRequest) {
     // Verificar permissões
     let hasPermission = false
     if (projectId) {
-      const { data: projectData } = await (supabase
+      const { data: projectData } = await supabase
         .from('projects')
-        .select('owner_id, collaborators, is_public') as any)
+        .select('owner_id, collaborators, is_public')
         .eq('id', projectId)
         .single()
 
@@ -114,11 +114,11 @@ export async function GET(request: NextRequest) {
                        !!project.is_public
       }
     } else if (trackId) {
-      const { data: trackData } = await (supabase
+      const { data: trackData } = await supabase
         .from('timeline_tracks')
         .select(`
           project:projects(owner_id, collaborators, is_public)
-        `) as any)
+        `)
         .eq('id', trackId)
         .single()
 
@@ -138,9 +138,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Construir query
-    let query = (supabase
+    let query = supabase
       .from('timeline_elements')
-      .select('*') as any)
+      .select('*')
       .order('start_time', { ascending: true })
 
     if (trackId) {
@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ elements: authorizedElements })
+    return NextResponse.json({ elements: elementsData })
 
   } catch (error) {
     logger.error('Erro na API de elementos:', error instanceof Error ? error : new Error(String(error)), { component: 'API: timeline/elements' })
@@ -197,12 +197,12 @@ export async function POST(request: NextRequest) {
     const validatedData = createElementSchema.parse(body)
 
     // Verificar se a track existe e obter dados do projeto
-    const { data: trackData } = await (supabase
+    const { data: trackData } = await supabase
       .from('timeline_tracks')
       .select(`
         *,
         project:projects(owner_id, collaborators)
-      `) as any)
+      `)
       .eq('id', validatedData.track_id)
       .single()
 
@@ -257,9 +257,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar sobreposição de elementos (opcional - pode ser configurável)
-    const { data: overlappingElements } = await (supabase
+    const { data: overlappingElements } = await supabase
       .from('timeline_elements')
-      .select('id, start_time, duration') as any)
+      .select('id, start_time, duration')
       .eq('track_id', validatedData.track_id)
       .or(`and(start_time.lte.${validatedData.start_time},end_time.gt.${validatedData.start_time}),and(start_time.lt.${validatedData.start_time + validatedData.duration},end_time.gte.${validatedData.start_time + validatedData.duration})`)
 
@@ -274,14 +274,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar elemento
-    const { data: elementData, error } = await (supabase
+    const { data: elementData, error } = await supabase
       .from('timeline_elements')
       .insert({
         ...validatedData,
         properties: defaultProperties,
         effects: validatedData.effects || [],
         transitions: validatedData.transitions || {}
-      }) as any)
+      })
       .select()
       .single()
 
@@ -296,7 +296,7 @@ export async function POST(request: NextRequest) {
     const element = elementData as unknown as TimelineElement;
     
     // Registrar no histórico
-    await (supabase
+    await supabase
       .from('project_history')
       .insert({
         project_id: validatedData.project_id,
@@ -307,8 +307,8 @@ export async function POST(request: NextRequest) {
         description: `Elemento ${element.type || 'desconhecido'} adicionado à timeline`,
         changes: {
           created_element: element
-        } as any
-      }) as any)
+        }
+      })
 
     return NextResponse.json(element, { status: 201 })
 
@@ -355,7 +355,7 @@ export async function PUT(request: NextRequest) {
     const validatedData = moveElementSchema.parse(body)
 
     // Verificar se o elemento existe
-    const { data: existingElementData } = await (supabase
+    const { data: existingElementData } = await supabase
       .from('timeline_elements')
       .select(`
         *,
@@ -363,7 +363,7 @@ export async function PUT(request: NextRequest) {
           *,
           project:projects(owner_id, collaborators)
         )
-      `) as any)
+      `)
       .eq('id', elementId)
       .single()
 
@@ -390,9 +390,9 @@ export async function PUT(request: NextRequest) {
 
     // Se mudando de track, verificar se a nova track existe e pertence ao mesmo projeto
     if (validatedData.track_id && validatedData.track_id !== existingElement.track_id) {
-      const { data: newTrackData } = await (supabase
+      const { data: newTrackData } = await supabase
         .from('timeline_tracks')
-        .select('project_id, locked') as any)
+        .select('project_id, locked')
         .eq('id', validatedData.track_id)
         .single()
 
@@ -427,9 +427,9 @@ export async function PUT(request: NextRequest) {
     if (validatedData.start_time !== undefined) updateData.start_time = validatedData.start_time
     if (validatedData.duration !== undefined) updateData.duration = validatedData.duration
 
-    const { data: element, error } = await (supabase
+    const { data: element, error } = await supabase
       .from('timeline_elements')
-      .update(updateData) as any)
+      .update(updateData)
       .eq('id', elementId)
       .select()
       .single()
@@ -446,7 +446,7 @@ export async function PUT(request: NextRequest) {
     
     if (currentProjectId) {
       // Registrar no histórico
-      await (supabase
+      await supabase
         .from('project_history')
         .insert({
           project_id: currentProjectId,
@@ -462,8 +462,8 @@ export async function PUT(request: NextRequest) {
               duration: existingElement.duration
             },
             new_data: updateData
-          } as any
-        }) as any)
+          }
+        })
     }
 
     return NextResponse.json(element)

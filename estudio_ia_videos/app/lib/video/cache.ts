@@ -142,7 +142,8 @@ export class RenderingCache extends EventEmitter {
     const entry = this.entries.get(key);
     if (entry) {
       try {
-        await fs.unlink(entry.outputPath).catch(() => {}); // Ignore if file missing
+        // Cleanup intencional: Ignora erro se arquivo não existir (já foi deletado)
+        await fs.unlink(entry.outputPath).catch(() => {});
       } catch (e) {
         // ignore
       }

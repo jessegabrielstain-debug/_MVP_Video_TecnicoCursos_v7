@@ -6,7 +6,7 @@
 
 'use client'
 
-import React, { forwardRef, useImperativeHandle, useRef, useState, useCallback, useEffect } from 'react'
+import React, { forwardRef, useImperativeHandle, useRef, useState, useCallback, useEffect, CSSProperties } from 'react'
 import { logger } from '@/lib/logger'
 import { UnifiedSlide, UnifiedElement, EditorState, EditorEvent, EditorConfig } from '@/lib/types-unified-v2'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,14 @@ import {
   Image as ImageIcon
 } from 'lucide-react'
 import Image from 'next/image'
+
+// Helper to safely cast unknown style values to CSS property types
+const toCSSTextAlign = (value: unknown): CSSProperties['textAlign'] => 
+  typeof value === 'string' ? value as CSSProperties['textAlign'] : undefined
+const toCSSFontWeight = (value: unknown): CSSProperties['fontWeight'] => 
+  typeof value === 'string' || typeof value === 'number' ? value as CSSProperties['fontWeight'] : undefined
+const toCSSFontStyle = (value: unknown): CSSProperties['fontStyle'] => 
+  typeof value === 'string' ? value as CSSProperties['fontStyle'] : undefined
 
 interface CanvasEditorProps {
   slide?: UnifiedSlide | null
@@ -415,9 +423,9 @@ const CanvasEditorV2 = forwardRef<CanvasEditorHandle, CanvasEditorProps>(({
                 fontSize: element.style.fontSize,
                 fontFamily: element.style.fontFamily,
                 color: element.style.color,
-                textAlign: element.style.textAlign as any,
-                fontWeight: element.style.fontWeight as any,
-                fontStyle: element.style.fontStyle as any
+                textAlign: toCSSTextAlign(element.style.textAlign),
+                fontWeight: toCSSFontWeight(element.style.fontWeight),
+                fontStyle: toCSSFontStyle(element.style.fontStyle)
               }}
               onBlur={(e) => {
                 onElementUpdate(element.id, { content: e.target.value })
@@ -439,9 +447,9 @@ const CanvasEditorV2 = forwardRef<CanvasEditorHandle, CanvasEditorProps>(({
                 fontFamily: element.style.fontFamily,
                 color: element.style.color,
                 backgroundColor: element.style.backgroundColor as string,
-                textAlign: element.style.textAlign as any,
-                fontWeight: element.style.fontWeight as any,
-                fontStyle: element.style.fontStyle as any,
+                textAlign: toCSSTextAlign(element.style.textAlign),
+                fontWeight: toCSSFontWeight(element.style.fontWeight),
+                fontStyle: toCSSFontStyle(element.style.fontStyle),
                 wordWrap: 'break-word',
                 overflow: 'hidden'
               }}

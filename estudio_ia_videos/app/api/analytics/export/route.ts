@@ -107,9 +107,9 @@ export async function GET(request: NextRequest) {
       });
 
     } catch (error) {
-      logger.error('[Export API] Error', {
-        component: 'API: analytics/export',
-        error: error instanceof Error ? error : new Error(String(error))
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('[Export API] Error', err, {
+        component: 'API: analytics/export'
       });
       return NextResponse.json(
         { error: 'Export failed', details: error instanceof Error ? error.message : 'Unknown error' },
@@ -233,9 +233,9 @@ export async function POST(request: NextRequest) {
       });
 
     } catch (error) {
-      logger.error('[Export API] POST Error', {
-        component: 'API: analytics/export',
-        error: error instanceof Error ? error : new Error(String(error))
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('[Export API] POST Error', err, {
+        component: 'API: analytics/export'
       });
       return NextResponse.json(
         { error: 'Export failed', details: error instanceof Error ? error.message : 'Unknown error' },
@@ -266,9 +266,9 @@ export async function PUT(request: NextRequest) {
       });
 
     } catch (error) {
-      logger.error('[Export API] History Error', {
-        component: 'API: analytics/export',
-        error: error instanceof Error ? error : new Error(String(error))
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('[Export API] History Error', err, {
+        component: 'API: analytics/export'
       });
       return NextResponse.json(
         { error: 'Failed to get export history', details: error instanceof Error ? error.message : 'Unknown error' },

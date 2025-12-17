@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { heyGenService } from '@/lib/heygen-service';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,8 @@ export async function GET(req: NextRequest) {
       resetDate: quota.quota_reset_date,
     });
   } catch (error) {
-    console.error('Error fetching HeyGen quota:', error);
+    logger.error('Error fetching HeyGen quota:', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: heygen/credits' });
     return NextResponse.json(
       { error: 'Failed to fetch quota' },
       { status: 500 }

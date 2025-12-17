@@ -52,9 +52,9 @@ export async function middleware(req: NextRequest) {
 
   // Verificar acesso a rotas admin
   if (ADMIN_ROUTES.some(route => path.startsWith(route))) {
-    // Usando 'users' conforme schema atual, com cast para any pois não está nos tipos gerados
+    // Usando 'users' conforme schema atual
     const { data: profile } = await supabase
-      .from('users' as any)
+      .from('users')
       .select('role')
       .eq('id', session.user.id)
       .single()

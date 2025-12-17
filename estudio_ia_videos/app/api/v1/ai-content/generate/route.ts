@@ -280,10 +280,7 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    logger.error('Error generating AI content', {
-      component: 'API: v1/ai-content/generate',
-      error: error instanceof Error ? error : new Error(String(error))
-    })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error generating AI content', err, { component: 'API: v1/ai-content/generate' })
     return NextResponse.json(
       { success: false, error: 'Falha na geração de conteúdo' },
       { status: 500 }
@@ -334,10 +331,7 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    logger.error('Error fetching AI capabilities', {
-      component: 'API: v1/ai-content/generate',
-      error: error instanceof Error ? error : new Error(String(error))
-    })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error fetching AI capabilities', err, { component: 'API: v1/ai-content/generate' })
     return NextResponse.json(
       { success: false, error: 'Failed to fetch AI capabilities' },
       { status: 500 }

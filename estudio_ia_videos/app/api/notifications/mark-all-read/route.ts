@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/services'
+import { logger } from '@/lib/logger'
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -20,7 +21,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Mark all unread notifications as read
-    const { data: updatedNotifications, error } = await (supabaseAdmin as any)
+    // Note: notifications is a valid table added to SupabaseTable type
+    const { data: updatedNotifications, error } = await supabaseAdmin
       .from('notifications')
       .update({
         status: 'read',
@@ -35,8 +37,9 @@ export async function PATCH(request: NextRequest) {
     const updatedCount = updatedNotifications?.length || 0
 
     // Log the action for analytics
+    // Note: analytics_events is in SupabaseTable type
     try {
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
@@ -48,7 +51,7 @@ export async function PATCH(request: NextRequest) {
           created_at: new Date().toISOString()
         })
     } catch (analyticsError) {
-      console.warn('Failed to log mark all read action:', analyticsError)
+      logger.warn('Failed to log mark all read action', { component: 'API: notifications/mark-all-read' })
     }
 
     return NextResponse.json({
@@ -58,7 +61,7 @@ export async function PATCH(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Mark all notifications as read API error:', error)
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Mark all notifications as read API error', err, { component: 'API: notifications/mark-all-read' })
     
     return NextResponse.json(
       { 

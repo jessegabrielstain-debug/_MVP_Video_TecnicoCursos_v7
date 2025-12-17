@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { AIVideoAnalysisSystem } from '@/lib/ai-video-analysis-system';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/ai/analyze
@@ -41,7 +42,8 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('AI analysis error:', error);
+    logger.error('AI analysis error', error instanceof Error ? error : new Error(String(error))
+    , { component: 'API: ai/analyze' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Analysis failed' },
       { status: 500 }
@@ -89,7 +91,8 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Get analysis error:', error);
+    logger.error('Get analysis error', error instanceof Error ? error : new Error(String(error))
+    , { component: 'API: ai/analyze' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to get analysis' },
       { status: 500 }

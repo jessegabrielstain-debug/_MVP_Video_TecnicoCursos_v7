@@ -68,8 +68,15 @@ interface TimelineElement {
 interface Keyframe {
   time: number
   property: string
-  value: any
+  value: unknown
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out'
+}
+
+interface ElementAnimation {
+  delay?: number
+  duration?: number
+  type?: string
+  easing?: string
 }
 
 interface AnimakerTimelineMulticamProps {
@@ -206,9 +213,9 @@ export function AnimakerTimelineMulticam({
       slide.elements.forEach((element: UnifiedElement) => {
         const targetLayer = initialLayers.find(layer => layer.type === element.type)
         if (targetLayer) {
-          const animation = (element.animations && element.animations.length > 0) ? (element.animations[0] as any) : null;
-          const delay = animation?.delay || 0;
-          const animDuration = animation?.duration || 1000;
+          const animData = element.animations[0] as ElementAnimation | undefined
+          const delay = animData?.delay ?? 0
+          const animDuration = animData?.duration ?? 1000
 
           targetLayer.elements.push({
             id: `timeline_${element.id}`,

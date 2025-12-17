@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
             progress: currentJob.progress,
             error: currentJob.error_message,
             outputUrl: currentJob.output_url,
-            updatedAt: (currentJob as any).updated_at
+            updatedAt: 'updated_at' in currentJob ? currentJob.updated_at : undefined
           };
 
           const sseData = `data: ${JSON.stringify(data)}\n\n`;
@@ -70,7 +70,8 @@ export async function GET(request: NextRequest) {
 
           setTimeout(sendUpdate, 1000);
         } catch (e) {
-          logger.error('Error in progress stream', { component: 'API: render/progress', error: e instanceof Error ? e : new Error(String(e)) });
+          const err = e instanceof Error ? e : new Error(String(e))
+          logger.error('Error in progress stream', err, { component: 'API: render/progress' })
           controller.close();
         }
       };

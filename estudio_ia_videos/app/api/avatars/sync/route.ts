@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
     try {
       avatarModel = await avatarEngine.loadAvatar(avatarId);
     } catch (error) {
-      logger.error('Erro ao carregar avatar', { component: 'API: avatars/sync', error: error instanceof Error ? error : new Error(String(error)) });
+      const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao carregar avatar', err, { component: 'API: avatars/sync' });
       return NextResponse.json(
         { error: 'Erro ao carregar avatar 3D' },
         { status: 500 }
@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
       processingTime: Date.now() - startTime
     });
 
-    logger.error('Erro na sincronização do avatar', { component: 'API: avatars/sync', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro na sincronização do avatar', err, { component: 'API: avatars/sync' });
 
     return NextResponse.json(
       { 
@@ -299,7 +299,8 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('Erro ao obter informações dos avatares:', error);
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao obter informações dos avatares', errorObj, { component: 'API: avatars/sync' });
     
     return NextResponse.json(
       { 

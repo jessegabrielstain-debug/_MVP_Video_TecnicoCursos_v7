@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Erro no upload', { component: 'API: upload-with-notifications', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro no upload', err, { component: 'API: upload-with-notifications' });
     
     return NextResponse.json(
       { 
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Erro ao buscar progresso', { component: 'API: upload-with-notifications', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao buscar progresso', err, { component: 'API: upload-with-notifications' });
     
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
@@ -184,7 +184,7 @@ export async function PATCH(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Erro na ação do upload', { component: 'API: upload-with-notifications', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro na ação do upload', err, { component: 'API: upload-with-notifications' });
     
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
@@ -221,7 +221,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Erro ao deletar upload', { component: 'API: upload-with-notifications', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao deletar upload', err, { component: 'API: upload-with-notifications' });
     
     return NextResponse.json(
       { error: 'Erro interno do servidor' },

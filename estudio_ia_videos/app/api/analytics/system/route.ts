@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { analytics } from '@/lib/analytics-standalone';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/analytics/system
@@ -46,7 +47,8 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao obter métricas do sistema:', error);
+    logger.error('❌ Erro ao obter métricas do sistema:', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: analytics/system' });
     return NextResponse.json(
       { error: 'Erro ao obter métricas do sistema' },
       { status: 500 }

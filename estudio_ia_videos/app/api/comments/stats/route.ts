@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { commentsService } from '@/lib/collab/comments-service';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +30,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ stats });
   } catch (error) {
-    console.error('❌ Erro ao buscar estatísticas de comentários:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao buscar estatísticas de comentários', err, { component: 'API: comments/stats' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erro ao buscar estatísticas' },
       { status: 500 }

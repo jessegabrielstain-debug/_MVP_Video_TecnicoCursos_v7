@@ -5,6 +5,7 @@
 import { NextRequest } from 'next/server';
 import { notificationManager } from '@/lib/notifications/notification-manager';
 import { getWebSocketServer } from '@/lib/notifications/websocket-server';
+import { logger } from '@/lib/logger';
 
 interface UploadProgressData {
   uploadId: string;
@@ -213,7 +214,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error sending upload notification:', error);
+    logger.error('Error sending upload notification', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: notifications/upload' });
     return Response.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

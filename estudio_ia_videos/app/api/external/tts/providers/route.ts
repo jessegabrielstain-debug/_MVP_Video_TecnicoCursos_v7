@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/services'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import type { Json } from '@/lib/supabase/types'
 
 // Validation schema
 const TTSProviderSchema = z.object({
@@ -30,6 +31,16 @@ const TTSProviderSchema = z.object({
     monthly_quota: z.number().optional()
   }).optional()
 })
+
+// TTS Provider config interface for DB rows
+interface TTSProviderConfig {
+  provider_id: string
+  provider_name: string
+  provider_type: string
+  enabled: boolean
+  config: Record<string, unknown>
+  pricing: Record<string, unknown>
+}
 
 // Default TTS providers configuration
 const defaultProviders = [
@@ -115,7 +126,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's TTS provider configurations
-    const { data: userProviders, error } = await (supabaseAdmin as any)
+    const { data: userProviders, error } = await supabaseAdmin
       .from('user_external_api_configs')
       .select('*')
       .eq('user_id', session.user.id)
@@ -140,15 +151,24 @@ export async function GET(request: NextRequest) {
         updated_at: new Date().toISOString()
       }))
 
-      const { data: createdConfigs, error: createError } = await (supabaseAdmin as any)
+      const { data: createdConfigs, error: createError } = await supabaseAdmin
         .from('user_external_api_configs')
         .insert(defaultConfigs)
         .select()
 
       if (createError) throw createError
 
+interface TTSProviderConfig {
+  provider_id: string;
+  provider_name: string;
+  provider_type: string;
+  enabled: boolean;
+  config: Record<string, unknown>;
+  pricing: Record<string, unknown>;
+}
+
       // Transform to expected format
-      const providers = createdConfigs.map((config: any) => ({
+      const providers = (createdConfigs as TTSProviderConfig[]).map((config) => ({
         id: config.provider_id,
         name: config.provider_name,
         type: config.provider_type,
@@ -165,7 +185,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform existing configurations to expected format
-    const providers = userProviders.map((config: any) => ({
+    const providers = (userProviders as TTSProviderConfig[]).map((config) => ({
       id: config.provider_id,
       name: config.provider_name,
       type: config.provider_type,
@@ -181,7 +201,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Get TTS providers API error', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: external/tts/providers' })
+    logger.error('Get TTS providers API error', error instanceof Error ? error : new Error(String(error)), { component: 'API: external/tts/providers'  })
     
     return NextResponse.json(
       { 
@@ -213,7 +233,7 @@ export async function POST(request: NextRequest) {
     const providerId = `${providerData.type}-${Date.now()}`
 
     // Create new TTS provider configuration
-    const { data: newProvider, error } = await (supabaseAdmin as any)
+    const { data: newProvider, error } = await supabaseAdmin
       .from('user_external_api_configs')
       .insert({
         user_id: session.user.id,
@@ -244,11 +264,11 @@ export async function POST(request: NextRequest) {
             provider_id: providerId,
             provider_type: providerData.type,
             timestamp: new Date().toISOString()
-          } as any,
+          } as Json,
           created_at: new Date().toISOString()
-        } as any)
+        })
     } catch (analyticsError) {
-      logger.warn('Failed to log TTS provider creation', { error: analyticsError, component: 'API: external/tts/providers' })
+      logger.warn('Failed to log TTS provider creation', { component: 'API: external/tts/providers' })
     }
 
     // Transform to expected format
@@ -268,7 +288,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
-    logger.error('Create TTS provider API error', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: external/tts/providers' })
+    logger.error('Create TTS provider API error', error instanceof Error ? error : new Error(String(error)), { component: 'API: external/tts/providers'  })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

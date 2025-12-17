@@ -2,6 +2,7 @@
 'use client'
 
 import useSWR from 'swr'
+import { logger } from '@/lib/logger'
 
 interface Metrics {
   overview: {
@@ -45,7 +46,7 @@ const fetcher = async (url: string) => {
     const data = await res.json()
     return data.data || data // Support both {data: ...} and direct response
   } catch (error) {
-    console.error('Error fetching:', error)
+    logger.error('Error fetching metrics', error as Error, { component: 'use-metrics' })
     // Return fallback data on error
     return {
       overview: {

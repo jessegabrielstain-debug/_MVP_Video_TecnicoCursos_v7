@@ -10,7 +10,10 @@ const ContextMenu = ContextMenuPrimitive.Root;
 
 const ContextMenuTrigger = ContextMenuPrimitive.Trigger;
 
-const ContextMenuGroup = (ContextMenuPrimitive as any).Group;
+// Note: Group might not be exported directly in some versions
+const ContextMenuGroup = ContextMenuPrimitive.Group ?? (
+  (props: React.HTMLAttributes<HTMLDivElement>) => <div role="group" {...props} />
+);
 
 const ContextMenuPortal = ContextMenuPrimitive.Portal;
 

@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import ElevenLabsService from '@/lib/elevenlabs-service'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   try {
@@ -13,7 +14,8 @@ export async function GET() {
       count: voices.length
     })
   } catch (error) {
-    console.error('Erro ao buscar vozes ElevenLabs:', error)
+    logger.error('Erro ao buscar vozes ElevenLabs', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: tts/elevenlabs/voices' })
     return NextResponse.json(
       {
         success: false,

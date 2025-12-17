@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Get render jobs API error', { component: 'API: render/jobs', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Get render jobs API error', err, { component: 'API: render/jobs' })
     return NextResponse.json(
       { success: false, error: 'Failed to retrieve render jobs', jobs: [] },
       { status: 500 }
@@ -188,8 +188,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert job
-    // Note: using (supabase as any) because render_settings type may not match generated types
-    const { data: createdJob, error: createError } = await (supabase as any)
+    const { data: createdJob, error: createError } = await supabase
       .from('render_jobs')
       .insert({
         id: randomUUID(),
@@ -215,14 +214,14 @@ export async function POST(request: NextRequest) {
         webhookUrl: jobData.webhook_url
       })
     } catch (queueError) {
-      logger.error('Failed to add job to queue', { component: 'API: render/jobs', error: queueError instanceof Error ? queueError : new Error(String(queueError)) })
-      await (supabase as any).from('render_jobs').update({ status: 'failed', error_message: 'Failed to queue job' }).eq('id', createdJob.id)
+      logger.error('Failed to add job to queue', queueError instanceof Error ? queueError : new Error(String(queueError)) , { component: 'API: render/jobs' })
+      await supabase.from('render_jobs').update({ status: 'failed', error_message: 'Failed to queue job' }).eq('id', createdJob.id)
       throw new Error('Failed to queue render job')
     }
 
     // Log history (using analytics_events as project_history table might not exist)
     try {
-      await (supabase as any)
+      await supabase
         .from('analytics_events')
         .insert({
           user_id: user.id,
@@ -235,7 +234,7 @@ export async function POST(request: NextRequest) {
           }
         })
     } catch (historyError) {
-      logger.warn('Failed to log project history', { component: 'API: render/jobs', error: historyError instanceof Error ? historyError : new Error(String(historyError)) })
+      logger.warn('Failed to log project history', { component: 'API: render/jobs' })
     }
 
     return NextResponse.json({
@@ -245,7 +244,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
-    logger.error('Create render job API error', { component: 'API: render/jobs', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Create render job API error', err, { component: 'API: render/jobs' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

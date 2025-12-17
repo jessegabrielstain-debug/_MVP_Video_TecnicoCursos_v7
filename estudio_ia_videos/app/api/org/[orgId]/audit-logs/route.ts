@@ -9,6 +9,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getOrgContext, hasPermission } from '@/lib/multi-tenancy/org-context';
 import { getAuditLogs } from '@/lib/billing/audit-logger';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -56,7 +57,8 @@ export async function GET(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Erro ao buscar audit logs:', error);
+    logger.error('Erro ao buscar audit logs', error instanceof Error ? error : new Error(String(error)) 
+, { component: 'API: org/audit-logs' });
     return NextResponse.json(
       { error: 'Erro ao buscar logs' },
       { status: 500 }

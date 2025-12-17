@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/services'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import type { Json } from '@/lib/supabase/types'
 
 // Validation schema
 const MediaProviderSchema = z.object({
@@ -31,6 +32,16 @@ const MediaProviderSchema = z.object({
     premium_features: z.boolean().optional()
   }).optional()
 })
+
+// Provider config interface for DB rows
+interface ProviderConfig {
+  provider_id: string
+  provider_name: string
+  provider_type: string
+  enabled: boolean
+  config: Record<string, unknown>
+  pricing: Record<string, unknown>
+}
 
 // Default media providers configuration
 const defaultProviders = [
@@ -128,7 +139,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's media provider configurations
-    const { data: userProviders, error } = await (supabaseAdmin as any)
+    const { data: userProviders, error } = await supabaseAdmin
       .from('user_external_api_configs')
       .select('*')
       .eq('user_id', session.user.id)
@@ -153,15 +164,24 @@ export async function GET(request: NextRequest) {
         updated_at: new Date().toISOString()
       }))
 
-      const { data: createdConfigs, error: createError } = await (supabaseAdmin as any)
+      const { data: createdConfigs, error: createError } = await supabaseAdmin
         .from('user_external_api_configs')
         .insert(defaultConfigs)
         .select()
 
       if (createError) throw createError
 
+interface ProviderConfig {
+  provider_id: string;
+  provider_name: string;
+  provider_type: string;
+  enabled: boolean;
+  config: Record<string, unknown>;
+  pricing: Record<string, unknown>;
+}
+
       // Transform to expected format
-      const providers = createdConfigs.map((config: any) => ({
+      const providers = (createdConfigs as ProviderConfig[]).map((config) => ({
         id: config.provider_id,
         name: config.provider_name,
         type: config.provider_type,
@@ -178,7 +198,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform existing configurations to expected format
-    const providers = userProviders.map((config: any) => ({
+    const providers = (userProviders as ProviderConfig[]).map((config) => ({
       id: config.provider_id,
       name: config.provider_name,
       type: config.provider_type,
@@ -194,7 +214,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Get media providers API error', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: external/media/providers' })
+    logger.error('Get media providers API error', error instanceof Error ? error : new Error(String(error)), { component: 'API: external/media/providers'  })
     
     return NextResponse.json(
       { 
@@ -226,7 +246,7 @@ export async function POST(request: NextRequest) {
     const providerId = `${providerData.type}-${Date.now()}`
 
     // Create new media provider configuration
-    const { data: newProvider, error } = await (supabaseAdmin as any)
+    const { data: newProvider, error } = await supabaseAdmin
       .from('user_external_api_configs')
       .insert({
         user_id: session.user.id,
@@ -257,11 +277,11 @@ export async function POST(request: NextRequest) {
             provider_id: providerId,
             provider_type: providerData.type,
             timestamp: new Date().toISOString()
-          } as any,
+          } as Json,
           created_at: new Date().toISOString()
-        } as any)
+        })
     } catch (analyticsError) {
-      logger.warn('Failed to log media provider creation', { error: analyticsError, component: 'API: external/media/providers' })
+      logger.warn('Failed to log media provider creation', { component: 'API: external/media/providers' })
     }
 
     // Transform to expected format
@@ -281,7 +301,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
-    logger.error('Create media provider API error', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: external/media/providers' })
+    logger.error('Create media provider API error', error instanceof Error ? error : new Error(String(error)), { component: 'API: external/media/providers'  })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

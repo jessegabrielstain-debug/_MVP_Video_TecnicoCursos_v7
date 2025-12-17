@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { AnalyticsTracker } from '@/lib/analytics/analytics-tracker';
 import { logger } from '@/lib/logger';
+import { toJsonValue } from '@/lib/prisma-helpers';
 
 // Types for Timeline structures
 interface Keyframe {
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
             .from('timelines')
             .update({
                 tracks: tracks,
-                settings: settings as any,
+                settings: toJsonValue(settings),
                 total_duration: Math.ceil(totalDuration || 0),
                 version: (existingTimeline as TimelineRecord).version + 1,
                 updated_at: new Date().toISOString()
@@ -176,7 +177,7 @@ export async function POST(request: NextRequest) {
             .insert({
                 project_id: projectId,
                 tracks: tracks,
-                settings: settings as any,
+                settings: toJsonValue(settings),
                 total_duration: Math.ceil(totalDuration || 0),
                 version: 1
             })

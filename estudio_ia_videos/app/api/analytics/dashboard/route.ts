@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { prisma } from '@/lib/db';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/analytics/dashboard
@@ -334,8 +335,9 @@ async function getHandler(req: NextRequest) {
     return NextResponse.json(dashboardData);
 
   } catch (error: unknown) {
-    console.error('[Analytics Dashboard] Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Error fetching analytics dashboard', err, { component: 'API: analytics/dashboard' });
+    const message = err.message;
     return NextResponse.json(
       {
         error: 'Internal server error',

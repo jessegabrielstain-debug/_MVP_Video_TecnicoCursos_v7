@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { reviewWorkflowService } from '@/lib/collab/review-workflow';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,9 +30,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ status });
   } catch (error: unknown) {
-    console.error('❌ Erro ao buscar status de revisão:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao buscar status de revisão', err, { component: 'API: review/status' });
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Erro ao buscar status de revisão' },
+      { error: err.message },
       { status: 500 }
     );
   }

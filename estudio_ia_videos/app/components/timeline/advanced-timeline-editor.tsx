@@ -476,7 +476,12 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
             {/* Collaboration Overlay */}
             {showCollaboration && (
               <TimelineCollaborationOverlay 
-                collaborators={collaborators as any}
+                collaborators={collaborators.map(c => ({
+                  id: c.id,
+                  name: c.name,
+                  color: c.color || '#3b82f6',
+                  cursorX: c.cursor?.x
+                }))}
                 scrollX={scrollX}
                 pixelsPerSecond={pixelsPerSecond}
               />
@@ -519,7 +524,7 @@ export const AdvancedTimelineEditor: React.FC<AdvancedTimelineEditorProps> = ({
       <DragOverlay>
         {isDragging && dragData && (
           <TimelineElementCard
-            element={dragData.data as any}
+            element={dragData.data as unknown as TimelineElement}
             isSelected={false}
             isDragging={true}
             zoom={zoom}

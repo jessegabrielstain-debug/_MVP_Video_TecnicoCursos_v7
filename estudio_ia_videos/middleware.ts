@@ -87,6 +87,35 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl)
     }
 
+    // 4. Add performance headers for API responses
+    if (request.nextUrl.pathname.startsWith('/api')) {
+      // Add cache headers for certain API endpoints
+      const cacheableEndpoints = [
+        '/api/nr/courses',
+        '/api/nr/modules',
+        '/api/templates',
+      ];
+      
+      const isCacheable = cacheableEndpoints.some(ep => 
+        request.nextUrl.pathname.startsWith(ep)
+      );
+      
+      if (isCacheable && request.method === 'GET') {
+        response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+      } else if (request.method === 'GET') {
+        // Short cache for other GET endpoints
+        response.headers.set('Cache-Control', 'private, max-age=0, must-revalidate');
+      } else {
+        // No cache for mutations
+        response.headers.set('Cache-Control', 'no-store');
+      }
+      
+      // Security headers
+      response.headers.set('X-Content-Type-Options', 'nosniff');
+      response.headers.set('X-Frame-Options', 'DENY');
+      response.headers.set('X-XSS-Protection', '1; mode=block');
+    }
+
     return response
   } catch (e) {
     // If middleware fails, log error and allow request to proceed (fail open)

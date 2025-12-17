@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/analytics/metrics
@@ -157,7 +158,8 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Analytics Metrics] Error:', error);
+    logger.error('Error fetching analytics metrics', error instanceof Error ? error : new Error(String(error)) 
+, { component: 'API: analytics/metrics' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

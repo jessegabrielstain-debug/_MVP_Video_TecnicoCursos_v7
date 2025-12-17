@@ -69,3 +69,20 @@ export function getSupabaseForRequest(req: Request): SupabaseClient<Database> {
   // Fallback: Se não houver header, tenta usar cookies (Browser/Dashboard)
   return createClient();
 }
+
+/**
+ * Helper para acessar tabelas que não estão no schema Database gerado.
+ * Usa type assertion controlado para tabelas conhecidas mas não tipadas.
+ * 
+ * @example
+ * const { data } = await fromUntypedTable(supabase, 'avatars_3d').select('*')
+ */
+export function fromUntypedTable<T = Record<string, unknown>>(
+  client: SupabaseClient<Database>,
+  tableName: string
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (client as any).from(tableName) as ReturnType<SupabaseClient['from']> & {
+    select: (columns?: string) => Promise<{ data: T[] | null; error: Error | null }>;
+  };
+}

@@ -57,13 +57,26 @@ export async function POST(request: NextRequest) {
 
     if (projectError) throw projectError
 
+interface TimelineTrack {
+  name: string;
+  type: string;
+  elements?: Array<{
+    name: string;
+    duration: number;
+    properties?: {
+      content?: string;
+      src?: string;
+    };
+  }>;
+}
+
     // 2. Sync Slides (for Worker compatibility)
     // Find the main video/slide track
-    const tracks = projectData.tracks as any[]
+    const tracks = projectData.tracks as TimelineTrack[]
     const slideTrack = tracks.find(t => t.name === 'Slides PPTX' || t.type === 'video')
     
     if (slideTrack && slideTrack.elements) {
-        const slidesToInsert = slideTrack.elements.map((el: any, index: number) => ({
+        const slidesToInsert = slideTrack.elements.map((el, index: number) => ({
             project_id: newProject.id,
             order_index: index,
             title: el.name,
@@ -79,10 +92,8 @@ export async function POST(request: NextRequest) {
                 .insert(slidesToInsert)
             
             if (slidesError) {
-                logger.error('Error syncing slides', {
-                    component: 'API: timeline/projects',
-                    error: slidesError instanceof Error ? slidesError : new Error(String(slidesError))
-                })
+                const err = slidesError instanceof Error ? slidesError : new Error(String(slidesError))
+                logger.error('Error syncing slides', err, { component: 'API: timeline/projects' })
                 // We don't fail the request, but log it. 
                 // The project is created, but worker might fail.
             }
@@ -96,10 +107,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
-    logger.error('Error creating timeline project', {
-        component: 'API: timeline/projects',
-        error: error instanceof Error ? error : new Error(String(error))
-    })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error creating timeline project', err, { component: 'API: timeline/projects' })
     return NextResponse.json({
       success: false,
       error: 'Internal Server Error',
@@ -131,10 +139,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Error fetching projects', {
-        component: 'API: timeline/projects',
-        error: error instanceof Error ? error : new Error(String(error))
-    })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error fetching projects', err, { component: 'API: timeline/projects' })
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

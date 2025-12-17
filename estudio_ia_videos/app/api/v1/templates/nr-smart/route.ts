@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { listNRTemplates, NRTemplate as ServiceNRTemplate } from '@/lib/services/nr-templates-service'
+import { logger } from '@/lib/logger'
 
 interface NRTemplate {
   id: string
@@ -181,7 +182,7 @@ export async function GET(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Templates API Error:', error)
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Templates API Error', err, { component: 'API: v1/templates/nr-smart' })
     return NextResponse.json({
       success: false,
       error: 'Failed to fetch templates'
@@ -253,7 +254,7 @@ export async function POST(request: NextRequest) {
     }, { status: 400 })
     
   } catch (error) {
-    console.error('Templates POST Error:', error)
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Templates POST Error', err, { component: 'API: v1/templates/nr-smart' })
     return NextResponse.json({
       success: false,
       error: 'Failed to process request'

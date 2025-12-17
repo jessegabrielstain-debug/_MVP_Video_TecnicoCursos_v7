@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/services';
+import { logger } from '@/lib/logger';
 
 // Rota para testar a conexão com o Supabase
 export async function GET() {
@@ -18,13 +19,13 @@ export async function GET() {
       message: 'Conexão com Supabase estabelecida com sucesso',
       data
     });
-  } catch (error: any) {
-    console.error('Erro ao testar conexão com Supabase:', error);
+  } catch (error: unknown) {
+    logger.error('Erro ao testar conexão com Supabase', error instanceof Error ? error : new Error(String(error)), { component: 'SupabaseTestRoute' });
     
     return NextResponse.json({
       status: 'error',
       message: 'Falha na conexão com Supabase',
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 }

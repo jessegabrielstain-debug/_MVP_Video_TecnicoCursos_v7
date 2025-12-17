@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 /**
  * API Route: Login Automático para Desenvolvimento
@@ -92,7 +93,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
 
   } catch (err) {
-    console.error('Auto-login error:', err);
+    const errorObj = err instanceof Error ? err : new Error(String(err));
+    logger.error('Auto-login error', errorObj, { component: 'API: auth/auto-login' });
     return NextResponse.json(
       { error: 'Erro interno no auto-login' },
       { status: 500 }

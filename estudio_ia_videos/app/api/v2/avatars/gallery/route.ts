@@ -10,12 +10,13 @@ import { createRateLimiter, rateLimitPresets } from '../../../../lib/utils/rate-
 import { avatar3DPipeline } from '../../../../lib/avatar-3d-pipeline'
 import { supabase as supabaseClient } from '../../../../lib/services'
 import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/db';
 
 // Interface para avatar model da tabela
 interface AvatarModel {
   id: string;
   name: string;
-  display_name: string;
+  display_name: string | null;
   description: string;
   type: string;
   gender?: string;
@@ -28,17 +29,17 @@ interface AvatarModel {
   ray_tracing_support: boolean;
   lipsync_accuracy?: number;
   model_file_path?: string;
-  texture_files?: string[];
+  texture_files?: unknown;
   rig_file_path?: string;
-  animation_sets?: string[];
+  animation_sets?: unknown;
   blend_shapes_file?: string;
   supported_languages?: string[];
   is_active: boolean;
   usage_count?: number;
   avatar_stats?: unknown;
   rating?: number;
-  created_at?: string;
-  updated_at?: string;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 // Interface para categoria/qualidade filtros
@@ -64,13 +65,14 @@ export async function GET(request: NextRequest) {
     logger.info(`✨ Qualidade: ${quality || 'todas'}`, { component: 'API: v2/avatars/gallery' })
     logger.info(`🌍 Idioma: ${language || 'todos'}`, { component: 'API: v2/avatars/gallery' })
 
-    // Buscar avatares do Supabase
-    let query: any = ((supabaseClient as any)
-      .from('avatar_models')
+    // Buscar avatares do Supabase (avatar_models pode não existir no schema tipado)
+    type SupabaseQueryBuilder = ReturnType<typeof supabaseClient.from>
+    let query: SupabaseQueryBuilder = (supabaseClient
+      .from('avatar_models' as never) as SupabaseQueryBuilder)
       .select(`
         *,
         avatar_stats:avatar_stats(*)
-      `) as any)
+      `)
       .eq('is_active', true)
 
     // Aplicar filtros
@@ -110,21 +112,21 @@ export async function GET(request: NextRequest) {
     // Obter estatísticas do pipeline
     const stats = await avatar3DPipeline.getPipelineStats()
 
-    // Obter categorias e qualidades disponíveis
-    const { data: categoriesData } = await ((supabaseClient as any)
-      .from('avatar_models')
-      .select('type') as any)
-      .eq('is_active', true)
-      .not('type', 'is', null)
+    // Obter categorias e qualidades disponíveis usando Prisma
+    const categoriesData = await prisma.avatarModel.findMany({
+      where: { isActive: true, category: { not: null } },
+      select: { category: true },
+      distinct: ['category']
+    })
 
-    const { data: qualitiesData } = await ((supabaseClient as any)
-      .from('avatar_models')
-      .select('quality') as any)
-      .eq('is_active', true)
-      .not('quality', 'is', null)
+    const qualitiesData = await prisma.avatarModel.findMany({
+      where: { isActive: true, quality: { not: null } },
+      select: { quality: true },
+      distinct: ['quality']
+    })
 
-    const categories = Array.from(new Set((categoriesData as FilterItem[] || []).map(item => item.type).filter(Boolean)))
-    const qualities = Array.from(new Set((qualitiesData as FilterItem[] || []).map(item => item.quality).filter(Boolean)))
+    const categories = categoriesData.map(item => item.category).filter((c): c is string => Boolean(c))
+    const qualities = qualitiesData.map(item => item.quality).filter((q): q is string => Boolean(q))
 
     const response = {
       success: true,
@@ -197,7 +199,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response)
   } catch (error) {
-    logger.error('❌ Erro na API v2 Gallery', { component: 'API: v2/avatars/gallery', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('❌ Erro na API v2 Gallery', err, { component: 'API: v2/avatars/gallery' })
     
     return NextResponse.json({
       success: false,
@@ -222,22 +224,46 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'preview': {
-        // Buscar avatar do Supabase
-        const { data: avatarData, error } = await ((supabaseClient as any)
-          .from('avatar_models')
-          .select('*') as any)
-          .eq('id', avatarId)
-          .eq('is_active', true)
-          .single()
+        // Buscar avatar usando Prisma
+        const avatarData = await prisma.avatarModel.findFirst({
+          where: { id: avatarId, isActive: true }
+        })
 
-        if (error || !avatarData) {
+        if (!avatarData) {
           return NextResponse.json({
             success: false,
             error: { message: 'Avatar não encontrado', code: 'AVATAR_NOT_FOUND' }
           }, { status: 404 })
         }
 
-        const avatar = avatarData as AvatarModel;
+        // Map Prisma fields to expected format
+        const avatar: AvatarModel = {
+          id: avatarData.id,
+          name: avatarData.name,
+          display_name: avatarData.displayName,
+          description: avatarData.description ?? '',
+          type: avatarData.category ?? '',
+          gender: avatarData.gender ?? undefined,
+          quality: avatarData.quality ?? '',
+          thumbnail_url: avatarData.thumbnailUrl ?? undefined,
+          model_url: avatarData.modelUrl ?? undefined,
+          preview_video_url: avatarData.previewVideoUrl ?? undefined,
+          audio2face_compatible: avatarData.audio2FaceCompatible,
+          real_time_lipsync: avatarData.realTimeLipSync,
+          ray_tracing_support: avatarData.rayTracingSupport,
+          lipsync_accuracy: avatarData.lipSyncAccuracy ?? undefined,
+          model_file_path: avatarData.modelFilePath ?? undefined,
+          texture_files: avatarData.textureFiles ?? undefined,
+          rig_file_path: avatarData.rigFilePath ?? undefined,
+          animation_sets: avatarData.animationSets ?? undefined,
+          blend_shapes_file: avatarData.blendShapesFile ?? undefined,
+          supported_languages: avatarData.supportedLanguages,
+          usage_count: avatarData.usageCount,
+          rating: avatarData.rating ?? undefined,
+          is_active: avatarData.isActive,
+          created_at: avatarData.createdAt,
+          updated_at: avatarData.updatedAt
+        };
 
         return NextResponse.json({
           success: true,
@@ -281,13 +307,11 @@ export async function POST(request: NextRequest) {
           }, { status: 400 })
         }
 
-        // Verificar se o avatar existe
-        const { data: avatarData } = await ((supabaseClient as any)
-          .from('avatar_models')
-          .select('id, name, audio2face_compatible') as any)
-          .eq('id', avatarId)
-          .eq('is_active', true)
-          .single()
+        // Verificar se o avatar existe usando Prisma
+        const avatarData = await prisma.avatarModel.findFirst({
+          where: { id: avatarId, isActive: true },
+          select: { id: true, name: true, audio2FaceCompatible: true }
+        })
 
         if (!avatarData) {
           return NextResponse.json({
@@ -322,12 +346,12 @@ export async function POST(request: NextRequest) {
               avatar: {
                 id: avatarData.id,
                 name: avatarData.name,
-                audio2FaceCompatible: avatarData.audio2face_compatible
+                audio2FaceCompatible: avatarData.audio2FaceCompatible
               }
             }
           })
         } catch (lipSyncError) {
-          logger.error('Erro no teste de lip-sync', { component: 'API: v2/avatars/gallery', error: lipSyncError instanceof Error ? lipSyncError : new Error(String(lipSyncError)) })
+          logger.error('Erro no teste de lip-sync', lipSyncError instanceof Error ? lipSyncError : new Error(String(lipSyncError)) , { component: 'API: v2/avatars/gallery' })
           return NextResponse.json({
             success: false,
             error: { 
@@ -369,7 +393,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
     }
   } catch (error) {
-    logger.error('❌ Erro na ação da galeria', { component: 'API: v2/avatars/gallery', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('❌ Erro na ação da galeria', err, { component: 'API: v2/avatars/gallery' })
     
     return NextResponse.json({
       success: false,

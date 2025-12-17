@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Profile get error', { component: 'API: auth/profile', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Profile get error', err, { component: 'API: auth/profile' });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -113,7 +113,8 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Profile update error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Profile update error', err, { component: 'API: auth/profile' });
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

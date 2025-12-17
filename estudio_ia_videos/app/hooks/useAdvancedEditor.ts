@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useEditor } from './useEditor';
 import { useAdvancedAI } from './useAdvancedAI';
 import { useRealTimeCollaboration } from './useRealTimeCollaboration';
+import { logger } from '@/lib/logger';
 import type { ContentGenerationResult, ContentOptimization, OptimizableContentInput } from './useAdvancedAI';
 
 export interface TextLayerContent {
@@ -437,7 +438,7 @@ export const useAdvancedEditor = (): AdvancedEditorFeatures & {
       
     } catch (error) {
       setError('Failed to initialize editor');
-      console.error('Editor initialization error:', error);
+      logger.error('Editor initialization error', error as Error, { component: 'useAdvancedEditor' });
     } finally {
       setIsLoading(false);
     }

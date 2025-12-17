@@ -1,5 +1,6 @@
 
 import { useCallback } from 'react';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook para rastreamento de eventos de analytics
@@ -38,13 +39,13 @@ export function useAnalyticsTrack() {
       });
 
       if (!response.ok) {
-        console.warn('[Analytics] Track failed:', response.statusText);
+        logger.warn('[Analytics] Track failed', { statusText: response.statusText, component: 'useAnalyticsTrack' });
       }
 
       return response.json();
     } catch (error) {
       // Não queremos que falhas de analytics quebrem o app
-      console.warn('[Analytics] Track error:', error);
+      logger.warn('[Analytics] Track error', { error, component: 'useAnalyticsTrack' });
       return { success: false };
     }
   }, []);

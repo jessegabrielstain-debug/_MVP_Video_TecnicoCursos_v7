@@ -303,7 +303,7 @@ const AIContentGenerator = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="h-full flex flex-col">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'generate' | 'templates' | 'history' | 'analytics')} className="h-full flex flex-col">
           <TabsList className="w-full">
             <TabsTrigger value="generate" className="flex-1">Gerar Conteúdo</TabsTrigger>
             <TabsTrigger value="templates" className="flex-1">Templates IA</TabsTrigger>
@@ -325,7 +325,7 @@ const AIContentGenerator = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium mb-2 block">Tipo de Conteúdo</label>
-                      <Select value={generationType} onValueChange={(value) => setGenerationType(value as any)}>
+                      <Select value={generationType} onValueChange={(value) => setGenerationType(value as 'script' | 'video' | 'image' | 'audio' | 'presentation' | 'quiz')}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>

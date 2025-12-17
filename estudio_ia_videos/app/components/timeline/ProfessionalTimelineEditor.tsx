@@ -699,23 +699,32 @@ export default function ProfessionalTimelineEditor() {
 
   // Helper to convert tracks for preview player
   const getPreviewTracks = useCallback(() => {
-    return project.tracks.map(track => ({
-      id: track.id,
-      name: track.name,
-      type: track.type === 'video' ? 'video' : track.type === 'audio' ? 'audio' : 'text', // Simple mapping
-      color: track.color,
-      visible: track.visible,
-      locked: track.locked,
-      clips: track.elements.map(el => ({
-        id: el.id,
-        name: el.name,
-        startTime: el.startTime,
-        duration: el.duration,
-        content: el.content,
-        effects: []
-      }))
-    }));
-  }, [project.tracks]);
+    const validTypes = ['video', 'audio', 'text', 'image', 'shape', 'avatar'] as const
+    type ValidType = typeof validTypes[number]
+    
+    return project.tracks.map(track => {
+      const trackType: ValidType = validTypes.includes(track.type as ValidType) 
+        ? (track.type as ValidType) 
+        : 'video'
+      
+      return {
+        id: track.id,
+        name: track.name,
+        type: trackType,
+        color: track.color,
+        visible: track.visible,
+        locked: track.locked,
+        clips: track.elements.map(el => ({
+          id: el.id,
+          name: el.name,
+          startTime: el.startTime,
+          duration: el.duration,
+          content: el.content,
+          effects: [] as string[]
+        }))
+      }
+    })
+  }, [project.tracks])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
@@ -779,7 +788,7 @@ export default function ProfessionalTimelineEditor() {
                 <div className="aspect-video w-full max-h-full bg-gray-900 rounded-lg overflow-hidden shadow-2xl border border-gray-800 relative">
                   <UnifiedPreviewPlayer 
                     currentTime={project.currentTime}
-                    tracks={getPreviewTracks() as any} // Type casting for simplicity
+                    tracks={getPreviewTracks()}
                     isPlaying={project.isPlaying}
                   />
                   

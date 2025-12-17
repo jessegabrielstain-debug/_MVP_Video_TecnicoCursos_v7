@@ -393,8 +393,9 @@ export async function POST(request: NextRequest) {
     const totalCost = params.check_types.length * baseCost
 
     // Record usage
+    // Note: external_api_usage is a valid table but not in generated types
     try {
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('external_api_usage')
         .insert({
           user_id: session.user.id,
@@ -411,12 +412,13 @@ export async function POST(request: NextRequest) {
           created_at: new Date().toISOString()
         })
     } catch (usageLogError) {
-      logger.warn('Failed to log compliance check usage', { error: usageLogError, component: 'API: external/compliance/check' })
+      logger.warn('Failed to log compliance check usage', { component: 'API: external/compliance/check' })
     }
 
     // Log the action for analytics
+    // Note: analytics_events is in SupabaseTable type
     try {
-      await (supabaseAdmin as any)
+      await supabaseAdmin
         .from('analytics_events')
         .insert({
           user_id: session.user.id,
@@ -432,7 +434,7 @@ export async function POST(request: NextRequest) {
           }
         })
     } catch (analyticsError) {
-      logger.warn('Failed to log compliance check', { error: analyticsError, component: 'API: external/compliance/check' })
+      logger.warn('Failed to log compliance check', { component: 'API: external/compliance/check' })
     }
 
     return NextResponse.json({
@@ -448,7 +450,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Compliance check API error', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: external/compliance/check' })
+    logger.error('Compliance check API error', error instanceof Error ? error : new Error(String(error)), { component: 'API: external/compliance/check'  })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

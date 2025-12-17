@@ -7,6 +7,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { logger } from '@/lib/logger'
 import type {
   RenderJobRecord,
   RenderJobStatus,
@@ -224,7 +225,7 @@ export function useRenderProgress(
 
       return true
     } catch (error) {
-      console.error('[useRenderProgress] cancelJob error:', error)
+      logger.error('[useRenderProgress] cancelJob error', error as Error, { jobId, component: 'useRenderProgress' })
       return false
     }
   }, [jobId, stopPolling])
@@ -249,7 +250,7 @@ export function useRenderProgress(
       const data = await response.json()
       return data.job?.id ?? null
     } catch (error) {
-      console.error('[useRenderProgress] retryJob error:', error)
+      logger.error('[useRenderProgress] retryJob error', error as Error, { jobId: state.job?.id, component: 'useRenderProgress' })
       return null
     }
   }, [state.job])

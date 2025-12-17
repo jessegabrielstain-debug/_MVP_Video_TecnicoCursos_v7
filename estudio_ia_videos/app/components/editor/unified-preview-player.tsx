@@ -119,7 +119,13 @@ function ClipRenderer({ type, content, time, isPlaying }: ClipRendererProps) {
       }
       
       if (isPlaying && mediaElement.paused) {
-        mediaElement.play().catch(() => {});
+        mediaElement.play().catch((error) => {
+          // Audio/video play() pode falhar silenciosamente se bloqueado pelo browser
+          // (ex: autoplay policy). Não é crítico, apenas log para debug.
+          if (process.env.NODE_ENV === 'development') {
+            console.debug('Media play() failed (likely autoplay policy)', { error });
+          }
+        });
       } else if (!isPlaying && !mediaElement.paused) {
         mediaElement.pause();
       }

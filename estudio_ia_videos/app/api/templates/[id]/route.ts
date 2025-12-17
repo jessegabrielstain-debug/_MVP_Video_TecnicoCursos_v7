@@ -27,7 +27,8 @@ export async function GET(
 
     return NextResponse.json(template);
   } catch (error) {
-    logger.error('Error fetching template:', { component: 'API: templates/[id]', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Error fetching template:', err, { component: 'API: templates/[id]' })
     return NextResponse.json(
       { error: 'Failed to fetch template' },
       { status: 500 }
@@ -61,7 +62,8 @@ export async function PUT(
 
     return NextResponse.json(templates[templateIndex]);
   } catch (error) {
-    logger.error('Error updating template:', { component: 'API: templates/[id]', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Error updating template:', err, { component: 'API: templates/[id]' })
     return NextResponse.json(
       { error: 'Failed to update template' },
       { status: 500 }
@@ -98,7 +100,8 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Error deleting template:', { component: 'API: templates/[id]', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Error deleting template:', err, { component: 'API: templates/[id]' })
     return NextResponse.json(
       { error: 'Failed to delete template' },
       { status: 500 }
@@ -133,7 +136,7 @@ export async function PATCH(
 
     return NextResponse.json(templates[templateIndex]);
   } catch (error) {
-    logger.error('Error updating template:', { component: 'API: templates/[id]', error: error instanceof Error ? error : new Error(String(error)) });
+    logger.error('Error updating template:', error instanceof Error ? error : new Error(String(error)), { component: 'API: templates/[id]' });
     return NextResponse.json(
       { error: 'Failed to update template' },
       { status: 500 }

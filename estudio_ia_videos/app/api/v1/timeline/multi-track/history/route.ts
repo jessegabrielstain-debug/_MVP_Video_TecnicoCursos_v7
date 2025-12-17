@@ -86,11 +86,12 @@ export async function GET(request: NextRequest) {
       count: snapshots.length
     });
 
+    interface SnapshotRecord { id: string; version: number; createdAt: Date; createdBy: string | null; description?: string | null; tracks: unknown[] | unknown; totalDuration: number | null }
     return NextResponse.json({
       success: true,
       data: {
         currentVersion: currentTimeline.version,
-        history: snapshots.map((snapshot: any) => ({
+        history: snapshots.map((snapshot: SnapshotRecord) => ({
           id: snapshot.id,
           version: snapshot.version,
           createdAt: snapshot.createdAt.toISOString(),
@@ -111,10 +112,8 @@ export async function GET(request: NextRequest) {
 
   } catch (error: unknown) {
     const normalizedError = error instanceof Error ? error : new Error(String(error));
-    logger.error('❌ Erro ao buscar histórico:', {
-      component: 'API: v1/timeline/multi-track/history',
-      error: normalizedError
-    });
+    logger.error('❌ Erro ao buscar histórico:', normalizedError
+    , { component: 'API: v1/timeline/multi-track/history' });
     const message = normalizedError.message;
     return NextResponse.json(
       { success: false, message: 'Erro ao buscar histórico', error: message },

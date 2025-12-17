@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -96,7 +97,7 @@ export async function GET(request: NextRequest) {
       nrType: v.nr,
       score: v.score,
       createdAt: v.createdAt,
-      suggestions: v.recommendations ? (v.recommendations as any) : []
+      suggestions: Array.isArray(v.recommendations) ? v.recommendations : []
     }));
 
     return NextResponse.json({
@@ -112,7 +113,8 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching compliance metrics:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Error fetching compliance metrics', err, { component: 'API: compliance/metrics' });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

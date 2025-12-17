@@ -1,0 +1,94 @@
+{
+  "timestamp": "2025-12-16T05:01:48.594Z",
+  "total": 12,
+  "byCategory": {
+    "cleanup": [
+      {
+        "file": "estudio_ia_videos\\app\\lib\\legacy-import\\ai-narrator.ts",
+        "line": 530,
+        "code": ".catch(() => {})",
+        "category": "cleanup",
+        "recommendation": "✅ OK se documentado: Adicionar comentário explicando que cleanup failures são ignorados intencionalmente"
+      },
+      {
+        "file": "estudio_ia_videos\\app\\lib\\legacy-import\\pdf-processor.ts",
+        "line": 460,
+        "code": ".catch(() => {})",
+        "category": "cleanup",
+        "recommendation": "✅ OK se documentado: Adicionar comentário explicando que cleanup failures são ignorados intencionalmente"
+      },
+      {
+        "file": "estudio_ia_videos\\app\\lib\\legacy-import\\video-generator.ts",
+        "line": 495,
+        "code": ".catch(() => {})",
+        "category": "cleanup",
+        "recommendation": "✅ OK se documentado: Adicionar comentário explicando que cleanup failures são ignorados intencionalmente"
+      },
+      {
+        "file": "estudio_ia_videos\\app\\lib\\storage\\video-uploader.ts",
+        "line": 169,
+        "code": ".catch(() => {})",
+        "category": "cleanup",
+        "recommendation": "✅ OK se documentado: Adicionar comentário explicando que cleanup failures são ignorados intencionalmente"
+      },
+      {
+        "file": "estudio_ia_videos\\app\\lib\\supabase\\storage.ts",
+        "line": 80,
+        "code": ".catch(() => {})",
+        "category": "cleanup",
+        "recommendation": "✅ OK se documentado: Adicionar comentário explicando que cleanup failures são ignorados intencionalmente"
+      },
+      {
+        "file": "estudio_ia_videos\\app\\lib\\timeline\\beat-detector.ts",
+        "line": 57,
+        "code": ".catch(() => {})",
+        "category": "cleanup",
+        "recommendation": "✅ OK se documentado: Adicionar comentário explicando que cleanup failures são ignorados intencionalmente"
+      },
+      {
+        "file": "estudio_ia_videos\\app\\lib\\timeline\\beat-detector.ts",
+        "line": 270,
+        "code": ".catch(() => {})",
+        "category": "cleanup",
+        "recommendation": "✅ OK se documentado: Adicionar comentário explicando que cleanup failures são ignorados intencionalmente"
+      },
+      {
+        "file": "estudio_ia_videos\\app\\lib\\variable-data\\variable-data-engine.ts",
+        "line": 510,
+        "code": ".catch(() => {})",
+        "category": "cleanup",
+        "recommendation": "✅ OK se documentado: Adicionar comentário explicando que cleanup failures são ignorados intencionalmente"
+      },
+      {
+        "file": "estudio_ia_videos\\app\\lib\\variable-data\\variable-data-engine.ts",
+        "line": 513,
+        "code": ".catch(() => {})",
+        "category": "cleanup",
+        "recommendation": "✅ OK se documentado: Adicionar comentário explicando que cleanup failures são ignorados intencionalmente"
+      },
+      {
+        "file": "estudio_ia_videos\\app\\lib\\video\\cache.ts",
+        "line": 145,
+        "code": ".catch(() => {})",
+        "category": "cleanup",
+        "recommendation": "✅ OK se documentado: Adicionar comentário explicando que cleanup failures são ignorados intencionalmente"
+      }
+    ],
+    "silent_error": [
+      {
+        "file": "estudio_ia_videos\\app\\components\\editor\\unified-preview-player.tsx",
+        "line": 122,
+        "code": ".catch(() => {})",
+        "category": "silent_error",
+        "recommendation": "⚠️  Adicionar logging mínimo: logger.warn(\"Operation failed silently\", { component: \"...\" })"
+      },
+      {
+        "file": "estudio_ia_videos\\app\\components\\notifications\\NotificationsCenter.tsx",
+        "line": 275,
+        "code": ".catch(() => { })",
+        "category": "silent_error",
+        "recommendation": "⚠️  Adicionar logging mínimo: logger.warn(\"Operation failed silently\", { component: \"...\" })"
+      }
+    ]
+  }
+}

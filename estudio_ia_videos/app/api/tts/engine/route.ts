@@ -88,13 +88,13 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
-    logger.error('TTS generation failed', error)
+  } catch (error: unknown) {
+    logger.error('TTS generation failed', error instanceof Error ? error : new Error(String(error)))
     
     return NextResponse.json(
       { 
         error: 'TTS generation failed',
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       },
       { status: 500 }
@@ -128,8 +128,8 @@ export async function GET(request: NextRequest) {
         // Health check dos engines
         const engines = ttsEngineManager.getEngineStats()
         const healthStatus = {
-          overall: engines.every((e: any) => e.status === 'healthy') ? 'healthy' : 'degraded',
-          engines: engines.map((e: any) => ({
+          overall: engines.every(e => e.status === 'healthy') ? 'healthy' : 'degraded',
+          engines: engines.map(e => ({
             id: e.engine_id,
             status: e.status,
             success_rate: e.success_rate,
@@ -150,13 +150,13 @@ export async function GET(request: NextRequest) {
         )
     }
 
-  } catch (error: any) {
-    logger.error('TTS Engine API GET failed', error)
+  } catch (error: unknown) {
+    logger.error('TTS Engine API GET failed', error instanceof Error ? error : new Error(String(error)))
     
     return NextResponse.json(
       { 
         error: 'Request failed',
-        message: error.message 
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     )
@@ -180,11 +180,11 @@ export async function DELETE(request: NextRequest) {
     // Cancelar job (se ainda estiver em processamento)
     // Por enquanto, apenas marcar como cancelado no banco
     const { error } = await (supabase
-      .from('tts_jobs' as any)
+      .from('tts_jobs' as never) as ReturnType<typeof supabase.from>)
       .update({ 
         status: 'cancelled',
         updated_at: new Date().toISOString()
-      }) as any)
+      })
       .eq('job_id', jobId)
 
     if (error) {
@@ -198,13 +198,13 @@ export async function DELETE(request: NextRequest) {
       message: 'Job cancelled successfully'
     })
 
-  } catch (error: any) {
-    logger.error('TTS job cancellation failed', error)
+  } catch (error: unknown) {
+    logger.error('TTS job cancellation failed', error instanceof Error ? error : new Error(String(error)))
     
     return NextResponse.json(
       { 
         error: 'Cancellation failed',
-        message: error.message 
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     )

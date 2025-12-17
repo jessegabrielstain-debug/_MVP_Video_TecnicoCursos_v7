@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +14,8 @@ export async function GET(request: NextRequest) {
       expires: session?.expires || null
     })
   } catch (error) {
-    console.error('Session error:', error)
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logger.error('Session error', errorObj, { component: 'API: auth/session' })
     return NextResponse.json({
       user: null,
       expires: null

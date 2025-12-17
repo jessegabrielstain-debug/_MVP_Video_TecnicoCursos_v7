@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { generateComplianceReport } from '@/lib/compliance/report-generator'
+import { logger } from '@/lib/logger'
 
 export async function GET(
   req: NextRequest,
@@ -47,8 +48,8 @@ export async function GET(
     // Gera relatório PDF
     const reportBuffer = await generateComplianceReport(record)
 
-    // Retorna PDF
-    return new NextResponse(reportBuffer as any, {
+    // Retorna PDF - Buffer is compatible with NextResponse body
+    return new NextResponse(reportBuffer as Uint8Array, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="relatorio-compliance-${record.nr}-${record.id}.pdf"`
@@ -56,7 +57,8 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('[COMPLIANCE_REPORT_ERROR]', error)
+    logger.error('Erro ao gerar relatório', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: compliance/report/[id]' })
     return NextResponse.json(
       { error: 'Erro ao gerar relatório' },
       { status: 500 }

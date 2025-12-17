@@ -203,10 +203,7 @@ async function getHandler(req: NextRequest) {
     });
 
   } catch (error: unknown) {
-    logger.error('[Analytics Reports] Error', {
-      component: 'API: analytics/reports',
-      error: error instanceof Error ? error : new Error(String(error))
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('[Analytics Reports] Error', err, { component: 'API: analytics/reports' });
     
     return NextResponse.json(
       {
@@ -332,10 +329,7 @@ async function postHandler(req: NextRequest) {
     });
 
   } catch (error: unknown) {
-    logger.error('[Analytics Reports POST] Error', {
-      component: 'API: analytics/reports',
-      error: error instanceof Error ? error : new Error(String(error))
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('[Analytics Reports POST] Error', err, { component: 'API: analytics/reports' });
     
     return NextResponse.json(
       {
@@ -417,10 +411,7 @@ async function deleteHandler(req: NextRequest) {
     });
 
   } catch (error: unknown) {
-    logger.error('[Analytics Reports DELETE] Error', {
-      component: 'API: analytics/reports',
-      error: error instanceof Error ? error : new Error(String(error))
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('[Analytics Reports DELETE] Error', err, { component: 'API: analytics/reports' });
     
     return NextResponse.json(
       {

@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ comment })
 
   } catch (error) {
-    logger.error('Erro ao criar comentário', { component: 'API: comments', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao criar comentário', err, { component: 'API: comments' })
     return NextResponse.json(
       { error: 'Erro ao criar comentário' },
       { status: 500 }
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ comments })
 
   } catch (error) {
-    logger.error('Erro ao buscar comentários', { component: 'API: comments', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao buscar comentários', err, { component: 'API: comments' })
     return NextResponse.json(
       { error: 'Erro ao buscar comentários' },
       { status: 500 }

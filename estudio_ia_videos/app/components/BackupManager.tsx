@@ -226,7 +226,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ className = '' }) 
     }
   };
 
-  const handleConfigUpdate = async (key: string, value: boolean | number) => {
+  const handleConfigUpdate = async (key: string, value: boolean | number | { daily: number; weekly: number; monthly: number }) => {
     try {
       await updateConfig({ [key]: value });
       toast({
@@ -713,7 +713,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ className = '' }) 
                   id="retention-days"
                   type="number"
                   value={config.retentionPolicy.daily}
-                  onChange={(e) => handleConfigUpdate('retentionPolicy', { ...config.retentionPolicy, daily: parseInt(e.target.value) } as any)}
+                  onChange={(e) => handleConfigUpdate('retentionPolicy', { ...config.retentionPolicy, daily: parseInt(e.target.value) })}
                   min="1"
                   max="365"
                 />

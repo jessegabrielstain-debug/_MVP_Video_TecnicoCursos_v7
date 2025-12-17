@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 const ClearQueueSchema = z.object({
   statuses: z.array(z.enum(['completed', 'failed', 'cancelled'])).default(['completed', 'failed', 'cancelled'])
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
           }
         })
     } catch (analyticsError) {
-      console.warn('Failed to log queue clear event:', analyticsError)
+      logger.warn('Failed to log queue clear event', { component: 'API: render/queue/clear' })
     }
 
     return NextResponse.json({
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Clear queue API error:', error)
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Clear queue API error', err, { component: 'API: render/queue/clear' })
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

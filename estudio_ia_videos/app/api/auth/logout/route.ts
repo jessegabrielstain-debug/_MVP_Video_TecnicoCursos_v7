@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth/auth-service';
 import { AuthMiddleware } from '@/lib/auth/auth-middleware';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,12 +26,12 @@ export async function POST(request: NextRequest) {
     AuthMiddleware.clearAuthCookies(response);
 
     // Log de segurança
-    console.log(`User logged out at ${new Date().toISOString()}`);
+    logger.info('User logged out', { component: 'API: auth/logout', timestamp: new Date().toISOString() });
 
     return response;
 
   } catch (error) {
-    console.error('Logout error:', error);
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Logout error', err, { component: 'API: auth/logout' });
     
     // Mesmo com erro, limpar cookies
     const response = NextResponse.json({

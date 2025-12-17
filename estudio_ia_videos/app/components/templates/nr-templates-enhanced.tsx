@@ -706,7 +706,7 @@ export default function NRTemplatesEnhanced() {
 
             <div>
               <label className="text-sm font-medium">Ordenar por</label>
-              <Select value={sortBy} onValueChange={(value: string) => setSortBy(value as any)}>
+              <Select value={sortBy} onValueChange={(value: string) => setSortBy(value as 'relevancia' | 'popularidade' | 'avaliacao' | 'recente')}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

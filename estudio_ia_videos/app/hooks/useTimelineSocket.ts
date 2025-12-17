@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { createClient as createBrowserSupabaseClient } from '@/lib/supabase/client'
 import { RealtimeChannel } from '@supabase/supabase-js'
+import { logger } from '@/lib/logger'
 
 // Re-export types from legacy file or define them here if needed
 // For now, we define compatible types
@@ -118,7 +119,7 @@ export function useTimelineSocket({
     if (channelRef.current) return
 
     try {
-      console.log('[Timeline Realtime] Connecting to channel:', `timeline:${projectId}`)
+      logger.debug('[Timeline Realtime] Connecting to channel', { channel: `timeline:${projectId}`, component: 'useTimelineSocket' })
       
       const channel = supabase.channel(`timeline:${projectId}`, {
         config: {
@@ -174,7 +175,7 @@ export function useTimelineSocket({
 
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
-            console.log('[Timeline Realtime] Connected')
+            logger.debug('[Timeline Realtime] Connected', { component: 'useTimelineSocket' })
             setIsConnected(true)
             setError(null)
             onConnected?.()
@@ -187,13 +188,13 @@ export function useTimelineSocket({
               lastActive: Date.now()
             })
           } else if (status === 'CHANNEL_ERROR') {
-            console.error('[Timeline Realtime] Connection error')
+            logger.error('[Timeline Realtime] Connection error', undefined, { component: 'useTimelineSocket' })
             const err = new Error('Connection error')
             setError(err)
             setIsConnected(false)
             onError?.(err)
           } else if (status === 'TIMED_OUT') {
-            console.error('[Timeline Realtime] Connection timeout')
+            logger.error('[Timeline Realtime] Connection timeout', undefined, { component: 'useTimelineSocket' })
             const err = new Error('Connection timeout')
             setError(err)
             setIsConnected(false)
@@ -204,7 +205,7 @@ export function useTimelineSocket({
       channelRef.current = channel
 
     } catch (err) {
-      console.error('[Timeline Realtime] Setup error:', err)
+      logger.error('[Timeline Realtime] Setup error', err as Error, { component: 'useTimelineSocket' })
       setError(err as Error)
       onError?.(err as Error)
     }
@@ -212,7 +213,7 @@ export function useTimelineSocket({
 
   const disconnect = useCallback(() => {
     if (channelRef.current) {
-      console.log('[Timeline Realtime] Disconnecting')
+      logger.debug('[Timeline Realtime] Disconnecting', { component: 'useTimelineSocket' })
       supabase.removeChannel(channelRef.current)
       channelRef.current = null
       setIsConnected(false)

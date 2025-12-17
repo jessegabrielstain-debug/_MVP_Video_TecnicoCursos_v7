@@ -44,10 +44,7 @@ export async function GET(req: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    logger.error('Erro na API de colaboração', {
-      component: 'API: collaboration/realtime',
-      error: error instanceof Error ? error : new Error(String(error))
-    })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro na API de colaboração', err, { component: 'API: collaboration/realtime' })
     return NextResponse.json(
       { error: 'Erro ao buscar dados de colaboração' },
       { status: 500 }
@@ -97,10 +94,7 @@ export async function POST(req: NextRequest) {
         )
     }
   } catch (error) {
-    logger.error('Erro ao processar ação de colaboração', {
-      component: 'API: collaboration/realtime',
-      error: error instanceof Error ? error : new Error(String(error))
-    })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao processar ação de colaboração', err, { component: 'API: collaboration/realtime' })
     return NextResponse.json(
       { error: 'Erro ao processar requisição' },
       { status: 500 }

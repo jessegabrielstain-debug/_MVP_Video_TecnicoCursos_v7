@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 export async function PATCH(
   request: NextRequest,
@@ -51,7 +52,7 @@ export async function PATCH(
     return NextResponse.json({ success: true })
 
   } catch (error) {
-    console.error('Error cancelling render job:', error)
+    logger.error('Error cancelling render job', error instanceof Error ? error : new Error(String(error)), { component: 'API: render/jobs/[jobId]/cancel' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

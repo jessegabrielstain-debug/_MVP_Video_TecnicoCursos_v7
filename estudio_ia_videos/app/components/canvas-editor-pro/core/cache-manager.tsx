@@ -192,7 +192,7 @@ export function useCanvasCache(maxCacheSize: number = 50 * 1024 * 1024): UseCanv
         const idVal = (obj as { id?: string | number }).id
         tempFabricCanvas.add(obj)
         if (idVal != null) {
-          cacheObject(String(idVal), tempFabricCanvas as any)
+          cacheObject(String(idVal), tempFabricCanvas as FabricCanvas)
         }
       }
     })

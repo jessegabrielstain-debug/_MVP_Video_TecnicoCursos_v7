@@ -73,10 +73,8 @@ export async function GET(
     return NextResponse.json(timelineData)
 
   } catch (error) {
-    logger.error('Error loading project', { 
-      component: 'API: timeline/projects/[id]', 
-      error: error instanceof Error ? error : new Error(String(error)) 
-    })
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Error loading project', err, { component: 'API: timeline/projects/[id]' })
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
@@ -119,16 +117,29 @@ export async function PUT(
 
     if (updateError) throw updateError
 
+interface TimelineTrack {
+  name: string;
+  type: string;
+  elements?: Array<{
+    name: string;
+    duration: number;
+    properties?: {
+      content?: string;
+      src?: string;
+    };
+  }>;
+}
+
     // Sync 'slides' table for Worker compatibility
     // 1. Delete existing slides
     await supabase.from('slides').delete().eq('project_id', params.id)
 
     // 2. Insert new slides from tracks
-    const tracks = body.tracks as any[]
+    const tracks = body.tracks as TimelineTrack[]
     const slideTrack = tracks.find(t => t.name === 'Slides PPTX' || t.type === 'video')
     
     if (slideTrack && slideTrack.elements) {
-        const slidesToInsert = slideTrack.elements.map((el: any, index: number) => ({
+        const slidesToInsert = slideTrack.elements.map((el, index: number) => ({
             project_id: params.id,
             order_index: index,
             title: el.name,
@@ -143,10 +154,8 @@ export async function PUT(
                 .insert(slidesToInsert)
             
             if (slidesError) {
-                logger.error('Error syncing slides', { 
-                  component: 'API: timeline/projects/[id]', 
-                  error: slidesError instanceof Error ? slidesError : new Error(String(slidesError)) 
-                })
+                const err = slidesError instanceof Error ? slidesError : new Error(String(slidesError))
+                logger.error('Error syncing slides', err, { component: 'API: timeline/projects/[id]' })
             }
         }
     }
@@ -157,10 +166,8 @@ export async function PUT(
     })
 
   } catch (error) {
-    logger.error('Error saving project', { 
-      component: 'API: timeline/projects/[id]', 
-      error: error instanceof Error ? error : new Error(String(error)) 
-    })
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Error saving project', err, { component: 'API: timeline/projects/[id]' })
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
@@ -191,10 +198,8 @@ export async function DELETE(
     })
 
   } catch (error) {
-    logger.error('Error deleting project', { 
-      component: 'API: timeline/projects/[id]', 
-      error: error instanceof Error ? error : new Error(String(error)) 
-    })
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Error deleting project', err, { component: 'API: timeline/projects/[id]' })
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

@@ -34,6 +34,7 @@ export interface RenderJob {
   outputUrl?: string;
   error?: string;
   createdAt: Date;
+  settings?: Record<string, unknown>;
 }
 
 // ========================================

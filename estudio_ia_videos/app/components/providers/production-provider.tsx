@@ -109,7 +109,8 @@ export default function ProductionProvider({
             
             super(url, protocols);
           }
-        } as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket class extension requires type assertion
+        } as typeof WebSocket;
       }
     }
 

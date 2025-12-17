@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAdvancedAI } from './useAdvancedAI';
 import { useRealTimeCollaboration } from './useRealTimeCollaboration';
+import { logger } from '@/lib/logger';
 import type { OptimizableContentInput } from './useAdvancedAI';
 import type { SerializedProjectState } from './useRealTimeCollaboration';
 
@@ -287,7 +288,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
             passedRules.push(rule.id);
           }
         } catch (error) {
-          console.error(`Erro ao executar regra ${rule.id}:`, error);
+          logger.error(`Erro ao executar regra ${rule.id}`, error as Error, { ruleId: rule.id, component: 'useComplianceAnalyzer' });
         }
       }
 
@@ -357,7 +358,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
         const ruleViolations = rule.checkFunction(content);
         violations.push(...ruleViolations);
       } catch (error) {
-        console.error(`Erro ao analisar conteúdo com regra ${rule.id}:`, error);
+        logger.error(`Erro ao analisar conteúdo com regra ${rule.id}`, error as Error, { ruleId: rule.id, component: 'useComplianceAnalyzer' });
       }
     }
 
@@ -381,7 +382,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
         const ruleViolations = rule.checkFunction(changes);
         violations.push(...ruleViolations);
       } catch (error) {
-        console.error(`Erro na análise em tempo real:`, error);
+        logger.error('Erro na análise em tempo real', error as Error, { component: 'useComplianceAnalyzer' });
       }
     }
 
@@ -395,7 +396,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       return true;
     } catch (error) {
-      console.error(`Erro ao aplicar correção:`, error);
+      logger.error('Erro ao aplicar correção', error as Error, { violationId, component: 'useComplianceAnalyzer' });
       return false;
     }
   }, []);
@@ -414,7 +415,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
           fixes[violation.id] = true;
         }
       } catch (error) {
-        console.error(`Erro ao corrigir violação ${violation.id}:`, error);
+        logger.error(`Erro ao corrigir violação ${violation.id}`, error as Error, { violationId: violation.id, component: 'useComplianceAnalyzer' });
         fixes[violation.id] = false;
       }
     }
@@ -441,7 +442,7 @@ export const useComplianceAnalyzer = (): UseComplianceAnalyzerReturn => {
         ...suggestionsText.split('\n').filter(s => s.trim()),
       ];
     } catch (error) {
-      console.error('Erro ao gerar sugestões:', error);
+      logger.error('Erro ao gerar sugestões', error as Error, { component: 'useComplianceAnalyzer' });
       return [violation.suggestedFix];
     }
   }, [generateContent]);

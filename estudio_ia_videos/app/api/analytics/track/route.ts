@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { withAnalytics } from '@/lib/analytics/api-performance-middleware';
 
@@ -47,7 +48,7 @@ async function postHandler(req: NextRequest) {
       data: {
         userId,
         eventType: category,
-        eventData: eventData as any,
+        eventData: JSON.parse(JSON.stringify(eventData)),
         userAgent: userAgent || req.headers.get('user-agent'),
         ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
       }
@@ -59,7 +60,8 @@ async function postHandler(req: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('[Analytics Track] Error:', error);
+    logger.error('Failed to track event', error instanceof Error ? error : new Error(String(error))
+    , { component: 'API: analytics/track' });
     const message = error instanceof Error ? error.message : String(error);
     
     return NextResponse.json(
@@ -115,7 +117,7 @@ async function getHandler(req: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('[Analytics Track GET] Error:', error);
+    logger.error('Failed to get analytics stats', error instanceof Error ? error : new Error(String(error)), { component: 'API: analytics/track' });
     const message = error instanceof Error ? error.message : String(error);
     
     return NextResponse.json(

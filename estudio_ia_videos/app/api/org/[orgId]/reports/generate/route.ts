@@ -9,6 +9,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getOrgContext, hasPermission } from '@/lib/multi-tenancy/org-context';
 import { reportGenerator, ReportType } from '@/lib/reports/report-generator';
+import { logger } from '@/lib/logger';
 import fs from 'fs';
 
 export async function POST(
@@ -80,7 +81,8 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error('Erro ao gerar relatório:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao gerar relatório', err, { component: 'API: org/[orgId]/reports/generate' });
     return NextResponse.json(
       { error: 'Erro ao gerar relatório' },
       { status: 500 }

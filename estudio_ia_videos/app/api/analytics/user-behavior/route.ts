@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import type { 
+  SessionDataRow, 
+  PageViewRow, 
+  InteractionRow, 
+  NavigationFlowRow,
+  EntryExitPageRow,
+  RetentionCohortRow,
+  ActiveUsersRow,
+  UserAgentRow,
+  FunnelStepRow
+} from '@/types/database';
 
 // Utilitários locais para normalização
 const toNumber = (v: unknown): number => (typeof v === 'number' ? v : Number(v ?? 0));
@@ -52,7 +64,7 @@ async function getHandler(req: NextRequest) {
         ${targetUserId ? Prisma.sql`AND user_id = ${targetUserId}::uuid` : Prisma.sql``}
         GROUP BY user_id, DATE(created_at)
         HAVING EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) > 0
-      ` as any[];
+      ` as SessionDataRow[];
 
       // Page Views (Top 10)
       const pageViews = await prisma.$queryRaw`
@@ -67,7 +79,7 @@ async function getHandler(req: NextRequest) {
         GROUP BY event_data->>'label'
         ORDER BY views DESC
         LIMIT 10
-      ` as any[];
+      ` as PageViewRow[];
 
       // Interactions
       const interactions = await prisma.$queryRaw`
@@ -80,7 +92,7 @@ async function getHandler(req: NextRequest) {
         ${targetUserId ? Prisma.sql`AND user_id = ${targetUserId}::uuid` : Prisma.sql``}
         GROUP BY event_data->>'action'
         ORDER BY count DESC
-      ` as any[];
+      ` as InteractionRow[];
 
       const sessionRows = sessionData;
       const avgSessionDuration = sessionRows.reduce((sum, s) => sum + toNumber(s.session_duration), 0) / Math.max(1, sessionRows.length);
@@ -119,7 +131,7 @@ async function getHandler(req: NextRequest) {
         GROUP BY prev.event_data->>'label', curr.event_data->>'label'
         ORDER BY transitions DESC
         LIMIT 20
-      ` as any[];
+      ` as NavigationFlowRow[];
 
       // Entry Pages
       const entryPages = await prisma.$queryRaw`
@@ -141,7 +153,7 @@ async function getHandler(req: NextRequest) {
         GROUP BY page
         ORDER BY entries DESC
         LIMIT 10
-      ` as any[];
+      ` as EntryExitPageRow[];
 
       // Exit Pages
       const exitPages = await prisma.$queryRaw`
@@ -163,7 +175,7 @@ async function getHandler(req: NextRequest) {
         GROUP BY page
         ORDER BY exits DESC
         LIMIT 10
-      ` as any[];
+      ` as EntryExitPageRow[];
 
       behaviorData.navigation = {
         flow: navigationFlow,
@@ -255,7 +267,7 @@ async function getHandler(req: NextRequest) {
         GROUP BY DATE(first_visit)
         ORDER BY cohort_date DESC
         LIMIT 30
-      ` as any[];
+      ` as RetentionCohortRow[];
 
       const activeUsers = await prisma.$queryRaw`
         SELECT 'daily' as period, COUNT(DISTINCT user_id) as count FROM analytics_events WHERE created_at >= NOW() - interval '1 day' AND user_id IS NOT NULL
@@ -263,7 +275,7 @@ async function getHandler(req: NextRequest) {
         SELECT 'weekly' as period, COUNT(DISTINCT user_id) as count FROM analytics_events WHERE created_at >= NOW() - interval '7 days' AND user_id IS NOT NULL
         UNION ALL
         SELECT 'monthly' as period, COUNT(DISTINCT user_id) as count FROM analytics_events WHERE created_at >= NOW() - interval '30 days' AND user_id IS NOT NULL
-      ` as any[];
+      ` as ActiveUsersRow[];
 
       behaviorData.retention = {
         cohorts: retentionData,
@@ -286,13 +298,13 @@ async function getHandler(req: NextRequest) {
         GROUP BY event_data->>'userAgent'
         ORDER BY count DESC
         LIMIT 100
-      ` as any[];
+      ` as UserAgentRow[];
 
       const devices = { desktop: 0, mobile: 0, tablet: 0 };
-      const browsers = new Map();
-      const os = new Map();
+      const browsers = new Map<string, number>();
+      const os = new Map<string, number>();
 
-      (userAgents).forEach((item: any) => {
+      (userAgents as Array<{ ua: string; count: number }>).forEach((item) => {
         const ua = item.ua.toLowerCase();
         const count = Number(item.count);
 
@@ -332,7 +344,8 @@ async function getHandler(req: NextRequest) {
     });
 
   } catch (error: unknown) {
-    console.error('[Analytics User Behavior] Error:', error);
+    logger.error('Failed to fetch user behavior metrics', error instanceof Error ? error : new Error(String(error))
+    , { component: 'API: analytics/user-behavior' });
     return NextResponse.json(
       { error: 'Failed to fetch user behavior metrics', details: error instanceof Error ? error.message : 'Unknown' },
       { status: 500 }
@@ -387,7 +400,8 @@ async function postHandler(req: NextRequest) {
     return NextResponse.json({ success: true });
 
   } catch (error: unknown) {
-    console.error('[Analytics User Behavior POST] Error:', error);
+    logger.error('Failed to record user behavior event', error instanceof Error ? error : new Error(String(error))
+    , { component: 'API: analytics/user-behavior' });
     return NextResponse.json(
       { error: 'Failed to record user behavior event' },
       { status: 500 }

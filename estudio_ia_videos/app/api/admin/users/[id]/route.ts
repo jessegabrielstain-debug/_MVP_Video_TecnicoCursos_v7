@@ -3,6 +3,7 @@ import { PrismaClient, Prisma } from '@prisma/client'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { auditLogger } from '@/lib/audit-logging-real'
+import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 
@@ -58,7 +59,7 @@ export async function PUT(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    console.error('[Admin Users PUT] Error:', error)
+    logger.error('Admin Users PUT Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: admin/users/[id]' })
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 })
   }
 }
@@ -95,7 +96,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    console.error('[Admin Users DELETE] Error:', error)
+    logger.error('Admin Users DELETE Error', error instanceof Error ? error : new Error(String(error)), { component: 'API: admin/users/[id]' })
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 })
   }
 }

@@ -3,7 +3,20 @@ import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger';
 
-// Schema para adicionar colaborador
+interface CollaboratorRecord {
+  user_id: string;
+  role: string;
+  created_at: string;
+}
+
+interface UserRecord {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url: string;
+}
+
+// Schema de validação para adicionar colaborador
 const addCollaboratorSchema = z.object({
   email: z.string().email('Email inválido')
 })
@@ -67,7 +80,7 @@ export async function GET(
     }
 
     // Buscar colaboradores
-    const { data: collaboratorsData, error } = await (supabase as any)
+    const { data: collaboratorsData, error } = await supabase
       .from('project_collaborators')
       .select(`
         id,
@@ -86,50 +99,52 @@ export async function GET(
     }
 
     // Buscar dados dos usuários colaboradores
-    const collaboratorUserIds = collaboratorsData?.map((c: any) => c.user_id) || []
-    let usersMap: Record<string, any> = {}
+    const collaboratorUserIds = (collaboratorsData as CollaboratorRecord[] || []).map((c) => c.user_id)
+    let usersMap: Record<string, UserRecord> = {}
     
     if (collaboratorUserIds.length > 0) {
-      const { data: usersData } = await (supabase as any)
+      const { data: usersData } = await supabase
         .from('users')
         .select('id, email, name, avatar_url')
         .in('id', collaboratorUserIds)
       
       if (usersData) {
-        usersMap = usersData.reduce((acc: any, u: any) => {
+        usersMap = (usersData as UserRecord[]).reduce((acc, u) => {
           acc[u.id] = u
           return acc
-        }, {})
+        }, {} as Record<string, UserRecord>)
       }
     }
 
     // Buscar dados do dono
-    const { data: ownerData } = await (supabase as any)
+    const { data: ownerData } = await supabase
       .from('users')
       .select('id, email, name, avatar_url')
       .eq('id', ownerId)
       .single()
 
+    const owner = ownerData as UserRecord | null
+
     const formattedCollaborators = [
       // Owner
-      ...(ownerData ? [{
-        id: ownerData.id,
-        email: ownerData.email,
-        name: ownerData.name || ownerData.email,
-        avatar: ownerData.avatar_url,
+      ...(owner ? [{
+        id: owner.id,
+        email: owner.email,
+        name: owner.name || owner.email,
+        avatar: owner.avatar_url,
         role: 'owner',
         joined_at: null
       }] : []),
       // Collaborators
-      ...(collaboratorsData?.map((c: any) => {
-        const userData = usersMap[c.user_id] || {}
+      ...((collaboratorsData as CollaboratorRecord[] || []).map((c) => {
+        const userData = usersMap[c.user_id] || {} as Partial<UserRecord>
         return {
           id: userData.id || c.user_id,
           email: userData.email,
           name: userData.name || userData.email,
           avatar: userData.avatar_url,
           role: c.role || 'collaborator',
-          joined_at: c.joined_at
+          joined_at: (c as unknown as { joined_at?: string }).joined_at
         }
       }) || [])
     ]

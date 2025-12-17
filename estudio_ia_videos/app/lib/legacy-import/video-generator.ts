@@ -3,7 +3,7 @@ import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs/promises';
 import { logger } from '@/lib/logger';
-import { ProcessedPDF, PDFPage } from './pdf-processor';
+import { ProcessedPDF, PDFPage, PDFElement } from './pdf-processor';
 import { GeneratedNarration, NarrationScript, TransitionConfig } from './ai-narrator';
 
 const execAsync = promisify(exec);
@@ -267,7 +267,7 @@ export class VideoGenerator {
     await execAsync(command);
   }
 
-  private calculateTextPosition(element: any, layout: PDFPage['layout']): { x: number; y: number } {
+  private calculateTextPosition(element: PDFElement, layout: PDFPage['layout']): { x: number; y: number } {
     // Scale PDF coordinates to video resolution
     const scaleX = 1920 / layout.width;
     const scaleY = 1080 / layout.height;
@@ -278,7 +278,7 @@ export class VideoGenerator {
     };
   }
 
-  private getTextStyle(element: any): {
+  private getTextStyle(element: PDFElement): {
     fontFamily: string;
     fontSize: number;
     color: string;

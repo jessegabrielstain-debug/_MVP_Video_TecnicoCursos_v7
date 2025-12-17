@@ -65,4 +65,25 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/estudio_ia_videos/app/jest.setup.js'],
   testTimeout: 120000,
   verbose: true,
+  
+  // Coverage configuration
+  collectCoverageFrom: [
+    'estudio_ia_videos/app/lib/**/*.{ts,tsx}',
+    'estudio_ia_videos/app/hooks/**/*.{ts,tsx}',
+    'estudio_ia_videos/app/api/**/*.{ts,tsx}',
+    '!estudio_ia_videos/app/**/*.d.ts',
+    '!estudio_ia_videos/app/**/__tests__/**',
+    '!estudio_ia_videos/app/**/test/**',
+    '!estudio_ia_videos/app/**/*.test.{ts,tsx}',
+  ],
+  coverageThreshold: {
+    global: {
+      statements: 70,
+      branches: 60,
+      functions: 70,
+      lines: 70,
+    },
+  },
+  coverageReporters: ['text', 'text-summary', 'lcov', 'html'],
+  coverageDirectory: '<rootDir>/estudio_ia_videos/coverage',
 };

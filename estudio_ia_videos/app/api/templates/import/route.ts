@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 interface Template {
   id: string
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Erro ao importar templates:', error);
+    logger.error('Erro ao importar templates', error instanceof Error ? error : new Error(String(error)) instanceof Error ? error instanceof Error ? error : new Error(String(error)) : new Error(String(error instanceof Error ? error : new Error(String(error)))), { component: 'API: templates/import' });
     return NextResponse.json(
       { error: 'Erro interno do servidor', success: false },
       { status: 500 }

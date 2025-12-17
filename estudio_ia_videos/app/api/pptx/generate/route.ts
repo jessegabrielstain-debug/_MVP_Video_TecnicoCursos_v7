@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Generation error', { component: 'API: pptx/generate', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Generation error', err, { component: 'API: pptx/generate' });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: 'Erro na geração da apresentação', details: errorMessage },
@@ -324,7 +324,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ templates });
 
   } catch (error) {
-    console.error('[PPTX Generate API] Template list error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Template list error', err, { component: 'API: pptx/generate' });
     return NextResponse.json(
       { error: 'Erro ao obter templates' },
       { status: 500 }

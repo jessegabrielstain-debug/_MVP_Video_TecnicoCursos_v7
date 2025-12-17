@@ -343,7 +343,7 @@ const AIPoweredContentGenerator = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="contentType">Tipo de Conteúdo</Label>
-                      <Select value={contentType} onValueChange={(value: string) => setContentType(value as any)}>
+                      <Select value={contentType} onValueChange={(value: string) => setContentType(value as 'video' | 'audio' | 'text' | 'template')}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -396,7 +396,7 @@ const AIPoweredContentGenerator = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="complexity">Complexidade</Label>
-                      <Select value={complexity} onValueChange={(value: string) => setComplexity(value as any)}>
+                      <Select value={complexity} onValueChange={(value: string) => setComplexity(value as 'basic' | 'intermediate' | 'advanced')}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>

@@ -118,7 +118,8 @@ export async function GET(request: NextRequest) {
     })
     
     // Transform funnel data array to object
-    const funnelMap = (funnelData.funnel as any[]).reduce((acc: any, item: any) => {
+    interface FunnelItem { stage: string; count: number }
+    const funnelMap = (funnelData.funnel as FunnelItem[]).reduce<Record<string, number>>((acc, item) => {
       acc[item.stage] = item.count;
       return acc;
     }, {});

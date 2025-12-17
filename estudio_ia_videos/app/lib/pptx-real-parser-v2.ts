@@ -4,6 +4,11 @@
  */
 import { logger } from '@/lib/logger';
 
+export interface SlideElement {
+  type: string;
+  [key: string]: unknown;
+}
+
 export interface SlideV2 {
   id: string;
   order: number;
@@ -12,7 +17,7 @@ export interface SlideV2 {
   notes?: string;
   images?: Array<{ src: string; alt?: string }>;
   layout?: string;
-  elements: Record<string, unknown>[]; // Added elements array
+  elements: SlideElement[]; // Added elements array
 }
 
 export interface PresentationV2 {

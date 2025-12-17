@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { recommendationSystem, RecommendationItem } from '@/lib/intelligent-recommendation-system';
 
 type RecommendationType = 'template' | 'asset' | 'course' | 'feature';
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
       })),
     });
   } catch (error) {
-    console.error('Generate recommendations error:', error);
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Generate recommendations error', err, { component: 'API: recommendations/generate' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to generate recommendations' },
       { status: 500 }
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
       })),
     });
   } catch (error) {
-    console.error('Get recommendations error:', error);
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Get recommendations error', err, { component: 'API: recommendations/generate' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to get recommendations' },
       { status: 500 }

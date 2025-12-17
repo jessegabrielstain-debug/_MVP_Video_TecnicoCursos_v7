@@ -131,7 +131,8 @@ export const useTimelineStore = create<TimelineState>()(
 
     // Track Actions
     addTrack: (track) => set((state) => {
-      state.tracks.push(track as any); // Cast to avoid deep type issues with immer
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Immer draft type workaround for deep nested arrays
+      state.tracks.push(track as any);
     }),
 
     removeTrack: (trackId) => set((state) => {
@@ -149,6 +150,7 @@ export const useTimelineStore = create<TimelineState>()(
     addElement: (trackId, element) => set((state) => {
       const track = state.tracks.find(t => t.id === trackId);
       if (track) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Immer draft type workaround
         track.elements.push(element as any);
       }
     }),
@@ -187,6 +189,7 @@ export const useTimelineStore = create<TimelineState>()(
         const targetTrack = state.tracks.find(t => t.id === targetTrackId);
         if (targetTrack) {
           element.startTime = Math.max(0, newStartTime);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Immer draft type workaround
           targetTrack.elements.push(element as any);
         }
       }

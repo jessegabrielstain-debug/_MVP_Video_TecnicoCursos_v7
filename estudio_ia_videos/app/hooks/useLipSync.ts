@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { LipSyncFrame, AvatarClientHelper } from '@/lib/avatar-client-logic';
 
 export interface LipSyncState {
@@ -71,7 +72,7 @@ export function useLipSync({ text, audioUrl, onComplete, onError, externalAudio 
         const frames = AvatarClientHelper.generateFallbackFrames(audio.duration);
         framesRef.current = frames;
       } catch (error) {
-        console.error('Error generating lip sync frames:', error);
+        logger.error('Error generating lip sync frames', error as Error, { audioUrl, component: 'useLipSync' });
         onError?.(error as Error);
       }
     };

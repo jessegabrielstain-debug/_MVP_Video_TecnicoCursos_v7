@@ -84,7 +84,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    logger.error('[Export API] Error fetching job', { component: 'API: v1/export/[id]', error: error instanceof Error ? error : new Error(String(error)) })
+    logger.error('[Export API] Error fetching job', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/export/[id]' })
     return NextResponse.json(
       { error: 'Failed to fetch job status', details: String(error) },
       { status: 500 }
@@ -124,7 +124,7 @@ export async function DELETE(
       message: 'Job cancelled successfully',
     })
   } catch (error) {
-    logger.error('[Export API] Error cancelling job', { component: 'API: v1/export/[id]', error: error instanceof Error ? error : new Error(String(error)) })
+    logger.error('[Export API] Error cancelling job', error instanceof Error ? error : new Error(String(error)), { component: 'API: v1/export/[id]' })
     return NextResponse.json(
       { error: 'Failed to cancel job', details: String(error) },
       { status: 500 }

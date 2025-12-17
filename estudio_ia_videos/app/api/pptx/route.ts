@@ -8,6 +8,7 @@ import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '@/lib/services';
 import { logger } from '@/lib/logger';
+import type { CompletePPTXData, CompleteSlideData } from '@/lib/pptx/parsers/advanced-parser';
 
 /**
  * POST - Upload e parse de arquivo PPTX
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Create Project in DB
-    const { data: project, error: projectError } = await (supabaseAdmin as any)
+    const { data: project, error: projectError } = await supabaseAdmin
       .from('projects')
       .insert({
         user_id: user.id,
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
       includeImages: true,
       includeNotes: true,
       includeAnimations: false // Animations can be complex, keeping it simple for now
-    });
+    }) as CompletePPTXData;
 
     if (!parsedData.success) {
         logger.error('[PPTX API] Parse errors:', new Error(parsedData.errors.join(', ')), { component: 'API: pptx' });
@@ -108,12 +109,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Insert Slides
-    const slidesToInsert = parsedData.slides.map((slide: any, index: number) => {
+    const slidesToInsert = parsedData.slides.map((slide: CompleteSlideData, index: number) => {
         // Combine text content
-        const textContent = slide.text.textItems.map((t: any) => t.text).join('\n');
+        const textContent = (slide.text.textBoxes || []).map((t) => t.text).join('\n');
         
         // Get primary image if available
-        const backgroundImage = slide.images.length > 0 ? slide.images[0].path : null;
+        const backgroundImage = slide.images.length > 0 ? slide.images[0].url : null;
         
         return {
             project_id: project.id,
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
             duration: Math.max(5, slide.duration.estimatedDuration), // Use estimated duration or min 5s
             notes: slide.notes.notes || null,
             background_url: backgroundImage, // Store image URL if available
-            layout: slide.layout.type || 'custom',
+            layout: slide.layout.layout?.type || 'custom',
             metadata: {
                 hasImages: slide.images.length > 0,
                 wordCount: slide.text.wordCount,

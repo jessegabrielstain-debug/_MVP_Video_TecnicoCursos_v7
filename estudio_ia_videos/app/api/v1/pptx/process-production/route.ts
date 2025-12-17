@@ -59,13 +59,15 @@ export async function POST(request: NextRequest) {
     logger.info(`✅ Processing successful: ${processingResult.slides.length} slides`, { component: 'API: v1/pptx/process-production' })
     
     // Calculate metrics
-    const totalDuration = processingResult.slides.reduce((acc: any, slide: any) => acc + (slide.duration || 5), 0)
-    const totalImages = processingResult.slides.reduce((acc: any, slide: any) => acc + slide.images.length, 0)
-    const hasAnimations = processingResult.slides.some((slide: any) => slide.animations && slide.animations.length > 0)
+    interface ProcessedSlide { duration?: number; images: unknown[]; animations?: unknown[]; id: string; title: string; textContent?: string; content?: string }
+    const slides = processingResult.slides as ProcessedSlide[]
+    const totalDuration = slides.reduce((acc, slide) => acc + (slide.duration || 5), 0)
+    const totalImages = slides.reduce((acc, slide) => acc + slide.images.length, 0)
+    const hasAnimations = slides.some((slide) => slide.animations && slide.animations.length > 0)
     
     // Format response
     const processedData = {
-      slides: processingResult.slides.map((slide: any) => ({
+      slides: slides.map((slide) => ({
         id: slide.id,
         title: slide.title,
         content: slide.textContent || slide.content,

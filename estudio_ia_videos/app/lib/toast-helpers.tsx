@@ -162,7 +162,7 @@ function action(
 function dismissAll() {
   // O toast original não exporta dismiss global, então usamos um workaround
   // Isso é um placeholder - em produção, você pode implementar um global dismiss
-  console.log('Dismissing all toasts')
+  // Nota: O sonner não tem dismiss global exposto, este é um no-op intencional
 }
 
 // Export como objeto para facilitar uso

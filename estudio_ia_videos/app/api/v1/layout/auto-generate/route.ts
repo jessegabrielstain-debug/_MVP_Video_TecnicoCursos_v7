@@ -1,6 +1,7 @@
 // TODO: Fix string|number type issue for element dimensions
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 interface LayoutElement {
   id: string
@@ -210,7 +211,8 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Auto Layout Error:', error)
+    logger.error('Auto Layout Error', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: v1/layout/auto-generate' })
     return NextResponse.json({
       success: false,
       error: 'Failed to generate layout'

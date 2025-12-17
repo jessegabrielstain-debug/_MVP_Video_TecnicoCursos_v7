@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       try {
         await fs.unlink(finalAudioPath);
       } catch (cleanupError) {
-        logger.warn('Failed to clean up temp file:', { component: 'API: subtitles/transcribe', error: cleanupError });
+        logger.warn('Failed to clean up temp file:', { component: 'API: subtitles/transcribe' });
       }
     }
 

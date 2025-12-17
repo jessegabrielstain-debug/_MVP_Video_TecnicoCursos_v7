@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { commentsService } from '@/lib/collab/comments-service';
+import { logger } from '@/lib/logger';
 
 export async function DELETE(
   request: NextRequest,
@@ -23,7 +24,9 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('❌ Erro ao deletar comentário:', error);
+    logger.error('❌ Erro ao deletar comentário:', error instanceof Error ? error : new Error(String(error)), {
+      component: 'API: comments/[commentId]'
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erro ao deletar comentário' },
       { status: 500 }

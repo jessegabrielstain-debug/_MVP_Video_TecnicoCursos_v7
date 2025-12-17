@@ -190,7 +190,8 @@ export async function POST(request: NextRequest) {
       processingTime: Date.now() - startTime
     });
 
-    logger.error('Erro na geração TTS', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: tts/generate' });
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Erro na geração TTS', err, { component: 'API: tts/generate' });
 
     return NextResponse.json(
       { 
@@ -219,7 +220,8 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    logger.error('Erro ao obter estatísticas TTS', { error: error instanceof Error ? error : new Error(String(error)), component: 'API: tts/generate' });
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Erro ao obter estatísticas TTS', err, { component: 'API: tts/generate' });
     
     return NextResponse.json(
       { 

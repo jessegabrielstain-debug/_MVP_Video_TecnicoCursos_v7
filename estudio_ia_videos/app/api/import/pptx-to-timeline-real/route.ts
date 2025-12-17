@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (projectError) {
-      logger.error('Error fetching project', { component: 'API: import/pptx-to-timeline-real', error: projectError })
+      logger.error('Error fetching project', projectError , { component: 'API: import/pptx-to-timeline-real' })
       return NextResponse.json({ error: 'Error fetching project details' }, { status: 500 })
     }
 
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       .order('order_index', { ascending: true })
 
     if (slidesError) {
-        logger.error('Error fetching slides', { component: 'API: import/pptx-to-timeline-real', error: slidesError })
+        logger.error('Error fetching slides', slidesError , { component: 'API: import/pptx-to-timeline-real' })
         return NextResponse.json({ error: 'Error fetching slides' }, { status: 500 })
     }
 
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
         .eq('id', projectId)
 
     if (updateError) {
-        logger.error('Error updating project', { component: 'API: import/pptx-to-timeline-real', error: updateError })
+        logger.error('Error updating project', updateError , { component: 'API: import/pptx-to-timeline-real' })
         return NextResponse.json({ error: 'Error updating project' }, { status: 500 })
     }
 
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Error importing PPTX', { component: 'API: import/pptx-to-timeline-real', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error importing PPTX', err, { component: 'API: import/pptx-to-timeline-real' })
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

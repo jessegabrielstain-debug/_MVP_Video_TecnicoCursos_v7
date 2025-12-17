@@ -180,7 +180,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user is admin
-    const userRole = await prisma.$queryRaw`SELECT role FROM users WHERE id = ${session.user.id}::uuid` as any[];
+    type UserRoleResult = { role: string | null }[];
+    const userRole = await prisma.$queryRaw<UserRoleResult>`SELECT role FROM users WHERE id = ${session.user.id}::uuid`;
     const role = userRole[0]?.role;
 
     if (role !== 'admin') {

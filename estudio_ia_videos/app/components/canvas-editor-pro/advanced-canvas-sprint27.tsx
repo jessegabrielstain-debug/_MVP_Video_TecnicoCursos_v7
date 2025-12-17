@@ -269,15 +269,19 @@ export default function AdvancedCanvasEditorSprint27({
     if (!canvas) return
 
     const objects = canvas.getObjects()
-    const newLayers: Layer[] = objects.map((obj: Fabric.Object, index: number) => ({
-      // @ts-ignore
-      id: (obj as any).id || `layer-${index}`,
-      name: obj.type === 'i-text' ? `Texto ${index + 1}` : `${obj.type} ${index + 1}`,
-      object: obj,
-      visible: obj.visible !== false,
-      locked: obj.selectable === false,
-      order: index
-    }))
+    const newLayers: Layer[] = objects.map((obj: Fabric.Object, index: number) => {
+      // Fabric objects may have custom id property
+      type ObjectWithId = Fabric.Object & { id?: string };
+      const objWithId = obj as ObjectWithId;
+      return {
+        id: objWithId.id || `layer-${index}`,
+        name: obj.type === 'i-text' ? `Texto ${index + 1}` : `${obj.type} ${index + 1}`,
+        object: obj,
+        visible: obj.visible !== false,
+        locked: obj.selectable === false,
+        order: index
+      };
+    })
 
     setLayers(newLayers)
   }, [canvas])

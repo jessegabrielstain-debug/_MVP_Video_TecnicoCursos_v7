@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger';
+import type { Avatar3DWithProject, ProjectHistoryEntry } from '@/types/database';
 
 // Schema de validação para avatar 3D
 const avatarSchema = z.object({
@@ -50,8 +51,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    let query = (supabase
-      .from('avatars_3d' as any) as any)
+    let query = supabase
+      .from('avatars_3d')
       .select(`
         *,
         projects:project_id (
@@ -87,13 +88,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const avatars = avatarsData as any[]
+    const avatars = (avatarsData || []) as Avatar3DWithProject[]
 
     // Filtrar apenas avatares que o usuário tem permissão para ver
-    const authorizedAvatars = (avatars || []).filter(avatar => {
-      const project = avatar.projects as Record<string, unknown>
+    const authorizedAvatars = avatars.filter(avatar => {
+      const project = avatar.projects
+      if (!project) return false
       return project.owner_id === user.id || 
-             (Array.isArray(project.collaborators) && (project.collaborators as string[]).includes(user.id)) ||
+             (Array.isArray(project.collaborators) && project.collaborators.includes(user.id)) ||
              project.is_public
     })
 
@@ -138,7 +140,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const project = projectData as any
+    const project = projectData as { owner_id: string; collaborators: string[] | null }
 
     const hasPermission = project.owner_id === user.id || 
                          project.collaborators?.includes(user.id)
@@ -151,8 +153,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se já existe avatar com mesmo nome no projeto
-    const { data: existingAvatar } = await (supabase
-      .from('avatars_3d' as any) as any)
+    const { data: existingAvatar } = await supabase
+      .from('avatars_3d')
       .select('id')
       .eq('project_id', validatedData.project_id)
       .eq('name', validatedData.name)
@@ -177,8 +179,8 @@ export async function POST(request: NextRequest) {
     const avatarData = await fetchReadyPlayerMeData(validatedData.ready_player_me_url)
 
     // Criar avatar
-    const { data: avatar, error } = await (supabase
-      .from('avatars_3d' as any) as any)
+    const { data: avatar, error } = await supabase
+      .from('avatars_3d')
       .insert({
         ...validatedData,
         user_id: user.id,
@@ -198,8 +200,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Registrar no histórico
-    await (supabase
-      .from('project_history' as any) as any)
+    await supabase
+      .from('project_history')
       .insert({
         project_id: validatedData.project_id,
         user_id: user.id,
@@ -302,7 +304,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const project = projectData as any
+    const project = projectData as { owner_id: string; collaborators: string[] | null; settings: Record<string, unknown> | null }
 
     const hasPermission = project.owner_id === user.id || 
                          project.collaborators?.includes(user.id)
@@ -315,16 +317,17 @@ export async function PUT(request: NextRequest) {
     }
 
     // Atualizar configurações globais de avatares no projeto
+    const existingAvatars = project.settings?.avatars_3d as Record<string, unknown> | undefined
     const updatedSettings = {
       ...project.settings,
       avatars_3d: {
-        ...project.settings?.avatars_3d,
+        ...existingAvatars,
         ...global_settings
       }
     }
 
-    const { error: updateError } = await (supabase
-      .from('projects' as any) as any)
+    const { error: updateError } = await supabase
+      .from('projects')
       .update({ settings: updatedSettings })
       .eq('id', project_id)
 
@@ -337,8 +340,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Registrar no histórico
-    await (supabase
-      .from('project_history' as any) as any)
+    await supabase
+      .from('project_history')
       .insert({
         project_id: project_id,
         user_id: user.id,

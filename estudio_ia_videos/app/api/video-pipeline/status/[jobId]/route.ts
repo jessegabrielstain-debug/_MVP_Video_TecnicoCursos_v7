@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
@@ -76,7 +77,7 @@ export async function GET(
       job: jobStatus
     })
   } catch (error) {
-    console.error('Job status fetch error:', error)
+    logger.error('Job status fetch error', error instanceof Error ? error : new Error(String(error)), { component: 'API: video-pipeline/status/[jobId]' })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -102,7 +103,7 @@ export async function DELETE(
       message: `Job ${jobId} cancelled successfully`
     })
   } catch (error) {
-    console.error('Job cancellation error:', error)
+    logger.error('Job cancellation error', error instanceof Error ? error : new Error(String(error)), { component: 'API: video-pipeline/status/[jobId]' })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

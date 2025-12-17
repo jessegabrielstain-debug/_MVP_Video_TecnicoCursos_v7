@@ -20,6 +20,8 @@ PUSH_TO_GITHUB.sh
 # Next.js build output
 /.next/
 /out/
+**/.next/
+**/out/
 
 # Production
 /build
@@ -62,7 +64,11 @@ Thumbs.db
 
 # Environment files
 .env
+.env.*
 .env.backup*
+!.env.production.example
+!.env.staging.example
+!.env.example
 
 # TypeScript
 *.tsbuildinfo
@@ -109,3 +115,13 @@ estudio_ia_videos/app/app/nul
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
+
+
+#Ignore cursor AI rules
+.cursor\rules\codacy.mdc
+
+# Cursor (workspace state)
+.cursor/
+
+# Artefatos grandes locais
+videos/

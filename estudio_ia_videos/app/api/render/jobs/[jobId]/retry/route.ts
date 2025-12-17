@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 export async function PATCH(
   request: NextRequest,
@@ -58,7 +59,7 @@ export async function PATCH(
     return NextResponse.json({ success: true })
 
   } catch (error) {
-    console.error('Error retrying render job:', error)
+    logger.error('Error retrying render job', error instanceof Error ? error : new Error(String(error)), { component: 'API: render/jobs/[jobId]/retry' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

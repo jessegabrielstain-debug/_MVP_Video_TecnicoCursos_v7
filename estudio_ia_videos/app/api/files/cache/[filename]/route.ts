@@ -60,7 +60,7 @@ export async function GET(
     })
 
   } catch (error) {
-    logger.error('❌ Erro ao servir arquivo do cache', { component: 'API: files/cache/[filename]', error: error instanceof Error ? error : new Error(String(error)) })
+    logger.error('❌ Erro ao servir arquivo do cache', error instanceof Error ? error : new Error(String(error)), { component: 'API: files/cache/[filename]' })
     return new NextResponse('Internal Server Error', { status: 500 })
   }
 }

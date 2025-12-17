@@ -1,5 +1,3 @@
-// TODO: Fixar CanvasData e FabricCanvas tipos
-
 'use client'
 
 /**
@@ -10,6 +8,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { logger } from '@/lib/logger'
+import type * as Fabric from 'fabric'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -80,14 +79,18 @@ interface FabricCanvas {
   getWidth: () => number
   getHeight: () => number
   getZoom: () => number
+  getElement: () => HTMLCanvasElement
+  viewportTransform: number[]
   backgroundColor?: string | unknown
   add: (object: FabricObject) => void
   setActiveObject: (object: FabricObject) => void
   getActiveObject: () => FabricObject | null
   renderAll: () => void
   toJSON: () => Record<string, unknown>
-  [key: string]: unknown
 }
+
+// Type for Canvas from external module (compatible with our local interface and SmartGuides Canvas)
+type ExternalFabricCanvas = Fabric.Canvas & FabricCanvas
 
 interface CanvasData {
   objects: Array<{
@@ -133,8 +136,8 @@ function ProfessionalCanvasEditorCore({
 }: ProfessionalCanvasEditorProps) {
   const { theme } = useCanvasTheme()
   
-  // Canvas state
-  const [canvas, setCanvas] = useState<FabricCanvas | null>(null)
+  // Canvas state - ExternalFabricCanvas is compatible with both Fabric.Canvas and our local interface
+  const [canvas, setCanvas] = useState<ExternalFabricCanvas | null>(null)
   const [selectedObjects, setSelectedObjects] = useState<CanvasObject[]>([])
   const [canvasObjects, setCanvasObjects] = useState<CanvasObject[]>(initialObjects)
   const [zoomLevel, setZoomLevel] = useState(100)
@@ -164,32 +167,34 @@ function ProfessionalCanvasEditorCore({
     showMeasurements: true
   })
 
-  // Canvas ready handler
-  const handleCanvasReady = useCallback((fabricCanvas: FabricCanvas) => {
-    setCanvas(fabricCanvas)
-    startMonitoring(fabricCanvas)
+  // Canvas ready handler - receives Fabric.Canvas from CanvasEngine
+  const handleCanvasReady = useCallback((fabricCanvas: Fabric.Canvas) => {
+    // Cast to our extended type for local usage
+    const extendedCanvas = fabricCanvas as ExternalFabricCanvas
+    setCanvas(extendedCanvas)
+    startMonitoring(extendedCanvas)
     
     // Setup canvas event listeners
-    fabricCanvas.on('selection:created', (e: FabricEvent) => {
+    extendedCanvas.on('selection:created', (e: FabricEvent) => {
       updateSelectedObjects(e.selected || [])
     })
     
-    fabricCanvas.on('selection:updated', (e: FabricEvent) => {
+    extendedCanvas.on('selection:updated', (e: FabricEvent) => {
       updateSelectedObjects(e.selected || [])
     })
     
-    fabricCanvas.on('selection:cleared', () => {
+    extendedCanvas.on('selection:cleared', () => {
       setSelectedObjects([])
     })
     
-    fabricCanvas.on('object:modified', (e: FabricEvent) => {
+    extendedCanvas.on('object:modified', (e: FabricEvent) => {
       const data = getCanvasData()
       if (data) onSceneUpdate?.(data)
     })
     
     // Zoom tracking
-    fabricCanvas.on('mouse:wheel', () => {
-      setZoomLevel(Math.round(fabricCanvas.getZoom() * 100))
+    extendedCanvas.on('mouse:wheel', () => {
+      setZoomLevel(Math.round(extendedCanvas.getZoom() * 100))
     })
     
     toast.success('Canvas Editor Pro iniciado', { 
@@ -218,11 +223,11 @@ function ProfessionalCanvasEditorCore({
     if (!canvas) return null
     
     return {
-      objects: canvas.getObjects().map((obj: FabricObject) => ({
-        id: obj.id || '',
+      objects: canvas.getObjects().map((obj) => ({
+        id: (obj as FabricObject).id || '',
         type: obj.type || 'unknown',
         properties: obj.toObject(),
-        visible: obj.visible || true,
+        visible: obj.visible !== false,
         locked: !!(obj.lockMovementX || obj.lockMovementY)
       })),
       dimensions: { width: canvas.getWidth(), height: canvas.getHeight() },
@@ -236,22 +241,29 @@ function ProfessionalCanvasEditorCore({
   const handleQuickAction = useCallback((actionId: string, params?: unknown) => {
     if (!canvas) return
     
+    // Access fabric from window with proper typing (see modules.d.ts)
+    const fabricLib = window.fabric
+    if (!fabricLib) {
+      toast.error('Fabric.js não carregado')
+      return
+    }
+    
     switch (actionId) {
       case 'add-text':
-        const text = new ((window as Window & { fabric?: unknown }).fabric as any).Textbox('Click to edit', {
+        const text = new fabricLib.Textbox('Click to edit', {
           left: 100,
           top: 100,
           fontFamily: 'Arial',
           fontSize: 24,
           fill: theme.colors.text
-        }) as any
+        }) as unknown as FabricObject & { id?: string }
         text.id = `text_${Date.now()}`
         canvas.add(text)
         canvas.setActiveObject(text)
         break
         
       case 'add-rectangle':
-        const rect = new ((window as Window & { fabric?: unknown }).fabric as any).Rect({
+        const rect = new fabricLib.Rect({
           left: 100,
           top: 100,
           width: 200,
@@ -259,21 +271,21 @@ function ProfessionalCanvasEditorCore({
           fill: theme.colors.accent,
           stroke: theme.colors.border,
           strokeWidth: 2
-        }) as any
+        }) as unknown as FabricObject & { id?: string }
         rect.id = `rect_${Date.now()}`
         canvas.add(rect)
         canvas.setActiveObject(rect)
         break
         
       case 'add-circle':
-        const circle = new ((window as Window & { fabric?: unknown }).fabric as any).Circle({
+        const circle = new fabricLib.Circle({
           left: 100,
           top: 100,
           radius: 50,
           fill: theme.colors.accent,
           stroke: theme.colors.border,
           strokeWidth: 2
-        }) as any
+        }) as unknown as FabricObject & { id?: string }
         circle.id = `circle_${Date.now()}`
         canvas.add(circle)
         canvas.setActiveObject(circle)
@@ -620,13 +632,13 @@ function ProfessionalCanvasEditorCore({
                 width={width}
                 height={height}
                 backgroundColor={backgroundColor}
-                onCanvasReady={handleCanvasReady as any}
+                onCanvasReady={handleCanvasReady}
                 enableGPUAcceleration={true}
               />
               
               {/* Smart Guides Overlay */}
               <SmartGuides
-                canvas={canvas as any}
+                canvas={canvas}
                 options={guideOptions}
                 onOptionsChange={setGuideOptions}
               />

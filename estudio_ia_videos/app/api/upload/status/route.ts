@@ -18,7 +18,7 @@ async function ensureDirectories() {
     await fs.mkdir(UPLOAD_DIR, { recursive: true });
     await fs.mkdir(METADATA_DIR, { recursive: true });
   } catch (error) {
-    logger.error('Error creating directories', { component: 'API: upload/status', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error creating directories', err, { component: 'API: upload/status' });
   }
 }
 
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Upload status error', { component: 'API: upload/status', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Upload status error', err, { component: 'API: upload/status' });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

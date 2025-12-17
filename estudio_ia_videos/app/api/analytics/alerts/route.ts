@@ -244,7 +244,7 @@ async function getHandler(req: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('[Analytics Alerts] Error', { component: 'API: analytics/alerts', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('[Analytics Alerts] Error', err, { component: 'API: analytics/alerts' });
     
     return NextResponse.json(
       {
@@ -278,7 +278,7 @@ async function postHandler(req: NextRequest) {
     const alertSystem = new AlertSystem();
 
     if (action === 'acknowledge' && alertId) {
-      await alertSystem.acknowledgeAlert(alertId, (session.user as any).id);
+      await alertSystem.acknowledgeAlert(alertId, session.user.id);
       return NextResponse.json({
         success: true,
         message: 'Alert acknowledged successfully'
@@ -286,7 +286,7 @@ async function postHandler(req: NextRequest) {
     }
 
     if (action === 'resolve' && alertId) {
-      await alertSystem.resolveAlert(alertId, (session.user as any).id);
+      await alertSystem.resolveAlert(alertId, session.user.id);
       return NextResponse.json({
         success: true,
         message: 'Alert resolved successfully'
@@ -322,7 +322,7 @@ async function postHandler(req: NextRequest) {
       // Criar regra de alerta
       const rule = await prisma.analyticsEvent.create({
         data: {
-          userId: (session.user as any).id,
+          userId: session.user.id,
           eventType: 'alert_rule',
           eventData: {
             organizationId,
@@ -336,7 +336,7 @@ async function postHandler(req: NextRequest) {
             },
             channels: channels || [],
             cooldown,
-            createdBy: (session.user as any).id,
+            createdBy: session.user.id,
             createdAt: new Date().toISOString()
           }
         }
@@ -355,7 +355,7 @@ async function postHandler(req: NextRequest) {
     );
 
   } catch (error) {
-    logger.error('[Analytics Alerts POST] Error', { component: 'API: analytics/alerts', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('[Analytics Alerts POST] Error', err, { component: 'API: analytics/alerts' });
     
     return NextResponse.json(
       {
@@ -399,7 +399,7 @@ async function putHandler(req: NextRequest) {
       where: {
         id: ruleId,
         eventType: 'alert_rule',
-        userId: (session.user as any).id,
+        userId: session.user.id,
         ...(organizationId && { 
           eventData: {
             path: ['organizationId'],
@@ -425,7 +425,7 @@ async function putHandler(req: NextRequest) {
       type: updates.type || currentData.type,
       status: updates.isActive !== undefined ? 
         (updates.isActive ? 'active' : 'inactive') : currentData.status,
-      updatedBy: (session.user as any).id,
+      updatedBy: session.user.id,
       updatedAt: new Date().toISOString()
     };
 
@@ -442,7 +442,7 @@ async function putHandler(req: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('[Analytics Alerts PUT] Error', { component: 'API: analytics/alerts', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('[Analytics Alerts PUT] Error', err, { component: 'API: analytics/alerts' });
     
     return NextResponse.json(
       {
@@ -486,7 +486,7 @@ async function deleteHandler(req: NextRequest) {
       where: {
         id: ruleId,
         eventType: 'alert_rule',
-        userId: (session.user as any).id,
+        userId: session.user.id,
         ...(organizationId && { 
           eventData: {
             path: ['organizationId'],
@@ -514,7 +514,7 @@ async function deleteHandler(req: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('[Analytics Alerts DELETE] Error', { component: 'API: analytics/alerts', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('[Analytics Alerts DELETE] Error', err, { component: 'API: analytics/alerts' });
     
     return NextResponse.json(
       {

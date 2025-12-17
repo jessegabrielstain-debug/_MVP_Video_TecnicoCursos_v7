@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { MagneticTimelineEngine, MagneticTimelineConfig, MagneticEvent } from '@/lib/timeline/magnetic-timeline';
 import { BeatDetectorService, BeatDetectionConfig } from '@/lib/timeline/beat-detector';
 import { TimelineState, TimelineClip } from '@/types/timeline';
@@ -78,11 +79,11 @@ export const useMagneticTimeline = ({
 
     // Set up event handlers
     engineRef.current.on('clip_moved', (event: MagneticEvent) => {
-      console.log('Clip moved:', event);
+      logger.debug('Clip moved', { event, component: 'useMagneticTimeline' });
     });
 
     engineRef.current.on('clip_deleted', (event: MagneticEvent) => {
-      console.log('Clip deleted:', event);
+      logger.debug('Clip deleted', { event, component: 'useMagneticTimeline' });
     });
 
     engineRef.current.on('ripple_completed', (event: MagneticEvent) => {
@@ -130,7 +131,7 @@ export const useMagneticTimeline = ({
         duration: 1000
       });
     } catch (error) {
-      console.error('Failed to move clip:', error);
+      logger.error('Failed to move clip', error as Error, { clipId, position, trackId, component: 'useMagneticTimeline' });
       toast({
         title: 'Error',
         description: 'Failed to move clip',
@@ -155,7 +156,7 @@ export const useMagneticTimeline = ({
         duration: 1000
       });
     } catch (error) {
-      console.error('Failed to delete clip:', error);
+      logger.error('Failed to delete clip', error as Error, { clipId, component: 'useMagneticTimeline' });
       toast({
         title: 'Error',
         description: 'Failed to delete clip',
@@ -246,7 +247,7 @@ export const useMagneticTimeline = ({
         duration: 2000
       });
     } catch (error) {
-      console.error('Beat detection failed:', error);
+      logger.error('Beat detection failed', error as Error, { audioFile, component: 'useMagneticTimeline' });
       toast({
         title: 'Error',
         description: 'Failed to detect beats in audio',

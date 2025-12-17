@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 interface NRStandard {
   nr: string;
@@ -42,7 +43,7 @@ export function useNRStandards(): UseNRStandardsReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       setError(errorMessage);
-      console.error('Erro ao buscar normas:', err);
+      logger.error('Erro ao buscar normas', err as Error, { component: 'useNRStandards' });
     } finally {
       setLoading(false);
     }

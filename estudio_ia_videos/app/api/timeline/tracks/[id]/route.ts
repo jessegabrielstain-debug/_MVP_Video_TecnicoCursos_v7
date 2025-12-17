@@ -192,7 +192,7 @@ export async function PUT(
     // Atualizar track
     const { data: updatedTrackData, error } = await supabase
       .from('timeline_tracks')
-      .update(validatedData as any) // validatedData matches partial track structure
+      .update(validatedData as Record<string, unknown>)
       .eq('id', trackId)
       .select()
       .single()
@@ -208,7 +208,7 @@ export async function PUT(
     const track = updatedTrackData as unknown as TrackWithProject;
     
     // Registrar no histórico
-    await (supabase
+    await supabase
       .from('project_history')
       .insert({
         project_id: existingTrack.project_id,
@@ -217,7 +217,7 @@ export async function PUT(
         entity_type: 'track',
         entity_id: trackId,
         description: `Track "${track.name}" atualizada`,
-        changes: {
+        changes: JSON.parse(JSON.stringify({
           previous_data: {
             name: existingTrack.name,
             color: existingTrack.color,
@@ -227,8 +227,8 @@ export async function PUT(
             muted: existingTrack.muted
           },
           new_data: validatedData
-        } as any
-      }) as any)
+        }))
+      })
 
     return NextResponse.json(track)
 
@@ -342,7 +342,7 @@ export async function DELETE(
     }
 
     // Registrar no histórico
-    await (supabase
+    await supabase
       .from('project_history')
       .insert({
         project_id: existingTrack.project_id,
@@ -351,14 +351,14 @@ export async function DELETE(
         entity_type: 'track',
         entity_id: trackId,
         description: `Track "${existingTrack.name}" excluída`,
-        changes: {
+        changes: JSON.parse(JSON.stringify({
           deleted_track: {
             id: existingTrack.id,
             name: existingTrack.name,
             type: existingTrack.type
           }
-        } as any
-      }) as any)
+        }))
+      })
 
     return NextResponse.json({ message: 'Track excluída com sucesso' })
 

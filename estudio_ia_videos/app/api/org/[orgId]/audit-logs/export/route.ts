@@ -11,6 +11,7 @@ import { getOrgContext, hasPermission } from '@/lib/multi-tenancy/org-context';
 import { getAuditLogs } from '@/lib/billing/audit-logger';
 // @ts-ignore
 import { Parser } from 'json2csv';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -72,7 +73,8 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Erro ao exportar audit logs:', error);
+    logger.error('Erro ao exportar audit logs', error instanceof Error ? error : new Error(String(error)) 
+, { component: 'API: org/audit-logs/export' });
     return NextResponse.json(
       { error: 'Erro ao exportar logs' },
       { status: 500 }

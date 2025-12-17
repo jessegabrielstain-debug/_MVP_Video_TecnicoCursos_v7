@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // Types for analytics data structures
 interface Track {
@@ -208,7 +209,8 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao gerar analytics:', error);
+    logger.error('Erro ao gerar analytics', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: v1/timeline/multi-track/analytics' });
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
       { success: false, message: 'Erro ao gerar analytics', error: errorMessage },

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 
 interface QuickValidationResult {
   score: number;
@@ -82,7 +83,7 @@ export function useComplianceRealtime({
       const result: QuickValidationResult = await response.json();
       setQuickValidation(result);
     } catch (err) {
-      console.error('Quick validation error:', err);
+      logger.error('Quick validation error', err as Error, { component: 'useComplianceRealtime' });
       setError(err instanceof Error ? err.message : 'Erro na validação rápida');
     } finally {
       setIsValidating(false);
@@ -119,7 +120,7 @@ export function useComplianceRealtime({
       setLastValidation(result);
       setValidationHistory(prev => [result, ...prev.slice(0, 9)]); // Keep last 10
     } catch (err) {
-      console.error('Full validation error:', err);
+      logger.error('Full validation error', err as Error, { component: 'useComplianceRealtime' });
       setError(err instanceof Error ? err.message : 'Erro na validação completa');
     } finally {
       setIsValidating(false);
@@ -151,7 +152,7 @@ export function useComplianceRealtime({
         }
       }
     } catch (err) {
-      console.error('Error loading validation history:', err);
+      logger.error('Error loading validation history', err as Error, { component: 'useComplianceRealtime' });
     }
   }, [projectId, nrType]);
 

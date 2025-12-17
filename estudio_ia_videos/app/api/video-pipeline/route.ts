@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSupabaseForRequest } from "@/lib/supabase/server"
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   return NextResponse.json({
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (dbError) {
-      console.error("Error creating render job:", dbError);
+      logger.error("Error creating render job", new Error(dbError.message), { component: 'API: video-pipeline', details: dbError });
       return NextResponse.json(
         { error: "Failed to create render job", details: dbError.message },
         { status: 500 }
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Pipeline error:", error);
+    logger.error("Pipeline error", error instanceof Error ? error : new Error(String(error)), { component: 'API: video-pipeline' });
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

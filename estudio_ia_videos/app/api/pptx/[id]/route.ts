@@ -5,6 +5,14 @@ import { unlink } from 'fs/promises'
 import { existsSync } from 'fs'
 import { logger } from '@/lib/logger';
 
+// Tipo para upload com projeto relacionado
+type PptxUploadWithProject = {
+  id: string;
+  project_id: string | null;
+  projects: { owner_id: string; collaborators: string[] | null } | null;
+  [key: string]: unknown;
+}
+
 // Schema de validação para atualização
 const updateSchema = z.object({
   status: z.enum(['uploaded', 'processing', 'completed', 'failed']).optional(),
@@ -38,7 +46,7 @@ export async function GET(
     const uploadId = params.id
 
     // Buscar upload com dados relacionados
-    const { data: upload, error } = await (supabase as any)
+    const { data: upload, error } = await supabase
       .from('pptx_uploads')
       .select(`
         *,
@@ -84,7 +92,7 @@ export async function GET(
     }
 
     // Atualizar último acesso
-    await (supabase as any)
+    await supabase
       .from('pptx_uploads')
       .update({ updated_at: new Date().toISOString() })
       .eq('id', uploadId)
@@ -123,7 +131,7 @@ export async function PUT(
     const validatedData = updateSchema.parse(body)
 
     // Verificar se upload existe e permissões
-    const { data: upload } = await (supabase as any)
+    const { data: uploadData } = await supabase
       .from('pptx_uploads')
       .select(`
         *,
@@ -135,6 +143,8 @@ export async function PUT(
       .eq('id', uploadId)
       .single()
 
+    const upload = uploadData as PptxUploadWithProject | null
+
     if (!upload) {
       return NextResponse.json(
         { error: 'Upload não encontrado' },
@@ -142,9 +152,9 @@ export async function PUT(
       )
     }
 
-    const project = upload.projects as Record<string, unknown>
-    const hasPermission = project.owner_id === user.id || 
-                         (project.collaborators as string[])?.includes(user.id)
+    const project = upload.projects
+    const hasPermission = project?.owner_id === user.id || 
+                         project?.collaborators?.includes(user.id)
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -168,7 +178,7 @@ export async function PUT(
     }
 
     // Atualizar upload
-    const { data: updatedUpload, error: updateError } = await (supabase as any)
+    const { data: updatedUpload, error: updateError } = await supabase
       .from('pptx_uploads')
       .update(updateData)
       .eq('id', uploadId)
@@ -233,7 +243,7 @@ export async function DELETE(
     const uploadId = params.id
 
     // Verificar se upload existe e permissões
-    const { data: upload } = await (supabase as any)
+    const { data: upload } = await supabase
       .from('pptx_uploads')
       .select(`
         *,
@@ -264,13 +274,13 @@ export async function DELETE(
     }
 
     // Excluir slides relacionados primeiro
-    await (supabase as any)
+    await supabase
       .from('pptx_slides')
       .delete()
       .eq('upload_id', uploadId)
 
     // Excluir upload do banco
-    const { error: deleteError } = await (supabase as any)
+    const { error: deleteError } = await supabase
       .from('pptx_uploads')
       .delete()
       .eq('id', uploadId)
@@ -292,12 +302,12 @@ export async function DELETE(
         await unlink(filePath)
       }
     } catch (fileError) {
-      logger.warn('Erro ao excluir arquivo físico:', { error: fileError, component: 'API: pptx/[id]' })
+      logger.warn('Erro ao excluir arquivo físico:', { component: 'API: pptx/[id]' })
       // Não falhar a operação se não conseguir excluir o arquivo
     }
 
     // Registrar no histórico
-    await (supabase as any)
+    await supabase
       .from('project_history')
       .insert({
         project_id: upload.project_id,

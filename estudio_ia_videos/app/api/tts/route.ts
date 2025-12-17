@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { TTSService } from '@/lib/tts/tts-service';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const ttsSchema = z.object({
   text: z.string().min(1, 'Text is required.'),
@@ -31,7 +32,8 @@ export async function POST(request: Request) {
       duration: ttsResponse.duration,
     });
   } catch (error) {
-    console.error('TTS API Error:', error);
+    logger.error('TTS API Error', error instanceof Error ? error : new Error(String(error))
+, { component: 'API: tts' });
     return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
   }
 }

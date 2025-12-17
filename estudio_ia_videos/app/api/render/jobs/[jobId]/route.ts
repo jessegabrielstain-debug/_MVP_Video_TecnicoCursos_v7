@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
@@ -26,7 +27,8 @@ export async function GET(
     }
 
     // Verify ownership
-    const project = (job as any).project
+    const jobWithProject = job as typeof job & { project?: { user_id: string } }
+    const project = jobWithProject.project
     let hasPermission = project?.user_id === user.id
 
     if (!hasPermission) {
@@ -50,7 +52,7 @@ export async function GET(
     return NextResponse.json({ success: true, data: jobData })
 
   } catch (error) {
-    console.error('Error fetching render job:', error)
+    logger.error('Error fetching render job', error instanceof Error ? error : new Error(String(error)), { component: 'API: render/jobs/[jobId]' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -101,7 +103,8 @@ export async function DELETE(
         .eq('user_id', user.id)
         .single()
       
-      if (collaborator && (collaborator.permissions as any)?.can_edit) {
+      const permissions = collaborator?.permissions as { can_edit?: boolean } | null
+      if (permissions?.can_edit) {
         hasPermission = true
       }
     }
@@ -121,7 +124,7 @@ export async function DELETE(
     return NextResponse.json({ success: true })
 
   } catch (error) {
-    console.error('Error deleting render job:', error)
+    logger.error('Error deleting render job', error instanceof Error ? error : new Error(String(error)), { component: 'API: render/jobs/[jobId]' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -53,7 +53,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     })
 
   } catch (error) {
-    logger.error('Erro no reprocessamento', { component: 'API: v1/pptx/reprocess', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro no reprocessamento', err, { component: 'API: v1/pptx/reprocess' })
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno'

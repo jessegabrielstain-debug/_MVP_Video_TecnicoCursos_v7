@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { reviewWorkflowService } from '@/lib/collab/review-workflow';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   request: NextRequest,
@@ -35,9 +36,10 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    console.error('❌ Erro ao reabrir projeto:', error);
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao reabrir projeto', normalizedError, { component: 'API: review/reopen' });
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : String(error) || 'Erro ao reabrir projeto' },
+      { error: normalizedError.message },
       { status: 500 }
     );
   }

@@ -107,12 +107,12 @@ const sliderValueToIntensity = (
   return 'moderado'
 }
 
-const mapToAvatar3D = (def: any): Avatar3D => ({
+const mapToAvatar3D = (def: { id: string; name: string; gender?: string; engine?: string; metadata?: Record<string, unknown> }): Avatar3D => ({
   id: def.id,
   name: def.name,
-  category: (def.metadata?.category as any) || 'business',
+  category: (def.metadata?.category as string) || 'business',
   gender: def.gender === 'male' ? 'male' : 'female',
-  ethnicity: (def.metadata?.ethnicity as any) || 'caucasian',
+  ethnicity: (def.metadata?.ethnicity as string) || 'caucasian',
   age: 'adult',
   quality: def.engine === 'ue5' || def.engine === 'heygen' ? 'hyperreal' : 'standard',
   features: {
@@ -152,7 +152,8 @@ export default function Avatar3DSelector({ onAvatarSelect, selectedAvatar, conte
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category)
     
-    let filteredDefs: any[] = []
+    type AvatarDef = { id: string; name: string; gender?: string; engine?: string; metadata?: Record<string, unknown> }
+    let filteredDefs: AvatarDef[] = []
     
     switch (category) {
       case 'recommended':

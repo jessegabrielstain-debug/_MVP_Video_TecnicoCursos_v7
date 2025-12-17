@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth/auth-service';
 import { AuthMiddleware } from '@/lib/auth/auth-middleware';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +42,8 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error) {
-    console.error('Refresh token error:', error);
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    logger.error('Refresh token error', errorObj, { component: 'API: auth/refresh' });
     
     const errorMessage = error instanceof Error ? error.message : 'Token de refresh inválido';
     

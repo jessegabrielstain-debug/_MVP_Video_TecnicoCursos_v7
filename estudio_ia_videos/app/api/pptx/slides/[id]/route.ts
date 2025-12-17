@@ -3,6 +3,38 @@ import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
+// Type interfaces for nested relations
+interface ProjectInfo {
+  id: string;
+  name?: string;
+  user_id: string;
+  is_public?: boolean;
+}
+
+interface PptxUploadWithProject {
+  id: string;
+  project_id: string;
+  original_filename?: string;
+  status?: string;
+  projects: ProjectInfo;
+}
+
+interface SlideWithRelations {
+  id: string;
+  upload_id: string;
+  slide_number: number;
+  title: string | null;
+  content: string | null;
+  duration: number;
+  transition_type: string;
+  thumbnail_url: string | null;
+  notes: string | null;
+  properties: Record<string, unknown>;
+  created_at: string;
+  updated_at: string | null;
+  pptx_uploads: PptxUploadWithProject;
+}
+
 // Schema de validação para atualização de slide
 const updateSlideSchema = z.object({
   slide_number: z.number().int().positive().optional(),
@@ -62,7 +94,8 @@ export async function GET(
     }
 
     // Verificar permissões
-    const upload = slide.pptx_uploads as any
+    const typedSlide = slide as unknown as SlideWithRelations
+    const upload = typedSlide.pptx_uploads
     const project = upload.projects
     
     let hasPermission = project.user_id === user.id || project.is_public
@@ -144,7 +177,9 @@ export async function PUT(
       )
     }
 
-    const upload = slide.pptx_uploads as any
+    // PUT handler - typed access to nested relations (second check block)
+    const slideForPut = slide as unknown as SlideWithRelations
+    const upload = slideForPut.pptx_uploads
     const project = upload.projects
     
     let hasPermission = project.user_id === user.id
@@ -192,7 +227,7 @@ export async function PUT(
     let updateData = { ...validatedData }
     if (validatedData.properties && slide.properties) {
       updateData.properties = {
-        ...(slide.properties as any),
+        ...(slide.properties as Record<string, unknown>),
         ...validatedData.properties
       }
     }
@@ -202,7 +237,7 @@ export async function PUT(
       .from('pptx_slides')
       .update({
         ...updateData,
-        properties: updateData.properties as any,
+        properties: updateData.properties ? JSON.parse(JSON.stringify(updateData.properties)) : undefined,
         updated_at: new Date().toISOString()
       })
       .eq('id', slideId)
@@ -227,7 +262,7 @@ export async function PUT(
         entity_type: 'pptx_slide',
         entity_id: slideId,
         description: `Slide ${slide.slide_number} "${slide.title}" atualizado`,
-        changes: validatedData as any
+        changes: JSON.parse(JSON.stringify(validatedData))
       })
 
     return NextResponse.json({ slide: updatedSlide })
@@ -290,7 +325,9 @@ export async function DELETE(
       )
     }
 
-    const upload = slide.pptx_uploads as any
+    // DELETE handler - typed access to nested relations
+    const deleteTypedSlide = slide as unknown as SlideWithRelations
+    const upload = deleteTypedSlide.pptx_uploads
     const project = upload.projects
     
     let hasPermission = project.user_id === user.id

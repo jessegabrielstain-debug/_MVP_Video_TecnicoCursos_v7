@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
       processingTime: Date.now() - startTime
     });
 
-    logger.error('Erro na criação do job de renderização', { component: 'API: video/render', error: error instanceof Error ? error : new Error(String(error)) });
+    logger.error('Erro na criação do job de renderização', err, { component: 'API: video/render' });
 
     return NextResponse.json(
       { 
@@ -308,8 +308,8 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error: unknown) {
-    logger.error('Erro ao obter informações de renderização', { component: 'API: video/render', error: error instanceof Error ? error : new Error(String(error)) });
     const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao obter informações de renderização', err, { component: 'API: video/render' });
     
     return NextResponse.json(
       { 
@@ -350,8 +350,8 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    logger.error('Erro ao cancelar job', { component: 'API: video/render', error: error instanceof Error ? error : new Error(String(error)) });
     const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Erro ao cancelar job', err, { component: 'API: video/render' });
     
     return NextResponse.json(
       { 

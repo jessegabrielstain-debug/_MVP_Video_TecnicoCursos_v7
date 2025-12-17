@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 export interface EditorElement {
   id: string;
@@ -275,7 +276,7 @@ export const useWYSIWYGEditor = (): UseWYSIWYGEditorReturn => {
         setEditorState(processedState);
       }
     } catch (err) {
-      console.error('Error loading editor state:', err);
+      logger.error('Error loading editor state', err as Error, { component: 'useWYSIWYGEditor' });
     }
   };
 
@@ -283,7 +284,7 @@ export const useWYSIWYGEditor = (): UseWYSIWYGEditorReturn => {
     try {
       localStorage.setItem('wysiwyg_editor_state', JSON.stringify(editorState));
     } catch (err) {
-      console.error('Error saving editor state:', err);
+      logger.error('Error saving editor state', err as Error, { component: 'useWYSIWYGEditor' });
     }
   };
 
@@ -846,7 +847,7 @@ export const useWYSIWYGEditor = (): UseWYSIWYGEditorReturn => {
         saveSnapshot('Projeto importado');
       }
     } catch (err) {
-      console.error('Error importing project:', err);
+      logger.error('Error importing project', err as Error, { component: 'useWYSIWYGEditor' });
     }
   }, [saveSnapshot]);
 
@@ -891,7 +892,7 @@ export const useWYSIWYGEditor = (): UseWYSIWYGEditorReturn => {
         return newId;
       }
     } catch (err) {
-      console.error('Error importing element:', err);
+      logger.error('Error importing element', err as Error, { component: 'useWYSIWYGEditor' });
     }
     return '';
   }, [saveSnapshot]);

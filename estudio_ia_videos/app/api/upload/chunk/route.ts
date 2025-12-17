@@ -26,10 +26,7 @@ async function ensureDirectories() {
     await fs.mkdir(UPLOAD_DIR, { recursive: true });
     await fs.mkdir(METADATA_DIR, { recursive: true });
   } catch (error) {
-    logger.error('Error creating directories', {
-      component: 'API: upload/chunk',
-      error: error instanceof Error ? error : new Error(String(error))
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error creating directories', err, { component: 'API: upload/chunk' });
   }
 }
 
@@ -112,10 +109,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Chunk upload error', {
-      component: 'API: upload/chunk',
-      error: error instanceof Error ? error : new Error(String(error))
-    });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Chunk upload error', err, { component: 'API: upload/chunk' });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

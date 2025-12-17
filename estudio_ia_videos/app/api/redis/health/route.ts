@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { redisOptimized } from "@/lib/cache/redis-optimized"
+import { logger } from "@/lib/logger"
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Redis health check error:", errorMessage)
+    logger.error("Redis health check error", error instanceof Error ? error : new Error(errorMessage), { component: 'API: redis/health' })
     
     return NextResponse.json({
       timestamp: new Date().toISOString(),

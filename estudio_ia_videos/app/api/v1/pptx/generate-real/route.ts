@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { generateRealPptxFromProject, RealPptxGenerator, PptxGenerationOptions } from '@/lib/pptx-real-generator'
+import { generateRealPptxFromProject, RealPptxGenerator, PptxGenerationOptions, GeneratorSlide } from '@/lib/pptx-real-generator'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
@@ -132,10 +132,18 @@ export async function PUT(request: NextRequest) {
 
     logger.info(`🎨 Gerando PPTX customizado com ${slides.length} slides`, { component: 'API: v1/pptx/generate-real' })
 
+    // Convert slides to GeneratorSlide format
+    const generatorSlides: GeneratorSlide[] = slides.map((slide) => ({
+      title: String(slide.title || ''),
+      content: String(slide.content || ''),
+      layout: (slide.layout as 'title' | 'content' | 'blank') || undefined,
+      notes: slide.notes ? String(slide.notes) : undefined
+    }))
+
     const generator = new RealPptxGenerator()
     const result = await generator.generateRealPptx({
       title: options.title || 'Apresentação Customizada',
-      slides: slides as any,
+      slides: generatorSlides,
       template: options.template || 'corporate',
       branding: options.branding,
       metadata: options.metadata || {

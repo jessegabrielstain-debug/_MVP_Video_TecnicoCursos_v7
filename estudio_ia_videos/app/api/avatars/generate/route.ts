@@ -48,6 +48,21 @@ interface VoiceConfig {
   pitch: number
 }
 
+// Interface para metadata do projeto com avatar
+interface AvatarMetadata {
+  id?: string
+  status?: string
+  videoUrl?: string
+  thumbnailUrl?: string
+  generatedAt?: string
+  updatedAt?: string
+  [key: string]: unknown
+}
+
+interface ProjectAvatarMetadata {
+  avatar?: AvatarMetadata
+  [key: string]: unknown
+}
 interface AvatarData {
   id: string
   model: string
@@ -114,8 +129,8 @@ class Avatar3DGenerator {
               videoUrl: `/api/avatars/video/${avatarData.id}`,
               thumbnailUrl: `/api/avatars/thumbnail/${avatarData.id}`
             }
-          }
-        } as any
+          } satisfies ProjectAvatarMetadata
+        }
       })
 
       return {
@@ -255,7 +270,7 @@ export async function POST(request: NextRequest) {
     )
 
     // Atualizar workflow para "completed"
-    await workflowManager.updateWorkflowStep(validatedData.projectId, 'avatar', 'completed', avatarResult as any)
+    await workflowManager.updateWorkflowStep(validatedData.projectId, 'avatar', 'completed', avatarResult as Record<string, unknown>)
 
     return NextResponse.json({
       success: true,
@@ -305,8 +320,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Project not found' }, { status: 404 })
       }
 
+      const metadata = project.metadata as ProjectAvatarMetadata | null
       return NextResponse.json({
-        avatar: (project as any).metadata?.avatar || null
+        avatar: metadata?.avatar || null
       })
     }
 
@@ -346,18 +362,19 @@ export async function PUT(request: NextRequest) {
     }
 
     // Atualizar configuração do avatar
+    const existingMetadata = project.metadata as ProjectAvatarMetadata | null
     await prisma.project.update({
       where: { id: projectId },
       data: {
         metadata: {
-          ...(project as any).metadata,
+          ...existingMetadata,
           avatar: {
-            ...(project as any).metadata?.avatar,
+            ...existingMetadata?.avatar,
             ...updates,
             updatedAt: new Date().toISOString()
           }
-        }
-      } as any
+        } satisfies ProjectAvatarMetadata
+      }
     })
 
     return NextResponse.json({

@@ -202,23 +202,25 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    interface LockRecord { id: string; trackId: string; userId: string; user: { name: string | null; avatarUrl?: string | null }; createdAt: Date }
+    interface PresenceRecord { userId: string; user: { name: string | null; avatarUrl?: string | null }; lastSeenAt: Date; currentTrackId?: string | null }
     return NextResponse.json({
       success: true,
       data: {
-        locks: locks.map((lock: any) => ({
+        locks: locks.map((lock: LockRecord) => ({
           id: lock.id,
           trackId: lock.trackId,
           userId: lock.userId,
-          userName: lock.user.name,
+          userName: lock.user.name || 'Unknown',
           userImage: lock.user.avatarUrl,
           lockedAt: lock.createdAt.toISOString(),
         })),
-        activeUsers: activeUsers.map((presence: any) => ({
+        activeUsers: activeUsers.map((presence: PresenceRecord) => ({
           userId: presence.userId,
-          userName: presence.user.name,
+          userName: presence.user.name || 'Unknown',
           userImage: presence.user.avatarUrl,
           lastSeenAt: presence.lastSeenAt.toISOString(),
-          currentTrackId: presence.currentTrackId,
+          currentTrackId: presence.currentTrackId || undefined,
         })),
       },
     });

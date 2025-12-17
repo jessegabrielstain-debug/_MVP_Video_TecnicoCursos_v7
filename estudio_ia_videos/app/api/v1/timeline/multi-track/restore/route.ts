@@ -11,6 +11,7 @@ import { authOptions } from '@/lib/auth';
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 import { AnalyticsTracker } from '@/lib/analytics/analytics-tracker';
 import { logger } from '@/lib/logger';
+import { toJsonValue } from '@/lib/prisma-helpers';
 /**
  * POST - Restore timeline to a specific snapshot version
  */
@@ -69,8 +70,8 @@ export async function POST(request: NextRequest) {
       data: {
         timelineId: currentTimeline.id,
         version: currentTimeline.version,
-        tracks: currentTimeline.tracks as any,
-        settings: currentTimeline.settings as any,
+        tracks: toJsonValue(currentTimeline.tracks ?? []),
+        settings: toJsonValue(currentTimeline.settings ?? {}),
         totalDuration: currentTimeline.totalDuration || 0,
         createdBy: session.user.id,
         description: `Auto-backup antes de restaurar v${snapshot.version}`,
@@ -83,8 +84,8 @@ export async function POST(request: NextRequest) {
     const restoredTimeline = await prisma.timeline.update({
       where: { id: snapshot.timelineId },
       data: {
-        tracks: snapshot.tracks as any,
-        settings: snapshot.settings as any,
+        tracks: toJsonValue(snapshot.tracks ?? []),
+        settings: toJsonValue(snapshot.settings ?? {}),
         totalDuration: snapshot.totalDuration || 0,
         version: { increment: 1 },
         updatedAt: new Date(),
@@ -93,7 +94,8 @@ export async function POST(request: NextRequest) {
 
     logger.info(`✅ Timeline restaurada para v${snapshot.version} (nova versão: v${restoredTimeline.version})`, { component: 'API: v1/timeline/multi-track/restore' });
 
-    const orgId = getOrgId(session.user) || (session.user as any).currentOrgId || undefined;
+    // Get orgId from session user if available
+    const orgId = getOrgId(session.user) ?? undefined;
 
     // Track analytics
     await AnalyticsTracker.trackTimelineEdit({
@@ -121,7 +123,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: unknown) {
-    logger.error('❌ Erro ao restaurar timeline', { component: 'API: v1/timeline/multi-track/restore', error: error instanceof Error ? error : new Error(String(error)) });
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('❌ Erro ao restaurar timeline', err, { component: 'API: v1/timeline/multi-track/restore' });
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { success: false, message: 'Erro ao restaurar timeline', error: message },

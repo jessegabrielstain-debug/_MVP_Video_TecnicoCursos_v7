@@ -57,10 +57,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    logger.error('Error in advanced compliance API', {
-      component: 'API: v1/advanced-compliance',
-      error: error instanceof Error ? error : new Error(String(error))
-    })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error in advanced compliance API', err, { component: 'API: v1/advanced-compliance' })
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -117,10 +114,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     )
   } catch (error) {
-    logger.error('Error in advanced compliance POST', {
-      component: 'API: v1/advanced-compliance',
-      error: error instanceof Error ? error : new Error(String(error))
-    })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Error in advanced compliance POST', err, { component: 'API: v1/advanced-compliance' })
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

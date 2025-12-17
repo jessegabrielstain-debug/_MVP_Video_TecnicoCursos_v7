@@ -3,6 +3,7 @@ import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger'
+import { type Json } from '@/lib/supabase/types'
 
 // Interfaces para tipagem de queries
 interface TrackOrderIndex {
@@ -121,7 +122,7 @@ export async function GET(request: NextRequest) {
       .order('order_index', { ascending: true })
 
     if (error) {
-      logger.error('Erro ao buscar tracks', { component: 'API: timeline/tracks', error: error instanceof Error ? error : new Error(String(error)) })
+      const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao buscar tracks', err, { component: 'API: timeline/tracks' })
       return NextResponse.json(
         { error: 'Erro interno do servidor' },
         { status: 500 }
@@ -131,7 +132,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ tracks: tracks || [] })
 
   } catch (error) {
-    logger.error('Erro na API de tracks', { component: 'API: timeline/tracks', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro na API de tracks', err, { component: 'API: timeline/tracks' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -223,21 +224,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar track
+    const trackInsert = {
+      project_id: validatedData.project_id,
+      name: validatedData.name,
+      type: validatedData.type,
+      order_index: validatedData.order_index,
+      color: validatedData.color,
+      height: validatedData.height || 80,
+      visible: validatedData.visible !== false,
+      locked: validatedData.locked || false,
+      muted: validatedData.muted || false,
+      properties: (validatedData.properties || {}) as Json
+    }
     const { data: trackData, error } = await supabase
       .from('timeline_tracks')
-      .insert({
-        ...validatedData,
-        height: validatedData.height || 80,
-        visible: validatedData.visible !== false,
-        locked: validatedData.locked || false,
-        muted: validatedData.muted || false,
-        properties: (validatedData.properties || {}) as Prisma.InputJsonValue
-      } as any)
+      .insert(trackInsert)
       .select()
       .single()
 
     if (error) {
-      logger.error('Erro ao criar track', { component: 'API: timeline/tracks', error: error instanceof Error ? error : new Error(String(error)) })
+      const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro ao criar track', err, { component: 'API: timeline/tracks' })
       return NextResponse.json(
         { error: 'Erro ao criar track' },
         { status: 500 }
@@ -247,7 +253,7 @@ export async function POST(request: NextRequest) {
     const track = trackData as unknown as TrackCreated;
 
     // Registrar no histórico
-    await (supabase
+    await supabase
       .from('project_history')
       .insert({
         project_id: validatedData.project_id,
@@ -258,8 +264,8 @@ export async function POST(request: NextRequest) {
         description: `Track "${track.name}" criada`,
         changes: {
           created_track: track
-        } as any
-      }) as any)
+        } as Json
+      })
 
     return NextResponse.json(track, { status: 201 })
 
@@ -271,7 +277,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    logger.error('Erro na criação de track', { component: 'API: timeline/tracks', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro na criação de track', err, { component: 'API: timeline/tracks' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -373,7 +379,7 @@ export async function PUT(request: NextRequest) {
     await Promise.all(updatePromises)
 
     // Registrar no histórico
-    await (supabase
+    await supabase
       .from('project_history')
       .insert({
         project_id: projectId,
@@ -383,8 +389,8 @@ export async function PUT(request: NextRequest) {
         description: 'Tracks reordenadas',
         changes: {
           reordered_tracks: tracks
-        } as any
-      }) as any)
+        } as Json
+      })
 
     return NextResponse.json({ message: 'Tracks reordenadas com sucesso' })
 
@@ -396,7 +402,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    logger.error('Erro na reordenação de tracks', { component: 'API: timeline/tracks', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Erro na reordenação de tracks', err, { component: 'API: timeline/tracks' })
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

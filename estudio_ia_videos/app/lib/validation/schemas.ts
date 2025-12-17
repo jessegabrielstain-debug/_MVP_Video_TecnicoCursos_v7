@@ -197,3 +197,122 @@ export function formatZodErrors(errors: z.ZodError): Record<string, string> {
   });
   return formatted;
 }
+
+// =====================================
+// TTS Schemas
+// =====================================
+
+export const TTSProviderSchema = z.enum(['elevenlabs', 'azure', 'google', 'aws']);
+
+export const TTSGenerateSchema = z.object({
+  text: z.string()
+    .min(1, 'Texto é obrigatório')
+    .max(5000, 'Texto muito longo (máx 5000 caracteres)'),
+  provider: TTSProviderSchema.default('elevenlabs'),
+  voiceId: z.string().min(1, 'Voice ID é obrigatório'),
+  language: z.string().default('pt-BR'),
+  options: z.object({
+    speed: z.number().min(0.25).max(4).default(1),
+    pitch: z.number().min(-20).max(20).default(0),
+    stability: z.number().min(0).max(1).optional(),
+    similarityBoost: z.number().min(0).max(1).optional(),
+  }).optional(),
+  slideId: z.string().uuid().optional(),
+  projectId: z.string().uuid().optional(),
+});
+
+export type TTSGenerate = z.infer<typeof TTSGenerateSchema>;
+
+// =====================================
+// Avatar Schemas
+// =====================================
+
+export const AvatarProviderSchema = z.enum(['heygen', 'did', 'synthesia', 'custom']);
+
+export const AvatarRenderSchema = z.object({
+  provider: AvatarProviderSchema,
+  avatarId: z.string().min(1, 'Avatar ID é obrigatório'),
+  script: z.string().min(1).max(10000),
+  voiceId: z.string().optional(),
+  expression: z.string().optional(),
+  background: z.string().optional(),
+  projectId: z.string().uuid().optional(),
+  webhook: z.string().url().optional(),
+});
+
+export type AvatarRender = z.infer<typeof AvatarRenderSchema>;
+
+// =====================================
+// Export Schemas
+// =====================================
+
+export const ExportFormatSchema = z.enum([
+  'mp4',
+  'webm',
+  'mov',
+  'gif',
+  'png-sequence',
+  'audio-only',
+]);
+
+export const ExportOptionsSchema = z.object({
+  format: ExportFormatSchema.default('mp4'),
+  quality: z.enum(['low', 'medium', 'high', 'ultra']).default('high'),
+  resolution: z.object({
+    width: z.number().int().min(320).max(7680).default(1920),
+    height: z.number().int().min(240).max(4320).default(1080),
+  }).optional(),
+  watermark: z.boolean().default(false),
+  includeSubtitles: z.boolean().default(false),
+  notification: z.object({
+    email: z.boolean().default(true),
+    webhook: z.string().url().optional(),
+  }).optional(),
+});
+
+export type ExportOptions = z.infer<typeof ExportOptionsSchema>;
+
+// =====================================
+// Pagination & Filtering
+// =====================================
+
+export const PaginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
+export type Pagination = z.infer<typeof PaginationSchema>;
+
+export const DateRangeSchema = z.object({
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+}).refine(
+  (data) => !data.from || !data.to || data.from <= data.to,
+  { message: 'Data inicial deve ser anterior à data final' }
+);
+
+export type DateRange = z.infer<typeof DateRangeSchema>;
+
+// =====================================
+// API Response Helpers
+// =====================================
+
+/**
+ * Get first error message from Zod error
+ */
+export function getFirstZodError(error: z.ZodError): string {
+  return error.errors[0]?.message || 'Dados inválidos';
+}
+
+/**
+ * Create validation error response
+ */
+export function createValidationErrorResponse(error: z.ZodError) {
+  return {
+    success: false,
+    error: getFirstZodError(error),
+    details: formatZodErrors(error),
+  };
+}

@@ -1,17 +1,19 @@
+import { logger } from '@/lib/logger';
+
 export const errorLogger = {
   log: (error: Error | unknown, context?: Record<string, unknown>) => {
-    console.error('Error logged:', error, context);
+    logger.error('Error logged', error as Error, { ...context, component: 'errorLogger' });
   },
   logError: (context: Record<string, unknown>) => {
-    console.error('Error logged:', context);
+    logger.error('Error logged', new Error('Unknown error'), { ...context, component: 'errorLogger' });
   },
   warn: (message: string, context?: Record<string, unknown>) => {
-    console.warn('Warning logged:', message, context);
+    logger.warn(message, { ...context, component: 'errorLogger' });
   },
   info: (message: string, context?: Record<string, unknown>) => {
-    console.info('Info logged:', message, context);
+    logger.info(message, { ...context, component: 'errorLogger' });
   },
   logInfo: (message: string, context?: Record<string, unknown>) => {
-    console.info('Info logged:', message, context);
+    logger.info(message, { ...context, component: 'errorLogger' });
   }
 };

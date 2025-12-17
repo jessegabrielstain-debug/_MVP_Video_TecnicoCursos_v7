@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { toJsonValue, getJsonProperty } from '@/lib/prisma-helpers';
 
 /**
  * POST - Create template from timeline
@@ -55,8 +56,8 @@ export async function POST(request: NextRequest) {
         category: category || 'custom',
         isPublic: isPublic || false,
         createdBy: session.user.id,
-        tracks: timeline.tracks as any,
-        settings: timeline.settings as any,
+        tracks: toJsonValue(timeline.tracks ?? []),
+        settings: toJsonValue(timeline.settings ?? {}),
         totalDuration: timeline.totalDuration,
         metadata: {
           originalProjectId: projectId,
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
         description: template.description,
         category: template.category,
         isPublic: template.isPublic,
-        tracksCount: (template.metadata as any)?.tracksCount || 0,
+        tracksCount: getJsonProperty<number>(template.metadata, 'tracksCount', 0),
         totalDuration: template.totalDuration,
         createdAt: template.createdAt.toISOString(),
       },
@@ -143,7 +144,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const metadata = (template.metadata as any) || {};
+      const metadata = template.metadata ?? {};
 
       return NextResponse.json({
         success: true,
@@ -211,13 +212,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        templates: templates.map((t: any) => ({
+        templates: (templates as unknown as Array<{
+          id: string; name: string; description?: string | null; category: string;
+          isPublic: boolean; metadata: Record<string, unknown>; totalDuration: number | null;
+          usageCount: number; creator: { id: string; name: string | null; avatarUrl?: string | null };
+          createdAt: Date
+        }>).map((t) => ({
           id: t.id,
           name: t.name,
           description: t.description,
           category: t.category,
           isPublic: t.isPublic,
-          tracksCount: (t.metadata as any)?.tracksCount || 0,
+          tracksCount: (t.metadata as Record<string, unknown>)?.tracksCount || 0,
           totalDuration: t.totalDuration,
           usageCount: t.usageCount,
           creator: {
@@ -311,14 +317,14 @@ export async function PUT(request: NextRequest) {
       where: { projectId },
       create: {
         projectId,
-        tracks: template.tracks as any,
-        settings: template.settings as any,
+        tracks: toJsonValue(template.tracks ?? []),
+        settings: toJsonValue(template.settings ?? {}),
         totalDuration: template.totalDuration,
         version: 1,
       },
       update: {
-        tracks: template.tracks as any,
-        settings: template.settings as any,
+        tracks: toJsonValue(template.tracks ?? []),
+        settings: toJsonValue(template.settings ?? {}),
         totalDuration: template.totalDuration,
         version: { increment: 1 },
         updatedAt: new Date(),

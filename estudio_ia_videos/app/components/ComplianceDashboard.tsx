@@ -69,8 +69,9 @@ export const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({
         category: template.category,
         ...template.metadata
       },
-      content: template.content as any, // Casting as any for now, ideally map to OptimizableContentInput
-      assets: template.content.assets as any
+      // ComplianceProjectData accepts [key: string]: unknown, so we use unknown cast
+      content: template.content as unknown as ComplianceProjectData['content'],
+      assets: template.content.assets as unknown as ComplianceProjectData['assets']
     };
   }, [template]);
 

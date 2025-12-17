@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createRateLimiter, rateLimitPresets } from '@/lib/utils/rate-limit-middleware';
+import { logger } from '@/lib/logger';
 import { 
   NotificationSystem, 
   createProductionNotificationSystem,
@@ -24,7 +25,7 @@ let notificationSystem: NotificationSystem | null = null;
 function getNotificationSystem(): NotificationSystem {
   if (!notificationSystem) {
     notificationSystem = createProductionNotificationSystem();
-    notificationSystem.initialize().catch(console.error);
+    notificationSystem.initialize().catch((err) => logger.error('Failed to initialize notification system', err instanceof Error ? err : new Error(String(err)), { component: 'NotificationsRoute' }));
   }
   return notificationSystem;
 }
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('POST /api/notifications error:', error);
+    logger.error('POST /api/notifications error', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationsRoute' });
     return NextResponse.json(
       { error: 'Failed to send notification', details: String(error) },
       { status: 500 }
@@ -136,7 +137,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('GET /api/notifications error:', error);
+    logger.error('GET /api/notifications error', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationsRoute' });
     return NextResponse.json(
       { error: 'Failed to get notifications', details: String(error) },
       { status: 500 }
@@ -178,7 +179,7 @@ export async function PATCH(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('PATCH /api/notifications error:', error);
+    logger.error('PATCH /api/notifications error', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationsRoute' });
     return NextResponse.json(
       { error: 'Failed to mark as read', details: String(error) },
       { status: 500 }
@@ -219,7 +220,7 @@ export async function DELETE(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('DELETE /api/notifications error:', error);
+    logger.error('DELETE /api/notifications error', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationsRoute' });
     return NextResponse.json(
       { error: 'Failed to perform cleanup', details: String(error) },
       { status: 500 }
@@ -315,7 +316,7 @@ export async function PUT(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('PUT /api/notifications error:', error);
+    logger.error('PUT /api/notifications error', error instanceof Error ? error : new Error(String(error)), { component: 'NotificationsRoute' });
     return NextResponse.json(
       { error: 'Failed to perform action', details: String(error) },
       { status: 500 }

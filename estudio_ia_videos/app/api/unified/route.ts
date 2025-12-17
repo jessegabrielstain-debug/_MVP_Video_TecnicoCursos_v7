@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ workflow })
 
   } catch (error) {
-    logger.error('Unified API GET Error', { component: 'API: unified', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Unified API GET Error', err, { component: 'API: unified' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Unified API POST Error', { component: 'API: unified', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Unified API POST Error', err, { component: 'API: unified' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -185,7 +185,7 @@ export async function PUT(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Unified API PUT Error', { component: 'API: unified', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Unified API PUT Error', err, { component: 'API: unified' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -222,7 +222,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: 'Project and workflow deleted' })
 
   } catch (error) {
-    logger.error('Unified API DELETE Error', { component: 'API: unified', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('Unified API DELETE Error', err, { component: 'API: unified' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

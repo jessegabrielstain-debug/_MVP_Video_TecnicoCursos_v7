@@ -45,6 +45,12 @@ import type * as Fabric from 'fabric'
 // Fabric.js reference
 let fabric: typeof Fabric | null = null
 
+// Extended Fabric.Object with custom properties
+interface ExtendedFabricObject extends Fabric.Object {
+  id?: string
+  name?: string
+}
+
 interface CanvasObject {
   id: string
   type: string
@@ -138,17 +144,17 @@ export function FabricCanvasEditor({
 
   // Update objects list
   const updateObjectsList = (canvas: Fabric.Canvas) => {
-    // @ts-ignore
-    const objects = canvas.getObjects().map((obj: Fabric.Object, index: number) => ({
-      // @ts-ignore
-      id: (obj as any).id || `object-${index}`,
-      type: obj.type || 'unknown',
-      // @ts-ignore
-      name: (obj as any).name || `${obj.type || 'Object'} ${index + 1}`,
-      visible: obj.visible !== false,
-      locked: obj.selectable === false,
-      fabricObject: obj
-    }))
+    const objects = canvas.getObjects().map((obj: Fabric.Object, index: number) => {
+      const extObj = obj as ExtendedFabricObject
+      return {
+        id: extObj.id || `object-${index}`,
+        type: obj.type || 'unknown',
+        name: extObj.name || `${obj.type || 'Object'} ${index + 1}`,
+        visible: obj.visible !== false,
+        locked: obj.selectable === false,
+        fabricObject: obj
+      }
+    })
     setCanvasObjects(objects)
     
     if (onCanvasUpdate) {
@@ -276,8 +282,10 @@ export function FabricCanvasEditor({
     const canvas = fabricCanvasRef.current
     if (!canvas) return
 
-    // @ts-ignore
-    const obj = canvas.getObjects().find((o: Fabric.Object) => (o as any).id === objectId)
+    const obj = canvas.getObjects().find((o: Fabric.Object) => {
+      const extObj = o as ExtendedFabricObject
+      return extObj.id === objectId
+    })
     if (obj) {
       obj.visible = !obj.visible
       canvas.renderAll()
@@ -289,8 +297,10 @@ export function FabricCanvasEditor({
     const canvas = fabricCanvasRef.current
     if (!canvas) return
 
-    // @ts-ignore
-    const obj = canvas.getObjects().find((o: Fabric.Object) => (o as any).id === objectId)
+    const obj = canvas.getObjects().find((o: Fabric.Object) => {
+      const extObj = o as ExtendedFabricObject
+      return extObj.id === objectId
+    })
     if (obj) {
       obj.selectable = !obj.selectable
       obj.evented = obj.selectable

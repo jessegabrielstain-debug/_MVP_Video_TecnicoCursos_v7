@@ -23,6 +23,7 @@ import {
   Stage
 } from '@react-three/drei';
 import * as THREE from 'three';
+import type { GLTF } from 'three-stdlib';
 import { useLipSync } from '@/hooks/useLipSync';
 import { Avatar3DModel, AvatarClientHelper, LipSyncFrame } from '@/lib/avatar-client-logic';
 import { Button } from '@/components/ui/button';
@@ -84,7 +85,7 @@ function AvatarModel({
   
   try {
     // Tenta carregar o modelo GLTF
-    const gltf = useGLTF(modelUrl as string, true) as any;
+    const gltf = useGLTF(modelUrl as string, true) as GLTF;
     scene = gltf.scene;
   } catch (error) {
     logger.warn('Modelo 3D não encontrado, usando fallback', { component: 'Avatar3DRenderer' });

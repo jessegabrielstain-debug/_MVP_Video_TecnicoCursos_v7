@@ -71,10 +71,10 @@ export async function GET(
     })
 
   } catch (error) {
-    logger.error('Erro ao buscar projeto', {
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Erro ao buscar projeto', err, {
       component: 'API: projects/[id]',
-      context: { id: params.id },
-      error: error instanceof Error ? error : new Error(String(error))
+      context: { id: params.id }
     })
     return NextResponse.json({
       success: false,
@@ -131,6 +131,7 @@ export async function PUT(
     let hasPermission = project.user_id === user.id
 
     if (!hasPermission) {
+      type CollaboratorPermissions = { can_edit?: boolean; can_view?: boolean; can_delete?: boolean };
       const { data: collaborator } = await supabase
         .from('project_collaborators')
         .select('permissions')
@@ -138,7 +139,8 @@ export async function PUT(
         .eq('user_id', user.id)
         .single()
       
-      if (collaborator && (collaborator.permissions as any)?.can_edit) {
+      const permissions = collaborator?.permissions as CollaboratorPermissions | null;
+      if (permissions?.can_edit) {
         hasPermission = true
       }
     }
@@ -148,7 +150,7 @@ export async function PUT(
     }
     
     // Preparar dados para atualização
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString()
     }
 
@@ -195,10 +197,10 @@ export async function PUT(
     })
 
   } catch (error) {
-    logger.error('Erro ao atualizar projeto', {
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error('Erro ao atualizar projeto', err, {
       component: 'API: projects/[id]',
-      context: { id: params.id },
-      error: error instanceof Error ? error : new Error(String(error))
+      context: { id: params.id }
     })
     return NextResponse.json({
       success: false,
@@ -238,7 +240,11 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error(`💥 [PROJECT-API] Erro ao excluir projeto ${params.id}:`, error)
+    const err = error instanceof Error ? error : new Error(String(error))
+    logger.error(`Erro ao excluir projeto ${params.id}`, err, {
+      component: 'API: projects/[id]',
+      context: { id: params.id }
+    })
     return NextResponse.json({
       success: false,
       error: 'Erro interno do servidor',

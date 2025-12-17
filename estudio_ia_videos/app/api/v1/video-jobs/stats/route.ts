@@ -3,11 +3,22 @@ import { getSupabaseForRequest, logger } from '@/lib/services'
 import { shouldUseMockRenderJobs, getMockUserId, computeMockStats } from '@/lib/render-jobs/mock-store'
 import { VideoJobStatsQuerySchema } from '~lib/validation/schemas'
 
+// Type for cached stats payload
+interface CachedStatsPayload {
+  metadata?: {
+    cache?: string;
+    ttl_ms?: number;
+    source?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 // Cache in-memory simples com TTL por usuário
 const CACHE_TTL_MS = 30_000
-const cache = new Map<string, { expiresAt: number; payload: unknown }>()
+const cache = new Map<string, { expiresAt: number; payload: CachedStatsPayload }>()
 
-function getCache(key: string) {
+function getCache(key: string): CachedStatsPayload | null {
   const hit = cache.get(key)
   if (!hit) return null
   if (Date.now() > hit.expiresAt) {
@@ -17,7 +28,7 @@ function getCache(key: string) {
   return hit.payload
 }
 
-function setCache(key: string, payload: unknown) {
+function setCache(key: string, payload: CachedStatsPayload) {
   cache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, payload })
 }
 
@@ -68,7 +79,7 @@ export async function GET(req: Request) {
     }
     buildMockResponse = () => createMockResponse('MISS')
 
-    const cached = getCache(cacheKey) as any
+    const cached = getCache(cacheKey)
     if (cached) {
       return new NextResponse(JSON.stringify({
         ...cached,
@@ -121,7 +132,8 @@ export async function GET(req: Request) {
     const total_jobs = totalQuery.count ?? 0
 
     // Buscar status (limit para evitar exaustão – segue padrão MAX_ROWS=5000 usado em analytics)
-    let statusQuery: any = supabase
+    type SupabaseQueryBuilder = ReturnType<typeof supabase.from>
+    let statusQuery: SupabaseQueryBuilder = supabase
       .from('render_jobs')
       .select('status')
       .eq('user_id', userId)
@@ -160,7 +172,7 @@ export async function GET(req: Request) {
     }
 
     // Throughput: completados nos últimos 60 minutos
-    let completedQueryBuilder: any = supabase
+    let completedQueryBuilder: SupabaseQueryBuilder = supabase
       .from('render_jobs')
       .select('id', { count: 'exact' })
       .eq('user_id', userId)
@@ -177,7 +189,7 @@ export async function GET(req: Request) {
     const jobs_per_min = Number(((jobs_completed_last_60m || 0) / 60).toFixed(3))
 
     // Duração média (ms) para completados recentes (limitado a 5000)
-    let durationQuery: any = supabase
+    let durationQuery: SupabaseQueryBuilder = supabase
       .from('render_jobs')
       .select('duration_ms')
       .eq('user_id', userId)

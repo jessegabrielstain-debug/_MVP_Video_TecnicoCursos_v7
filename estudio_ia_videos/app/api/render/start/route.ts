@@ -12,13 +12,14 @@ import { jobManager } from '@/lib/render/job-manager';
 import { logger } from '@/lib/logger';
 import { globalRateLimiter } from '@/lib/rate-limit';
 import crypto from 'crypto';
+import type { RenderConfig as QueueRenderConfig, RenderSlide as QueueRenderSlide } from '@/lib/queue/types';
 
 // Define interfaces locally to match API expectations
 interface RenderConfig {
   width: number;
   height: number;
   fps: number;
-  quality: string;
+  quality: 'low' | 'medium' | 'high' | 'ultra';
   format: string;
   codec: string;
   bitrate: string;
@@ -192,11 +193,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Configuração real do FFmpeg
+    const validQualities = ['low', 'medium', 'high', 'ultra'] as const;
+    const rawQuality = config?.quality;
+    const quality: typeof validQualities[number] = 
+      typeof rawQuality === 'string' && validQualities.includes(rawQuality as typeof validQualities[number])
+        ? rawQuality as typeof validQualities[number]
+        : 'high';
+    
     const renderConfig: RenderConfig = {
       width: config?.width || 1920,
       height: config?.height || 1080,
       fps: config?.fps || 30,
-      quality: (config?.quality as any) || 'high',
+      quality,
       format: config?.format || 'mp4',
       codec: config?.codec || 'h264',
       bitrate: config?.bitrate || '5000k',
@@ -236,11 +244,37 @@ export async function POST(req: NextRequest) {
 
     // 2. Add to Queue (Redis/BullMQ) - Optional but good for scalability
     // We pass the DB Job ID so the worker can correlate if it uses the queue
+    // Convert local types to queue types
+    const queueSlides: QueueRenderSlide[] = validatedSlides.map((slide, idx) => ({
+      id: slide.id,
+      order_index: idx,
+      title: slide.title,
+      content: slide.content,
+      duration_ms: (slide.duration || 5) * 1000,
+      transition: {
+        type: slide.transition === 'fade' ? 'fade' : 'none',
+        duration_ms: (slide.transitionDuration || 0.5) * 1000
+      }
+    }));
+    
+    const queueConfig: QueueRenderConfig = {
+      width: renderConfig.width,
+      height: renderConfig.height,
+      fps: renderConfig.fps,
+      quality: renderConfig.quality,
+      format: renderConfig.format as 'mp4' | 'webm' | 'mov',
+      codec: renderConfig.codec,
+      bitrate: renderConfig.bitrate,
+      audioCodec: renderConfig.audioCodec,
+      audioBitrate: renderConfig.audioBitrate,
+      test: renderConfig.test
+    };
+
     await addVideoJob({
       jobId: dbJobId,
       projectId,
-      slides: validatedSlides as any,
-      config: renderConfig as any,
+      slides: queueSlides,
+      config: queueConfig,
       userId: user.id
     });
 
@@ -256,8 +290,17 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
+    // Parse projectId from request body if available
+    let projectIdForLog: string | undefined;
+    try {
+      const body = await req.clone().json();
+      projectIdForLog = body?.projectId;
+    } catch {
+      // Ignore parse errors for logging
+    }
+    
     logger.error('Erro ao iniciar render', error as Error, { 
-      projectId: (req as any).body?.projectId 
+      projectId: projectIdForLog 
     });
     
     return NextResponse.json(

@@ -185,7 +185,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Generated
     })
 
   } catch (error) {
-    logger.error('❌ Erro na geração de timeline:', { component: 'API: v1/pptx/generate-timeline', error: error instanceof Error ? error : new Error(String(error)) })
+    const err = error instanceof Error ? error : new Error(String(error)); logger.error('❌ Erro na geração de timeline:', err, { component: 'API: v1/pptx/generate-timeline' })
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno'
