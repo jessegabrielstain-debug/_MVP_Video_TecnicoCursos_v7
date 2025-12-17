@@ -31,9 +31,9 @@ Write-Host ""
 
 try {
     # Executar script remoto
-    $command = "curl -fsSL $REPO_URL | bash"
+    $command = 'curl -fsSL ' + $REPO_URL + ' | bash'
     
-    Write-Host "Executando: ssh $VPS_USER@$VPS_IP '$command'" -ForegroundColor Gray
+    Write-Host "Executando deploy no VPS..." -ForegroundColor Gray
     Write-Host ""
     
     ssh "$VPS_USER@$VPS_IP" $command
@@ -52,7 +52,7 @@ try {
         Write-Host ""
         Write-Host "Execute manualmente no VPS:" -ForegroundColor Yellow
         Write-Host "  ssh $VPS_USER@$VPS_IP" -ForegroundColor White
-        Write-Host "  curl -fsSL ${REPO_URL} | bash" -ForegroundColor White
+        Write-Host ('  curl -fsSL ' + $REPO_URL + ' | bash') -ForegroundColor White
     }
 } catch {
     Write-Host ""
@@ -60,5 +60,5 @@ try {
     Write-Host ""
     Write-Host "Execute manualmente:" -ForegroundColor Yellow
     Write-Host "  1. ssh $VPS_USER@$VPS_IP" -ForegroundColor White
-    Write-Host "  2. curl -fsSL ${REPO_URL} | bash" -ForegroundColor White
+    Write-Host ('  2. curl -fsSL ' + $REPO_URL + ' | bash') -ForegroundColor White
 }
