@@ -1,0 +1,91 @@
+================================================================================
+🚀 EXECUTAR DEPLOY NO VPS - PASSO A PASSO
+================================================================================
+
+VPS: 168.231.90.64
+
+================================================================================
+PASSO 1: Abrir PowerShell e Conectar no VPS
+================================================================================
+
+No PowerShell, execute:
+
+    ssh root@168.231.90.64
+
+(Digite a senha do root quando solicitado)
+
+================================================================================
+PASSO 2: Executar Deploy Completo
+================================================================================
+
+No terminal do VPS, cole e execute este comando:
+
+    curl -fsSL https://raw.githubusercontent.com/jessegabrielstain-debug/_MVP_Video_TecnicoCursos_v7/main/scripts/deploy/complete-deploy.sh | bash
+
+O script fará TUDO automaticamente:
+  ✅ Instala Docker
+  ✅ Configura firewall
+  ✅ Clona repositório
+  ✅ Configura Nginx
+  ✅ Inicia containers
+
+Tempo estimado: 5-10 minutos
+
+================================================================================
+PASSO 3: Se Pedir .env.production
+================================================================================
+
+Se o script pedir para configurar .env.production:
+
+    cd /opt/mvp/_MVP_Video_TecnicoCursos_v7
+    nano .env.production
+
+Preencha as variáveis (mínimo necessário):
+
+    NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key
+    SUPABASE_SERVICE_ROLE_KEY=sua-service-key
+    DIRECT_DATABASE_URL=postgresql://postgres:senha@db.seu-projeto.supabase.co:5432/postgres
+    ELEVENLABS_API_KEY=sua-key
+    HEYGEN_API_KEY=sua-key
+    REDIS_URL=redis://redis:6379
+    LOG_LEVEL=info
+    NODE_ENV=production
+
+Salve: Ctrl+O, Enter, Ctrl+X
+
+Depois execute:
+
+    docker compose -f docker-compose.prod.yml up -d --build
+
+================================================================================
+PASSO 4: Verificar se Funcionou
+================================================================================
+
+Ver containers:
+
+    cd /opt/mvp/_MVP_Video_TecnicoCursos_v7
+    docker compose -f docker-compose.prod.yml ps
+
+Testar saúde:
+
+    curl http://localhost/api/health
+
+Acessar no navegador:
+
+    http://168.231.90.64
+
+================================================================================
+SE ALGO NÃO FUNCIONAR
+================================================================================
+
+Diagnóstico completo:
+
+    cd /opt/mvp/_MVP_Video_TecnicoCursos_v7
+    curl -fsSL https://raw.githubusercontent.com/jessegabrielstain-debug/_MVP_Video_TecnicoCursos_v7/main/scripts/deploy/diagnose.sh | bash
+
+Correção rápida:
+
+    curl -fsSL https://raw.githubusercontent.com/jessegabrielstain-debug/_MVP_Video_TecnicoCursos_v7/main/scripts/deploy/quick-fix.sh | bash
+
+================================================================================
