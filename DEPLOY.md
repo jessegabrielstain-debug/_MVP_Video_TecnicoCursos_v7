@@ -139,6 +139,22 @@ ssh mvp-vps
 
 ---
 
+## 🔍 Diagnóstico e Correção Rápida
+
+### Script de Diagnóstico Completo:
+```bash
+cd /opt/mvp/_MVP_Video_TecnicoCursos_v7
+curl -fsSL https://raw.githubusercontent.com/jessegabrielstain-debug/_MVP_Video_TecnicoCursos_v7/main/scripts/deploy/diagnose.sh | bash
+```
+
+### Correção Rápida (se porta 80 não responde):
+```bash
+cd /opt/mvp/_MVP_Video_TecnicoCursos_v7
+curl -fsSL https://raw.githubusercontent.com/jessegabrielstain-debug/_MVP_Video_TecnicoCursos_v7/main/scripts/deploy/quick-fix.sh | bash
+```
+
+---
+
 ## ❌ Troubleshooting
 
 ### Porta 80 não responde:
@@ -152,6 +168,11 @@ docker ps
 
 # Verificar logs do nginx
 docker compose -f docker-compose.prod.yml logs nginx
+
+# Corrigir server_name do Nginx (se necessário)
+cd /opt/mvp/_MVP_Video_TecnicoCursos_v7
+sed -i 's/server_name tecnicocursos.com www.tecnicocursos.com;/server_name _;/' nginx/conf.d/app.conf
+docker compose -f docker-compose.prod.yml restart nginx
 ```
 
 ### Container não inicia:
@@ -172,6 +193,20 @@ docker compose -f docker-compose.prod.yml up -d --build
 # Ajustar permissões
 cd /opt/mvp/_MVP_Video_TecnicoCursos_v7
 chown -R deploy:deploy .
+```
+
+### Nginx não aceita conexões:
+```bash
+# Verificar configuração
+docker exec mvp-videos-nginx nginx -t
+
+# Verificar se server_name está correto
+grep server_name nginx/conf.d/app.conf
+
+# Deve mostrar: server_name _;
+# Se mostrar tecnicocursos.com, execute:
+sed -i 's/server_name tecnicocursos.com www.tecnicocursos.com;/server_name _;/' nginx/conf.d/app.conf
+docker compose -f docker-compose.prod.yml restart nginx
 ```
 
 ---
