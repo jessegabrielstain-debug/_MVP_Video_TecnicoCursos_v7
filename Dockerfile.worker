@@ -29,7 +29,7 @@ COPY package.json package-lock.json ./
 COPY estudio_ia_videos/package.json ./estudio_ia_videos/
 
 # Install only production dependencies
-RUN npm ci --only=production --audit false && \
+RUN npm ci --only=production --audit false --legacy-peer-deps && \
     npm cache clean --force
 
 # ================================
