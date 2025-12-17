@@ -1,0 +1,97 @@
+================================================================================
+🚀 COMECE AQUI - DEPLOY NO VPS
+================================================================================
+
+VPS: 168.231.90.64
+
+================================================================================
+OPÇÃO 1: EXECUTAR SCRIPT AUTOMÁTICO (Windows PowerShell)
+================================================================================
+
+1. Abra PowerShell como Administrador
+2. Execute:
+
+   cd c:\xampp\htdocs\_MVP_Video_TecnicoCursos_v7
+   .\DEPLOY_AUTOMATICO.ps1
+
+   OU
+
+   powershell -ExecutionPolicy Bypass -File DEPLOY_AUTOMATICO.ps1
+
+3. Quando pedir senha, digite a senha do root do VPS
+4. Aguarde 5-10 minutos
+
+================================================================================
+OPÇÃO 2: EXECUTAR MANUALMENTE (Recomendado)
+================================================================================
+
+1. Abra PowerShell
+
+2. Conecte no VPS:
+   
+   ssh root@168.231.90.64
+   
+   (Digite a senha quando solicitado)
+
+3. No terminal do VPS, execute:
+   
+   curl -fsSL https://raw.githubusercontent.com/jessegabrielstain-debug/_MVP_Video_TecnicoCursos_v7/main/scripts/deploy/complete-deploy.sh | bash
+
+4. Aguarde o script terminar (5-10 minutos)
+
+5. Se pedir .env.production:
+   
+   cd /opt/mvp/_MVP_Video_TecnicoCursos_v7
+   nano .env.production
+   
+   Preencha as variáveis e salve (Ctrl+O, Enter, Ctrl+X)
+   
+   Depois execute:
+   
+   docker compose -f docker-compose.prod.yml up -d --build
+
+================================================================================
+VERIFICAR SE FUNCIONOU
+================================================================================
+
+No VPS, execute:
+
+   cd /opt/mvp/_MVP_Video_TecnicoCursos_v7
+   docker compose -f docker-compose.prod.yml ps
+
+Deve mostrar 4 containers rodando:
+   ✅ mvp-videos-app
+   ✅ mvp-videos-nginx
+   ✅ mvp-videos-redis
+   ✅ mvp-videos-worker
+
+Testar:
+
+   curl http://localhost/api/health
+
+Acessar no navegador:
+
+   http://168.231.90.64
+
+================================================================================
+SE ALGO NÃO FUNCIONAR
+================================================================================
+
+Diagnóstico:
+
+   curl -fsSL https://raw.githubusercontent.com/jessegabrielstain-debug/_MVP_Video_TecnicoCursos_v7/main/scripts/deploy/diagnose.sh | bash
+
+Correção Rápida:
+
+   curl -fsSL https://raw.githubusercontent.com/jessegabrielstain-debug/_MVP_Video_TecnicoCursos_v7/main/scripts/deploy/quick-fix.sh | bash
+
+================================================================================
+DOCUMENTAÇÃO COMPLETA
+================================================================================
+
+- EXECUTAR_AGORA.txt - Instruções detalhadas
+- CHECKLIST_DEPLOY.md - Checklist completo
+- DEPLOY.md - Guia completo
+- README_DEPLOY.md - Visão geral
+
+================================================================================
