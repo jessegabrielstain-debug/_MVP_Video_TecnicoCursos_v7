@@ -22,6 +22,7 @@ O Sprint 2 foi concluído com sucesso. Todos os mocks de TTS foram removidos e s
 ### Semana 1: Validação e Correção de Integrações
 
 #### ✅ Sprint 2.1: Validar e Corrigir Integração ElevenLabs
+
 - **Status:** ✅ COMPLETO
 - **Arquivos Modificados:**
   - `app/lib/services/tts/elevenlabs-service.ts` - Já estava implementado corretamente
@@ -29,6 +30,7 @@ O Sprint 2 foi concluído com sucesso. Todos os mocks de TTS foram removidos e s
 - **Validação:** ✅ Integração ElevenLabs validada e funcionando
 
 #### ✅ Sprint 2.2: Implementar Fallback Azure TTS
+
 - **Status:** ✅ COMPLETO
 - **Arquivos Modificados:**
   - `app/lib/tts/providers/azure.ts` - Melhorado para suportar SSML com velocidade e pitch
@@ -39,6 +41,7 @@ O Sprint 2 foi concluído com sucesso. Todos os mocks de TTS foram removidos e s
   - ✅ Fallback automático quando ElevenLabs falha
 
 #### ✅ Sprint 2.3: Implementar Fallback Google TTS
+
 - **Status:** ✅ COMPLETO
 - **Arquivos Modificados:**
   - `app/lib/tts/unified-tts-service.ts` - Adicionada função `generateWithGoogle`
@@ -51,6 +54,7 @@ O Sprint 2 foi concluído com sucesso. Todos os mocks de TTS foram removidos e s
 ### Semana 2: Remoção de Mocks
 
 #### ✅ Sprint 2.4: Remover Mocks de TTS Service Real
+
 - **Status:** ✅ COMPLETO
 - **Arquivos Modificados:**
   - `app/lib/tts-service-real.ts` - Removido fallback mock, agora usa serviço unificado
@@ -60,6 +64,7 @@ O Sprint 2 foi concluído com sucesso. Todos os mocks de TTS foram removidos e s
   - ✅ Adicionado: Tratamento de erro adequado (lança exceção em vez de retornar mock)
 
 #### ✅ Sprint 2.5: Remover Mocks de Enhanced TTS Service
+
 - **Status:** ✅ COMPLETO
 - **Arquivos Modificados:**
   - `app/lib/enhanced-tts-service.ts` - Removido fallback mock, agora usa serviço unificado
@@ -69,6 +74,7 @@ O Sprint 2 foi concluído com sucesso. Todos os mocks de TTS foram removidos e s
   - ✅ Adicionado: Tratamento de erro adequado
 
 #### ✅ Sprint 2.6: Remover Placeholder TTS
+
 - **Status:** ✅ COMPLETO
 - **Arquivos Modificados:**
   - `app/lib/tts.ts` - Substituído placeholder por implementação real
@@ -83,9 +89,11 @@ O Sprint 2 foi concluído com sucesso. Todos os mocks de TTS foram removidos e s
 ## 🆕 Arquivos Criados
 
 ### 1. `app/lib/tts/unified-tts-service.ts`
+
 **Descrição:** Serviço unificado de TTS com múltiplos providers e fallbacks automáticos
 
 **Funcionalidades:**
+
 - ✅ Sistema de fallback automático: ElevenLabs → Azure → Google → Edge-TTS
 - ✅ Cache em memória para evitar regerações (TTL: 7 dias)
 - ✅ Suporte a múltiplos formatos (MP3, WAV, OGG)
@@ -94,6 +102,7 @@ O Sprint 2 foi concluído com sucesso. Todos os mocks de TTS foram removidos e s
 - ✅ Tratamento robusto de erros
 
 **Estratégia de Fallback:**
+
 ```typescript
 1. ElevenLabs (primary) - Melhor qualidade
    ↓ (se falhar)
@@ -109,33 +118,42 @@ O Sprint 2 foi concluído com sucesso. Todos os mocks de TTS foram removidos e s
 ## 🔄 Arquivos Modificados
 
 ### 1. `app/lib/tts-service-real.ts`
+
 **Antes:** Usava edge-tts com fallback mock quando falhava  
 **Depois:** Usa `unifiedTTSService` com fallbacks automáticos reais
 
 ### 2. `app/lib/enhanced-tts-service.ts`
+
 **Antes:** Retornava buffer mock `Buffer.from('mock-audio-data')` em caso de erro  
 **Depois:** Usa `unifiedTTSService` e lança erro se todos os providers falharem
 
 ### 3. `app/lib/tts.ts`
+
 **Antes:** Placeholder com simulação determinística e URLs stub  
 **Depois:** Implementação real usando `unifiedTTSService` com cache Redis
 
 ### 4. `app/lib/tts/tts-service.ts`
+
 **Antes:** Simulação com URLs S3 mockadas  
 **Depois:** Usa `unifiedTTSService` e faz upload real para Supabase Storage
 
 ### 5. `app/lib/tts/providers/azure.ts`
+
 **Melhorias:**
+
 - ✅ Adicionado suporte a SSML para velocidade e pitch
 - ✅ Melhor tratamento de erros
 - ✅ Suporte a múltiplos formatos de áudio
 
 ### 6. `app/api/tts/route.ts`
+
 **Melhorias:**
+
 - ✅ Logging melhorado
 - ✅ Tratamento de erros mais detalhado
 
 ### 7. `app/api/avatars/generate-speech/route.ts`
+
 **Antes:** `EnhancedTTSService` tinha implementação mockada inline  
 **Depois:** Usa `unifiedTTSService` real
 
@@ -191,6 +209,7 @@ O Sprint 2 foi concluído com sucesso. Todos os mocks de TTS foram removidos e s
 ## 🔍 Verificações Realizadas
 
 ### 1. Verificação de Mocks
+
 ```bash
 # Busca por mocks nos arquivos TTS
 grep -r "mock\|Mock\|MOCK\|fallback.*mock\|mock.*fallback" app/lib/**/tts*.ts
@@ -198,11 +217,13 @@ grep -r "mock\|Mock\|MOCK\|fallback.*mock\|mock.*fallback" app/lib/**/tts*.ts
 ```
 
 ### 2. Verificação de Imports
+
 - ✅ Todos os imports estão corretos
 - ✅ Dependências necessárias estão instaladas
 - ✅ Nenhum erro de lint encontrado
 
 ### 3. Verificação de Funcionalidade
+
 - ✅ Serviço unificado criado e funcional
 - ✅ Fallbacks implementados corretamente
 - ✅ Cache funcionando
@@ -215,6 +236,7 @@ grep -r "mock\|Mock\|MOCK\|fallback.*mock\|mock.*fallback" app/lib/**/tts*.ts
 Conforme o plano de ação (`VARREDURA_PROFUNDA_PLANO_ACAO.md`), o próximo sprint será:
 
 **Sprint 3: Processamento PPTX Real**
+
 - Remover mocks de processamento PPTX
 - Implementar parser real de PPTX
 - Integrar com timeline real

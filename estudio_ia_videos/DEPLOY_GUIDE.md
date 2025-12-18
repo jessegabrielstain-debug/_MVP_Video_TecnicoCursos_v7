@@ -452,12 +452,12 @@ Configure alertas para:
 
 ## 📞 CONTATOS DE EMERGÊNCIA
 
-| Papel | Nome | Telefone | Email | Horário |
-|-------|------|----------|-------|---------|
-| Tech Lead | [Nome] | [Tel] | [Email] | 24/7 |
-| DevOps | [Nome] | [Tel] | [Email] | 24/7 |
-| On-Call | [Nome] | [Tel] | [Email] | Rotativo |
-| Supabase Support | - | - | support@supabase.io | Ticket |
+| Papel            | Nome   | Telefone | Email               | Horário  |
+| ---------------- | ------ | -------- | ------------------- | -------- |
+| Tech Lead        | [Nome] | [Tel]    | [Email]             | 24/7     |
+| DevOps           | [Nome] | [Tel]    | [Email]             | 24/7     |
+| On-Call          | [Nome] | [Tel]    | [Email]             | Rotativo |
+| Supabase Support | -      | -        | support@supabase.io | Ticket   |
 
 ### Canais de Comunicação
 
@@ -470,6 +470,7 @@ Configure alertas para:
 ## 📝 CHECKLIST FINAL DE DEPLOY
 
 ### Pré-Deploy
+
 - [ ] Code review aprovado
 - [ ] Testes passando 100%
 - [ ] Backup do banco criado
@@ -478,6 +479,7 @@ Configure alertas para:
 - [ ] Rollback plan documentado
 
 ### Durante Deploy
+
 - [ ] Serviços parados gracefully
 - [ ] Migrations executadas com sucesso
 - [ ] Build concluído sem erros
@@ -485,6 +487,7 @@ Configure alertas para:
 - [ ] Health checks passando
 
 ### Pós-Deploy
+
 - [ ] Smoke tests executados
 - [ ] Métricas normais
 - [ ] Logs sem erros críticos
@@ -501,6 +504,7 @@ Se todos os passos foram concluídos com sucesso:
 ✅ **Deploy em produção realizado!**
 
 Próximos passos:
+
 1. Monitorar por 24-48h
 2. Coletar feedback dos usuários
 3. Ajustar configurações se necessário

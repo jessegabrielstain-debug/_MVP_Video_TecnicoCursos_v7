@@ -19,6 +19,7 @@ Após completar o **Plano de Ação 100%**, implementamos novas funcionalidades 
 #### Arquivo: `app/lib/templates/advanced-template-engine.ts`
 
 **Recursos:**
+
 - 📝 Templates com variáveis dinâmicas
 - 🔀 Condicionais e lógica de negócio
 - 🎨 Temas e estilos personalizáveis
@@ -28,6 +29,7 @@ Após completar o **Plano de Ação 100%**, implementamos novas funcionalidades 
 - 📈 Tracking de uso e popularidade
 
 **Tipos de Variáveis Suportadas:**
+
 - `text` - Texto simples
 - `image` - URLs de imagens
 - `video` - URLs de vídeos
@@ -43,7 +45,7 @@ Após completar o **Plano de Ação 100%**, implementamos novas funcionalidades 
 const templates = await advancedTemplateEngine.listTemplates({
   category: 'education',
   tags: ['corporate', 'modern'],
-  search: 'presentation'
+  search: 'presentation',
 });
 
 // Renderizar template
@@ -51,17 +53,16 @@ const result = await advancedTemplateEngine.renderTemplate('template-id', {
   variables: {
     companyName: 'Minha Empresa',
     logo: 'https://...',
-    slides: [
-      { title: 'Slide 1', content: 'Conteúdo...' }
-    ]
+    slides: [{ title: 'Slide 1', content: 'Conteúdo...' }],
   },
   outputFormat: 'pptx',
   quality: 'high',
-  includeAnimations: true
+  includeAnimations: true,
 });
 ```
 
 **API Endpoints:**
+
 - `GET /api/v2/templates` - Listar templates
 - `POST /api/v2/templates` - Criar template
 - `GET /api/v2/templates/:id` - Obter template
@@ -75,6 +76,7 @@ const result = await advancedTemplateEngine.renderTemplate('template-id', {
 #### Arquivo: `app/lib/export/multi-format-exporter.ts`
 
 **Formatos Suportados:**
+
 - ✅ **MP4** (H.264) - Padrão universal
 - ✅ **WebM** (VP9) - Web optimized
 - ✅ **GIF** - Animações com paleta otimizada
@@ -84,6 +86,7 @@ const result = await advancedTemplateEngine.renderTemplate('template-id', {
 - ✅ **AVI** - Formato legado
 
 **Resoluções Disponíveis:**
+
 - 360p (640x360)
 - 480p (854x480)
 - 720p (1280x720) HD
@@ -92,12 +95,14 @@ const result = await advancedTemplateEngine.renderTemplate('template-id', {
 - 4K (3840x2160) Ultra HD
 
 **Qualidades:**
+
 - `low` - Menor tamanho, qualidade básica
 - `medium` - Equilíbrio tamanho/qualidade
 - `high` - Alta qualidade, tamanho maior
 - `ultra` - Máxima qualidade, tamanho grande
 
 **Recursos Avançados:**
+
 - 🎯 Watermark customizável (posição, opacidade)
 - 📹 Múltiplos codecs (H.264, VP9, MPEG4)
 - ⚡ Otimizações de streaming (faststart para MP4)
@@ -118,12 +123,13 @@ const result = await multiFormatExporter.export({
   watermark: {
     imagePath: '/path/to/logo.png',
     position: 'bottom-right',
-    opacity: 0.7
-  }
+    opacity: 0.7,
+  },
 });
 ```
 
 **API Endpoints:**
+
 - `POST /api/v2/export` - Exportar vídeo em novo formato
 - `GET /api/v2/export/:id/status` - Status da exportação
 - `GET /api/v2/export/formats` - Listar formatos disponíveis
@@ -137,6 +143,7 @@ const result = await multiFormatExporter.export({
 **Serviços Integrados:**
 
 #### a) **Amazon S3**
+
 - ✅ Upload de arquivos
 - ✅ Download de arquivos
 - ✅ Deleção de arquivos
@@ -146,6 +153,7 @@ const result = await multiFormatExporter.export({
 - ✅ Cache-Control headers
 
 #### b) **CloudFront CDN**
+
 - ✅ Distribuição de conteúdo global
 - ✅ Cache invalidation
 - ✅ URLs customizadas
@@ -153,6 +161,7 @@ const result = await multiFormatExporter.export({
 - ✅ Compressão automática
 
 #### c) **AWS MediaConvert**
+
 - ✅ Transcodificação profissional
 - ✅ Múltiplas resoluções simultaneamente
 - ✅ Formatos HLS e DASH
@@ -185,21 +194,18 @@ const uploadResult = await awsIntegration.upload({
   acl: 'public-read',
   metadata: {
     userId: 'user-123',
-    projectId: 'project-456'
-  }
+    projectId: 'project-456',
+  },
 });
 
 // Gerar URL assinada
 const urlResult = await awsIntegration.getSignedUrl({
   key: 'videos/meu-video.mp4',
-  expiresIn: 3600 // 1 hora
+  expiresIn: 3600, // 1 hora
 });
 
 // Invalidar cache CloudFront
-await awsIntegration.invalidateCloudFront([
-  '/videos/meu-video.mp4',
-  '/thumbnails/*'
-]);
+await awsIntegration.invalidateCloudFront(['/videos/meu-video.mp4', '/thumbnails/*']);
 
 // Criar job MediaConvert
 const jobResult = await awsIntegration.createMediaConvertJob({
@@ -208,8 +214,8 @@ const jobResult = await awsIntegration.createMediaConvertJob({
   outputFormats: [
     { format: 'mp4', resolution: '1080p' },
     { format: 'mp4', resolution: '720p' },
-    { format: 'hls', resolution: '1080p' }
-  ]
+    { format: 'hls', resolution: '1080p' },
+  ],
 });
 ```
 
@@ -217,16 +223,16 @@ const jobResult = await awsIntegration.createMediaConvertJob({
 
 ## 📊 COMPARAÇÃO: ANTES vs DEPOIS
 
-| Funcionalidade | Antes (v1.0) | Depois (v2.0) |
-|----------------|--------------|---------------|
-| **Templates** | Básicos, estáticos | Avançados, dinâmicos com variáveis |
-| **Formatos de Export** | MP4 apenas | 7 formatos (MP4, WebM, GIF, HLS, DASH, MOV, AVI) |
-| **Resoluções** | 720p, 1080p | 6 resoluções (360p até 4K) |
-| **Storage** | Supabase apenas | Supabase + AWS S3 + CloudFront |
-| **Streaming** | Download apenas | HLS + DASH adaptive streaming |
-| **CDN** | Não disponível | CloudFront global CDN |
-| **Transcodificação** | Local (FFmpeg) | Local + AWS MediaConvert (cloud) |
-| **Watermark** | Não disponível | Customizável (posição, opacidade) |
+| Funcionalidade         | Antes (v1.0)       | Depois (v2.0)                                    |
+| ---------------------- | ------------------ | ------------------------------------------------ |
+| **Templates**          | Básicos, estáticos | Avançados, dinâmicos com variáveis               |
+| **Formatos de Export** | MP4 apenas         | 7 formatos (MP4, WebM, GIF, HLS, DASH, MOV, AVI) |
+| **Resoluções**         | 720p, 1080p        | 6 resoluções (360p até 4K)                       |
+| **Storage**            | Supabase apenas    | Supabase + AWS S3 + CloudFront                   |
+| **Streaming**          | Download apenas    | HLS + DASH adaptive streaming                    |
+| **CDN**                | Não disponível     | CloudFront global CDN                            |
+| **Transcodificação**   | Local (FFmpeg)     | Local + AWS MediaConvert (cloud)                 |
+| **Watermark**          | Não disponível     | Customizável (posição, opacidade)                |
 
 ---
 
@@ -242,7 +248,7 @@ const templateId = await advancedTemplateEngine.createTemplate({
   variables: [
     { name: 'companyName', type: 'text', required: true },
     { name: 'logo', type: 'image', required: true },
-    { name: 'employees', type: 'array', required: false }
+    { name: 'employees', type: 'array', required: false },
   ],
   slides: [
     {
@@ -254,11 +260,11 @@ const templateId = await advancedTemplateEngine.createTemplate({
           id: 'title',
           type: 'text',
           variable: 'companyName',
-          position: { x: 50, y: 50, width: 800, height: 100 }
-        }
-      ]
-    }
-  ]
+          position: { x: 50, y: 50, width: 800, height: 100 },
+        },
+      ],
+    },
+  ],
 });
 
 // 2. Renderizar com dados
@@ -266,8 +272,8 @@ const result = await advancedTemplateEngine.renderTemplate(templateId, {
   variables: {
     companyName: 'Acme Corp',
     logo: 'https://acme.com/logo.png',
-    employees: ['Alice', 'Bob', 'Carol']
-  }
+    employees: ['Alice', 'Bob', 'Carol'],
+  },
 });
 ```
 
@@ -284,8 +290,8 @@ await multiFormatExporter.export({
   watermark: {
     imagePath: 'brand-logo.png',
     position: 'top-left',
-    opacity: 0.8
-  }
+    opacity: 0.8,
+  },
 });
 
 // YouTube (16:9, MP4, 4K)
@@ -295,7 +301,7 @@ await multiFormatExporter.export({
   format: 'mp4',
   quality: 'ultra',
   resolution: '4k',
-  fps: 60
+  fps: 60,
 });
 
 // Twitter (GIF, otimizado)
@@ -305,7 +311,7 @@ await multiFormatExporter.export({
   format: 'gif',
   quality: 'medium',
   resolution: '480p',
-  fps: 15
+  fps: 15,
 });
 ```
 
@@ -316,7 +322,7 @@ await multiFormatExporter.export({
 const uploadResult = await awsIntegration.upload({
   file: videoBuffer,
   key: 'videos/original.mp4',
-  acl: 'private'
+  acl: 'private',
 });
 
 // Criar job de transcodificação para múltiplas resoluções
@@ -327,8 +333,8 @@ const jobResult = await awsIntegration.createMediaConvertJob({
     { format: 'hls', resolution: '360p' },
     { format: 'hls', resolution: '480p' },
     { format: 'hls', resolution: '720p' },
-    { format: 'hls', resolution: '1080p' }
-  ]
+    { format: 'hls', resolution: '1080p' },
+  ],
 });
 
 // Aguardar conclusão
@@ -336,7 +342,7 @@ let status = 'PROGRESSING';
 while (status === 'PROGRESSING') {
   const jobStatus = await awsIntegration.getMediaConvertJobStatus(jobResult.jobId);
   status = jobStatus.status;
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  await new Promise((resolve) => setTimeout(resolve, 5000));
 }
 
 // Invalidar cache para servir novo conteúdo

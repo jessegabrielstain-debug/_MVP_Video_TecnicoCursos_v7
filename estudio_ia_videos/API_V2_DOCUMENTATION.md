@@ -27,11 +27,13 @@ GET /api/v2/templates
 ```
 
 **Query Parameters:**
+
 - `category` (opcional) - Filtrar por categoria
 - `tags` (opcional) - Filtrar por tags (separadas por vírgula)
 - `search` (opcional) - Buscar por nome ou descrição
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -68,6 +70,7 @@ Authorization: Bearer <token>
 ```
 
 **Body:**
+
 ```json
 {
   "name": "Meu Template",
@@ -118,6 +121,7 @@ Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -134,14 +138,13 @@ POST /api/v2/templates/:id/render
 ```
 
 **Body:**
+
 ```json
 {
   "variables": {
     "title": "Minha Apresentação",
     "logo": "https://exemplo.com/logo.png",
-    "slides": [
-      { "title": "Slide 1", "content": "Conteúdo..." }
-    ]
+    "slides": [{ "title": "Slide 1", "content": "Conteúdo..." }]
   },
   "outputFormat": "pptx",
   "quality": "high",
@@ -155,6 +158,7 @@ POST /api/v2/templates/:id/render
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -181,6 +185,7 @@ Authorization: Bearer <token>
 ```
 
 **Body:**
+
 ```json
 {
   "videoId": "video-123",
@@ -201,6 +206,7 @@ Authorization: Bearer <token>
 ```
 
 **Formatos Suportados:**
+
 - `mp4` - MPEG-4 (H.264)
 - `webm` - WebM (VP9)
 - `gif` - GIF animado
@@ -210,6 +216,7 @@ Authorization: Bearer <token>
 - `avi` - Audio Video Interleave
 
 **Resoluções:**
+
 - `360p` (640x360)
 - `480p` (854x480)
 - `720p` (1280x720) HD
@@ -218,12 +225,14 @@ Authorization: Bearer <token>
 - `4k` (3840x2160) Ultra HD
 
 **Qualidades:**
+
 - `low` - Rápido, menor qualidade
 - `medium` - Balanceado
 - `high` - Alta qualidade (recomendado)
 - `ultra` - Máxima qualidade
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -254,6 +263,7 @@ POST /api/v2/ai/transitions
 ```
 
 **Body:**
+
 ```json
 {
   "fromVideoPath": "/path/to/scene1.mp4",
@@ -265,6 +275,7 @@ POST /api/v2/ai/transitions
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -311,6 +322,7 @@ POST /api/v2/ai/transitions
 ```
 
 **Tipos de Transições:**
+
 - `fade` - Fade suave
 - `dissolve` - Dissolve gradual
 - `slide` - Deslizamento
@@ -334,6 +346,7 @@ GET /api/v2/plugins?enabled=true
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -364,6 +377,7 @@ Authorization: Bearer <admin-token>
 ```
 
 **Body:**
+
 ```json
 {
   "id": "my-custom-plugin",
@@ -388,6 +402,7 @@ Authorization: Bearer <token>
 ```
 
 **Body:**
+
 ```json
 {
   "action": "enable"
@@ -395,6 +410,7 @@ Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -417,6 +433,7 @@ Authorization: Bearer <seu-token-supabase>
 ```
 
 Para obter um token:
+
 1. Fazer login via Supabase Auth
 2. Obter access token da sessão
 3. Incluir no header Authorization
@@ -427,17 +444,18 @@ Para obter um token:
 
 **Limites por Endpoint:**
 
-| Endpoint | Limite | Janela |
-|----------|--------|--------|
-| `/templates` (GET) | 100 req | 1 minuto |
-| `/templates` (POST) | 10 req | 1 minuto |
-| `/templates/:id/render` | 30 req | 1 minuto |
-| `/export` | 20 req | 1 minuto |
-| `/ai/transitions` | 50 req | 1 minuto |
-| `/plugins` (GET) | 100 req | 1 minuto |
-| `/plugins` (POST) | 5 req | 1 minuto |
+| Endpoint                | Limite  | Janela   |
+| ----------------------- | ------- | -------- |
+| `/templates` (GET)      | 100 req | 1 minuto |
+| `/templates` (POST)     | 10 req  | 1 minuto |
+| `/templates/:id/render` | 30 req  | 1 minuto |
+| `/export`               | 20 req  | 1 minuto |
+| `/ai/transitions`       | 50 req  | 1 minuto |
+| `/plugins` (GET)        | 100 req | 1 minuto |
+| `/plugins` (POST)       | 5 req   | 1 minuto |
 
 **Response quando rate limit excedido:**
+
 ```json
 {
   "code": "RATE_LIMITED",
@@ -446,23 +464,25 @@ Para obter um token:
 ```
 
 Headers incluídos:
+
 - `Retry-After`: Segundos até poder tentar novamente
 
 ---
 
 ## ❌ CÓDIGOS DE ERRO
 
-| Código | Descrição | HTTP Status |
-|--------|-----------|-------------|
-| `VALIDATION_ERROR` | Dados inválidos no request | 400 |
-| `UNAUTHORIZED` | Token ausente ou inválido | 401 |
-| `FORBIDDEN` | Sem permissão para a ação | 403 |
-| `NOT_FOUND` | Recurso não encontrado | 404 |
-| `RATE_LIMITED` | Rate limit excedido | 429 |
-| `DB_ERROR` | Erro no banco de dados | 500 |
-| `UNEXPECTED` | Erro inesperado | 500 |
+| Código             | Descrição                  | HTTP Status |
+| ------------------ | -------------------------- | ----------- |
+| `VALIDATION_ERROR` | Dados inválidos no request | 400         |
+| `UNAUTHORIZED`     | Token ausente ou inválido  | 401         |
+| `FORBIDDEN`        | Sem permissão para a ação  | 403         |
+| `NOT_FOUND`        | Recurso não encontrado     | 404         |
+| `RATE_LIMITED`     | Rate limit excedido        | 429         |
+| `DB_ERROR`         | Erro no banco de dados     | 500         |
+| `UNEXPECTED`       | Erro inesperado            | 500         |
 
 **Formato de Erro:**
+
 ```json
 {
   "success": false,
@@ -525,21 +545,21 @@ const videoId = 'video-123';
 const formats = ['mp4', 'webm', 'gif'];
 
 const exports = await Promise.all(
-  formats.map(format =>
+  formats.map((format) =>
     fetch('/api/v2/export', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + token,
-        'Content-Type': 'application/json'
+        Authorization: 'Bearer ' + token,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         videoId,
         format,
         quality: 'high',
-        resolution: '1080p'
-      })
-    }).then(r => r.json())
-  )
+        resolution: '1080p',
+      }),
+    }).then((r) => r.json()),
+  ),
 );
 
 console.log('Exports:', exports);
@@ -551,13 +571,13 @@ console.log('Exports:', exports);
 const response = await fetch('/api/v2/ai/transitions', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
     fromVideoPath: '/videos/intro.mp4',
     toVideoPath: '/videos/main-content.mp4',
-    count: 5
-  })
+    count: 5,
+  }),
 });
 
 const { data } = await response.json();
@@ -579,24 +599,24 @@ const { data: plugins } = await pluginsResponse.json();
 await fetch('/api/v2/plugins/auto-watermark/toggle', {
   method: 'POST',
   headers: {
-    'Authorization': 'Bearer ' + token,
-    'Content-Type': 'application/json'
+    Authorization: 'Bearer ' + token,
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    action: 'enable'
-  })
+    action: 'enable',
+  }),
 });
 
 // Desabilitar plugin
 await fetch('/api/v2/plugins/analytics-tracker/toggle', {
   method: 'POST',
   headers: {
-    'Authorization': 'Bearer ' + token,
-    'Content-Type': 'application/json'
+    Authorization: 'Bearer ' + token,
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    action: 'disable'
-  })
+    action: 'disable',
+  }),
 });
 ```
 
@@ -635,21 +655,21 @@ AUTO_REGISTER_PLUGINS=true
 
 ### Limites por Usuário
 
-| Recurso | Limite | Período |
-|---------|--------|---------|
-| Templates criados | 50 | Por conta |
-| Renderizações | 100 | Por dia |
-| Exports | 50 | Por dia |
-| Análises de IA | 200 | Por dia |
-| Plugins ativos | 10 | Por conta |
+| Recurso           | Limite | Período   |
+| ----------------- | ------ | --------- |
+| Templates criados | 50     | Por conta |
+| Renderizações     | 100    | Por dia   |
+| Exports           | 50     | Por dia   |
+| Análises de IA    | 200    | Por dia   |
+| Plugins ativos    | 10     | Por conta |
 
 ### Tamanhos Máximos
 
-| Tipo | Limite |
-|------|--------|
-| Upload de vídeo | 500 MB |
-| Upload de PPTX | 100 MB |
-| Template JSON | 1 MB |
+| Tipo             | Limite     |
+| ---------------- | ---------- |
+| Upload de vídeo  | 500 MB     |
+| Upload de PPTX   | 100 MB     |
+| Template JSON    | 1 MB       |
 | Duração de vídeo | 30 minutos |
 
 ---
@@ -658,14 +678,14 @@ AUTO_REGISTER_PLUGINS=true
 
 ### Tempos Médios de Resposta
 
-| Endpoint | Tempo Médio | p95 |
-|----------|-------------|-----|
-| GET /templates | 50ms | 150ms |
-| POST /templates/:id/render | 2s | 5s |
-| POST /export (MP4) | 30s | 60s |
-| POST /export (GIF) | 45s | 90s |
-| POST /ai/transitions | 5s | 10s |
-| GET /plugins | 30ms | 100ms |
+| Endpoint                   | Tempo Médio | p95   |
+| -------------------------- | ----------- | ----- |
+| GET /templates             | 50ms        | 150ms |
+| POST /templates/:id/render | 2s          | 5s    |
+| POST /export (MP4)         | 30s         | 60s   |
+| POST /export (GIF)         | 45s         | 90s   |
+| POST /ai/transitions       | 5s          | 10s   |
+| GET /plugins               | 30ms        | 100ms |
 
 ---
 

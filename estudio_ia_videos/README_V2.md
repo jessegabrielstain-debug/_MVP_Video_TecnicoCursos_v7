@@ -28,6 +28,7 @@
 ## 📋 CARACTERÍSTICAS PRINCIPAIS
 
 ### 📹 **Conversão PPTX → Vídeo**
+
 - ✅ Upload e análise inteligente de apresentações
 - ✅ Extração automática de conteúdo e imagens
 - ✅ Geração de narração com TTS multi-provider
@@ -35,18 +36,21 @@
 - ✅ Templates profissionais dinâmicos
 
 ### 🎭 **Avatares 3D Hiper-Realistas**
+
 - ✅ 11 avatares profissionais pré-configurados
 - ✅ Talking Photos com sincronização labial real
 - ✅ Animação facial e expressões dinâmicas
 - ✅ Upload de fotos personalizadas
 
 ### 🗣️ **TTS Avançado Multi-Provider**
+
 - ✅ **ElevenLabs** - Vozes premium
 - ✅ **Azure** - Síntese profissional
 - ✅ **Google Cloud** - Vozes neurais BR
 - ✅ 6 vozes regionais brasileiras
 
 ### 📤 **Export Multi-Formato (NOVO V2.0)**
+
 - ✅ **MP4** (H.264) - Universal
 - ✅ **WebM** (VP9) - Web optimized
 - ✅ **GIF** - Animações
@@ -56,6 +60,7 @@
 - ✅ **AVI** - Legacy
 
 ### 👥 **Colaboração em Tempo Real**
+
 - ✅ WebSocket (Socket.IO)
 - ✅ Presença online/offline
 - ✅ Edição simultânea
@@ -63,6 +68,7 @@
 - ✅ Version control
 
 ### ☁️ **Multi-Cloud (NOVO V2.0)**
+
 - ✅ **Supabase** - Database, Storage, Auth
 - ✅ **AWS S3** - Object storage
 - ✅ **CloudFront** - CDN global
@@ -73,6 +79,7 @@
 ## 🛠️ STACK TECNOLÓGICA
 
 ### Frontend
+
 - **Framework:** Next.js 14 (App Router)
 - **Language:** TypeScript 5.2
 - **Styling:** TailwindCSS 3.3
@@ -81,6 +88,7 @@
 - **Real-time:** Socket.IO Client
 
 ### Backend
+
 - **Runtime:** Node.js 18+
 - **Framework:** Next.js API Routes
 - **Database:** Supabase (PostgreSQL)
@@ -89,12 +97,14 @@
 - **Real-time:** Socket.IO Server
 
 ### IA & Media
+
 - **TTS:** ElevenLabs, Azure, Google
 - **Video:** FFmpeg
 - **PPTX:** pptxgenjs
 - **AI:** Scene analysis (preparado para TensorFlow/PyTorch)
 
 ### Cloud & Infrastructure
+
 - **Primary:** Supabase
 - **Storage:** AWS S3, Supabase Storage
 - **CDN:** CloudFront
@@ -144,6 +154,7 @@ Abra [http://localhost:3000](http://localhost:3000) no navegador.
 ## 📚 DOCUMENTAÇÃO
 
 ### Documentos Principais
+
 - 📖 **[INDEX_MASTER_V2.md](INDEX_MASTER_V2.md)** - Índice completo
 - 📊 **[RESUMO_FINAL_V2.md](RESUMO_FINAL_V2.md)** - Resumo executivo
 - 📚 **[API_V2_DOCUMENTATION.md](API_V2_DOCUMENTATION.md)** - API Reference
@@ -151,6 +162,7 @@ Abra [http://localhost:3000](http://localhost:3000) no navegador.
 - 📋 **[CHANGELOG_V2.md](CHANGELOG_V2.md)** - Histórico de versões
 
 ### Quick Start
+
 - [Criar Template](API_V2_DOCUMENTATION.md#criar-template)
 - [Exportar Vídeo](API_V2_DOCUMENTATION.md#exportar-vídeo)
 - [Usar AI Transitions](API_V2_DOCUMENTATION.md#ai-transitions)
@@ -161,21 +173,25 @@ Abra [http://localhost:3000](http://localhost:3000) no navegador.
 ## 🎯 CASOS DE USO
 
 ### 1. Treinamentos Corporativos
+
 ```
 PPTX → Template → AI Narração → Avatares → Export Multi-Formato
 ```
 
 ### 2. Educação Online
+
 ```
 Conteúdo → Template Educacional → TTS BR → Vídeo Completo → Streaming HLS
 ```
 
 ### 3. Marketing
+
 ```
 Template Marketing → Variáveis Dinâmicas → Watermark → Export Social Media
 ```
 
 ### 4. E-Learning
+
 ```
 Curso → Múltiplos Módulos → AI Transitions → Streaming Adaptativo → CDN Global
 ```
@@ -213,14 +229,14 @@ FFPROBE_PATH=/usr/bin/ffprobe
 
 ### Benchmarks
 
-| Operação | Tempo | Target |
-|----------|-------|--------|
-| TTS Generation | 1-2s | < 3s ✅ |
-| PPTX Processing | 10-20s | < 30s ✅ |
-| Video Render (5min) | 8-10min | < 2x ✅ |
-| Export GIF | 30-45s | < 60s ✅ |
-| API Response (p95) | 150ms | < 200ms ✅ |
-| WebSocket Latency | 50ms | < 100ms ✅ |
+| Operação            | Tempo   | Target     |
+| ------------------- | ------- | ---------- |
+| TTS Generation      | 1-2s    | < 3s ✅    |
+| PPTX Processing     | 10-20s  | < 30s ✅   |
+| Video Render (5min) | 8-10min | < 2x ✅    |
+| Export GIF          | 30-45s  | < 60s ✅   |
+| API Response (p95)  | 150ms   | < 200ms ✅ |
+| WebSocket Latency   | 50ms    | < 100ms ✅ |
 
 ---
 
@@ -264,14 +280,17 @@ npm run test:e2e
 ## 📞 SUPORTE
 
 ### Documentação
+
 - 📚 [Documentação Completa](INDEX_MASTER_V2.md)
 - 🔧 [Troubleshooting](DEPLOY_GUIDE.md#troubleshooting)
 - ❓ [FAQ](docs/FAQ.md)
 
 ### Health Check
+
 - 🏥 `/api/health` - Status de todos os serviços
 
 ### Contato
+
 - 📧 Email: suporte@estudio-ia.com
 - 💬 Slack: #estudio-ia-videos
 - 🐛 Issues: GitHub Issues
@@ -287,6 +306,7 @@ Propriedade Privada - Todos os direitos reservados © 2025
 ## 🎉 AGRADECIMENTOS
 
 Desenvolvido com ❤️ usando:
+
 - Next.js
 - TypeScript
 - Supabase
@@ -302,18 +322,21 @@ Desenvolvido com ❤️ usando:
 ## 📈 ROADMAP
 
 ### V2.1 (Q1 2026)
+
 - [ ] Azure Media Services
 - [ ] Google Cloud Integration
 - [ ] Auto color correction
 - [ ] Background removal AI
 
 ### V2.2 (Q2 2026)
+
 - [ ] Mobile app
 - [ ] Template marketplace
 - [ ] Analytics dashboard
 - [ ] A/B testing
 
 ### V3.0 (Q3 2026)
+
 - [ ] ML pipeline
 - [ ] Auto editing
 - [ ] 3D avatars

@@ -15,6 +15,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## ✅ 1. QUALIDADE DE CÓDIGO
 
 ### TypeScript
+
 - [ ] Zero erros de compilação (`npx tsc --noEmit`)
 - [ ] Tipos explícitos em todas as funções públicas
 - [ ] Sem uso de `any` desnecessário
@@ -22,12 +23,14 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Enums ao invés de strings mágicas
 
 ### ESLint
+
 - [ ] Zero warnings críticos
 - [ ] Regras de acessibilidade seguidas
 - [ ] Imports organizados
 - [ ] Código formatado consistentemente
 
 ### Código Limpo
+
 - [ ] Funções com responsabilidade única
 - [ ] Nomes descritivos para variáveis e funções
 - [ ] Sem código comentado (exceto TODOs justificados)
@@ -39,6 +42,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## 🔒 2. SEGURANÇA
 
 ### Autenticação & Autorização
+
 - [x] Todas as rotas críticas exigem autenticação ✅
 - [x] Validação de tokens em APIs sensíveis ✅
 - [ ] Rate limiting configurado
@@ -46,6 +50,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Headers de segurança implementados
 
 ### Dados Sensíveis
+
 - [x] Sem credenciais hardcoded ✅
 - [x] Variáveis de ambiente para secrets ✅
 - [ ] Validação de inputs em todas as APIs
@@ -54,6 +59,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Proteção contra XSS
 
 ### APIs Externas
+
 - [x] API keys em variáveis de ambiente ✅
 - [ ] Timeout configurado para requisições externas
 - [ ] Retry logic com backoff exponencial
@@ -64,6 +70,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## 🗄️ 3. BANCO DE DADOS
 
 ### Supabase/Prisma
+
 - [x] Migrations aplicadas e versionadas ✅
 - [x] Índices criados para queries frequentes ✅
 - [ ] Row Level Security (RLS) configurado
@@ -71,6 +78,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Connection pooling otimizado
 
 ### Queries
+
 - [x] Sem N+1 queries identificados ✅
 - [x] Queries otimizadas com índices ✅
 - [ ] Paginação em listagens
@@ -81,6 +89,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## 🚀 4. PERFORMANCE
 
 ### Frontend
+
 - [ ] Code splitting implementado
 - [ ] Lazy loading de componentes
 - [ ] Imagens otimizadas (WebP, compressão)
@@ -88,6 +97,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Lighthouse score > 90
 
 ### Backend
+
 - [x] Cache implementado (Redis ou em memória) ✅
 - [x] Rate limiting por usuário ✅
 - [ ] Compressão GZIP ativada
@@ -95,6 +105,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Database connection pooling
 
 ### Renderização
+
 - [x] FFmpeg otimizado com threads ✅
 - [x] Progress tracking implementado ✅
 - [ ] Queue system para jobs pesados (BullMQ/Redis)
@@ -106,18 +117,21 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## 🧪 5. TESTES
 
 ### Unitários
+
 - [ ] Cobertura de código > 70%
 - [ ] Testes para funções críticas
 - [ ] Mocks apropriados para APIs externas
 - [ ] Testes de edge cases
 
 ### Integração
+
 - [x] APIs principais testadas ✅
 - [ ] Fluxos completos testados (E2E)
 - [ ] Testes de erro e recovery
 - [ ] Testes de concorrência
 
 ### Performance
+
 - [ ] Load testing executado
 - [ ] Stress testing executado
 - [ ] Memory leak testing
@@ -128,6 +142,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## 📝 6. DOCUMENTAÇÃO
 
 ### Código
+
 - [x] README.md atualizado ✅
 - [x] APIs documentadas ✅
 - [ ] Swagger/OpenAPI para endpoints
@@ -135,6 +150,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Exemplos de uso
 
 ### Deployment
+
 - [ ] Guia de deploy documentado
 - [ ] Variáveis de ambiente documentadas
 - [ ] Troubleshooting guide
@@ -145,6 +161,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## 🔧 7. INFRAESTRUTURA
 
 ### Produção
+
 - [ ] Environment variables configuradas
 - [ ] Secrets manager configurado (Vault/AWS Secrets)
 - [ ] Logs centralizados (CloudWatch/DataDog)
@@ -152,6 +169,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Alertas configurados
 
 ### CI/CD
+
 - [ ] Pipeline de build funcionando
 - [ ] Testes automáticos no CI
 - [ ] Deploy automático para staging
@@ -159,6 +177,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Rollback automático em caso de erro
 
 ### Backup & Recovery
+
 - [ ] Backups automáticos configurados
 - [ ] Backup testing regular
 - [ ] Disaster recovery plan
@@ -169,18 +188,21 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## 🎨 8. UX/UI
 
 ### Acessibilidade
+
 - [ ] ARIA labels onde necessário
 - [ ] Navegação por teclado funcional
 - [ ] Contraste de cores adequado
 - [ ] Screen reader friendly
 
 ### Responsividade
+
 - [ ] Mobile first implementado
 - [ ] Testado em dispositivos principais
 - [ ] PWA configurado (se aplicável)
 - [ ] Touch gestures funcionando
 
 ### Feedback do Usuário
+
 - [ ] Loading states implementados
 - [ ] Mensagens de erro claras
 - [ ] Confirmações de ações críticas
@@ -191,6 +213,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## 🌐 9. WEBSOCKET & REAL-TIME
 
 ### Socket.IO
+
 - [x] Servidor WebSocket implementado ✅
 - [x] Autenticação de conexões ✅
 - [x] Room management ✅
@@ -199,6 +222,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Scaling horizontal (Redis adapter)
 
 ### Colaboração
+
 - [x] Presença de usuários em tempo real ✅
 - [x] Sincronização de mudanças ✅
 - [ ] Conflict resolution testado
@@ -210,6 +234,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## 📊 10. ANALYTICS & MONITORING
 
 ### Logging
+
 - [x] Logs estruturados (JSON) ✅
 - [x] Níveis de log apropriados ✅
 - [ ] Log rotation configurado
@@ -217,6 +242,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Correlation IDs implementados
 
 ### Métricas
+
 - [ ] Custom metrics instrumentadas
 - [ ] APM configurado
 - [ ] Error tracking (Sentry)
@@ -224,6 +250,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Business metrics tracking
 
 ### Alertas
+
 - [ ] Alertas para erros críticos
 - [ ] Alertas para performance degradada
 - [ ] Alertas para uso de recursos
@@ -234,6 +261,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## 🔍 11. REVISÃO ESPECÍFICA DE IMPLEMENTAÇÕES
 
 ### Mocks Removidos
+
 - [x] lib/render-jobs/mock-store.ts deletado ✅
 - [x] lib/projects/mockStore.ts deletado ✅
 - [x] lib/slides/mockStore.ts deletado ✅
@@ -242,6 +270,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [x] api/v1/video-jobs/stats/route.ts 100% Supabase ✅
 
 ### Implementações Reais
+
 - [x] PPTX Generator com pptxgenjs ✅
 - [x] WebSocket Server com Socket.IO ✅
 - [x] Avatar Engine sem mocks de áudio ✅
@@ -249,6 +278,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [x] Colaboração em tempo real ✅
 
 ### Bibliotecas Instaladas
+
 - [x] pptxgenjs@4.0.1 ✅
 - [x] socket.io@4.8.1 ✅
 - [x] socket.io-client@4.8.1 ✅
@@ -258,6 +288,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## 📋 12. CHECKLIST DE DEPLOY
 
 ### Pré-Deploy
+
 - [ ] Branch main atualizada
 - [ ] Merge de feature branches
 - [ ] Tests passando 100%
@@ -265,6 +296,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Database migrations testadas
 
 ### Deploy
+
 - [ ] Backup do banco antes do deploy
 - [ ] Deploy em staging primeiro
 - [ ] Smoke tests em staging
@@ -272,6 +304,7 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 - [ ] Smoke tests em produção
 
 ### Pós-Deploy
+
 - [ ] Health checks passando
 - [ ] Logs sem erros críticos
 - [ ] Métricas normais
@@ -283,12 +316,14 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 ## ✅ APROVAÇÃO FINAL
 
 ### Aprovadores
-- [ ] **Tech Lead:** _____________________ Data: ____/____/____
-- [ ] **DevOps:** _____________________ Data: ____/____/____
-- [ ] **QA:** _____________________ Data: ____/____/____
-- [ ] **Product Owner:** _____________________ Data: ____/____/____
+
+- [ ] **Tech Lead:** **********\_********** Data: \_**\_/\_\_**/\_\_\_\_
+- [ ] **DevOps:** **********\_********** Data: \_**\_/\_\_**/\_\_\_\_
+- [ ] **QA:** **********\_********** Data: \_**\_/\_\_**/\_\_\_\_
+- [ ] **Product Owner:** **********\_********** Data: \_**\_/\_\_**/\_\_\_\_
 
 ### Notas de Aprovação
+
 ```
 [Espaço para notas dos aprovadores]
 ```
@@ -305,9 +340,9 @@ Checklist completo para revisão de código antes do deploy em produção, garan
 
 ## 🔄 HISTÓRICO DE REVISÕES
 
-| Data | Versão | Revisor | Status | Observações |
-|------|--------|---------|--------|-------------|
-| 17/12/2025 | 1.0 | Sistema | 🔄 Em Revisão | Checklist inicial criado |
+| Data       | Versão | Revisor | Status        | Observações              |
+| ---------- | ------ | ------- | ------------- | ------------------------ |
+| 17/12/2025 | 1.0    | Sistema | 🔄 Em Revisão | Checklist inicial criado |
 
 ---
 

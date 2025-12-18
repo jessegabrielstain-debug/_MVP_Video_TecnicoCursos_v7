@@ -137,10 +137,7 @@ npx react-native run-android
 // src/services/supabase.ts
 import { createClient } from '@supabase/supabase-js';
 
-export const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+export const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 ```
 
 ### 2. Configurar Push Notifications
@@ -151,7 +148,7 @@ import notifee from '@notifee/react-native';
 
 export async function setupNotifications() {
   await notifee.requestPermission();
-  
+
   const channelId = await notifee.createChannel({
     id: 'renders',
     name: 'Video Renders',
@@ -191,7 +188,7 @@ export function CameraScreen() {
       maxDuration: 60,
       quality: RNCamera.Constants.VideoQuality['720p'],
     });
-    
+
     uploadVideo(data.uri);
   };
 
@@ -231,7 +228,7 @@ const offlineQueue = [];
 
 export async function syncOfflineActions() {
   if (!isOnline) return;
-  
+
   for (const action of offlineQueue) {
     try {
       await executeAction(action);
@@ -248,6 +245,7 @@ export async function syncOfflineActions() {
 ## 🎨 UI/UX
 
 ### Design System
+
 - Material Design 3 (Android)
 - Human Interface Guidelines (iOS)
 - Dark mode support
@@ -255,6 +253,7 @@ export async function syncOfflineActions() {
 - Haptic feedback
 
 ### Navegação
+
 - Stack Navigation (Auth, Onboarding)
 - Tab Navigation (Home, Projects, Profile)
 - Modal Navigation (Editor, Upload)
@@ -264,6 +263,7 @@ export async function syncOfflineActions() {
 ## 📊 PERFORMANCE
 
 ### Otimizações
+
 - Lazy loading de screens
 - Image caching
 - Video thumbnail generation
@@ -271,6 +271,7 @@ export async function syncOfflineActions() {
 - Memory management
 
 ### Métricas
+
 - App size: < 50MB
 - Cold start: < 2s
 - Hot reload: < 500ms
@@ -309,7 +310,7 @@ import analytics from '@react-native-firebase/analytics';
 // Track events
 analytics().logEvent('video_upload_started', {
   duration: 120,
-  format: 'mp4'
+  format: 'mp4',
 });
 ```
 
@@ -318,12 +319,14 @@ analytics().logEvent('video_upload_started', {
 ## 🚀 DEPLOY
 
 ### iOS (TestFlight)
+
 ```bash
 cd ios
 fastlane beta
 ```
 
 ### Android (Play Console)
+
 ```bash
 cd android
 ./gradlew bundleRelease
