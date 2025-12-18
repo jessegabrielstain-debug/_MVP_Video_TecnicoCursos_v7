@@ -1,6 +1,5 @@
-// TODO: Fix TTSService constructor signature
 import { NextResponse } from 'next/server';
-import { TTSService } from '@/lib/tts/tts-service';
+import { synthesizeToFile } from '@/lib/tts/tts-service';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 
@@ -20,11 +19,26 @@ export async function POST(request: Request) {
 
     const { text, slideId } = validation.data;
 
-    const ttsResponse = await TTSService.synthesize({ text });
+    logger.info('🎙️ Gerando TTS para slide...', { 
+      component: 'API: tts',
+      slideId,
+      textLength: text.length 
+    });
+
+    const ttsResponse = await synthesizeToFile({ text });
 
     if (!ttsResponse.fileUrl) {
+      logger.error('TTS generation failed - no fileUrl returned', new Error('TTS generation failed'), { 
+        component: 'API: tts' 
+      });
       return NextResponse.json({ error: 'TTS generation failed.' }, { status: 500 });
     }
+
+    logger.info('✅ TTS gerado com sucesso', { 
+      component: 'API: tts',
+      slideId,
+      duration: ttsResponse.duration 
+    });
 
     return NextResponse.json({
       slideId: slideId,
@@ -32,8 +46,12 @@ export async function POST(request: Request) {
       duration: ttsResponse.duration,
     });
   } catch (error) {
-    logger.error('TTS API Error', error instanceof Error ? error : new Error(String(error))
-, { component: 'API: tts' });
-    return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
+    logger.error('TTS API Error', error instanceof Error ? error : new Error(String(error)), { 
+      component: 'API: tts' 
+    });
+    return NextResponse.json({ 
+      error: 'An unexpected error occurred.',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

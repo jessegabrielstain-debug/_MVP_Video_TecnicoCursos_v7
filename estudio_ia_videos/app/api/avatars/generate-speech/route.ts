@@ -45,18 +45,32 @@ class EnhancedTTSService {
   }
   
   async synthesizeSpeech(config: EnhancedTTSConfig): Promise<TTSResult> {
-    // Simulate TTS processing
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Usar serviço unificado de TTS com fallbacks automáticos
+    const { unifiedTTSService } = await import('@/lib/tts/unified-tts-service');
     
+    const result = await unifiedTTSService.synthesize({
+      text: config.text,
+      voiceId: config.voice,
+      language: config.language,
+      speed: config.speed,
+      pitch: config.pitch,
+      format: 'mp3',
+      provider: config.provider === 'synthetic' ? 'edge' : (config.provider as 'auto' | 'elevenlabs' | 'azure' | 'google' | 'edge') || 'auto'
+    });
+
+    // Converter buffer para data URL ou fazer upload para storage
+    const audioBase64 = result.audioBuffer.toString('base64');
+    const audioUrl = `data:audio/mpeg;base64,${audioBase64}`;
+
     return {
       success: true,
-      audioUrl: `/api/audio/generated/${Date.now()}.mp3`,
-      duration: estimateDuration(config.text, config.speed),
-      provider: config.provider,
-      quality: 0.85,
-      phonemes: config.lipSyncPrecision ? [] : undefined,
-      lipSyncData: config.lipSyncPrecision ? {} : undefined,
-      cacheHit: Math.random() > 0.7
+      audioUrl,
+      duration: result.duration,
+      provider: result.provider,
+      quality: result.provider === 'elevenlabs' ? 0.95 : result.provider === 'azure' ? 0.90 : result.provider === 'google' ? 0.85 : 0.75,
+      phonemes: config.lipSyncPrecision ? [] : undefined, // TODO: Implementar extração de fonemas
+      lipSyncData: config.lipSyncPrecision ? {} : undefined, // TODO: Implementar dados de lip sync
+      cacheHit: result.fromCache
     };
   }
 }

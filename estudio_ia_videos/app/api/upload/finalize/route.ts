@@ -1,4 +1,3 @@
-// TODO: Fix null vs undefined return types
 /**
  * API de Upload - Finalização e Montagem do Arquivo
  */

@@ -1,5 +1,3 @@
-// TODO: Fix ProcessedImage type property names
-
 /**
  * 🖼️ API de Processamento Real de Imagens
  */

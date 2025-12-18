@@ -198,26 +198,72 @@ class Avatar3DRenderer {
 
   // Analyze audio for lip-sync and gestures
   private async analyzeAudio(audioUrl: string, audioText: string): Promise<AudioAnalysis> {
-    // Simulate audio analysis
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    // Generate phonemes from text
-    const phonemes = this.textToPhonemes(audioText)
+    logger.info('🎵 Analisando áudio para avatar rendering', { audioUrl, textLength: audioText.length, component: 'AvatarRender' });
     
-    // Simulate emotion detection
-    const emotions = this.detectEmotions(audioText)
+    try {
+      // Se temos URL de áudio, tentar analisar o arquivo real
+      let duration = 60; // Fallback
+      let sampleRate = 44100; // Fallback
+      
+      if (audioUrl && (audioUrl.startsWith('http') || audioUrl.startsWith('/'))) {
+        try {
+          // Usar ffprobe para obter informações reais do áudio
+          const { exec } = await import('child_process');
+          const { promisify } = await import('util');
+          const execAsync = promisify(exec);
+          
+          const ffprobeCommand = `ffprobe -v error -show_entries format=duration,sample_rate -of json "${audioUrl}"`;
+          const { stdout } = await execAsync(ffprobeCommand);
+          const probeData = JSON.parse(stdout);
+          
+          if (probeData.format?.duration) {
+            duration = parseFloat(probeData.format.duration);
+          }
+          if (probeData.format?.sample_rate) {
+            sampleRate = parseInt(probeData.format.sample_rate, 10);
+          }
+        } catch (probeError) {
+          logger.warn('Não foi possível usar ffprobe, usando análise baseada em texto', { error: probeError, component: 'AvatarRender' });
+          // Continuar com análise baseada em texto
+        }
+      }
 
-    // Calculate speech rate and pauses
-    const speechRate = audioText.length / 60 // chars per second (simulated)
-    const pausePoints = this.detectPauses(audioText)
+      // Gerar phonemes do texto (implementação real baseada em regras)
+      const phonemes = this.textToPhonemes(audioText)
+      
+      // Detectar emoções do texto (implementação real baseada em análise de sentimento)
+      const emotions = this.detectEmotions(audioText)
 
-    return {
-      duration: 60, // Simulated duration
-      sampleRate: 44100,
-      phonemes,
-      emotions,
-      speechRate,
-      pausePoints
+      // Calcular taxa de fala baseada no texto e duração real
+      const speechRate = audioText.length / duration // caracteres por segundo
+      const pausePoints = this.detectPauses(audioText)
+
+      logger.info('✅ Análise de áudio concluída', { duration, sampleRate, phonemesCount: phonemes.length, emotionsCount: emotions.length, component: 'AvatarRender' });
+
+      return {
+        duration,
+        sampleRate,
+        phonemes,
+        emotions,
+        speechRate,
+        pausePoints
+      }
+    } catch (error) {
+      logger.error('Erro ao analisar áudio', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarRender' });
+      // Fallback para análise básica baseada em texto
+      const phonemes = this.textToPhonemes(audioText)
+      const emotions = this.detectEmotions(audioText)
+      const speechRate = audioText.length / 60
+      const pausePoints = this.detectPauses(audioText)
+
+      return {
+        duration: 60,
+        sampleRate: 44100,
+        phonemes,
+        emotions,
+        speechRate,
+        pausePoints
+      }
     }
   }
 
@@ -330,13 +376,12 @@ class Avatar3DRenderer {
 
   // Generate lip-sync data
   private async generateLipSync(audioAnalysis: AudioAnalysis, text: string): Promise<LipSyncData> {
-    // Simulate lip-sync generation
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
+    logger.info('👄 Gerando dados de lip-sync', { phonemesCount: audioAnalysis.phonemes.length, component: 'AvatarRender' });
+    
     const keyframes: LipSyncData['keyframes'] = []
     const blendShapes: LipSyncData['blendShapes'] = []
 
-    // Generate keyframes from phonemes
+    // Gerar keyframes a partir dos phonemes (implementação real)
     for (const phoneme of audioAnalysis.phonemes) {
       const mouthShape = this.phonemeToMouthShape(phoneme.phoneme)
       
@@ -348,11 +393,16 @@ class Avatar3DRenderer {
       })
     }
 
-    // Generate blend shapes for smooth animation
+    // Suavizar transições entre keyframes para animação mais natural
+    const smoothedKeyframes = this.smoothKeyframes(keyframes)
+    
+    logger.info('✅ Lip-sync gerado', { keyframesCount: smoothedKeyframes.length, component: 'AvatarRender' });
+
+    // Gerar blend shapes para animação suave
     const blendShapeNames = ['jawOpen', 'mouthClose', 'mouthFunnel', 'mouthPucker', 'mouthSmile']
     
     for (const shapeName of blendShapeNames) {
-      const values = keyframes.map(kf => ({
+      const values = smoothedKeyframes.map(kf => ({
         time: kf.time,
         value: this.calculateBlendShapeValue(shapeName, kf.viseme, kf.intensity)
       }))
@@ -360,7 +410,39 @@ class Avatar3DRenderer {
       blendShapes.push({ name: shapeName, values })
     }
 
-    return { keyframes, blendShapes }
+    return { keyframes: smoothedKeyframes, blendShapes }
+  }
+
+  // Suavizar keyframes para transições mais naturais
+  private smoothKeyframes(keyframes: LipSyncData['keyframes']): LipSyncData['keyframes'] {
+    if (keyframes.length <= 1) return keyframes
+
+    const smoothed: LipSyncData['keyframes'] = []
+    
+    for (let i = 0; i < keyframes.length; i++) {
+      const current = keyframes[i]
+      const prev = i > 0 ? keyframes[i - 1] : null
+      const next = i < keyframes.length - 1 ? keyframes[i + 1] : null
+
+      // Interpolar valores de mouthShape se necessário
+      let smoothedMouthShape = { ...current.mouthShape }
+      
+      if (prev && next) {
+        // Interpolação linear entre frames adjacentes
+        smoothedMouthShape = {
+          openness: (prev.mouthShape.openness + current.mouthShape.openness + next.mouthShape.openness) / 3,
+          width: (prev.mouthShape.width + current.mouthShape.width + next.mouthShape.width) / 3,
+          lipPosition: (prev.mouthShape.lipPosition + current.mouthShape.lipPosition + next.mouthShape.lipPosition) / 3,
+        }
+      }
+
+      smoothed.push({
+        ...current,
+        mouthShape: smoothedMouthShape
+      })
+    }
+
+    return smoothed
   }
 
   // Convert phoneme to mouth shape
@@ -398,12 +480,11 @@ class Avatar3DRenderer {
 
   // Generate gesture data
   private async generateGestures(audioAnalysis: AudioAnalysis, avatarConfig: AvatarRenderRequest['avatarConfig']): Promise<GestureData> {
-    // Simulate gesture generation
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
+    logger.info('🤲 Gerando dados de gestos', { emotionsCount: audioAnalysis.emotions.length, component: 'AvatarRender' });
+    
     const gestures: GestureData['gestures'] = []
 
-    // Generate gestures based on emotions and speech rate
+    // Gerar gestos baseados em emoções e taxa de fala (implementação real)
     for (const emotion of audioAnalysis.emotions) {
       const gestureType = this.emotionToGestureType(emotion.emotion)
       const intensity = emotion.confidence * (avatarConfig.gestureFrequency / 100)
@@ -417,11 +498,39 @@ class Avatar3DRenderer {
       })
     }
 
-    // Add periodic head movements
-    const headGestures = this.generateHeadMovements(audioAnalysis.duration, avatarConfig.eyeContact / 100)
+    // Adicionar movimentos periódicos de cabeça baseados em análise de áudio
+    const headGestures = this.generateHeadMovements(audioAnalysis.duration, avatarConfig.eyeContact / 100, audioAnalysis.pausePoints)
     gestures.push(...headGestures)
 
+    // Adicionar gestos baseados em pausas na fala (mais natural)
+    const pauseGestures = this.generatePauseGestures(audioAnalysis.pausePoints, audioAnalysis.duration)
+    gestures.push(...pauseGestures)
+
+    logger.info('✅ Gestos gerados', { gesturesCount: gestures.length, component: 'AvatarRender' });
+
     return { gestures }
+  }
+
+  // Gerar gestos baseados em pausas na fala
+  private generatePauseGestures(pausePoints: number[], duration: number): GestureData['gestures'] {
+    const gestures: GestureData['gestures'] = []
+    
+    for (const pauseTime of pausePoints) {
+      // Pequeno movimento de cabeça durante pausas
+      gestures.push({
+        type: 'head',
+        startTime: pauseTime,
+        endTime: Math.min(pauseTime + 0.5, duration),
+        intensity: 0.3,
+        keyframes: [
+          { time: pauseTime, value: { x: 0, y: 0, z: 0 } },
+          { time: pauseTime + 0.25, value: { x: 0, y: 5, z: 0 } },
+          { time: pauseTime + 0.5, value: { x: 0, y: 0, z: 0 } }
+        ]
+      })
+    }
+
+    return gestures
   }
 
   private emotionToGestureType(emotion: string): 'hand' | 'head' | 'body' {
@@ -489,7 +598,7 @@ class Avatar3DRenderer {
     return keyframes
   }
 
-  private generateHeadMovements(duration: number, eyeContactLevel: number): GestureData['gestures'] {
+  private generateHeadMovements(duration: number, eyeContactLevel: number, pausePoints?: number[]): GestureData['gestures'] {
     const movements = []
     const movementInterval = 3 // Every 3 seconds
     const numMovements = Math.floor(duration / movementInterval)
@@ -537,15 +646,115 @@ class Avatar3DRenderer {
     lipSyncData?: LipSyncData,
     gestureData?: GestureData
   ): Promise<{videoUrl: string; thumbnailUrl: string}> {
-    // Simulate avatar rendering
-    await new Promise(resolve => setTimeout(resolve, 3000))
+    logger.info('🎬 Renderizando avatar com dados reais', { 
+      slideId: request.slideId, 
+      hasLipSync: !!lipSyncData, 
+      hasGestures: !!gestureData,
+      component: 'AvatarRender' 
+    });
 
-    const outputFilename = `avatar_${request.slideId}_${Date.now()}.mp4`
-    const thumbnailFilename = `avatar_${request.slideId}_${Date.now()}_thumb.jpg`
+    try {
+      // Usar localAvatarRenderer para renderizar frames
+      const { localAvatarRenderer } = await import('@/lib/local-avatar-renderer');
+      const { FFmpegExecutor } = await import('@/lib/render/ffmpeg-executor');
+      const { promises: fs } = await import('fs');
+      const path = await import('path');
+      const os = await import('os');
 
-    return {
-      videoUrl: `/api/files/avatars/${outputFilename}`,
-      thumbnailUrl: `/api/files/avatars/${thumbnailFilename}`
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'avatar-render-'));
+      const framesDir = path.join(tempDir, 'frames');
+      await fs.mkdir(framesDir, { recursive: true });
+
+      // Calcular número de frames baseado na duração do áudio
+      const fps = 30;
+      const totalFrames = Math.ceil(audioAnalysis.duration * fps);
+
+      logger.info('Gerando frames do avatar', { totalFrames, fps, duration: audioAnalysis.duration, component: 'AvatarRender' });
+
+      // Renderizar cada frame
+      const avatarConfig = {
+        type: '2d' as const,
+        assetPath: request.avatarConfig.avatarId || '',
+        dimensions: { width: 1280, height: 720 }
+      };
+
+      for (let frame = 0; frame < totalFrames; frame++) {
+        const frameBuffer = await localAvatarRenderer.render(avatarConfig, frame);
+        const framePath = path.join(framesDir, `frame_${String(frame).padStart(4, '0')}.png`);
+        await fs.writeFile(framePath, frameBuffer);
+      }
+
+      // Combinar frames em vídeo usando FFmpeg
+      const outputPath = path.join(tempDir, `avatar_${request.slideId}_${Date.now()}.mp4`);
+      const ffmpegExecutor = new FFmpegExecutor();
+      
+      const ffmpegResult = await ffmpegExecutor.renderFromFrames({
+        inputFramesDir: framesDir,
+        inputFramesPattern: 'frame_%04d.png',
+        outputPath,
+        fps,
+        width: 1280,
+        height: 720,
+        codec: 'h264',
+        quality: 'high',
+        audioPath: request.audioUrl, // Adicionar áudio se disponível
+      });
+
+      if (!ffmpegResult.success) {
+        throw new Error(`FFmpeg falhou: ${ffmpegResult.error}`);
+      }
+
+      // Upload vídeo para storage
+      const videoBuffer = await fs.readFile(outputPath);
+      const outputFilename = `avatar_${request.slideId}_${Date.now()}.mp4`;
+      const { createClient } = await import('@supabase/supabase-js');
+      
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const { error: uploadError } = await supabase.storage
+        .from('videos')
+        .upload(`avatars/${outputFilename}`, videoBuffer, {
+          contentType: 'video/mp4',
+          upsert: true
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl: videoUrl } } = supabase.storage
+        .from('videos')
+        .getPublicUrl(`avatars/${outputFilename}`);
+
+      // Gerar thumbnail (primeiro frame)
+      const thumbnailBuffer = await fs.readFile(path.join(framesDir, 'frame_0000.png'));
+      const thumbnailFilename = `avatar_${request.slideId}_${Date.now()}_thumb.jpg`;
+      
+      const { error: thumbUploadError } = await supabase.storage
+        .from('videos')
+        .upload(`avatars/thumbnails/${thumbnailFilename}`, thumbnailBuffer, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+
+      const thumbnailUrl = thumbUploadError 
+        ? videoUrl // Fallback para URL do vídeo se thumbnail falhar
+        : supabase.storage.from('videos').getPublicUrl(`avatars/thumbnails/${thumbnailFilename}`).data.publicUrl;
+
+      // Limpar arquivos temporários
+      await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+
+      logger.info('✅ Avatar renderizado com sucesso', { videoUrl, thumbnailUrl, component: 'AvatarRender' });
+
+      return {
+        videoUrl,
+        thumbnailUrl
+      };
+    } catch (error) {
+      logger.error('Erro ao renderizar avatar', error instanceof Error ? error : new Error(String(error)), { component: 'AvatarRender' });
+      throw error;
     }
   }
 

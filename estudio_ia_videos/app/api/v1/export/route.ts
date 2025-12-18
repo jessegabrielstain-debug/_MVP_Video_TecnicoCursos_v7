@@ -1,10 +1,10 @@
-// TODO: Fix Prisma Project type properties
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { RenderService } from '@/lib/services/render-service';
 import { Slide, SlideElement } from '@/lib/types';
 import { logger } from '@/lib/logger';
+import type { Prisma } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +25,10 @@ export async function POST(request: NextRequest) {
     // Fetch project
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      include: { slides: true } // Assuming slides are in a relation or we use slidesData
+      include: { 
+        slides: true,
+        timeline: true
+      }
     });
 
     if (!project) {
@@ -48,7 +51,7 @@ interface SlidesDataJson {
     // Prepare slides for Remotion
     // We need to map DB slides or slidesData to the format expected by Composition
     let slidesForRender: Slide[] = [];
-    const slidesData = project.slidesData as SlidesDataJson | null;
+    const slidesData = (project.slidesData as Prisma.JsonValue) as SlidesDataJson | null;
     if (slidesData && Array.isArray(slidesData.slides)) {
        slidesForRender = slidesData.slides.map((s, index: number) => ({
          id: s.id || Math.random().toString(),

@@ -1,5 +1,3 @@
-// TODO: Fix funnel type and error handling
-
 /**
  * 📊 Advanced Analytics API - REAL DATA
  * Sprint 42 - Implementação com dados reais do banco de dados
@@ -13,14 +11,16 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getOrgId, isAdmin, getUserId } from '@/lib/auth/session-helpers';
 
+interface FunnelData {
+  pptx_uploads: number
+  editing_sessions: number
+  tts_generations: number
+  render_jobs: number
+  downloads: number
+}
+
 interface AnalyticsData {
-  funnel: {
-    pptx_uploads: number
-    editing_sessions: number
-    tts_generations: number
-    render_jobs: number
-    downloads: number
-  }
+  funnel: FunnelData
   avgTimePerStage: {
     upload_to_edit: number
     edit_to_tts: number
@@ -147,8 +147,8 @@ export async function GET(request: NextRequest) {
         avgWaitTime: 0,
         peakQueueSize: 0,
       },
-      templateUsage: {}, // TODO: Implementar tracking de templates
-      trends: [], // TODO: Implementar trends
+      templateUsage: {} as Record<string, number>, // TODO: Implementar tracking de templates
+      trends: [] as Array<{ date: string; uploads: number; renders: number; errors: number }>, // TODO: Implementar trends
     }
     
     log.info('Advanced analytics fetched (REAL DATA)', {

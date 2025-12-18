@@ -1,4 +1,3 @@
-// TODO: Fix RPC function types in Supabase
 import { NextRequest, NextResponse } from 'next/server'
 import { logger } from '@/lib/logger'
 import { getSupabaseForRequest } from '@/lib/supabase/server'

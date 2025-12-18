@@ -1,5 +1,8 @@
 import { PPTXParser } from './pptx-parser';
 import { Slide, ParsedPPTXData } from '@/lib/definitions';
+import JSZip from 'jszip';
+import { PPTXImageParser } from './parsers/image-parser';
+import { logger } from '@/lib/logger';
 
 export interface PPTXValidationResult {
   valid: boolean;
@@ -14,7 +17,15 @@ export interface PPTXProcessResult {
   slides: Partial<Slide>[];
   error?: string;
   assets: {
-    images: Record<string, unknown>[];
+    images: Array<{
+      id: string;
+      filename: string;
+      url?: string;
+      thumbnailUrl?: string;
+      mimeType: string;
+      width?: number;
+      height?: number;
+    }>;
   };
   timeline: {
     totalDuration: number;
@@ -26,6 +37,13 @@ export interface ProcessingProgress {
   stage: string;
   progress: number;
   message: string;
+}
+
+export interface PPTXProcessingOptions {
+  projectId?: string;
+  extractImages?: boolean;
+  generateThumbnails?: boolean;
+  uploadToStorage?: boolean;
 }
 
 export class PPTXProcessor {
@@ -73,37 +91,95 @@ export class PPTXProcessor {
   static async processFile(
     buffer: Buffer, 
     projectId?: string, 
-    options?: Record<string, unknown>, 
+    options?: PPTXProcessingOptions, 
     onProgress?: (progress: ProcessingProgress) => void
   ): Promise<PPTXProcessResult> {
     try {
-      if (onProgress) onProgress({ stage: 'init', progress: 0, message: 'Starting processing' });
+      if (onProgress) onProgress({ stage: 'init', progress: 0, message: 'Iniciando processamento' });
       
       const processor = new PPTXProcessor();
       const result = await processor.parse(buffer);
       
-      if (onProgress) onProgress({ stage: 'parsing', progress: 50, message: 'Parsed PPTX structure' });
+      if (onProgress) onProgress({ stage: 'parsing', progress: 30, message: 'Estrutura PPTX parseada' });
 
       const slides = result.slides || [];
       const totalDuration = slides.reduce((acc, slide) => acc + (slide.duration || 5000), 0);
 
-      if (onProgress) onProgress({ stage: 'completed', progress: 100, message: 'Processing completed' });
+      // Extrair imagens se solicitado
+      let extractedImages: Array<{
+        id: string;
+        filename: string;
+        url?: string;
+        thumbnailUrl?: string;
+        mimeType: string;
+        width?: number;
+        height?: number;
+      }> = [];
+
+      if (options?.extractImages !== false && projectId) {
+        try {
+          if (onProgress) onProgress({ stage: 'extracting-images', progress: 50, message: 'Extraindo imagens' });
+          
+          const zip = await JSZip.loadAsync(buffer);
+          const imageResult = await PPTXImageParser.extractImages(zip, projectId, {
+            maxImages: 100,
+            uploadToS3: options?.uploadToStorage !== false,
+            generateThumbnails: options?.generateThumbnails !== false,
+            includeThumbnails: options?.generateThumbnails !== false,
+          });
+
+          if (imageResult.success) {
+            extractedImages = imageResult.images.map(img => ({
+              id: img.id,
+              filename: img.filename,
+              url: img.url,
+              thumbnailUrl: img.thumbnailUrl,
+              mimeType: img.mimeType,
+              width: img.width,
+              height: img.height,
+            }));
+
+            logger.info(`✅ ${extractedImages.length} imagens extraídas do PPTX`, { 
+              component: 'PPTXProcessor',
+              projectId,
+              imageCount: extractedImages.length 
+            });
+          } else {
+            logger.warn('Alguns erros ao extrair imagens', { 
+              component: 'PPTXProcessor',
+              errors: imageResult.errors 
+            });
+          }
+        } catch (imageError) {
+          logger.error('Erro ao extrair imagens do PPTX', imageError instanceof Error ? imageError : new Error(String(imageError)), { 
+            component: 'PPTXProcessor' 
+          });
+          // Continuar processamento mesmo se extração de imagens falhar
+        }
+      }
+
+      if (onProgress) onProgress({ stage: 'completed', progress: 100, message: 'Processamento concluído' });
 
       return {
         success: true,
         slides: slides,
         assets: {
-          images: [] // TODO: Populate with actual images if available
+          images: extractedImages
         },
         timeline: {
           totalDuration
         },
         extractionStats: {
           slideCount: slides.length,
-          duration: totalDuration
+          duration: totalDuration,
+          imageCount: extractedImages.length
         }
       };
     } catch (error) {
+      logger.error('Erro ao processar PPTX', error instanceof Error ? error : new Error(String(error)), { 
+        component: 'PPTXProcessor' 
+      });
+      
       return {
         success: false,
         slides: [],

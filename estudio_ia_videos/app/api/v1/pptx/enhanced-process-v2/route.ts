@@ -1,5 +1,3 @@
-// TODO: Fix PresentationV2 to Record<string, unknown> assignment
-
 /**
  * 🔧 Enhanced PPTX Processing API v2.0 - Production Real
  * API que usa o parser real v2 para extrair elementos individuais
@@ -33,7 +31,7 @@ export async function POST(request: NextRequest) {
     const result = await parser.parseFromS3(s3Key);
     
     // Converter para formato unificado
-    const unifiedResult = convertRealToUnified(result as unknown as Record<string, unknown>);
+    const unifiedResult = convertRealToUnified(result as Record<string, unknown>);
 
     // Estatísticas detalhadas
     const elementStats = result.slides.reduce((acc: Record<string, number>, slide) => {

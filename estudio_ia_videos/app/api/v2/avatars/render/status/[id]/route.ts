@@ -1,4 +1,3 @@
-// TODO: Fix v2 avatars types
 /**
  * 📊 API v2: Render Status Monitor
  * Monitoramento em tempo real de jobs de renderização
@@ -10,7 +9,7 @@ import { createRateLimiter, rateLimitPresets } from '@/lib/utils/rate-limit-midd
 import { avatar3DPipeline } from '@/lib/avatar-3d-pipeline'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 
 // Interface para tipagem do avatar
 interface AvatarModelInfo {

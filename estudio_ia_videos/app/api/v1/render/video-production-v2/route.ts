@@ -1,5 +1,3 @@
-// TODO: Fix Buffer to string parameter conversion
-
 /**
  * 🎬 Video Render API v2.0 - Production Real
  * Renderização real de vídeos usando FFMPEG e pipeline de produção
@@ -11,6 +9,14 @@ import { VideoRenderPipeline } from '@/lib/video-render-pipeline';
 import crypto from 'crypto';
 import fs from 'fs';
 import { logger } from '@/lib/logger';
+
+// Helper para converter Buffer para string de forma segura
+function bufferToString(buffer: Buffer | string | unknown): string {
+  if (typeof buffer === 'string') return buffer
+  if (Buffer.isBuffer(buffer)) return buffer.toString('utf-8')
+  if (buffer instanceof Uint8Array) return Buffer.from(buffer).toString('utf-8')
+  return String(buffer)
+}
 
 interface RenderJob {
   jobId: string;

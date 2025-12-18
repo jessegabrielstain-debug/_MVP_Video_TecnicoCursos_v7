@@ -74,28 +74,242 @@ export class VideoRenderPipeline {
   }
   
   async prepareAssets(slides: DatabaseSlide[]): Promise<{ ready: boolean }> {
-    logger.debug('Preparing assets', { slidesCount: slides.length, service: 'VideoRenderPipeline' });
-    // TODO: Download images, fonts, etc.
-    return { ready: true };
+    logger.info('📥 Preparando assets (imagens, fontes, etc.)', { slidesCount: slides.length, service: 'VideoRenderPipeline' });
+    
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'assets-'));
+    const downloadedAssets: string[] = [];
+
+    try {
+      // 1. Download imagens de background dos slides
+      for (const slide of slides) {
+        if (slide.background_image) {
+          try {
+            const imagePath = await this.downloadAsset(slide.background_image, tempDir, 'image');
+            if (imagePath) {
+              downloadedAssets.push(imagePath);
+              logger.debug('Imagem de background baixada', { slideId: slide.id, imagePath, service: 'VideoRenderPipeline' });
+            }
+          } catch (error) {
+            logger.warn('Erro ao baixar imagem de background', { slideId: slide.id, error, service: 'VideoRenderPipeline' });
+            // Continuar mesmo se uma imagem falhar
+          }
+        }
+      }
+
+      // 2. Download fontes (se necessário)
+      // Por enquanto, usamos fontes do sistema, mas podemos baixar fontes customizadas aqui
+      // const fontsDir = path.join(tempDir, 'fonts');
+      // await fs.mkdir(fontsDir, { recursive: true });
+      // TODO: Implementar download de fontes se necessário
+
+      logger.info('✅ Assets preparados com sucesso', { assetsCount: downloadedAssets.length, service: 'VideoRenderPipeline' });
+      
+      return { ready: true };
+    } catch (error) {
+      logger.error('Erro ao preparar assets', error instanceof Error ? error : new Error(String(error)), { service: 'VideoRenderPipeline' });
+      // Limpar assets baixados em caso de erro
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+      } catch (cleanupError) {
+        logger.warn('Erro ao limpar assets temporários', { error: cleanupError, service: 'VideoRenderPipeline' });
+      }
+      throw error;
+    }
+  }
+
+  private async downloadAsset(url: string, destDir: string, type: 'image' | 'font' | 'audio' | 'video'): Promise<string | null> {
+    try {
+      // Verificar se é URL do Supabase Storage
+      if (url.includes('supabase.co') || url.includes('storage.googleapis.com') || url.startsWith('http')) {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const buffer = await response.arrayBuffer();
+        const fileName = `${type}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        const ext = this.getExtensionFromUrl(url) || (type === 'image' ? '.jpg' : '.bin');
+        const filePath = path.join(destDir, `${fileName}${ext}`);
+        
+        await fs.writeFile(filePath, Buffer.from(buffer));
+        return filePath;
+      }
+
+      // Se for caminho local ou S3 key, usar S3StorageService
+      const { S3StorageService } = await import('./s3-storage');
+      const downloadResult = await S3StorageService.downloadFile(url);
+      
+      if (downloadResult.success && downloadResult.buffer) {
+        const fileName = `${type}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        const ext = this.getExtensionFromUrl(url) || (type === 'image' ? '.jpg' : '.bin');
+        const filePath = path.join(destDir, `${fileName}${ext}`);
+        
+        await fs.writeFile(filePath, downloadResult.buffer);
+        return filePath;
+      }
+
+      return null;
+    } catch (error) {
+      logger.error('Erro ao baixar asset', error instanceof Error ? error : new Error(String(error)), { url, type, service: 'VideoRenderPipeline' });
+      return null;
+    }
+  }
+
+  private getExtensionFromUrl(url: string): string | null {
+    try {
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      const match = pathname.match(/\.([a-zA-Z0-9]+)(\?|$)/);
+      return match ? `.${match[1]}` : null;
+    } catch {
+      // Se não for URL válida, tentar extrair extensão do path
+      const match = url.match(/\.([a-zA-Z0-9]+)(\?|$)/);
+      return match ? `.${match[1]}` : null;
+    }
   }
 
   async renderSlides(slides: DatabaseSlide[], timeline: Timeline): Promise<string[]> {
-    logger.debug('Rendering slides', { slidesCount: slides.length, service: 'VideoRenderPipeline' });
-    // TODO: Implement actual slide rendering logic here or reuse createSlideVideo
-    // For now, return mock paths
-    return slides.map((_, i) => `slide_${i}.mp4`);
+    logger.info('🎬 Renderizando slides', { slidesCount: slides.length, service: 'VideoRenderPipeline' });
+    
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'render-slides-'));
+    const renderedVideos: string[] = [];
+
+    try {
+      for (let i = 0; i < slides.length; i++) {
+        const slide = slides[i];
+        const outputPath = path.join(tempDir, `slide_${i}.mp4`);
+        
+        logger.debug('Renderizando slide', { slideIndex: i + 1, totalSlides: slides.length, slideId: slide.id, service: 'VideoRenderPipeline' });
+
+        // Usar createSlideVideo que já está implementado
+        await this.createSlideVideo(slide, '', outputPath);
+        
+        renderedVideos.push(outputPath);
+      }
+
+      logger.info('✅ Todos os slides renderizados', { slidesCount: renderedVideos.length, service: 'VideoRenderPipeline' });
+      return renderedVideos;
+    } catch (error) {
+      logger.error('Erro ao renderizar slides', error instanceof Error ? error : new Error(String(error)), { service: 'VideoRenderPipeline' });
+      // Limpar vídeos renderizados em caso de erro parcial
+      for (const videoPath of renderedVideos) {
+        try {
+          await fs.unlink(videoPath).catch(() => {});
+        } catch {
+          // Ignorar erros de limpeza
+        }
+      }
+      throw error;
+    }
   }
 
-  async composeTimeline(renderedSlides: string[], timeline: Timeline): Promise<{ composed: boolean; duration: number }> {
-    logger.debug('Composing timeline', { slidesCount: renderedSlides.length, duration: timeline.duration, service: 'VideoRenderPipeline' });
-    // TODO: Implement concatenation
-    return { composed: true, duration: timeline.duration };
+  async composeTimeline(renderedSlides: string[], timeline: Timeline): Promise<{ composed: boolean; duration: number; outputPath: string }> {
+    logger.info('🔗 Compondo timeline (concatenando vídeos)', { slidesCount: renderedSlides.length, duration: timeline.duration, service: 'VideoRenderPipeline' });
+    
+    if (renderedSlides.length === 0) {
+      throw new Error('Nenhum slide renderizado para compor');
+    }
+
+    const tempDir = path.dirname(renderedSlides[0]);
+    const outputPath = path.join(tempDir, 'composed_timeline.mp4');
+
+    try {
+      // Usar concatVideos que já está implementado
+      await this.concatVideos(renderedSlides, outputPath);
+
+      // Verificar se arquivo foi criado
+      const stats = await fs.stat(outputPath);
+      if (stats.size === 0) {
+        throw new Error('Vídeo composto está vazio');
+      }
+
+      // Calcular duração total (soma das durações dos slides ou usar timeline.duration)
+      const totalDuration = timeline.duration || renderedSlides.length * 5; // Fallback: 5s por slide
+
+      logger.info('✅ Timeline composta com sucesso', { outputPath, fileSize: stats.size, duration: totalDuration, service: 'VideoRenderPipeline' });
+      
+      return { 
+        composed: true, 
+        duration: totalDuration,
+        outputPath 
+      };
+    } catch (error) {
+      logger.error('Erro ao compor timeline', error instanceof Error ? error : new Error(String(error)), { service: 'VideoRenderPipeline' });
+      throw error;
+    }
   }
 
-  async encodeVideo(composedVideo: unknown, settings: RenderPipelineOptions): Promise<string> {
-    logger.debug('Encoding video', { settings, service: 'VideoRenderPipeline' });
-    // TODO: Implement encoding
-    return `/tmp/output_${Date.now()}.mp4`;
+  async encodeVideo(composedVideoPath: string, settings: RenderPipelineOptions): Promise<string> {
+    logger.info('🎞️ Codificando vídeo final', { inputPath: composedVideoPath, settings, service: 'VideoRenderPipeline' });
+    
+    const outputFormat = settings.outputFormat || 'mp4';
+    const quality = settings.quality || 'high';
+    const resolution = settings.resolution || '1080p';
+    
+    // Mapear resolução para dimensões
+    const resolutionMap: Record<string, { width: number; height: number }> = {
+      '720p': { width: 1280, height: 720 },
+      '1080p': { width: 1920, height: 1080 },
+      '4k': { width: 3840, height: 2160 },
+    };
+    
+    const { width, height } = resolutionMap[resolution] || resolutionMap['1080p'];
+    
+    // Mapear qualidade para bitrate
+    const bitrateMap: Record<string, string> = {
+      low: '2000k',
+      medium: '5000k',
+      high: '8000k',
+      ultra: '12000k',
+    };
+    
+    const videoBitrate = bitrateMap[quality] || bitrateMap['high'];
+    const audioBitrate = '192k';
+    
+    const outputDir = path.dirname(composedVideoPath);
+    const outputPath = path.join(outputDir, `encoded_${Date.now()}.${outputFormat}`);
+
+    try {
+      const codec = outputFormat === 'webm' ? 'libvpx-vp9' : 'libx264';
+      const audioCodec = outputFormat === 'webm' ? 'libopus' : 'aac';
+      
+      const args = [
+        '-y',
+        '-i', composedVideoPath,
+        '-c:v', codec,
+        '-c:a', audioCodec,
+        '-b:v', videoBitrate,
+        '-b:a', audioBitrate,
+        '-s', `${width}x${height}`,
+        '-preset', 'medium', // Balance entre velocidade e qualidade
+        '-crf', quality === 'ultra' ? '18' : quality === 'high' ? '23' : quality === 'medium' ? '28' : '32',
+        '-pix_fmt', 'yuv420p',
+        '-movflags', '+faststart', // Otimização para streaming
+        outputPath
+      ];
+
+      await this.runFFmpeg(args);
+
+      // Verificar se arquivo foi criado
+      const stats = await fs.stat(outputPath);
+      if (stats.size === 0) {
+        throw new Error('Vídeo codificado está vazio');
+      }
+
+      logger.info('✅ Vídeo codificado com sucesso', { 
+        outputPath, 
+        fileSize: stats.size, 
+        format: outputFormat,
+        resolution,
+        quality,
+        service: 'VideoRenderPipeline' 
+      });
+
+      return outputPath;
+    } catch (error) {
+      logger.error('Erro ao codificar vídeo', error instanceof Error ? error : new Error(String(error)), { service: 'VideoRenderPipeline' });
+      throw error;
+    }
   }
 
   async execute(options: RenderPipelineOptions): Promise<string> {
@@ -193,40 +407,104 @@ export class VideoRenderPipeline {
   }
 
   private async createSlideVideo(slide: DatabaseSlide, audioPath: string, outputPath: string): Promise<void> {
-    // Simple FFmpeg command to create video from text/color + audio
-    // If audio exists, duration is audio duration. Else default 5s.
+    logger.info('🎬 Criando vídeo do slide', { slideId: slide.id, hasAudio: !!audioPath, component: 'VideoRenderPipeline' });
     
     const duration = slide.duration || 5;
     const bgColor = slide.background_color || 'black';
     
-    // If we have audio, we use it. If not, we generate silent video.
-    const args = [
-      '-y',
-      '-f', 'lavfi',
-      '-i', `color=c=${bgColor}:s=1280x720:d=${duration}`,
-    ];
-
-    if (audioPath) {
-      // If audio exists, we need to ensure video matches audio duration roughly or use shortest/longest
-      // For simplicity, we'll just add audio.
-      // Note: -i color duration is fixed above. Ideally we probe audio duration.
-      // Let's assume for MVP we just use the audio input.
-      args.push('-i', audioPath);
-      // Map video from 0:v and audio from 1:a
-      args.push('-map', '0:v', '-map', '1:a');
-      // Shortest to stop if audio is shorter (or longer)
-      args.push('-shortest');
+    // Se temos imagem de background, usar ela; senão usar cor sólida
+    let hasBackgroundImage = false;
+    let backgroundImagePath: string | null = null;
+    
+    if (slide.background_image) {
+      try {
+        // Tentar baixar imagem de background
+        const tempDir = path.dirname(outputPath);
+        backgroundImagePath = await this.downloadAsset(slide.background_image, tempDir, 'image');
+        if (backgroundImagePath) {
+          hasBackgroundImage = true;
+          logger.debug('Imagem de background baixada', { slideId: slide.id, imagePath: backgroundImagePath, component: 'VideoRenderPipeline' });
+        }
+      } catch (error) {
+        logger.warn('Erro ao baixar imagem de background, usando cor sólida', { slideId: slide.id, error, component: 'VideoRenderPipeline' });
+      }
     }
 
-    // Add text overlay (requires fontconfig usually, might fail on minimal envs without fonts)
-    // We'll skip complex text overlay for this MVP step to ensure stability, 
-    // or use a simple drawtext if we are sure ffmpeg has support.
-    // args.push('-vf', `drawtext=text='${slide.title}':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2`);
+    const args = ['-y'];
 
-    args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p');
+    // Input de vídeo (imagem ou cor sólida)
+    if (hasBackgroundImage && backgroundImagePath) {
+      // Usar imagem como background
+      args.push('-loop', '1', '-i', backgroundImagePath);
+      // Escalar para 1280x720 se necessário
+      args.push('-vf', `scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setpts=PTS-STARTPTS`);
+    } else {
+      // Usar cor sólida
+      args.push('-f', 'lavfi', '-i', `color=c=${bgColor}:s=1280x720:d=${duration}`);
+    }
+
+    // Input de áudio (se existir)
+    if (audioPath && (await fs.access(audioPath).then(() => true).catch(() => false))) {
+      args.push('-i', audioPath);
+      
+      // Mapear vídeo e áudio
+      if (hasBackgroundImage) {
+        args.push('-map', '0:v', '-map', '1:a');
+      } else {
+        args.push('-map', '0:v', '-map', '1:a');
+      }
+      
+      // Usar duração do áudio se disponível
+      try {
+        const { exec } = await import('child_process');
+        const { promisify } = await import('util');
+        const execAsync = promisify(exec);
+        const { stdout } = await execAsync(`ffprobe -v error -show_entries format=duration -of json "${audioPath}"`);
+        const probeData = JSON.parse(stdout);
+        if (probeData.format?.duration) {
+          const audioDuration = parseFloat(probeData.format.duration);
+          args.push('-t', String(audioDuration));
+        }
+      } catch {
+        // Se não conseguir obter duração, usar shortest
+        args.push('-shortest');
+      }
+    } else {
+      // Sem áudio, usar duração fixa
+      args.push('-t', String(duration));
+    }
+
+    // Adicionar overlay de texto se houver título
+    if (slide.title) {
+      const currentFilters = args.filter(arg => arg === '-vf' || arg.startsWith('scale=') || arg.startsWith('pad=') || arg.startsWith('setpts='));
+      const hasVideoFilter = currentFilters.length > 0;
+      
+      const textFilter = `drawtext=text='${slide.title.replace(/'/g, "\\'")}':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=black@0.5:boxborderw=5`;
+      
+      if (hasVideoFilter) {
+        // Adicionar ao filtro existente
+        const filterIndex = args.indexOf('-vf');
+        if (filterIndex !== -1) {
+          args[filterIndex + 1] = `${args[filterIndex + 1]},${textFilter}`;
+        }
+      } else {
+        args.push('-vf', textFilter);
+      }
+    }
+
+    // Codec e formato
+    args.push('-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'medium', '-crf', '23');
+    
+    // Se não há áudio, adicionar stream de áudio silencioso
+    if (!audioPath) {
+      args.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100', '-c:a', 'aac', '-shortest');
+    }
+
     args.push(outputPath);
 
     await this.runFFmpeg(args);
+    
+    logger.info('✅ Vídeo do slide criado', { slideId: slide.id, outputPath, component: 'VideoRenderPipeline' });
   }
 
   private async processHeyGenSlide(slide: DatabaseSlide, outputPath: string, isTest: boolean = false): Promise<void> {

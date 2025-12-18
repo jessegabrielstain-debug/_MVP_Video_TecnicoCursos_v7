@@ -1,7 +1,5 @@
-// TODO: Fix NRTemplate type mapping
-
 import { NextRequest, NextResponse } from 'next/server'
-import { listNRTemplates, NRTemplate as ServiceNRTemplate } from '@/lib/services/nr-templates-service'
+import { listNRTemplates, type NRTemplate as ServiceNRTemplate } from '@/lib/services/nr-templates-service'
 import { logger } from '@/lib/logger'
 
 interface NRTemplate {

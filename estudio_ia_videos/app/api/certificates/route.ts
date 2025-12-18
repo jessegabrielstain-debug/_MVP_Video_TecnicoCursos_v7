@@ -5,14 +5,7 @@ import { getSupabaseForRequest } from '@/lib/supabase/server';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
 
-// Global mock store for development/testing when DB is down
-declare global {
-  var mockCertificates: Map<string, any>;
-}
-
-if (!global.mockCertificates) {
-  global.mockCertificates = new Map();
-}
+// Mock removido - usando apenas banco de dados real
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,57 +60,25 @@ export async function POST(request: NextRequest) {
     // Generate unique certificate code
     const code = uuidv4().split('-')[0].toUpperCase();
 
-    // Try to create in DB
-    try {
-      const certificate = await prisma.certificate.create({
-        data: {
-          projectId,
-          userId: user.id,
-          studentName,
-          courseName,
-          code,
-          certificateUrl: `https://cert.tecnocursos.com.br/${code}`,
-          metadata: {
-            generatedBy: 'AI Studio',
-            version: '1.0'
-          }
-        },
-      });
-      return NextResponse.json(certificate, { status: 201 });
-    } catch (dbError: unknown) {
-      logger.error('Database error creating certificate', dbError instanceof Error ? dbError : new Error(String(dbError))
-      , { component: 'API: certificates' });
-      
-      const err = dbError as { code?: string; message?: string };
-      // Fallback: Store in memory
-      if (err.code === 'P2010' || err.code === 'P2021' || err.message?.includes('does not exist') || err.message?.includes('Tenant or user not found')) {
-        logger.warn('Certificate table missing or DB error', {
-          component: 'API: certificates'
-        });
-        
-        const mockCert = {
-          id: uuidv4(),
-          projectId,
-          userId: user.id,
-          studentName,
-          courseName,
-          code,
-          certificateUrl: `https://cert.tecnocursos.com.br/${code}`,
-          issuedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        
-        global.mockCertificates.set(code, mockCert);
-        
-        return NextResponse.json(mockCert, { status: 201 });
-      }
-      
-      return NextResponse.json(
-        { error: 'Failed to create certificate', details: err.message || 'Unknown error' },
-        { status: 500 }
-      );
-    }
+    // Criar certificado no banco de dados
+    const certificate = await prisma.certificate.create({
+      data: {
+        projectId,
+        userId: user.id,
+        studentName,
+        courseName,
+        code,
+        certificateUrl: `https://cert.tecnocursos.com.br/${code}`,
+        metadata: {
+          generatedBy: 'AI Studio',
+          version: '1.0'
+        }
+      },
+    });
+
+    logger.info('Certificado criado com sucesso', { certificateId: certificate.id, code, component: 'API: certificates' });
+    
+    return NextResponse.json(certificate, { status: 201 });
 
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error)); 

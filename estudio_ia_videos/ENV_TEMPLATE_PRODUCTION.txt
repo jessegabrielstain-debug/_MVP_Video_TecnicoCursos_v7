@@ -1,0 +1,89 @@
+# ==============================================
+# ESTÚDIO IA VÍDEOS - PRODUCTION ENVIRONMENT
+# ==============================================
+# Copie este conteúdo para .env.production e preencha com valores reais
+# NUNCA commite .env.production no Git!
+# Data: 17/12/2025
+
+# ==============================================
+# AMBIENTE
+# ==============================================
+NODE_ENV=production
+NEXT_PUBLIC_APP_URL=https://seu-dominio.com
+PORT=3000
+
+# ==============================================
+# SUPABASE (PRODUCTION)
+# ==============================================
+NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+DATABASE_URL=postgresql://postgres:[PASSWORD]@db.seu-projeto.supabase.co:5432/postgres
+
+# ==============================================
+# AUTENTICAÇÃO
+# ==============================================
+NEXTAUTH_URL=https://seu-dominio.com
+NEXTAUTH_SECRET=gerar_com_openssl_rand_base64_32
+
+# ==============================================
+# TTS - ELEVENLABS (PRODUCTION)
+# ==============================================
+ELEVENLABS_API_KEY=sk_...
+ELEVENLABS_DEFAULT_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+ELEVENLABS_MODEL_ID=eleven_multilingual_v2
+ELEVENLABS_TIMEOUT_MS=30000
+
+# ==============================================
+# AZURE TTS (FALLBACK)
+# ==============================================
+AZURE_SPEECH_KEY=your_azure_key_here
+AZURE_SPEECH_REGION=eastus
+
+# ==============================================
+# GOOGLE TTS (FALLBACK)
+# ==============================================
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/google-credentials.json
+
+# ==============================================
+# STORAGE - SUPABASE STORAGE
+# ==============================================
+STORAGE_PROVIDER=supabase
+SUPABASE_STORAGE_BUCKET=videos
+
+# ==============================================
+# FFMPEG
+# ==============================================
+FFMPEG_PATH=/usr/bin/ffmpeg
+FFPROBE_PATH=/usr/bin/ffprobe
+FFMPEG_THREADS=4
+
+# ==============================================
+# REDIS (CACHE)
+# ==============================================
+REDIS_URL=redis://seu-redis:6379
+REDIS_PASSWORD=seu_password
+
+# ==============================================
+# MONITORAMENTO
+# ==============================================
+SENTRY_DSN=https://...@sentry.io/...
+NEW_RELIC_LICENSE_KEY=your_key
+
+# ==============================================
+# RATE LIMITING
+# ==============================================
+RATE_LIMIT_MAX_REQUESTS=100
+RATE_LIMIT_WINDOW_MS=60000
+
+# ==============================================
+# WEBSOCKET
+# ==============================================
+WEBSOCKET_PORT=3001
+WEBSOCKET_CORS_ORIGIN=https://seu-dominio.com
+
+# ==============================================
+# PERFORMANCE
+# ==============================================
+MAX_CONCURRENT_RENDERS=5
+CACHE_TTL_SECONDS=3600

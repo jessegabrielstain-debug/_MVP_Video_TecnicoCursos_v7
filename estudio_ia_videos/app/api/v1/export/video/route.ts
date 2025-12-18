@@ -1,6 +1,3 @@
-// TODO: Fix VideoScene type properties
-
-
 /**
  * Professional Video Export API - FFmpeg Integration
  * Real video rendering using FFmpeg.wasm
@@ -9,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logger } from '@/lib/logger'
 import { ffmpegService, RenderSettings, getResolutionDimensions } from '../../../../lib/ffmpeg-service'
-import { CanvasToVideoConverter, VideoScene } from '../../../../lib/canvas-to-video'
+import { CanvasToVideoConverter, type VideoScene } from '../../../../lib/canvas-to-video'
 
 interface ExportRequest {
   project: {

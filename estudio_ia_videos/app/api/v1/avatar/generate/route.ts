@@ -1,5 +1,3 @@
-// TODO: Fix logger parameter types
-
 /**
  * 🧑‍💼 Avatar Generation API - Production Ready
  * Sistema de geração de avatares 3D integrado ao editor

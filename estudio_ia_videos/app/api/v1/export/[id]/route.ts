@@ -1,4 +1,3 @@
-// TODO: Fix getVideoJobStatus signature
 /**
  * Export API Endpoints
  * POST /api/v1/export - Criar novo job de exportação

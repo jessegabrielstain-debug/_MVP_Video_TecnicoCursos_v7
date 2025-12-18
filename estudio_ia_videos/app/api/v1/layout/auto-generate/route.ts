@@ -1,5 +1,3 @@
-// TODO: Fix string|number type issue for element dimensions
-
 import { NextRequest, NextResponse } from 'next/server'
 import { logger } from '@/lib/logger'
 
@@ -12,6 +10,16 @@ interface LayoutElement {
   height: number
   content?: string
   style?: Record<string, string | number>
+}
+
+// Helper para garantir que dimensões sejam números
+function ensureNumber(value: string | number | undefined, defaultValue: number): number {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value)
+    return isNaN(parsed) ? defaultValue : parsed
+  }
+  return defaultValue
 }
 
 interface LayoutSettings {

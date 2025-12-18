@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseForRequest, logger } from '@/lib/services'
-import { shouldUseMockRenderJobs, getMockUserId, computeMockStats } from '@/lib/render-jobs/mock-store'
 import { VideoJobStatsQuerySchema } from '~lib/validation/schemas'
 
 // Type for cached stats payload
@@ -33,29 +32,23 @@ function setCache(key: string, payload: CachedStatsPayload) {
 }
 
 export async function GET(req: Request) {
-  const fallbackEnabled = process.env.ALLOW_RENDER_JOBS_FALLBACK !== 'false'
-  let buildMockResponse: (() => NextResponse) | null = null
-  let userId = ''
-  let queryParams: import('zod').infer<typeof VideoJobStatsQuerySchema> | null = null
   try {
     const authHeader = (req.headers.get('authorization') ?? req.headers.get('Authorization') ?? '').trim()
     const authToken = authHeader.toLowerCase().startsWith('bearer ')
       ? authHeader.slice(7).trim()
       : authHeader
     const hasAuth = authToken.length > 0
-    const mockMode = shouldUseMockRenderJobs() || !hasAuth
 
-    let supabase: ReturnType<typeof getSupabaseForRequest> | null = null
-    if (mockMode) {
-      userId = getMockUserId(req)
-    } else {
-      supabase = getSupabaseForRequest(req)
-      const { data: userData, error: userErr } = await supabase.auth.getUser()
-      if (userErr || !userData?.user) {
-        return NextResponse.json({ code: 'UNAUTHORIZED', message: 'Usuário não autenticado' }, { status: 401 })
-      }
-      userId = userData.user.id
+    if (!hasAuth) {
+      return NextResponse.json({ code: 'UNAUTHORIZED', message: 'Autenticação obrigatória' }, { status: 401 })
     }
+
+    const supabase = getSupabaseForRequest(req)
+    const { data: userData, error: userErr } = await supabase.auth.getUser()
+    if (userErr || !userData?.user) {
+      return NextResponse.json({ code: 'UNAUTHORIZED', message: 'Usuário não autenticado' }, { status: 401 })
+    }
+    const userId = userData.user.id
 
     // Parse de query (compatível com ausência de parâmetros)
     const url = new URL(req.url)
@@ -65,19 +58,10 @@ export async function GET(req: Request) {
     if (!parsed.success) {
       return NextResponse.json({ code: 'VALIDATION_ERROR', message: 'Parâmetros inválidos', details: parsed.error.issues }, { status: 400 })
     }
-    queryParams = parsed.data
+    const queryParams = parsed.data
     const { period, status, projectId, limit, includeErrors, includePerformance } = queryParams
 
     const cacheKey = `stats:${userId}:${period}:${status || 'all'}:${projectId || 'all'}:${limit}:${includeErrors ? 1 : 0}:${includePerformance ? 1 : 0}`
-    const createMockResponse = (cacheTag: 'MISS' | 'HIT' = 'MISS') => {
-      const payload = computeMockStats(userId)
-      setCache(cacheKey, payload)
-      return new NextResponse(JSON.stringify({ ...payload, metadata: { cache: cacheTag, ttl_ms: CACHE_TTL_MS, source: 'mock' } }), {
-        status: 200,
-        headers: { 'content-type': 'application/json', 'X-Cache': cacheTag }
-      })
-    }
-    buildMockResponse = () => createMockResponse('MISS')
 
     const cached = getCache(cacheKey)
     if (cached) {
@@ -88,18 +72,6 @@ export async function GET(req: Request) {
         status: 200,
         headers: { 'content-type': 'application/json', 'X-Cache': 'HIT' }
       })
-    }
-
-    if (mockMode) {
-      return createMockResponse('MISS')
-    }
-
-    if (!supabase) {
-      throw new Error('Supabase client não inicializado')
-    }
-
-    if (!queryParams) {
-      throw new Error('Parâmetros de stats não inicializados')
     }
 
     // Janela baseada em "period" (fallback 60 minutos)
@@ -149,10 +121,7 @@ export async function GET(req: Request) {
     const { data: statusRows, error: statusErr } = await statusQuery
 
     if (statusErr) {
-      logger.warn('video-jobs-stats', 'fallback: status query error', { message: statusErr.message })
-      if (fallbackEnabled && buildMockResponse) {
-        return buildMockResponse()
-      }
+      logger.error('video-jobs-stats', 'status-query-error', { error: statusErr })
       return NextResponse.json({ code: 'DB_ERROR', message: 'Falha ao obter contagem por status', details: statusErr.message }, { status: 500 })
     }
 
@@ -203,10 +172,7 @@ export async function GET(req: Request) {
     const { data: durationRows, error: durationErr } = await durationQuery
 
     if (durationErr) {
-      logger.warn('video-jobs-stats', 'fallback: duration query error', { message: durationErr.message })
-      if (fallbackEnabled && buildMockResponse) {
-        return buildMockResponse()
-      }
+      logger.error('video-jobs-stats', 'duration-query-error', { error: durationErr })
       return NextResponse.json({ code: 'DB_ERROR', message: 'Falha ao obter métricas de duração', details: durationErr.message }, { status: 500 })
     }
 
@@ -260,9 +226,6 @@ export async function GET(req: Request) {
     })
   } catch (err) {
     logger.error('video-jobs-stats', 'unexpected-error', err as Error)
-    if (fallbackEnabled && buildMockResponse) {
-      return buildMockResponse()
-    }
     return NextResponse.json({ code: 'UNEXPECTED', message: 'Erro inesperado', details: (err as Error).message }, { status: 500 })
   }
 }

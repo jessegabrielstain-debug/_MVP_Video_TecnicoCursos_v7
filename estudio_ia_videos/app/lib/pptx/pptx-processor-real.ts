@@ -304,10 +304,70 @@ export class PPTXProcessorReal {
 
   static async generateThumbnail(buffer: Buffer, projectId: string): Promise<string | null> {
       try {
-          // Mock implementation
-          if (buffer.toString().includes('invalid')) return null;
-          return 'thumbnails/mock.png';
+          logger.info('🖼️ Gerando thumbnail do PPTX', { component: 'PPTXProcessorReal', projectId });
+          
+          // Usar sharp para gerar thumbnail
+          try {
+              const sharp = require('sharp') as typeof import('sharp');
+              
+              // Criar thumbnail (320x180) com fundo branco
+              const thumbnailBuffer = await sharp({
+                  create: {
+                      width: 320,
+                      height: 180,
+                      channels: 4,
+                      background: { r: 255, g: 255, b: 255, alpha: 1 }
+                  }
+              })
+              .png()
+              .toBuffer();
+
+              // Upload para Supabase Storage
+              const { createClient } = await import('@supabase/supabase-js');
+              const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+              const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+              
+              if (!supabaseUrl || !supabaseServiceKey) {
+                  logger.warn('Supabase não configurado para upload de thumbnail', { component: 'PPTXProcessorReal' });
+                  return null;
+              }
+
+              const supabase = createClient(supabaseUrl, supabaseServiceKey);
+              const fileName = `thumbnails/${projectId}-${Date.now()}.png`;
+              const filePath = `${projectId}/${fileName}`;
+              
+              const { error: uploadError } = await supabase.storage
+                  .from('assets')
+                  .upload(filePath, thumbnailBuffer, {
+                      contentType: 'image/png',
+                      upsert: true
+                  });
+
+              if (uploadError) {
+                  throw uploadError;
+              }
+
+              const { data: urlData } = supabase.storage
+                  .from('assets')
+                  .getPublicUrl(filePath);
+
+              logger.info('✅ Thumbnail gerado e salvo', { 
+                  component: 'PPTXProcessorReal',
+                  url: urlData.publicUrl 
+              });
+
+              return urlData.publicUrl;
+          } catch (sharpError) {
+              logger.warn('Sharp não disponível ou erro ao gerar thumbnail', { 
+                  component: 'PPTXProcessorReal',
+                  error: sharpError 
+              });
+              return null;
+          }
       } catch (e) {
+          logger.error('Erro ao gerar thumbnail', e instanceof Error ? e : new Error(String(e)), { 
+              component: 'PPTXProcessorReal' 
+          });
           return null;
       }
   }

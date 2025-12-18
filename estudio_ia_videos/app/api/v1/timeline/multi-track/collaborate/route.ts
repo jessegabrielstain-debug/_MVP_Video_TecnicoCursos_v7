@@ -1,4 +1,3 @@
-// TODO: Fix timeline multi-track types
 /**
  * 🤝 Timeline Collaboration API - Real-time Collaboration
  * Sprint 44 - Multi-user timeline editing
@@ -16,7 +15,8 @@ import { logger } from '@/lib/logger';
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const userId = (session?.user as { id?: string })?.id;
+    if (!userId) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
-        userId: session.user.id,
+        userId: userId,
       },
     });
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         where: {
           projectId,
           trackId,
-          userId: { not: session.user.id },
+          userId: { not: userId },
         },
       });
 
@@ -85,13 +85,13 @@ export async function POST(request: NextRequest) {
           projectId_trackId_userId: {
             projectId,
             trackId,
-            userId: session.user.id,
+            userId: userId,
           },
         },
         create: {
           projectId,
           trackId,
-          userId: session.user.id,
+          userId: userId,
         },
         update: {
           updatedAt: new Date(),
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         where: {
           projectId,
           trackId,
-          userId: session.user.id,
+          userId: userId,
         },
       });
 
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         success: true,
         data: {
           trackId,
-          userId: session.user.id,
+          userId: userId,
           unlockedAt: new Date().toISOString(),
         },
         message: 'Track desbloqueada com sucesso',
@@ -150,7 +150,8 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const userId = (session?.user as { id?: string })?.id;
+    if (!userId) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -241,7 +242,8 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const userId = (session?.user as { id?: string })?.id;
+    if (!userId) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -263,12 +265,12 @@ export async function PUT(request: NextRequest) {
       where: {
         projectId_userId: {
           projectId,
-          userId: session.user.id,
+          userId: userId,
         },
       },
       create: {
         projectId,
-        userId: session.user.id,
+        userId: userId,
         currentTrackId: currentTrackId || null,
         lastSeenAt: new Date(),
       },

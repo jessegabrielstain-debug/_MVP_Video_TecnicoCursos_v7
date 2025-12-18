@@ -1,11 +1,9 @@
-// TODO: Fix GeneratorSlide type and buffer property
-
 /**
  * 🎨 API de Geração PPTX Real - Sistema Completo
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { generateRealPptxFromProject, RealPptxGenerator, PptxGenerationOptions, GeneratorSlide } from '@/lib/pptx-real-generator'
+import { generateRealPptxFromProject, RealPptxGenerator, PptxGenerationOptions } from '@/lib/pptx-real-generator'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 

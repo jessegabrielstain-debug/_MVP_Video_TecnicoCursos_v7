@@ -1,4 +1,3 @@
-// TODO: Fix timeline multi-track types
 /**
  * 📋 Timeline Templates API - Reusable Templates
  * Sprint 44 - Save and load timeline templates
@@ -17,7 +16,8 @@ import { toJsonValue, getJsonProperty } from '@/lib/prisma-helpers';
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const userId = (session?.user as { id?: string })?.id;
+    if (!userId) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         description: description || '',
         category: category || 'custom',
         isPublic: isPublic || false,
-        createdBy: session.user.id,
+        createdBy: userId,
         tracks: toJsonValue(timeline.tracks ?? []),
         settings: toJsonValue(timeline.settings ?? {}),
         totalDuration: timeline.totalDuration,
@@ -100,7 +100,8 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const userId = (session?.user as { id?: string })?.id;
+    if (!userId) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -137,7 +138,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Check access (public or owned by user)
-      if (!template.isPublic && template.createdBy !== session.user.id) {
+      if (!template.isPublic && template.createdBy !== userId) {
         return NextResponse.json(
           { success: false, message: 'Acesso negado' },
           { status: 403 }
@@ -173,7 +174,7 @@ export async function GET(request: NextRequest) {
     const where: import('@prisma/client').Prisma.TimelineTemplateWhereInput = {
       OR: [
         { isPublic: true },
-        { createdBy: session.user.id },
+        { createdBy: userId },
       ],
     };
 
@@ -258,7 +259,8 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const userId = (session?.user as { id?: string })?.id;
+    if (!userId) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -290,7 +292,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check access
-    if (!template.isPublic && template.createdBy !== session.user.id) {
+    if (!template.isPublic && template.createdBy !== userId) {
       return NextResponse.json(
         { success: false, message: 'Acesso negado' },
         { status: 403 }
@@ -301,7 +303,7 @@ export async function PUT(request: NextRequest) {
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
-        userId: session.user.id,
+        userId: userId,
       },
     });
 
@@ -371,7 +373,8 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const userId = (session?.user as { id?: string })?.id;
+    if (!userId) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -400,7 +403,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    if (template.createdBy !== session.user.id) {
+    if (template.createdBy !== userId) {
       return NextResponse.json(
         { success: false, message: 'Acesso negado - apenas o criador pode deletar' },
         { status: 403 }

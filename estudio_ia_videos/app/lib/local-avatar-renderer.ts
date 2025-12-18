@@ -24,16 +24,19 @@ export class LocalAvatarRenderer {
     ctx.clearRect(0, 0, width, height);
 
     try {
-      // Try to load asset if it exists
+      // Tentar carregar asset se existir
       if (config.assetPath && fs.existsSync(config.assetPath)) {
         const image = await loadImage(config.assetPath);
         ctx.drawImage(image, 0, 0, width, height);
+        logger.debug(`[Avatar] Asset carregado com sucesso`, { assetPath: config.assetPath, frame, component: 'LocalAvatarRenderer' });
       } else {
-        // Fallback: Draw a placeholder avatar
+        // Fallback: Desenhar avatar placeholder (melhorado)
+        logger.warn(`[Avatar] Asset não encontrado, usando placeholder`, { assetPath: config.assetPath, frame, component: 'LocalAvatarRenderer' });
         this.drawPlaceholderAvatar(ctx, width, height, frame);
       }
     } catch (error) {
-      logger.error(`[Avatar] Error rendering frame ${frame}`, error as Error, { frame, component: 'LocalAvatarRenderer' });
+      logger.error(`[Avatar] Erro ao renderizar frame ${frame}`, error instanceof Error ? error : new Error(String(error)), { frame, component: 'LocalAvatarRenderer' });
+      // Fallback robusto: sempre desenhar placeholder em caso de erro
       this.drawPlaceholderAvatar(ctx, width, height, frame);
     }
 
@@ -41,33 +44,53 @@ export class LocalAvatarRenderer {
   }
   
   private drawPlaceholderAvatar(ctx: CanvasRenderingContext2D, width: number, height: number, frame: number) {
-    // Draw a simple animated circle to represent the avatar
+    // Desenhar avatar placeholder melhorado com animação suave
     const centerX = width / 2;
     const centerY = height / 2;
     const radius = Math.min(width, height) / 3;
 
-    // Background
-    ctx.fillStyle = '#f0f0f0';
+    // Background gradiente
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, '#f0f0f0');
+    gradient.addColorStop(1, '#e0e0e0');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    // "Head"
+    // Cabeça (círculo com sombra)
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     ctx.fillStyle = '#3b82f6'; // Blue-500
     ctx.fill();
+    
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 
-    // "Mouth" (animated)
-    const mouthOpen = Math.sin(frame * 0.5) * 10 + 10; // Simple animation
+    // Boca animada (sincronizada com frame para simular fala)
+    const mouthOpen = Math.abs(Math.sin(frame * 0.3)) * 15 + 5; // Animação mais suave
     ctx.beginPath();
     ctx.ellipse(centerX, centerY + radius * 0.3, radius * 0.4, mouthOpen, 0, 0, Math.PI * 2);
     ctx.fillStyle = '#1d4ed8'; // Blue-700
     ctx.fill();
     
-    // "Eyes"
+    // Olhos (com animação de piscar ocasional)
+    const blink = Math.sin(frame * 0.1) > 0.95 ? 0.05 : radius * 0.1;
     ctx.fillStyle = 'white';
     ctx.beginPath();
-    ctx.arc(centerX - radius * 0.3, centerY - radius * 0.2, radius * 0.1, 0, Math.PI * 2);
-    ctx.arc(centerX + radius * 0.3, centerY - radius * 0.2, radius * 0.1, 0, Math.PI * 2);
+    ctx.arc(centerX - radius * 0.3, centerY - radius * 0.2, blink, 0, Math.PI * 2);
+    ctx.arc(centerX + radius * 0.3, centerY - radius * 0.2, blink, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Pupilas
+    ctx.fillStyle = '#1e40af';
+    ctx.beginPath();
+    ctx.arc(centerX - radius * 0.3, centerY - radius * 0.2, blink * 0.5, 0, Math.PI * 2);
+    ctx.arc(centerX + radius * 0.3, centerY - radius * 0.2, blink * 0.5, 0, Math.PI * 2);
     ctx.fill();
   }
   

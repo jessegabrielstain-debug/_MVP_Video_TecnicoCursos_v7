@@ -1,5 +1,3 @@
-// TODO: Fix Prisma slide data type for metadata
-
 /**
  * 🎙️ API de Auto-Narração
  * POST: Gera narração automática para um projeto PPTX
@@ -11,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { AutoNarrationService } from '@/lib/pptx/auto-narration-service'
 import { logger } from '@/lib/logger'
 import { toJsonValue } from '@/lib/prisma-helpers'
+import type { Prisma } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   logger.info('🎙️ [Auto-Narrate] Iniciando geração de narração...', { component: 'API: v1/pptx/auto-narrate' })
@@ -60,7 +59,7 @@ export async function POST(request: NextRequest) {
       })
     } else if (project.slidesData) {
       // Usar slidesData JSON
-      const slidesDataUnknown = project.slidesData as unknown
+      const slidesDataUnknown = project.slidesData as Prisma.JsonValue
       if (Array.isArray(slidesDataUnknown)) {
         const slidesData = slidesDataUnknown as Array<Record<string, unknown>>
         slides = slidesData.map((slide, index: number) => ({
@@ -125,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     // 5. Atualizar slidesData com as narrações
     if (project.slidesData) {
-      const slidesDataUnknown = project.slidesData as unknown
+      const slidesDataUnknown = project.slidesData as Prisma.JsonValue
       
       if (Array.isArray(slidesDataUnknown)) {
         const slidesData = slidesDataUnknown as Array<Record<string, unknown>>

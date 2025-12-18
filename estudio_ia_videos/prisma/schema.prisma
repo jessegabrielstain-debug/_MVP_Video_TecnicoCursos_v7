@@ -31,6 +31,11 @@ model User {
   renderJobs      RenderJob[]
   certificates    Certificate[]
   projectVersions ProjectVersion[]
+  projectCollaborators ProjectCollaborator[]
+  commentReactions CommentReaction[]
+  assets Asset[]
+  assetCollections AssetCollection[]
+  assetFavorites AssetFavorite[]
 
   @@map("users")
 }
@@ -119,7 +124,10 @@ model Project {
   comments        ProjectComment[]
   timelineTrackLocks TimelineTrackLock[]
   timelinePresences TimelinePresence[]
+  timelineTracks    TimelineTrack[]
+  timelineElements  TimelineElement[]
   certificates    Certificate[]
+  collaborators    ProjectCollaborator[]
 
   @@index([userId])
   @@map("projects")
@@ -140,6 +148,7 @@ model ProjectComment {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent    ProjectComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   ProjectComment[] @relation("CommentReplies")
+  reactions CommentReaction[]
 
   @@index([projectId])
   @@index([userId])
@@ -404,6 +413,58 @@ model TimelineTemplate {
   @@map("timeline_templates")
 }
 
+model TimelineTrack {
+  id        String   @id @default(uuid())
+  projectId String   @map("project_id")
+  name      String
+  type      String   // 'video', 'audio', 'text', 'image', 'pptx', '3d'
+  orderIndex Int     @default(0) @map("order_index")
+  color     String?  @default("#6b7280")
+  height    Int?     @default(80)
+  visible   Boolean  @default(true)
+  locked    Boolean  @default(false)
+  muted     Boolean  @default(false)
+  properties Json?   @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  elements  TimelineElement[]
+
+  @@index([projectId])
+  @@index([type])
+  @@index([orderIndex])
+  @@map("timeline_tracks")
+}
+
+model TimelineElement {
+  id          String   @id @default(uuid())
+  trackId     String   @map("track_id")
+  projectId   String   @map("project_id")
+  startTime   Decimal  @default(0) @map("start_time") @db.Decimal(10, 3)
+  duration    Decimal  @default(1) @db.Decimal(10, 3)
+  type        String   // 'video', 'audio', 'text', 'image', 'pptx_slide', '3d_avatar'
+  content     String   @db.Text
+  sourceUrl   String?  @map("source_url")
+  properties  Json?    @default("{}")
+  effects     Json?    @default("[]")
+  transitions Json?    @default("{}")
+  thumbnailUrl String? @map("thumbnail_url")
+  fileSize    BigInt?  @default(0) @map("file_size")
+  mimeType    String?  @map("mime_type")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  track   TimelineTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([trackId])
+  @@index([projectId])
+  @@index([type])
+  @@index([startTime])
+  @@map("timeline_elements")
+}
+
 model Webhook {
   id                   String    @id @default(uuid())
   userId               String    @map("user_id")
@@ -596,4 +657,107 @@ model Certificate {
   @@index([userId])
   @@index([code])
   @@map("certificates")
+}
+
+model ProjectCollaborator {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  userId      String   @map("user_id")
+  role        String   @default("viewer") // 'owner', 'editor', 'viewer'
+  permissions Json?    @default("{\"can_edit\": false, \"can_comment\": true, \"can_share\": false, \"can_export\": false}")
+  invitedBy   String?  @map("invited_by")
+  invitedAt   DateTime @default(now()) @map("invited_at")
+  acceptedAt  DateTime? @map("accepted_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_collaborators")
+}
+
+model CommentReaction {
+  id        String   @id @default(uuid())
+  commentId String   @map("comment_id")
+  userId    String   @map("user_id")
+  emoji     String   // Emoji ou tipo de reação (👍, ❤️, 😄, etc.)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  comment ProjectComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, emoji])
+  @@index([commentId])
+  @@index([userId])
+  @@map("comment_reactions")
+}
+
+model Asset {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  type        String   // 'image', 'video', 'audio', 'font', 'template'
+  url         String
+  thumbnailUrl String?  @map("thumbnail_url")
+  license     String   @default("free") // 'free', 'creative-commons', 'royalty-free', 'paid'
+  provider    String   @default("local") // 'unsplash', 'freesound', 'local', 'custom', 'system'
+  tags        String[]
+  category    String?
+  width       Int?
+  height      Int?
+  duration    Int?     // em segundos
+  size        BigInt?  // em bytes
+  downloads   Int      @default(0)
+  favorites   Int      @default(0)
+  metadata    Json?    @default("{}")
+  userId      String?  @map("user_id")
+  isPublic    Boolean  @default(false) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  favoritesList AssetFavorite[]
+
+  @@index([type])
+  @@index([provider])
+  @@index([userId])
+  @@index([category])
+  @@map("assets")
+}
+
+model AssetCollection {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  coverImage  String?  @map("cover_image")
+  assetsCount Int      @default(0) @map("assets_count")
+  isSystem    Boolean  @default(false) @map("is_system")
+  userId      String?  @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([isSystem])
+  @@map("asset_collections")
+}
+
+model AssetFavorite {
+  id        String   @id @default(uuid())
+  assetId   String   @map("asset_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, userId])
+  @@index([userId])
+  @@index([assetId])
+  @@map("asset_favorites")
 }

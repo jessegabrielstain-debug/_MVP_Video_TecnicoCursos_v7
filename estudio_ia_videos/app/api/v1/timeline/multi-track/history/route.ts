@@ -1,4 +1,3 @@
-// TODO: Fix timeline multi-track types
 export const dynamic = 'force-dynamic';
 
 /**
@@ -18,7 +17,8 @@ import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const userId = (session?.user as { id?: string })?.id;
+    if (!userId) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
-        userId: session.user.id,
+        userId: userId,
       },
     });
 
@@ -86,12 +86,11 @@ export async function GET(request: NextRequest) {
       count: snapshots.length
     });
 
-    interface SnapshotRecord { id: string; version: number; createdAt: Date; createdBy: string | null; description?: string | null; tracks: unknown[] | unknown; totalDuration: number | null }
     return NextResponse.json({
       success: true,
       data: {
         currentVersion: currentTimeline.version,
-        history: snapshots.map((snapshot: SnapshotRecord) => ({
+        history: snapshots.map((snapshot) => ({
           id: snapshot.id,
           version: snapshot.version,
           createdAt: snapshot.createdAt.toISOString(),

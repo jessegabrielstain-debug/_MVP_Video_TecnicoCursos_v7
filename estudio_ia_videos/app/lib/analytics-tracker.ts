@@ -1,4 +1,6 @@
 import { Analytics } from './analytics';
+import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export interface FunnelAnalysisParams {
   organizationId?: string;
@@ -51,38 +53,202 @@ export class AnalyticsTracker {
   }
 
   static async getFunnelAnalysis(params: FunnelAnalysisParams): Promise<FunnelData> {
-    // Placeholder - retorna dados simulados
-    return {
-      funnel: [
-        { stage: 'upload', count: 100, dropoff: 0 },
-        { stage: 'edit', count: 85, dropoff: 15 },
-        { stage: 'tts', count: 70, dropoff: 15 },
-        { stage: 'render', count: 60, dropoff: 10 },
-        { stage: 'download', count: 55, dropoff: 5 },
-      ]
-    };
+    try {
+      const where: any = {
+        createdAt: {
+          gte: params.startDate,
+          lte: params.endDate
+        }
+      };
+
+      if (params.organizationId) {
+        // Assumindo que organizationId está no metadata
+        where.metadata = {
+          path: ['organizationId'],
+          equals: params.organizationId
+        };
+      }
+
+      // Buscar eventos por estágio do funil
+      const stages = ['upload', 'edit', 'tts', 'render', 'download'];
+      const funnel = [];
+      let previousCount = 0;
+
+      for (const stage of stages) {
+        const count = await prisma.analyticsEvent.count({
+          where: {
+            ...where,
+            eventType: `funnel.${stage}`
+          }
+        });
+
+        const dropoff = previousCount > 0 ? previousCount - count : 0;
+        funnel.push({ stage, count, dropoff });
+        previousCount = count;
+      }
+
+      return { funnel };
+    } catch (error) {
+      logger.error('Erro ao calcular funil', error instanceof Error ? error : new Error(String(error)), {
+        component: 'AnalyticsTracker'
+      });
+      // Fallback para dados vazios em caso de erro
+      const stages = ['upload', 'edit', 'tts', 'render', 'download'];
+      return {
+        funnel: stages.map(stage => ({ stage, count: 0, dropoff: 0 }))
+      };
+    }
   }
 
   static async getProviderPerformance(params: ProviderPerformanceParams): Promise<ProviderPerformance[]> {
-    // Placeholder - retorna dados simulados
-    if (params.category === 'tts') {
-      return [
-        { provider: 'elevenlabs', totalRequests: 100, successRate: 98, errorRate: 2, avgLatency: 1200 },
-        { provider: 'azure', totalRequests: 50, successRate: 99, errorRate: 1, avgLatency: 800 },
-        { provider: 'google', totalRequests: 30, successRate: 97, errorRate: 3, avgLatency: 600 },
-      ];
+    try {
+      const where: any = {
+        createdAt: {
+          gte: params.startDate,
+          lte: params.endDate
+        },
+        eventType: {
+          startsWith: `${params.category}.`
+        }
+      };
+
+      if (params.organizationId) {
+        where.metadata = {
+          path: ['organizationId'],
+          equals: params.organizationId
+        };
+      }
+
+      // Buscar eventos de performance por provider
+      const events = await prisma.analyticsEvent.findMany({
+        where,
+        select: {
+          eventType: true,
+          eventData: true
+        }
+      });
+
+      // Agrupar por provider
+      const providerMap = new Map<string, { requests: number; successes: number; errors: number; latencies: number[] }>();
+
+      events.forEach(event => {
+        const provider = (event.eventData as any)?.provider || 'unknown';
+        const status = (event.eventData as any)?.status || 'unknown';
+        const latency = (event.eventData as any)?.latency || 0;
+
+        if (!providerMap.has(provider)) {
+          providerMap.set(provider, { requests: 0, successes: 0, errors: 0, latencies: [] });
+        }
+
+        const stats = providerMap.get(provider)!;
+        stats.requests++;
+        if (status === 'success' || status === 'completed') {
+          stats.successes++;
+        } else if (status === 'error' || status === 'failed') {
+          stats.errors++;
+        }
+        if (latency > 0) {
+          stats.latencies.push(latency);
+        }
+      });
+
+      // Converter para formato ProviderPerformance
+      const results: ProviderPerformance[] = Array.from(providerMap.entries()).map(([provider, stats]) => {
+        const successRate = stats.requests > 0 ? (stats.successes / stats.requests) * 100 : 0;
+        const errorRate = stats.requests > 0 ? (stats.errors / stats.requests) * 100 : 0;
+        const avgLatency = stats.latencies.length > 0
+          ? stats.latencies.reduce((a, b) => a + b, 0) / stats.latencies.length
+          : 0;
+
+        return {
+          provider,
+          totalRequests: stats.requests,
+          successRate: Math.round(successRate * 100) / 100,
+          errorRate: Math.round(errorRate * 100) / 100,
+          avgLatency: Math.round(avgLatency)
+        };
+      });
+
+      return results.sort((a, b) => b.totalRequests - a.totalRequests);
+    } catch (error) {
+      logger.error('Erro ao calcular performance de providers', error instanceof Error ? error : new Error(String(error)), {
+        component: 'AnalyticsTracker',
+        category: params.category
+      });
+      return [];
     }
-    return [
-      { provider: 'local', totalRequests: 200, successRate: 95, errorRate: 5, avgLatency: 30000 },
-    ];
   }
 
   static async getSummary(params: SummaryParams): Promise<SummaryData> {
-    // Placeholder - retorna dados simulados
-    return {
-      totalEvents: 500,
-      avgDuration: 45000, // ms
-      successRate: 92,
-    };
+    try {
+      const where: any = {
+        createdAt: {
+          gte: params.startDate,
+          lte: params.endDate
+        }
+      };
+
+      if (params.organizationId) {
+        where.metadata = {
+          path: ['organizationId'],
+          equals: params.organizationId
+        };
+      }
+
+      // Contar total de eventos
+      const totalEvents = await prisma.analyticsEvent.count({ where });
+
+      // Buscar eventos com duração
+      const eventsWithDuration = await prisma.analyticsEvent.findMany({
+        where: {
+          ...where,
+          eventData: {
+            path: ['duration'],
+            not: null
+          }
+        },
+        select: {
+          eventData: true
+        }
+      });
+
+      // Calcular duração média
+      const durations = eventsWithDuration
+        .map(e => (e.eventData as any)?.duration)
+        .filter((d): d is number => typeof d === 'number' && d > 0);
+
+      const avgDuration = durations.length > 0
+        ? durations.reduce((a, b) => a + b, 0) / durations.length
+        : 0;
+
+      // Calcular taxa de sucesso (eventos de sucesso vs total)
+      const successEvents = await prisma.analyticsEvent.count({
+        where: {
+          ...where,
+          OR: [
+            { eventType: { contains: '.success' } },
+            { eventType: { contains: '.completed' } },
+            { eventData: { path: ['status'], equals: 'success' } }
+          ]
+        }
+      });
+
+      const successRate = totalEvents > 0 ? (successEvents / totalEvents) * 100 : 0;
+
+      return {
+        totalEvents,
+        avgDuration: Math.round(avgDuration),
+        successRate: Math.round(successRate * 100) / 100
+      };
+    } catch (error) {
+      logger.error('Erro ao calcular resumo', error instanceof Error ? error : new Error(String(error)), {
+        component: 'AnalyticsTracker'
+      });
+      return {
+        totalEvents: 0,
+        avgDuration: 0,
+        successRate: 0
+      };
+    }
   }
 }

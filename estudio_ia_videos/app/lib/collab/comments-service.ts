@@ -216,9 +216,47 @@ export class CommentsService {
   }
   
   async addReaction(input: { commentId: string; userId: string; emoji: string }): Promise<boolean> {
-    // Reactions not in schema yet. 
-    // TODO: Add reactions table or field.
-    return true; 
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      
+      // Verificar se a reação já existe
+      const existingReaction = await prisma.commentReaction.findUnique({
+        where: {
+          commentId_userId_emoji: {
+            commentId: input.commentId,
+            userId: input.userId,
+            emoji: input.emoji
+          }
+        }
+      });
+
+      if (existingReaction) {
+        // Remover reação se já existe (toggle)
+        await prisma.commentReaction.delete({
+          where: {
+            id: existingReaction.id
+          }
+        });
+        return false; // Reação removida
+      } else {
+        // Adicionar nova reação
+        await prisma.commentReaction.create({
+          data: {
+            commentId: input.commentId,
+            userId: input.userId,
+            emoji: input.emoji
+          }
+        });
+        return true; // Reação adicionada
+      }
+    } catch (error) {
+      logger.error('Erro ao adicionar reação', error instanceof Error ? error : new Error(String(error)), {
+        component: 'CommentsService',
+        commentId: input.commentId,
+        userId: input.userId
+      });
+      throw error;
+    }
   }
 
   async replyToComment(input: { commentId: string; userId: string; content: string }): Promise<Comment | null> {

@@ -1,4 +1,3 @@
-// TODO: Fix v2 API types
 /**
  * 🎭 API v2: Avatar Gallery
  * Galeria melhorada de avatares 3D hiper-realistas
@@ -10,7 +9,7 @@ import { createRateLimiter, rateLimitPresets } from '../../../../lib/utils/rate-
 import { avatar3DPipeline } from '../../../../lib/avatar-3d-pipeline'
 import { supabase as supabaseClient } from '../../../../lib/services'
 import { logger } from '@/lib/logger';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
 
 // Interface para avatar model da tabela
 interface AvatarModel {
@@ -65,49 +64,59 @@ export async function GET(request: NextRequest) {
     logger.info(`✨ Qualidade: ${quality || 'todas'}`, { component: 'API: v2/avatars/gallery' })
     logger.info(`🌍 Idioma: ${language || 'todos'}`, { component: 'API: v2/avatars/gallery' })
 
-    // Buscar avatares do Supabase (avatar_models pode não existir no schema tipado)
-    type SupabaseQueryBuilder = ReturnType<typeof supabaseClient.from>
-    let query: SupabaseQueryBuilder = (supabaseClient
-      .from('avatar_models' as never) as SupabaseQueryBuilder)
-      .select(`
-        *,
-        avatar_stats:avatar_stats(*)
-      `)
-      .eq('is_active', true)
+    // Buscar avatares do Prisma
+    const where: {
+      isActive: boolean;
+      category?: string;
+      quality?: string;
+      supportedLanguages?: { has: string };
+      OR?: Array<{ name?: { contains: string }; displayName?: { contains: string }; description?: { contains: string } }>;
+    } = {
+      isActive: true
+    }
 
     // Aplicar filtros
     if (category && category !== 'all') {
-      query = query.eq('type', category)
+      where.category = category
     }
 
     if (quality && quality !== 'all') {
-      query = query.eq('quality', quality)
+      where.quality = quality
     }
 
     if (language && language !== 'all') {
-      query = query.contains('supported_languages', [language])
+      where.supportedLanguages = { has: language }
     }
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,display_name.ilike.%${search}%,description.ilike.%${search}%`)
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { displayName: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ]
     }
 
     // Paginação
     const offset = (page - 1) * limit
-    query = query.range(offset, offset + limit - 1)
 
-    // Ordenar por qualidade e popularidade
-    query = query.order('quality', { ascending: false })
-      .order('usage_count', { ascending: false })
+    // Buscar avatares com estatísticas
+    const [avatars, totalCount] = await Promise.all([
+      prisma.avatarModel.findMany({
+        where,
+        include: {
+          avatarStats: true
+        },
+        skip: offset,
+        take: limit,
+        orderBy: [
+          { quality: 'desc' },
+          { usageCount: 'desc' }
+        ]
+      }),
+      prisma.avatarModel.count({ where })
+    ])
 
-    const { data: avatars, error, count } = await query
-
-    if (error) {
-      throw new Error(`Erro ao buscar avatares: ${error.message}`)
-    }
-
-    // Cast para tipo correto
-    const typedAvatars = (avatars || []) as AvatarModel[];
+    const typedAvatars = avatars;
 
     // Obter estatísticas do pipeline
     const stats = await avatar3DPipeline.getPipelineStats()
@@ -134,41 +143,41 @@ export async function GET(request: NextRequest) {
         avatars: typedAvatars.map(avatar => ({
           id: avatar.id,
           name: avatar.name,
-          displayName: avatar.display_name,
+          displayName: avatar.displayName,
           description: avatar.description,
-          category: avatar.type,
+          category: avatar.category,
           gender: avatar.gender,
           quality: avatar.quality,
           features: {
-            audio2FaceCompatible: avatar.audio2face_compatible,
-            realTimeLipSync: avatar.real_time_lipsync,
-            rayTracing: avatar.ray_tracing_support,
-            lipSyncAccuracy: avatar.lipsync_accuracy || 95
+            audio2FaceCompatible: avatar.audio2FaceCompatible,
+            realTimeLipSync: avatar.realTimeLipSync,
+            rayTracing: avatar.rayTracingSupport,
+            lipSyncAccuracy: avatar.lipSyncAccuracy || 95
           },
           preview: {
-            thumbnail: avatar.thumbnail_url || `/api/v2/avatars/${avatar.id}/thumbnail.jpg`,
-            model3D: avatar.model_url || `/api/v2/avatars/${avatar.id}/preview.gltf`,
-            animation: avatar.preview_video_url || `/api/v2/avatars/${avatar.id}/idle.mp4`
+            thumbnail: avatar.thumbnailUrl || `/api/v2/avatars/${avatar.id}/thumbnail.jpg`,
+            model3D: avatar.modelUrl || `/api/v2/avatars/${avatar.id}/preview.gltf`,
+            animation: avatar.previewVideoUrl || `/api/v2/avatars/${avatar.id}/idle.mp4`
           },
           assets: {
-            modelFile: avatar.model_file_path,
-            textureFiles: avatar.texture_files,
-            rigFile: avatar.rig_file_path,
-            animationSets: avatar.animation_sets,
-            blendShapes: avatar.blend_shapes_file
+            modelFile: avatar.modelFilePath,
+            textureFiles: avatar.textureFiles,
+            rigFile: avatar.rigFilePath,
+            animationSets: avatar.animationSets,
+            blendShapes: avatar.blendShapesFile
           },
-          supportedLanguages: avatar.supported_languages || ['pt-BR'],
-          usageCount: avatar.usage_count || 0,
+          supportedLanguages: avatar.supportedLanguages || ['pt-BR'],
+          usageCount: avatar.usageCount || 0,
           rating: avatar.rating || 5.0,
-          createdAt: avatar.created_at,
-          updatedAt: avatar.updated_at
+          createdAt: avatar.createdAt,
+          updatedAt: avatar.updatedAt
         })),
         pagination: {
           page,
           limit,
-          total: count || 0,
-          totalPages: Math.ceil((count || 0) / limit),
-          hasNext: offset + limit < (count || 0),
+          total: totalCount || 0,
+          totalPages: Math.ceil((totalCount || 0) / limit),
+          hasNext: offset + limit < (totalCount || 0),
           hasPrev: page > 1
         },
         filters: {
@@ -184,8 +193,8 @@ export async function GET(request: NextRequest) {
         },
         stats: {
           ...stats,
-          totalDisplayed: avatars?.length || 0,
-          totalAvailable: count || 0
+          totalDisplayed: typedAvatars?.length || 0,
+          totalAvailable: totalCount || 0
         },
         metadata: {
           version: '2.0.0',
@@ -271,25 +280,25 @@ export async function POST(request: NextRequest) {
             avatar: {
               id: avatar.id,
               name: avatar.name,
-              displayName: avatar.display_name,
+              displayName: avatar.displayName,
               description: avatar.description,
               preview: {
-                thumbnail: avatar.thumbnail_url || `/api/v2/avatars/${avatar.id}/thumbnail.jpg`,
-                model3D: avatar.model_url || `/api/v2/avatars/${avatar.id}/preview.gltf`,
-                animation: avatar.preview_video_url || `/api/v2/avatars/${avatar.id}/idle.mp4`
+                thumbnail: avatar.thumbnailUrl || `/api/v2/avatars/${avatar.id}/thumbnail.jpg`,
+                model3D: avatar.modelUrl || `/api/v2/avatars/${avatar.id}/preview.gltf`,
+                animation: avatar.previewVideoUrl || `/api/v2/avatars/${avatar.id}/idle.mp4`
               },
               features: {
-                audio2FaceCompatible: avatar.audio2face_compatible,
-                realTimeLipSync: avatar.real_time_lipsync,
-                rayTracing: avatar.ray_tracing_support,
-                lipSyncAccuracy: avatar.lipsync_accuracy || 95
+                audio2FaceCompatible: avatar.audio2FaceCompatible,
+                realTimeLipSync: avatar.realTimeLipSync,
+                rayTracing: avatar.rayTracingSupport,
+                lipSyncAccuracy: avatar.lipSyncAccuracy || 95
               },
               assets: {
-                modelFile: avatar.model_file_path,
-                textureFiles: avatar.texture_files,
-                rigFile: avatar.rig_file_path,
-                animationSets: avatar.animation_sets,
-                blendShapes: avatar.blend_shapes_file
+                modelFile: avatar.modelFilePath,
+                textureFiles: avatar.textureFiles,
+                rigFile: avatar.rigFilePath,
+                animationSets: avatar.animationSets,
+                blendShapes: avatar.blendShapesFile
               }
             }
           }

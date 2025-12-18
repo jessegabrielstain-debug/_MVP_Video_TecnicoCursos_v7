@@ -257,12 +257,8 @@ class WebhookTrigger {
             }
           })
 
-          // In a real system, we would push this to a queue (BullMQ).
-          // Here we will simulate a "fire and forget" or simple async execution
-          // But since we are "real", we should probably try to send it or queue it.
-          // Given the context of "ProcessingQueue" existing, maybe we should use it?
-          // For now, I'll implement a simple immediate send to satisfy the interface.
-          
+          // Enviar webhook de forma assíncrona (fire and forget)
+          // Em produção, isso poderia ser melhorado com uma fila (BullMQ) para retry e rate limiting
           this.sendWebhook(webhook as unknown as PrismaWebhook, delivery as unknown as PrismaWebhookDelivery, event, payload).catch(err => {
             logger.error('Background webhook delivery failed', err as Error, { deliveryId: delivery.id })
           })

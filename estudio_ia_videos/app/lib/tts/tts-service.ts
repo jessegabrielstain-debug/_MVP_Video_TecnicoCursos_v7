@@ -31,20 +31,61 @@ export const synthesizeToFile = async (options: TTSOptions): Promise<TTSResult> 
     throw new Error('Text is required and must be a string');
   }
 
-  // Estimativa de duração baseada em palavras (média 150 palavras/minuto)
-  const words = options.text.trim().split(/\s+/).length;
-  const duration = Math.max(1, Math.round((words / 150) * 60));
+  // Usar serviço unificado de TTS com fallbacks automáticos
+  const { unifiedTTSService } = await import('../tts/unified-tts-service');
+  const { createClient } = await import('@supabase/supabase-js');
+  
+  const result = await unifiedTTSService.synthesize({
+    text: options.text,
+    voiceId: options.voiceId,
+    format: options.format || 'mp3',
+    provider: 'auto' // Usa fallback automático
+  });
 
-  // Simulação de geração (fallback para ambiente de teste)
-  const fileExtension = options.format ?? 'mp3';
-  const fileUrl = `https://test-bucket.s3.amazonaws.com/tts/${randomUUID()}.${fileExtension}`;
-  const voiceId = options.voiceId || 'pt-BR-Neural2-A';
+  // Upload para Supabase Storage ou retornar como data URL
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  let fileUrl: string;
+  
+  if (supabaseUrl && supabaseServiceKey) {
+    try {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const fileName = `${randomUUID()}.${result.format}`;
+      const filePath = `tts/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('assets')
+        .upload(filePath, result.audioBuffer, {
+          contentType: `audio/${result.format}`,
+          upsert: true
+        });
+      
+      if (uploadError) {
+        throw uploadError;
+      }
+      
+      const { data: publicUrlData } = supabase.storage
+        .from('assets')
+        .getPublicUrl(filePath);
+      
+      fileUrl = publicUrlData.publicUrl;
+    } catch (storageError) {
+      // Fallback para data URL se storage falhar
+      const audioBase64 = result.audioBuffer.toString('base64');
+      fileUrl = `data:audio/${result.format};base64,${audioBase64}`;
+    }
+  } else {
+    // Usar data URL se Supabase não estiver configurado
+    const audioBase64 = result.audioBuffer.toString('base64');
+    fileUrl = `data:audio/${result.format};base64,${audioBase64}`;
+  }
 
   return {
     fileUrl,
-    duration,
-    voiceId,
-    format: fileExtension,
+    duration: Math.round(result.duration),
+    voiceId: options.voiceId || 'default',
+    format: result.format,
   };
 };
 

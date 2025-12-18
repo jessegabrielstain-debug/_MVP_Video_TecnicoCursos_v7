@@ -41,54 +41,37 @@ export class EnhancedTTSService {
     const filePath = path.join(tempDir, fileName);
 
     try {
-      // Use edge-tts (free, no key required) via CLI
-      // Command: edge-tts --text "Hello" --write-media hello.mp3 --voice pt-BR-AntonioNeural
+      // Usar serviço unificado de TTS com fallbacks automáticos
+      const { unifiedTTSService } = await import('./tts/unified-tts-service');
       
-      // Note: edge-tts doesn't support speed/pitch directly in CLI flags easily without SSML, 
-      // but for MVP we stick to basic text.
-      // If speed is needed, we might need to use --rate="+10%" etc.
-      
-      let rateArg = '';
-      if (speed !== 1.0) {
-        const ratePercent = Math.round((speed - 1.0) * 100);
-        const sign = ratePercent >= 0 ? '+' : '';
-        rateArg = `--rate="${sign}${ratePercent}%"`;
-      }
+      const result = await unifiedTTSService.synthesize({
+        text,
+        voiceId: voice,
+        format,
+        speed,
+        pitch,
+        provider: 'auto' // Usa fallback automático: ElevenLabs → Azure → Google → Edge-TTS
+      });
 
-      const command = `edge-tts --text "${text.replace(/"/g, '\\"')}" --write-media "${filePath}" --voice ${voice} ${rateArg}`;
-      
-      logger.info(`[TTS] Executing: ${command}`, { component: 'EnhancedTtsService' });
-      await execPromise(command);
+      logger.info(`✅ TTS gerado com sucesso usando ${result.provider}`, { 
+        component: 'EnhancedTtsService',
+        provider: result.provider,
+        duration: result.duration 
+      });
 
-      if (fs.existsSync(filePath)) {
-        const buffer = fs.readFileSync(filePath);
-        
-        // Estimate duration
-        const wordCount = text.split(' ').length;
-        const estimatedDuration = Math.max(1, wordCount / (2.5 * speed));
-
-        // Cleanup
-        try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
-
-        return {
-          audioBuffer: buffer,
-          duration: estimatedDuration,
-          format,
-        };
-      } else {
-        throw new Error('TTS output file not found');
-      }
+      return {
+        audioBuffer: result.audioBuffer,
+        duration: result.duration,
+        format: result.format,
+      };
 
     } catch (error) {
-      logger.error('[TTS] Error using edge-tts:', error instanceof Error ? error : new Error(String(error)), { component: 'EnhancedTtsService' });
-      logger.warn('[TTS] Falling back to mock buffer due to error.', { component: 'EnhancedTtsService' });
+      logger.error('[TTS] Erro ao gerar TTS com todos os providers', error instanceof Error ? error : new Error(String(error)), { 
+        component: 'EnhancedTtsService' 
+      });
       
-      // Fallback to mock if edge-tts fails (e.g. not installed)
-      return {
-        audioBuffer: Buffer.from('mock-audio-data'),
-        duration: text.length / 10,
-        format,
-      };
+      // Em caso de falha total, lançar erro em vez de retornar mock
+      throw new Error(`Falha ao gerar TTS: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   }
   

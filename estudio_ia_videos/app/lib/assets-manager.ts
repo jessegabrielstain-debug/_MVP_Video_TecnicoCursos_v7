@@ -5,6 +5,9 @@
  * Integração com Unsplash, Freesound e uploads locais
  */
 
+import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
+
 export interface AssetItem {
   id: string;
   title: string;
@@ -66,144 +69,253 @@ export const SEARCH_PRESETS = {
 };
 
 class AssetsManager {
-  private mockAssets: AssetItem[] = [
-    {
-      id: 'img-1',
-      title: 'Modern Office',
-      type: 'image',
-      url: 'https://images.unsplash.com/photo-1497366216548-37526070297c',
-      thumbnailUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=300',
-      source: 'unsplash',
-      category: 'business',
-      tags: ['office', 'modern', 'work'],
-      license: 'free',
-      width: 1920,
-      height: 1080,
-      favorites: 120,
-      author: { name: 'Unsplash' }
-    },
-    {
-      id: 'audio-1',
-      title: 'Corporate Upbeat',
-      type: 'audio',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      source: 'freesound',
-      category: 'music',
-      tags: ['corporate', 'upbeat', 'background'],
-      license: 'royalty-free',
-      duration: 120,
-      favorites: 45,
-      author: { name: 'AudioLib' }
-    }
-  ];
+  /**
+   * Buscar assets no banco de dados e APIs externas
+   */
+  async searchAll(query: string, filters?: SearchFilters, userId?: string): Promise<AssetItem[]> {
+    try {
+      // Construir condições de busca
+      const where: any = {
+        OR: [
+          { name: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+          { tags: { hasSome: [query] } }
+        ]
+      };
 
-  private mockCollections: AssetCollection[] = [
-    {
-      id: 'col-1',
-      name: 'Business Essentials',
-      description: 'Imagens e ícones para apresentações corporativas',
-      assetsCount: 24,
-      isSystem: true
-    },
-    {
-      id: 'col-2',
-      name: 'Nature Backgrounds',
-      description: 'Paisagens naturais em alta resolução',
-      assetsCount: 15,
-      isSystem: true
-    }
-  ];
+      // Aplicar filtros
+      if (filters?.type) {
+        where.type = filters.type;
+      }
+      if (filters?.category) {
+        where.category = filters.category;
+      }
+      if (filters?.license && filters.license !== 'all') {
+        where.license = filters.license;
+      }
 
-  private userFavorites: Set<string> = new Set();
+      // Buscar apenas assets públicos ou do usuário
+      if (userId) {
+        where.OR = [
+          { isPublic: true },
+          { userId }
+        ];
+      } else {
+        where.isPublic = true;
+      }
 
-  async searchAll(query: string, filters?: SearchFilters): Promise<AssetItem[]> {
-    // Simulação de busca
-    // Em produção, chamaria APIs reais (Unsplash, Freesound, DB local)
-    console.log(`Searching for "${query}" with filters:`, filters);
-    
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const results = this.mockAssets.filter(asset => 
-          asset.title.toLowerCase().includes(query.toLowerCase()) ||
-          asset.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()))
-        );
-        
-        // Se não encontrar nada, retorna mocks genéricos para não ficar vazio na demo
-        if (results.length === 0) {
-          resolve(this.generateMockResults(query, filters?.type));
-        } else {
-          resolve(results);
-        }
-      }, 500);
-    });
-  }
-
-  private generateMockResults(query: string, type?: string): AssetItem[] {
-    const count = 8;
-    const results: AssetItem[] = [];
-    const assetType = type || 'image';
-    
-    for (let i = 0; i < count; i++) {
-      results.push({
-        id: `mock-${Date.now()}-${i}`,
-        title: `${query} ${i + 1}`,
-        type: assetType as AssetItem['type'],
-        url: assetType === 'image' 
-          ? `https://source.unsplash.com/random/800x600?${encodeURIComponent(query)}&sig=${i}`
-          : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-        thumbnailUrl: assetType === 'image'
-          ? `https://source.unsplash.com/random/300x200?${encodeURIComponent(query)}&sig=${i}`
-          : undefined,
-        source: 'unsplash',
-        tags: [query, 'mock', 'demo'],
-        license: 'free',
-        favorites: Math.floor(Math.random() * 100),
-        width: 1920,
-        height: 1080,
-        duration: assetType === 'audio' ? 120 : undefined
+      // Buscar no banco de dados
+      const dbAssets = await prisma.asset.findMany({
+        where,
+        take: 50,
+        orderBy: { favorites: 'desc' }
       });
+
+      // Converter para formato AssetItem
+      const results: AssetItem[] = dbAssets.map(asset => ({
+        id: asset.id,
+        title: asset.name,
+        type: asset.type as AssetItem['type'],
+        url: asset.url,
+        thumbnailUrl: asset.thumbnailUrl || undefined,
+        source: asset.provider as AssetItem['source'],
+        category: asset.category || undefined,
+        tags: asset.tags,
+        license: asset.license as AssetItem['license'],
+        width: asset.width || undefined,
+        height: asset.height || undefined,
+        duration: asset.duration || undefined,
+        size: asset.size ? Number(asset.size) : undefined,
+        favorites: asset.favorites,
+        metadata: asset.metadata as Record<string, unknown> | undefined
+      }));
+
+      logger.info('Busca de assets realizada', { query, resultsCount: results.length, component: 'AssetsManager' });
+
+      return results;
+    } catch (error) {
+      logger.error('Erro ao buscar assets', error instanceof Error ? error : new Error(String(error)), {
+        query,
+        component: 'AssetsManager'
+      });
+      return [];
     }
-    return results;
   }
 
-  async getAllCollections(): Promise<AssetCollection[]> {
-    return Promise.resolve(this.mockCollections);
+  /**
+   * Buscar todas as coleções
+   */
+  async getAllCollections(userId?: string): Promise<AssetCollection[]> {
+    try {
+      const where: any = {
+        OR: [
+          { isSystem: true }
+        ]
+      };
+
+      if (userId) {
+        where.OR.push({ userId });
+      }
+
+      const collections = await prisma.assetCollection.findMany({
+        where,
+        orderBy: { createdAt: 'desc' }
+      });
+
+      return collections.map(col => ({
+        id: col.id,
+        name: col.name,
+        description: col.description || undefined,
+        coverImage: col.coverImage || undefined,
+        assetsCount: col.assetsCount,
+        isSystem: col.isSystem,
+        userId: col.userId || undefined
+      }));
+    } catch (error) {
+      logger.error('Erro ao buscar coleções', error instanceof Error ? error : new Error(String(error)), {
+        component: 'AssetsManager'
+      });
+      return [];
+    }
   }
 
+  /**
+   * Obter favoritos do usuário
+   */
   async getFavorites(userId: string): Promise<string[]> {
-    return Promise.resolve(Array.from(this.userFavorites));
+    try {
+      const favorites = await prisma.assetFavorite.findMany({
+        where: { userId },
+        select: { assetId: true }
+      });
+
+      return favorites.map(fav => fav.assetId);
+    } catch (error) {
+      logger.error('Erro ao buscar favoritos', error instanceof Error ? error : new Error(String(error)), {
+        userId,
+        component: 'AssetsManager'
+      });
+      return [];
+    }
   }
 
+  /**
+   * Adicionar aos favoritos
+   */
   async addToFavorites(assetId: string, userId: string): Promise<void> {
-    this.userFavorites.add(assetId);
-    return Promise.resolve();
+    try {
+      await prisma.assetFavorite.upsert({
+        where: {
+          assetId_userId: {
+            assetId,
+            userId
+          }
+        },
+        create: {
+          assetId,
+          userId
+        },
+        update: {}
+      });
+
+      // Incrementar contador de favoritos
+      await prisma.asset.update({
+        where: { id: assetId },
+        data: { favorites: { increment: 1 } }
+      });
+    } catch (error) {
+      logger.error('Erro ao adicionar favorito', error instanceof Error ? error : new Error(String(error)), {
+        assetId,
+        userId,
+        component: 'AssetsManager'
+      });
+      throw error;
+    }
   }
 
+  /**
+   * Remover dos favoritos
+   */
   async removeFromFavorites(assetId: string, userId: string): Promise<void> {
-    this.userFavorites.delete(assetId);
-    return Promise.resolve();
+    try {
+      await prisma.assetFavorite.deleteMany({
+        where: {
+          assetId,
+          userId
+        }
+      });
+
+      // Decrementar contador de favoritos
+      await prisma.asset.update({
+        where: { id: assetId },
+        data: { favorites: { decrement: 1 } }
+      });
+    } catch (error) {
+      logger.error('Erro ao remover favorito', error instanceof Error ? error : new Error(String(error)), {
+        assetId,
+        userId,
+        component: 'AssetsManager'
+      });
+      throw error;
+    }
   }
 
-  async uploadCustomAsset(file: File, data: Partial<AssetItem>): Promise<AssetItem> {
-    // Simulação de upload
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newAsset: AssetItem = {
-          id: data.id || `custom-${Date.now()}`,
-          title: data.title || file.name,
-          type: data.type || (file.type.startsWith('image/') ? 'image' : 'audio'),
-          url: data.url || URL.createObjectURL(file),
-          source: 'custom',
+  /**
+   * Upload de asset customizado
+   */
+  async uploadCustomAsset(file: File, data: Partial<AssetItem>, userId?: string): Promise<AssetItem> {
+    try {
+      // TODO: Upload real do arquivo para S3/Supabase Storage
+      // Por enquanto, assume que a URL já foi gerada
+      const assetType = data.type || (file.type.startsWith('image/') ? 'image' : 
+                                      file.type.startsWith('video/') ? 'video' : 
+                                      file.type.startsWith('audio/') ? 'audio' : 'template');
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: data.title || file.name,
+          description: data.metadata?.description as string || undefined,
+          type: assetType,
+          url: data.url || '', // Deve ser preenchido após upload
+          thumbnailUrl: data.thumbnailUrl || undefined,
+          license: data.license || 'royalty-free',
+          provider: 'custom',
+          tags: data.tags || ['upload', 'custom'],
           category: data.category || 'custom',
-          tags: ['upload', 'custom'],
-          license: 'royalty-free',
-          favorites: 0,
-          size: file.size
-        };
-        this.mockAssets.unshift(newAsset);
-        resolve(newAsset);
-      }, 1000);
-    });
+          width: data.width,
+          height: data.height,
+          duration: data.duration,
+          size: data.size ? BigInt(data.size) : BigInt(file.size),
+          userId: userId || undefined,
+          isPublic: false,
+          metadata: data.metadata || {}
+        }
+      });
+
+      return {
+        id: asset.id,
+        title: asset.name,
+        type: asset.type as AssetItem['type'],
+        url: asset.url,
+        thumbnailUrl: asset.thumbnailUrl || undefined,
+        source: asset.provider as AssetItem['source'],
+        category: asset.category || undefined,
+        tags: asset.tags,
+        license: asset.license as AssetItem['license'],
+        width: asset.width || undefined,
+        height: asset.height || undefined,
+        duration: asset.duration || undefined,
+        size: asset.size ? Number(asset.size) : undefined,
+        favorites: asset.favorites,
+        metadata: asset.metadata as Record<string, unknown> | undefined
+      };
+    } catch (error) {
+      logger.error('Erro ao fazer upload de asset', error instanceof Error ? error : new Error(String(error)), {
+        fileName: file.name,
+        component: 'AssetsManager'
+      });
+      throw error;
+    }
   }
 }
 

@@ -34,40 +34,38 @@ export async function synthesizeToFile(options: SynthesizeOptions): Promise<Synt
   const publicUrl = `/tts-audio/${fileName}`;
 
   try {
-      // Use edge-tts (free, no key required) via CLI if available, or fallback to mock
-      // To use this, user needs: pip install edge-tts
-      // Command: edge-tts --text "Hello" --write-media hello.mp3 --voice pt-BR-AntonioNeural
+      // Usar serviço unificado de TTS com fallbacks automáticos
+      const { unifiedTTSService } = await import('./tts/unified-tts-service');
       
-      const voice = options.voiceId || 'pt-BR-AntonioNeural';
-      const command = `edge-tts --text "${options.text.replace(/"/g, '\\"')}" --write-media "${filePath}" --voice ${voice}`;
+      const result = await unifiedTTSService.synthesize({
+        text: options.text,
+        voiceId: options.voiceId,
+        format: options.format || 'mp3',
+        provider: 'auto' // Usa fallback automático
+      });
+
+      // Salvar arquivo no diretório público
+      fs.writeFileSync(filePath, result.audioBuffer);
       
-      logger.info(`Executing TTS command: ${command}`, { component: 'TtsServiceReal' });
-      await execPromise(command);
-      
-      // Get duration (mocked for now as getting duration from mp3 requires another lib like mp3-duration or ffprobe)
-      // In a real scenario we would use ffprobe here.
-      // Let's estimate: ~150 words per minute -> 2.5 words per second.
-      const wordCount = options.text.split(' ').length;
-      const estimatedDuration = Math.max(2, wordCount / 2.5); // seconds
+      logger.info(`✅ TTS gerado com sucesso usando ${result.provider}`, { 
+        component: 'TtsServiceReal',
+        provider: result.provider,
+        duration: result.duration 
+      });
 
       return {
         fileUrl: publicUrl,
-        duration: estimatedDuration,
+        duration: result.duration,
         filePath: filePath
       };
 
   } catch (error) {
-      logger.warn('Edge-TTS failed or not installed, falling back to mock.', { component: 'TtsServiceReal', error });
+      logger.error('❌ Falha ao gerar TTS com todos os providers', error instanceof Error ? error : new Error(String(error)), { 
+        component: 'TtsServiceReal' 
+      });
       
-      // Fallback: Create a silent or dummy file so the system doesn't crash
-      // For now, we just return the mock data but without creating a real file (which might break ffmpeg later)
-      // Ideally we should copy a "silence.mp3" to the target path.
-      
-      return {
-        fileUrl: publicUrl,
-        duration: options.text.length * 0.1, 
-        filePath: filePath // File won't exist!
-      };
+      // Em caso de falha total, lançar erro em vez de retornar mock
+      throw new Error(`Falha ao gerar TTS: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
   }
 }
 

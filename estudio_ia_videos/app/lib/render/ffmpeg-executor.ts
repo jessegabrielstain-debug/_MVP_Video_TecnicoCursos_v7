@@ -190,7 +190,14 @@ export class FFmpegExecutor {
 
     // Flags de otimização
     args.push('-movflags', '+faststart'); // Para streaming
-    args.push('-threads', '0'); // Usar todos os cores
+    // Otimizar uso de threads baseado em CPU disponível
+    const cpuCount = require('os').cpus().length;
+    const threadCount = Math.max(1, Math.floor(cpuCount * 0.75)); // Usar 75% dos cores disponíveis
+    args.push('-threads', String(threadCount));
+    
+    // Otimizações adicionais para performance
+    args.push('-strict', '-2'); // Permitir codecs experimentais se necessário
+    args.push('-fflags', '+genpts'); // Gerar PTS se ausente
 
     // Output
     args.push('-y'); // Sobrescrever arquivo existente

@@ -100,38 +100,74 @@ export class AzureTTSProvider {
     });
   }
 
-  async textToSpeech(text: string, voiceId: string): Promise<Buffer> {
-    // This would use the SDK to synthesize speech
-    // For now, we'll throw if SDK is not available or return a mock buffer
-    // The test mocks the SDK, so we need to use the SDK classes if they are available
-    
-    // Since we are in a Node environment, we assume the SDK is installed or mocked
-    // But for this file creation, I'll write the code assuming the SDK is present
-    
-    const speechConfig = sdk.SpeechConfig.fromSubscription(this.subscriptionKey, this.region);
-    speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio16Khz128KBitRateMonoMp3;
-    speechConfig.speechSynthesisVoiceName = voiceId;
+  async textToSpeech(text: string, voiceId: string, options?: { speed?: number; pitch?: number }): Promise<Buffer> {
+    try {
+      const speechConfig = sdk.SpeechConfig.fromSubscription(this.subscriptionKey, this.region);
+      speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3;
+      
+      // Se há opções de velocidade ou pitch, usar SSML
+      if (options?.speed || options?.pitch) {
+        const speedRate = options.speed ? `${options.speed}x` : '1.0x';
+        const pitchValue = options.pitch ? `${options.pitch > 0 ? '+' : ''}${options.pitch}Hz` : '+0Hz';
+        
+        const ssml = `
+          <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="pt-BR">
+            <voice name="${voiceId}">
+              <prosody rate="${speedRate}" pitch="${pitchValue}">
+                ${this.escapeXml(text)}
+              </prosody>
+            </voice>
+          </speak>
+        `;
+        
+        const synthesizer = new sdk.SpeechSynthesizer(speechConfig, null);
+        
+        return new Promise((resolve, reject) => {
+          synthesizer.speakSsmlAsync(
+            ssml,
+            (result) => {
+              if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+                const audioData = Buffer.from(result.audioData);
+                synthesizer.close();
+                resolve(audioData);
+              } else {
+                synthesizer.close();
+                reject(new Error(`Azure TTS failed: ${result.errorDetails || 'Unknown error'}`));
+              }
+            },
+            (error) => {
+              synthesizer.close();
+              reject(error);
+            }
+          );
+        });
+      } else {
+        // Usar texto simples se não há opções especiais
+        speechConfig.speechSynthesisVoiceName = voiceId;
+        const synthesizer = new sdk.SpeechSynthesizer(speechConfig, null);
 
-    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
-
-    return new Promise((resolve, reject) => {
-      synthesizer.speakTextAsync(
-        text,
-        (result) => {
-          if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-            const audioData = Buffer.from(result.audioData);
-            synthesizer.close();
-            resolve(audioData);
-          } else {
-            synthesizer.close();
-            reject(new Error(`Azure TTS failed: ${result.errorDetails}`));
-          }
-        },
-        (error) => {
-          synthesizer.close();
-          reject(error);
-        }
-      );
-    });
+        return new Promise((resolve, reject) => {
+          synthesizer.speakTextAsync(
+            text,
+            (result) => {
+              if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+                const audioData = Buffer.from(result.audioData);
+                synthesizer.close();
+                resolve(audioData);
+              } else {
+                synthesizer.close();
+                reject(new Error(`Azure TTS failed: ${result.errorDetails || 'Unknown error'}`));
+              }
+            },
+            (error) => {
+              synthesizer.close();
+              reject(error);
+            }
+          );
+        });
+      }
+    } catch (error) {
+      throw new Error(`Azure TTS error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }

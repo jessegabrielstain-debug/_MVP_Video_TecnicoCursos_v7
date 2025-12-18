@@ -1,4 +1,3 @@
-// TODO: Add timeline_elements and timeline_tracks tables to Supabase types
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseForRequest } from '@/lib/supabase/server'
 import { z } from 'zod'

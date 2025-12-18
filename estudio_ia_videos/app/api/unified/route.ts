@@ -1,4 +1,3 @@
-// TODO: Fix Prisma types
 /**
  * 🚀 API GATEWAY UNIFICADO - Estúdio IA de Vídeos
  * Coordena todos os módulos em um fluxo único e contínuo
@@ -41,7 +40,8 @@ const ProjectUpdateSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const userId = (session?.user as { id?: string })?.id
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const userId = (session?.user as { id?: string })?.id
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
             tags: [],
             customFields: {},
             version: '1.0',
-            lastEditedBy: session.user.id,
+            lastEditedBy: userId,
             collaborators: [],
             permissions: {},
             exportFormats: [],
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
             analyticsData: {}
         },
         status: 'DRAFT',
-        userId: session.user.id,
+        userId: userId,
         description: '',
         originalFileName: '',
         thumbnailUrl: '',
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Criar workflow unificado
-    const workflow = await workflowManager.createWorkflow(project.id, session.user.id)
+    const workflow = await workflowManager.createWorkflow(project.id, userId)
 
     // Auto-iniciar importação se houver dados
     if (validatedData.source.data) {
@@ -135,7 +136,8 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const userId = (session?.user as { id?: string })?.id
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -145,7 +147,7 @@ export async function PUT(request: NextRequest) {
     const project = await prisma.project.findFirst({
       where: {
         id: validatedData.id,
-        userId: session.user.id
+        userId: userId
       }
     })
 
@@ -194,7 +196,8 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const userId = (session?.user as { id?: string })?.id
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -208,7 +211,7 @@ export async function DELETE(request: NextRequest) {
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
-        userId: session.user.id
+        userId: userId
       }
     })
 

@@ -1,4 +1,3 @@
-// TODO: Fix timeline multi-track types
 /**
  * 🎬 Timeline Restore API - Rollback to Previous Versions
  * Sprint 43 - Timeline version restore
@@ -18,7 +17,8 @@ import { toJsonValue } from '@/lib/prisma-helpers';
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const userId = (session?.user as { id?: string })?.id;
+    if (!userId) {
       return NextResponse.json(
         { success: false, message: 'Não autorizado' },
         { status: 401 }
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user has access
-    if (snapshot.timeline.project.userId !== session.user.id) {
+    if (snapshot.timeline.project.userId !== userId) {
       return NextResponse.json(
         { success: false, message: 'Acesso negado' },
         { status: 403 }
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         tracks: toJsonValue(currentTimeline.tracks ?? []),
         settings: toJsonValue(currentTimeline.settings ?? {}),
         totalDuration: currentTimeline.totalDuration || 0,
-        createdBy: session.user.id,
+        createdBy: userId,
         description: `Auto-backup antes de restaurar v${snapshot.version}`,
       },
     });
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     // Track analytics
     await AnalyticsTracker.trackTimelineEdit({
-      userId: session.user.id,
+      userId: userId,
       projectId: snapshot.timeline.projectId,
       action: 'restore',
       trackCount: Array.isArray(snapshot.tracks) ? snapshot.tracks.length : 0,

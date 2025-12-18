@@ -119,12 +119,13 @@ export class AvatarEngine {
       let audioBuffer: Buffer;
       if (audioUrl.startsWith('http')) {
         const response = await fetch(audioUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch audio from URL: ${audioUrl}`);
+        }
         const arrayBuffer = await response.arrayBuffer();
         audioBuffer = Buffer.from(arrayBuffer);
       } else {
-        // Fallback for local paths or data URIs if needed, or keep mock for testing if URL is invalid
-        logger.warn('Invalid audio URL for lip sync, using mock data', { component: 'AvatarEngine', audioUrl });
-        audioBuffer = Buffer.from('mock-audio-data');
+        throw new Error(`Invalid audio URL for lip sync: ${audioUrl}. Only HTTP/HTTPS URLs are supported.`);
       }
 
       const result = await audio2FaceService.processAudio(sessionId, audioBuffer, {

@@ -1,6 +1,6 @@
-// TODO: Fix ~lib alias and imports
 import { NextResponse } from 'next/server'
-import { getSupabaseForRequest, logger } from '@/lib/services'
+import { getSupabaseForRequest } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 import { getMetricsSnapshot } from '@/lib/utils/metrics'
 
 export async function GET(req: Request) {

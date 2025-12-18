@@ -1,5 +1,3 @@
-// TODO: Fix possibly undefined assets/timeline
-
 /**
  * 🔧 Enhanced PPTX Processing API - Production
  * Usa o parser real para processar arquivos PPTX do S3
@@ -35,7 +33,7 @@ export async function POST(request: NextRequest) {
       component: 'API: v1/pptx/enhanced-process',
       slides: result.slides.length,
       elements: result.slides.reduce((acc: number, slide: { elements?: unknown[] }) => acc + (slide.elements?.length || 0), 0),
-      assets: (result.assets?.images.length || 0) + (result.assets?.videos.length || 0) + (result.assets?.audio.length || 0),
+      assets: (result.assets?.images?.length || 0) + (result.assets?.videos?.length || 0) + (result.assets?.audio?.length || 0),
       duration: result.timeline?.totalDuration || 0,
       compliance: result.compliance?.score
     });
@@ -46,7 +44,7 @@ export async function POST(request: NextRequest) {
       statistics: {
         processedSlides: result.slides.length,
         totalElements: result.slides.reduce((acc: number, slide: { elements?: unknown[] }) => acc + (slide.elements?.length || 0), 0),
-        totalAssets: (result.assets?.images.length || 0) + (result.assets?.videos.length || 0) + (result.assets?.audio.length || 0),
+        totalAssets: (result.assets?.images?.length || 0) + (result.assets?.videos?.length || 0) + (result.assets?.audio?.length || 0),
         estimatedDuration: result.timeline?.totalDuration || 0,
         complianceScore: result.compliance?.score || 0
       },

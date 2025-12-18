@@ -1,4 +1,3 @@
-// TODO: Fix v2 API types
 /**
  * 🎬 API v2: Avatar Render
  * Pipeline de renderização hiper-realista com Audio2Face
@@ -12,7 +11,7 @@ import { supabaseClient } from '../../../../lib/supabase'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { logger } from '@/lib/logger';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
 
 const rateLimiterPost = createRateLimiter(rateLimitPresets.render);
 export async function POST(request: NextRequest) {
@@ -50,15 +49,15 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Verificar se avatar existe no Supabase (avatar_models pode não existir no schema tipado)
-    const { data: avatar, error: avatarError } = await (supabaseClient
-      .from('avatar_models' as never) as ReturnType<typeof supabaseClient.from>)
-      .select('*')
-      .eq('id', avatarId)
-      .eq('is_active', true)
-      .single()
+    // Verificar se avatar existe no Prisma
+    const avatar = await prisma.avatarModel.findUnique({
+      where: { 
+        id: avatarId,
+        isActive: true
+      }
+    })
 
-    if (avatarError || !avatar) {
+    if (!avatar) {
       return NextResponse.json({
         success: false,
         error: {
@@ -126,19 +125,17 @@ export async function POST(request: NextRequest) {
 
     logger.info(`✅ Renderização iniciada - Job ID: ${renderResult.jobId}`, { component: 'API: v2/avatars/render' })
 
-    // Type avatar data from Supabase (tabela pode ter estrutura diferente do schema)
-    const avatarData = avatar as Record<string, unknown>
     const response = {
       success: true,
       data: {
         jobId: renderResult.jobId,
         status: renderResult.status,
         avatar: {
-          id: avatarData.id,
-          name: avatarData.name,
-          displayName: avatarData.display_name,
-          category: avatarData.category,
-          audio2FaceCompatible: avatarData.audio2face_compatible
+          id: avatar.id,
+          name: avatar.name,
+          displayName: avatar.displayName,
+          category: avatar.category,
+          audio2FaceCompatible: avatar.audio2FaceCompatible
         },
         render: {
           animation,
